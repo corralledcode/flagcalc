@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.28)
+project(flagcalc)
+
+set(CMAKE_CXX_STANDARD 23)
+
+add_executable(flagcalc main.cpp
+        graphs.cpp
+        graphs.h
+        db.cpp
+        db.h)

@@ -1,0 +1,61 @@
+//
+// Created by peterglenn on 6/6/24.
+//
+
+#ifndef GRAPHS_H
+#define GRAPHS_H
+#include <ostream>
+
+using vertextype = int;
+
+
+struct graph {
+    vertextype dim;
+    bool* adjacencymatrix;
+};
+
+struct neighbors {
+    graph g;
+    vertextype* neighborslist;
+    int* degrees;
+    int maxdegree;
+};
+
+struct FP {
+    vertextype v;
+    FP* ns; //neighbors
+    int nscnt;  // note differs from parent's neighbor count because we are only considering non repeating walks
+    FP* parent = nullptr;
+};
+
+int cmpwalk( neighbors ns, FP w1, FP w2 );
+
+
+int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 );
+
+void sortneighbors( neighbors ns, FP* fps, int fpscnt );
+
+void takefingerprint( neighbors ns, FP* fps, int fpscnt );
+
+void freefps( FP* fps, int fpscnt );
+
+neighbors computeneighborslist( graph g );
+
+void sortneighborslist( neighbors* nsptr );
+
+int seqtoindex( vertextype* seq, const int idx, const int sz );
+
+bool isiso( graph g1, graph g2, vertextype* map );
+
+bool areisomorphic( graph g1, graph g2 );
+
+void osfingerprint( std::ostream &os, neighbors ns, FP* fps, int fpscnt );
+
+void osadjacencymatrix( std::ostream &os, graph g );
+
+void osneighbors( std::ostream &os, neighbors ns );
+
+
+
+
+#endif //GRAPHS_H
