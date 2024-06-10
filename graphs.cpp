@@ -50,6 +50,15 @@ int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consid
         return -1;
 */
     // ... and otherwise ...
+    if (w1.nscnt == 3) {
+        if ((ns1.degrees[w1.ns[0].v] == 1) && (ns1.degrees[w1.ns[1].v] == 2) && (ns1.degrees[w1.ns[2].v] == 3)) {
+            if (w2.nscnt == 3) {
+                if ((ns2.degrees[w2.ns[0].v] == 1) && (ns2.degrees[w2.ns[1].v] == 2) && (ns2.degrees[w2.ns[2].v] == 3)) {
+                    std::cout << "Found\n";
+                }
+            }
+        }
+    }
     for (int n = 0; (n < w1.nscnt) && (n < w2.nscnt); ++n) {
         if (ns1.degrees[w1.ns[n].v] < ns2.degrees[w2.ns[n].v]) {
             return 1;
@@ -59,14 +68,22 @@ int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consid
             }
         }
     }
+
     if (w1.nscnt < w2.nscnt) {
-        return 1;
+        return -1;
     } else {
         if (w1.nscnt > w2.nscnt) {
-            return -1;
+            return 1;
         }
     }
-    return 0;
+
+    int n = 0;
+    int res = 0;
+    while ((res == 0) && (n < w1.nscnt)) {
+        res = FPcmp(ns1,ns2,w1.ns[n],w2.ns[n]);
+        n++;
+    }
+    return res;
 }
 
 void sortneighbors( neighbors ns, FP* fps, int fpscnt ) {
@@ -105,12 +122,16 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
         sizeofdegree[d] = 0;
         //std::cout << "d == " << d << " \n";
         for (int vidx = 0; vidx < fpscnt; ++vidx) {
-            if (ns.degrees[fps[vidx].v] == d) {
-                bool dupe = false;
+            int deg = ns.degrees[fps[vidx].v];
+            if (deg == d) {
+                ++sizeofdegree[d];
                 FP* parent = fps[vidx].parent;
-                while (!dupe && parent != nullptr) {
+                if (parent != nullptr)
+                    deg--;
+                bool dupe = false;
+                while (!dupe && (parent != nullptr)) {
                     //std::cout << "Checking dupes: fps[vidx].v == " << fps[vidx].v << ", parent->v == " << parent->v << "\n";
-                    dupe = dupe || parent->v == fps[vidx].v;
+                    dupe = dupe || (parent->v == fps[vidx].v);
                     parent = parent->parent;
                 }
                 //std::cout << "vidx == " << vidx << ", dupe == " << dupe << "\n";
@@ -118,17 +139,33 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
                     fps[vidx].ns = nullptr;
                     fps[vidx].nscnt = 0;
                 } else {
-                    fps[vidx].nscnt = ns.degrees[fps[vidx].v];
-                    fps[vidx].ns = (FP*)malloc(fps[vidx].nscnt*sizeof(FP));
-                    for (int n = 0; n < fps[vidx].nscnt; ++n) {
-                        fps[vidx].ns[n].parent = &(fps[vidx]);
-                        fps[vidx].ns[n].v = ns.neighborslist[ns.g.dim*fps[vidx].v + n];
-                        fps[vidx].ns[n].ns = nullptr;
-                        fps[vidx].ns[n].nscnt = 0;
+                    int tmpn = 0;
+                    vertextype parentv;
+                    if (fps[vidx].parent != nullptr) {
+                        parentv = fps[vidx].parent->v;
+                    } else {
+                        parentv = -1;
                     }
-                    takefingerprint( ns, fps[vidx].ns, fps[vidx].nscnt );
+                    if (deg > 0) {
+                        fps[vidx].nscnt = deg;
+                        fps[vidx].ns = (FP*)malloc(deg*sizeof(FP));
+                        for (int n = 0; n < ns.degrees[fps[vidx].v]; ++n) {
+                            vertextype nv = ns.neighborslist[ns.g.dim*fps[vidx].v + n];
+                            if (nv != parentv) {
+                                fps[vidx].ns[tmpn].parent = &(fps[vidx]);
+                                fps[vidx].ns[tmpn].v = nv;
+                                fps[vidx].ns[tmpn].ns = nullptr;
+                                fps[vidx].ns[tmpn].nscnt = 0;
+                                ++tmpn;
+                            }
+                        }
+                        takefingerprint( ns, fps[vidx].ns, tmpn );
+                    } else {
+                        fps[vidx].ns = nullptr;
+                        fps[vidx].nscnt = 0;
+                    }
                 }
-                ++sizeofdegree[d];
+                //++sizeofdegree[d];
                 sorted[idx] = fps[vidx];
                 ++idx;
             }
@@ -142,9 +179,11 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
         for (int j = 0; j < sizeofdegree[i]; ++j) {
             fps2[j] = sorted[startidx + j];
         }
+        sortneighbors( ns, fps2, sizeofdegree[i] );
+        for (int j = 0; j < sizeofdegree[i]; ++j) {
+            sorted[startidx+j] = fps2[j];
+        }
         startidx = startidx + sizeofdegree[i];
-        if (sizeofdegree[i] > 1)
-            sortneighbors( ns, fps2, sizeofdegree[i] );
     }
     for (int i=0; i < idx; ++i) {  // idx == fpscnt
         fps[i] = sorted[i];
@@ -281,8 +320,27 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
         for (int i = 0; i < depth+1; ++i) {
             os << "   ";
         }
-        os << "v, deg v == " << fps[n].v << ", " << ns.degrees[fps[n].v] << "\n";
+        os << "{v, deg v} == {" << fps[n].v << ", " << ns.degrees[fps[n].v] << "}\n";
         osfingerprintrecurse( os, ns, fps[n].ns, fps[n].nscnt,depth+1 );
+        if (fps[n].nscnt == 0) {
+            for (int i = 0; i < depth+1; ++i) {
+                os << "   ";
+            }
+            FP* parent = &(fps[n]);
+            std::cout << "Total walk by degrees: <";
+            while (parent != nullptr) {
+                std::cout << ns.degrees[parent->v] << ", ";
+                parent = parent->parent;
+            }
+            std::cout << "\b\b>, ";
+            parent = &(fps[n]);
+            std::cout << " and by vertices: <";
+            while (parent != nullptr) {
+                std::cout << parent->v << ", ";
+                parent = parent->parent;
+            }
+            std::cout << "\b\b>\n";
+        }
     }
     //for (int i = 0; i < depth; ++i) {
     //    os << "   ";

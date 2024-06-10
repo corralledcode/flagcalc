@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
 
     takefingerprint(ns1,fps1,g1.dim);
 
-    //osfingerprint(std::cout,ns1,fps1,g1.dim);
+    osfingerprint(std::cout,ns1,fps1,g1.dim);
 
     FP fps2[g1.dim];
     for (vertextype n = 0; n < g2.dim; ++n) {
@@ -139,14 +139,16 @@ int main(int argc, char* argv[]) {
     takefingerprint(ns2,fps2,g2.dim);
 
     FP fpstmp1;
+    fpstmp1.parent = nullptr;
     fpstmp1.ns = fps1;
     fpstmp1.nscnt = g1.dim;
 
     FP fpstmp2;
+    fpstmp2.parent = nullptr;
     fpstmp2.ns = fps2;
     fpstmp2.nscnt = g2.dim;
 
-    //osfingerprint(std::cout,ns2,fps2,g2.dim);
+    osfingerprint(std::cout,ns2,fps2,g2.dim);
     if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
         std::cout << "Fingerprints MATCH\n";
     } else {
