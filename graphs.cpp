@@ -50,15 +50,7 @@ int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consid
         return -1;
 */
     // ... and otherwise ...
-    if (w1.nscnt == 3) {
-        if ((ns1.degrees[w1.ns[0].v] == 1) && (ns1.degrees[w1.ns[1].v] == 2) && (ns1.degrees[w1.ns[2].v] == 3)) {
-            if (w2.nscnt == 3) {
-                if ((ns2.degrees[w2.ns[0].v] == 1) && (ns2.degrees[w2.ns[1].v] == 2) && (ns2.degrees[w2.ns[2].v] == 3)) {
-                    std::cout << "Found\n";
-                }
-            }
-        }
-    }
+
     for (int n = 0; (n < w1.nscnt) && (n < w2.nscnt); ++n) {
         if (ns1.degrees[w1.ns[n].v] < ns2.degrees[w2.ns[n].v]) {
             return 1;
@@ -187,6 +179,9 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
     }
     for (int i=0; i < idx; ++i) {  // idx == fpscnt
         fps[i] = sorted[i];
+        for(int j = 0; j < fps[i].nscnt; ++j) {
+            fps[i].ns[j].parent = &fps[i];
+        }
     }
 }
 
@@ -326,25 +321,18 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
             for (int i = 0; i < depth+1; ++i) {
                 os << "   ";
             }
-            FP* parent = &(fps[n]);
-            std::cout << "Total walk by degrees: <";
+            FP* parent = fps[n].parent;
+            std::cout << "Total walk by degrees: <" << ns.degrees[fps[n].v] << ", ";
             while (parent != nullptr) {
-                if (parent->parent != nullptr) {
-                    std::cout << ns.degrees[parent->v] << ", ";
-                }
-                parent = parent->parent;
-
+                std::cout << ns.degrees[parent->v] << ", ";
+                parent = ((*parent).parent);
             }
             std::cout << "\b\b>, ";
-            parent = &(fps[n]);
-            std::cout << " and by vertices: <";
+            parent = fps[n].parent;
+            std::cout << " and by vertices: <" << fps[n].v << ", ";
             while (parent != nullptr) {
-                if (parent->parent != nullptr) {
-                    std::cout << parent->v << ", ";
-
-                }
-
-                parent = parent->parent;
+                std::cout << parent->v << ", ";
+                parent = (*parent).parent;
             }
             std::cout << "\b\b>\n";
         }
