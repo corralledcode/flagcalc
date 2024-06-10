@@ -329,14 +329,21 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
             FP* parent = &(fps[n]);
             std::cout << "Total walk by degrees: <";
             while (parent != nullptr) {
-                std::cout << ns.degrees[parent->v] << ", ";
+                if (parent->parent != nullptr) {
+                    std::cout << ns.degrees[parent->v] << ", ";
+                }
                 parent = parent->parent;
+
             }
             std::cout << "\b\b>, ";
             parent = &(fps[n]);
             std::cout << " and by vertices: <";
             while (parent != nullptr) {
-                std::cout << parent->v << ", ";
+                if (parent->parent != nullptr) {
+                    std::cout << parent->v << ", ";
+
+                }
+
                 parent = parent->parent;
             }
             std::cout << "\b\b>\n";
