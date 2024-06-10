@@ -5,6 +5,7 @@
 #include "Graph.cpp"
 #include "Formatgraph.cpp"
 #include "EdgesforHelly.cpp"
+#include "prob.h";
 
 
 
@@ -174,6 +175,86 @@ int main(int argc, char* argv[]) {
     free(ns2.neighborslist);
     free(ns2.degrees);
     freefps(fps2, g2.dim);
+
+    // --- separate functionality below... aiming to have a main menu feature, or addl command line options
+
+    int cnt = 0;
+    int outof = 1000;
+    int dim = 7;
+    int edgecnt = 16;
+    graph g3;
+    g3.dim = dim;
+    g3.adjacencymatrix = (bool*)malloc(g3.dim * g3.dim * sizeof(bool));
+
+    graph g4;
+    g4.dim = dim;
+    g4.adjacencymatrix = (bool*)malloc(g4.dim * g4.dim * sizeof(bool));
+
+    for (int i = 0; i < outof; ++i) {
+        randomgraph(&g3,edgecnt);
+        //osadjacencymatrix(std::cout,g3);
+        //std::cout << "\n";
+        randomgraph(&g4,edgecnt);
+        //osadjacencymatrix(std::cout,g4);
+
+        neighbors ns3;
+        ns3 = computeneighborslist(g3);
+        //osneighbors(std::cout,ns3);
+
+        neighbors ns4;
+        ns4 = computeneighborslist(g4);
+        //osneighbors(std::cout,ns4);
+
+        FP fps3[g3.dim];
+        for (vertextype n = 0; n < g3.dim; ++n) {
+            fps3[n].v = n;
+            fps3[n].ns = nullptr;
+            fps3[n].nscnt = 0;
+            fps3[n].parent = nullptr;
+        }
+
+        takefingerprint(ns3,fps3,g3.dim);
+
+        //osfingerprint(std::cout,ns3,fps3,g3.dim);
+
+        FP fps4[g4.dim];
+        for (vertextype n = 0; n < g4.dim; ++n) {
+            fps4[n].v = n;
+            fps4[n].ns = nullptr;
+            fps4[n].nscnt = 0;
+            fps4[n].parent = nullptr;
+        }
+
+        takefingerprint(ns4,fps4,g4.dim);
+
+        FP fpstmp3;
+        fpstmp3.parent = nullptr;
+        fpstmp3.ns = fps3;
+        fpstmp3.nscnt = g3.dim;
+
+        FP fpstmp4;
+        fpstmp4.parent = nullptr;
+        fpstmp4.ns = fps4;
+        fpstmp4.nscnt = g4.dim;
+
+        //osfingerprint(std::cout,ns4,fps4,g4.dim);
+        if (FPcmp(ns3,ns4,fpstmp3,fpstmp4) == 0) {
+            //std::cout << "Fingerprints MATCH\n";
+            cnt++;
+        } else {
+            //std::cout << "Fingerprints DO NOT MATCH\n";
+        }
+        freefps(fps3, g3.dim);
+        freefps(fps4, g4.dim);
+        free(ns3.neighborslist);
+        free(ns3.degrees);
+        free(ns4.neighborslist);
+        free(ns4.degrees);
+    }
+    std::cout << "Random probability of fingerprints matching is " << cnt << " out of " << outof << " == " << float(cnt)/float(outof) << "\n";
+
+    free(g3.adjacencymatrix);
+    free(g4.adjacencymatrix);
 
     return 0;
 }

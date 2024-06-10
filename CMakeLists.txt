@@ -7,4 +7,8 @@ add_executable(flagcalc main.cpp
         graphs.cpp
         graphs.h
         db.cpp
-        db.h)
+        db.h
+        graphio.cpp
+        graphio.h
+        prob.cpp
+        prob.h)

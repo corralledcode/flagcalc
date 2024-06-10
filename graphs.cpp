@@ -177,6 +177,8 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
         }
         startidx = startidx + sizeofdegree[i];
     }
+
+    // the following loop can be avoided it seems if we replace "parent" the pointer with a list of vertices already visited
     for (int i=0; i < idx; ++i) {  // idx == fpscnt
         fps[i] = sorted[i];
         for(int j = 0; j < fps[i].nscnt; ++j) {
