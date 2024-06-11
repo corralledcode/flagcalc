@@ -6,7 +6,7 @@
 #define PROB_H
 #include "graphs.h"
 
-void randomgraph( graph* gptr, int edgecnt );
+void randomgraph( graph* gptr, const float edgecnt );
 
 void randomconnectedgraphfixededgecnt( graph* gptr, const int edgecnt );
 

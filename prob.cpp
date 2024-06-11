@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdbool.h>
 
-void randomgraph( graph* gptr, const int edgecnt ) {
+void randomgraph( graph* gptr, const float edgecnt ) {
     std::random_device dev;
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,10000);

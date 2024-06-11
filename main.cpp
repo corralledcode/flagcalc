@@ -180,8 +180,8 @@ int main(int argc, char* argv[]) {
 
     int cnt = 0;
     int outof = 1000;
-    int dim = 10;
-    int edgecnt = 8;
+    int dim = 3;
+    float edgecnt = 1.5;
     graph g3;
     g3.dim = dim;
     g3.adjacencymatrix = (bool*)malloc(g3.dim * g3.dim * sizeof(bool));
@@ -282,11 +282,11 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < outof; ++i) {
         randomconnectedgraph(&g5);
-        osadjacencymatrix(std::cout,g5);
-        std::cout << "\n";
+        //osadjacencymatrix(std::cout,g5);
+        //std::cout << "\n";
         randomconnectedgraph(&g6);
-        osadjacencymatrix(std::cout,g6);
-        std::cout << "\n\n";
+        //osadjacencymatrix(std::cout,g6);
+        //std::cout << "\n\n";
 
         neighbors ns5;
         ns5 = computeneighborslist(g5);
