@@ -17,13 +17,13 @@ class graphio {
     virtual int newgraphid();
 };
 
-class graphsqlio {
+class graphsqlio : graphio {
     graph readgraph();
     int writegraph(graph g);
     int newgraphid();
 };
 
-class graphstreamio {
+class graphstreamio : graphio {
     std::ifstream ifs;
     std::istream* s = &std::cin;
     graph readgraph();
