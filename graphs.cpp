@@ -271,7 +271,15 @@ void sortvertices( graph g ) {
 
 */
 
-
+bool ispartialiso( graph g1, graph g2, graphmorphism map) {
+    bool match = true;
+    for (int n = 0; match && (n < map.size()); ++n) {
+        for (int i = 0; match && (i < map.size()); ++i) {
+            match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
+        }
+    }
+    return match;
+}
 
 bool isiso( graph g1, graph g2, graphmorphism map ) {
     bool match = true;
@@ -279,7 +287,7 @@ bool isiso( graph g1, graph g2, graphmorphism map ) {
         return false;
     }
     for (vertextype n = 0; (n < g1.dim) && match; ++n ) {
-        for (vertextype i = n; i < g1.dim && match; ++i ) {
+        for (vertextype i = 0; (i < g1.dim) && match; ++i ) {
             match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
         }
     }
@@ -401,17 +409,19 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
         }
         maps.clear();
         for (int i = 0; i < newmaps.size(); ++i ) {
-            maps.push_back(newmaps[i]);
+            if (ispartialiso(g1,g2,newmaps[i])) {
+                maps.push_back(newmaps[i]);
+            }
         }
     }
-    std::vector<graphmorphism> res {};
+    /*std::vector<graphmorphism> res {};
     for (int i = 0; i < maps.size(); ++i ) {
         if (isiso(g1,g2,maps[i])) {
             res.push_back(maps[i]);
         }
-    }
+    }*/
 
-    return res;
+    return maps;
 }
 
 void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, int depth ) {
