@@ -5,6 +5,7 @@
 #ifndef GRAPHS_H
 #define GRAPHS_H
 #include <ostream>
+#include <vector>
 
 using vertextype = int;
 
@@ -28,6 +29,8 @@ struct FP {
     FP* parent = nullptr;
 };
 
+using graphmorphism = std::vector<std::pair<vertextype,vertextype>>;
+
 int cmpwalk( neighbors ns, FP w1, FP w2 );
 
 
@@ -45,9 +48,13 @@ void sortneighborslist( neighbors* nsptr );
 
 int seqtoindex( vertextype* seq, const int idx, const int sz );
 
-bool isiso( graph g1, graph g2, vertextype* map );
+bool isiso( graph g1, graph g2, graphmorphism map );
 
-bool areisomorphic( graph g1, graph g2 );
+std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 );
+
+
+
+//bool areisomorphic( graph g1, graph g2, neighbors ns1, neighbors ns2 );
 
 void osfingerprint( std::ostream &os, neighbors ns, FP* fps, int fpscnt );
 
@@ -55,6 +62,7 @@ void osadjacencymatrix( std::ostream &os, graph g );
 
 void osneighbors( std::ostream &os, neighbors ns );
 
+void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps );
 
 
 

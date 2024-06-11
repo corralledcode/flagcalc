@@ -5,7 +5,8 @@
 #include "Graph.cpp"
 #include "Formatgraph.cpp"
 #include "EdgesforHelly.cpp"
-
+#include "prob.h"
+#include "verboseio.h"
 
 
 int main(int argc, char* argv[]) {
@@ -155,6 +156,9 @@ int main(int argc, char* argv[]) {
         std::cout << "Fingerprints DO NOT MATCH\n";
     }
 
+    std::vector<graphmorphism> maps = enumisomorphisms(ns1,ns2);
+    osgraphmorphisms(std::cout, maps);
+
     free(FE);
     free(EE);
     free(E);
@@ -174,6 +178,188 @@ int main(int argc, char* argv[]) {
     free(ns2.neighborslist);
     free(ns2.degrees);
     freefps(fps2, g2.dim);
+
+    // --- separate functionality below... aiming to have a main menu feature, or addl command line options
+
+    int cnt = 0;
+    int outof = 1000;
+    int dim = 3;
+    float edgecnt = 1.0;
+    graph g3;
+    g3.dim = dim;
+    g3.adjacencymatrix = (bool*)malloc(g3.dim * g3.dim * sizeof(bool));
+
+    graph g4;
+    g4.dim = dim;
+    g4.adjacencymatrix = (bool*)malloc(g4.dim * g4.dim * sizeof(bool));
+
+    for (int i = 0; i < outof; ++i) {
+        randomgraph(&g3,edgecnt);
+        //osadjacencymatrix(std::cout,g3);
+        //std::cout << "\n";
+        randomgraph(&g4,edgecnt);
+        //osadjacencymatrix(std::cout,g4);
+
+        neighbors ns3;
+        ns3 = computeneighborslist(g3);
+        //osneighbors(std::cout,ns3);
+
+        neighbors ns4;
+        ns4 = computeneighborslist(g4);
+        //osneighbors(std::cout,ns4);
+
+        FP fps3[g3.dim];
+        for (vertextype n = 0; n < g3.dim; ++n) {
+            fps3[n].v = n;
+            fps3[n].ns = nullptr;
+            fps3[n].nscnt = 0;
+            fps3[n].parent = nullptr;
+        }
+
+        takefingerprint(ns3,fps3,g3.dim);
+
+        //osfingerprint(std::cout,ns3,fps3,g3.dim);
+
+        FP fps4[g4.dim];
+        for (vertextype n = 0; n < g4.dim; ++n) {
+            fps4[n].v = n;
+            fps4[n].ns = nullptr;
+            fps4[n].nscnt = 0;
+            fps4[n].parent = nullptr;
+        }
+
+        takefingerprint(ns4,fps4,g4.dim);
+
+        FP fpstmp3;
+        fpstmp3.parent = nullptr;
+        fpstmp3.ns = fps3;
+        fpstmp3.nscnt = g3.dim;
+
+        FP fpstmp4;
+        fpstmp4.parent = nullptr;
+        fpstmp4.ns = fps4;
+        fpstmp4.nscnt = g4.dim;
+
+        //osfingerprint(std::cout,ns4,fps4,g4.dim);
+        if (FPcmp(ns3,ns4,fpstmp3,fpstmp4) == 0) {
+            //std::cout << "Fingerprints MATCH\n";
+            cnt++;
+        } else {
+            //std::cout << "Fingerprints DO NOT MATCH\n";
+        }
+        freefps(fps3, g3.dim);
+        freefps(fps4, g4.dim);
+        free(ns3.neighborslist);
+        free(ns3.degrees);
+        free(ns4.neighborslist);
+        free(ns4.degrees);
+    }
+    std::cout << "Probability amongst random graphs of dimension "<<dim<<" and edge count " << edgecnt << "\n";
+    std::cout << "of fingerprints matching is " << cnt << " out of " << outof << " == " << float(cnt)/float(outof) << "\n";
+    //verboseio vio;
+    //verbosedbio vdbio(getenv("DBSERVER"), getenv("DBUSR"), getenv("DBPWD"), getenv("DBSCHEMA"));
+    //vio = vdbio;
+    //vio.output("Random probability of fingerprints matching is " + std::to_string(cnt) + " out of " + std::to_string(outof) + " == " + std::to_string(float(cnt)/float(outof)) + "\n");
+    // the above four lines are commented out until MySQL C++ Connector is up and working (i.e. in files verboseio.h/cpp)
+
+    free(g3.adjacencymatrix);
+    free(g4.adjacencymatrix);
+
+    // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
+    // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
+    // vertices are obtained, is rather efficient too.
+    // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
+    //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
+
+    cnt = 0;
+    dim = 3;
+    outof = 10;
+
+    graph g5;
+    g5.dim = dim;
+    g5.adjacencymatrix = (bool*)malloc(g5.dim * g5.dim * sizeof(bool));
+
+    graph g6;
+    g6.dim = dim;
+    g6.adjacencymatrix = (bool*)malloc(g6.dim * g6.dim * sizeof(bool));
+
+    for (int i = 0; i < outof; ++i) {
+        randomconnectedgraph(&g5);
+        //osadjacencymatrix(std::cout,g5);
+        //std::cout << "\n";
+        randomconnectedgraph(&g6);
+        //osadjacencymatrix(std::cout,g6);
+        //std::cout << "\n\n";
+
+        neighbors ns5;
+        ns5 = computeneighborslist(g5);
+        //osneighbors(std::cout,ns5);
+
+        neighbors ns6;
+        ns6 = computeneighborslist(g6);
+        //osneighbors(std::cout,ns6);
+
+        FP fps5[g5.dim];
+        for (vertextype n = 0; n < g5.dim; ++n) {
+            fps5[n].v = n;
+            fps5[n].ns = nullptr;
+            fps5[n].nscnt = 0;
+            fps5[n].parent = nullptr;
+        }
+
+        takefingerprint(ns5,fps5,g5.dim);
+
+        //osfingerprint(std::cout,ns5,fps5,g5.dim);
+
+        FP fps6[g6.dim];
+        for (vertextype n = 0; n < g6.dim; ++n) {
+            fps6[n].v = n;
+            fps6[n].ns = nullptr;
+            fps6[n].nscnt = 0;
+            fps6[n].parent = nullptr;
+        }
+
+        takefingerprint(ns6,fps6,g6.dim);
+
+        FP fpstmp5;
+        fpstmp5.parent = nullptr;
+        fpstmp5.ns = fps5;
+        fpstmp5.nscnt = g5.dim;
+
+        FP fpstmp6;
+        fpstmp6.parent = nullptr;
+        fpstmp6.ns = fps6;
+        fpstmp6.nscnt = g6.dim;
+
+        //osfingerprint(std::cout,ns6,fps6,g6.dim);
+        if (FPcmp(ns5,ns6,fpstmp5,fpstmp6) == 0) {
+            //std::cout << "Fingerprints MATCH\n";
+            cnt++;
+        } else {
+            //std::cout << "Fingerprints DO NOT MATCH\n";
+        }
+        freefps(fps5, g5.dim);
+        freefps(fps6, g6.dim);
+        free(ns5.neighborslist);
+        free(ns5.degrees);
+        free(ns6.neighborslist);
+        free(ns6.degrees);
+    }
+    std::cout << "Probability amongst random connected graphs of dimension "<<dim<<"\n";
+    std::cout << "of fingerprints matching is " << cnt << " out of " << outof << " == " << float(cnt)/float(outof) << "\n";
+    //verboseio vio;
+    //verbosedbio vdbio(getenv("DBSERVER"), getenv("DBUSR"), getenv("DBPWD"), getenv("DBSCHEMA"));
+    //vio = vdbio;
+    //vio.output("Random probability of fingerprints matching is " + std::to_string(cnt) + " out of " + std::to_string(outof) + " == " + std::to_string(float(cnt)/float(outof)) + "\n");
+    // the above four lines are commented out until MySQL C++ Connector is up and working (i.e. in files verboseio.h/cpp)
+
+    free(g5.adjacencymatrix);
+    free(g6.adjacencymatrix);
+
+
+
+
+    
 
     return 0;
 }

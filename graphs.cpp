@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <ranges>
+#include <vector>
 
 int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == w2; 1 if w1 < w2
     int res = -1;
@@ -51,6 +52,14 @@ int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consid
 */
     // ... and otherwise ...
 
+    if (w1.nscnt > w2.nscnt) {
+        return -1;
+    } else {
+        if (w1.nscnt < w2.nscnt) {
+            return 1;
+        }
+    }
+
     for (int n = 0; (n < w1.nscnt) && (n < w2.nscnt); ++n) {
         if (ns1.degrees[w1.ns[n].v] < ns2.degrees[w2.ns[n].v]) {
             return 1;
@@ -61,13 +70,6 @@ int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consid
         }
     }
 
-    if (w1.nscnt < w2.nscnt) {
-        return -1;
-    } else {
-        if (w1.nscnt > w2.nscnt) {
-            return 1;
-        }
-    }
 
     int n = 0;
     int res = 0;
@@ -177,6 +179,8 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
         }
         startidx = startidx + sizeofdegree[i];
     }
+
+    // the following loop can be avoided it seems if we replace "parent" the pointer with a list of vertices already visited
     for (int i=0; i < idx; ++i) {  // idx == fpscnt
         fps[i] = sorted[i];
         for(int j = 0; j < fps[i].nscnt; ++j) {
@@ -267,43 +271,147 @@ void sortvertices( graph g ) {
 
 */
 
-bool isiso( graph g1, graph g2, vertextype* map ) {
+
+
+bool isiso( graph g1, graph g2, graphmorphism map ) {
     bool match = true;
     if (g1.dim != g2.dim) {
         return false;
     }
     for (vertextype n = 0; n < g1.dim && match; ++n ) {
         for (vertextype i = 0; i < (g1.dim - n) && match; ++i ) {
-            match = match && g1.adjacencymatrix[n*g1.dim + i] == g2.adjacencymatrix[map[n]*g2.dim + map[i]];
+            match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
         }
     }
     return match;
 }
 
-bool areisomorphic( graph g1, graph g2 ) {
+std::vector<std::vector<int>> getpermutations( const int i ) {
+    std::vector<std::vector<int>> res {};
+    std::vector<int> base {0};
+    res.push_back(base);
+    //std::cout << "getpermutations " << i << "\n";
+    if (i == 1)
+        return res;
+    std::vector<std::vector<int>> tmp = getpermutations(i-1);
 
-    if (g1.dim != g2.dim)
-        return false;
-    neighbors ns1 = computeneighborslist(g1);
-    neighbors ns2 = computeneighborslist(g2);
+    res.clear();
+    for (int j = 0; j < i; ++j) {
+        for (int n = 0; n < tmp.size(); ++n) {
+            std::vector<int> tmpperm {};
+            //std::cout << "tmp[n].size()==" << tmp[n].size() << ", i == " << i << "\n";
+
+            for (int k = 0; k < i; ++k) {
+                if (k < j)
+                    tmpperm.push_back(tmp[n][k]+1);
+                if (j == k)
+                    tmpperm.push_back(0);
+                if (k > j)
+                    tmpperm.push_back(tmp[n][k-1]+1);
+            }
+            res.push_back(tmpperm);
+        }
+    }
+    //std::cout << "i, res.size() == " << i << ", " << res.size() << "\n";
+    //for (int j = 0; j < res.size(); ++j) {
+    //    std::cout << "j, res[j].size() == " << j << ", " << res[j].size() << "\n";
+    //}
+    return res;
+}
+
+
+std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
+    graph g1 = ns1.g;
+    graph g2 = ns2.g;
+    std::vector<graphmorphism> maps {};
+    if (g1.dim != g2.dim || ns1.maxdegree != ns2.maxdegree)
+        return maps;
+    //neighbors ns1 = computeneighborslist(g1);
+    //neighbors ns2 = computeneighborslist(g2);
+
+    // to do: save time in most cases by checking that ns1 matches ns2
 
     FP fps1[g1.dim];
-    FP fps2[g2.dim];
     for (vertextype n = 0; n < g1.dim; ++n) {
         fps1[n].v = n;
         fps1[n].ns = nullptr;
         fps1[n].nscnt = 0;
         fps1[n].parent = nullptr;
+    }
+
+    takefingerprint(ns1,fps1,g1.dim);
+
+    //osfingerprint(std::cout,ns1,fps1,g1.dim);
+
+    FP fps2[g2.dim];
+    for (vertextype n = 0; n < g2.dim; ++n) {
         fps2[n].v = n;
         fps2[n].ns = nullptr;
         fps2[n].nscnt = 0;
         fps2[n].parent = nullptr;
     }
 
-    takefingerprint(ns1,fps1,g1.dim);
-    takefingerprint(ns2,fps2, g2.dim);
-    //...
-    return FPcmp(ns1,ns2,*fps1,*fps2) != 0;
+    takefingerprint(ns2,fps2,g2.dim);
+
+    //osfingerprint(std::cout,ns2,fps2,g2.dim);
+
+    vertextype del[ns1.maxdegree+2];
+    int delcnt = 0;
+    del[delcnt] = 0;
+    ++delcnt;
+    for( vertextype n = 0; n < g1.dim-1; ++n ) {
+        if (ns1.degrees[fps1[n].v] != ns2.degrees[fps2[n].v])
+            return maps; // return empty set of maps
+        int res1 = FPcmp(ns1,ns1,fps1[n],fps1[n+1]);
+        int res2 = FPcmp(ns2,ns2,fps2[n],fps2[n+1]);
+        if (res1 != res2)
+            return maps;  // return empty set of maps
+        if (res1 < 0) {
+            std::cout << "Error: not sorted (n == " << n << ", res1 == "<<res1<<")\n";
+            return maps;
+        }
+        if (res1 > 0) {
+            del[delcnt] = n+1;
+            ++delcnt;
+            //std::cout << "inc'ed delcnt\n";
+        }
+    }
+    del[delcnt] = g1.dim;
+
+    //std::pair<vertextype,vertextype> basepair;
+    //basepair = {-1,-1};
+    graphmorphism basemap {};
+    maps.push_back(basemap);
+    for (int l = 0; l<delcnt; ++l) {
+        std::vector<graphmorphism> newmaps {};
+        //std::cout << "maps.size == " << maps.size() << "\n";
+        for (int k = 0; k < maps.size(); ++k) {
+            //std::cout << "del[l] == " << del[l] << ", del[l+1] == " << del[l+1] << "delcnt == " << delcnt << "\n";
+            std::vector<std::vector<int>> perm = getpermutations(del[l+1]-del[l]);
+            for (int i = 0; i < perm.size(); ++i) {
+                graphmorphism newmap = maps[k];
+                for (int j = 0; j < perm[i].size(); ++j) {
+                    std::pair<vertextype,vertextype> newpair;
+                    //std::cout << "i,j, perm[i][j] == "<<i<<", "<<j<<", "<< perm[i][j]<<"\n";
+                    newpair = {fps1[del[l]+j].v,fps2[del[l]+perm[i][j]].v};
+                    newmap.push_back(newpair);
+                }
+                newmaps.push_back(newmap);
+            }
+        }
+        maps.clear();
+        for (int i = 0; i < newmaps.size(); ++i ) {
+            maps.push_back(newmaps[i]);
+        }
+    }
+    std::vector<graphmorphism> res {};
+    for (int i = 0; i < maps.size(); ++i ) {
+        if (isiso(g1,g2,maps[i])) {
+            res.push_back(maps[i]);
+        }
+    }
+
+    return res;
 }
 
 void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, int depth ) {
@@ -366,4 +474,12 @@ void osneighbors( std::ostream &os, neighbors ns ) {
     }
 }
 
+void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps ) {
+    for (int n = 0; n < maps.size(); ++n) {
+        os << "Map number " << n << " of " << maps.size() << ":\n";
+        for (int i = 0; i < maps[n].size(); ++i) {
+            os << maps[n][i].first << " maps to " << maps[n][i].second << "\n";
+        }
+    }
+}
 
