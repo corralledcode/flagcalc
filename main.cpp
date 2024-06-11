@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     int cnt = 0;
     int outof = 1000;
     int dim = 10;
-    int edgecnt = 5;
+    int edgecnt = 8;
     graph g3;
     g3.dim = dim;
     g3.adjacencymatrix = (bool*)malloc(g3.dim * g3.dim * sizeof(bool));
@@ -263,10 +263,14 @@ int main(int argc, char* argv[]) {
     free(g4.adjacencymatrix);
 
     // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
-    // note the avoidance of very slow algorithms to check a random graph for connectedness;
-    edgecnt = 5;
-    dim = 10;
-    outof = 1000;
+    // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
+    // vertices are obtained, is rather efficient too.
+    // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
+    //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
+
+    cnt = 0;
+    dim = 3;
+    outof = 10;
 
     graph g5;
     g5.dim = dim;
@@ -277,11 +281,12 @@ int main(int argc, char* argv[]) {
     g6.adjacencymatrix = (bool*)malloc(g6.dim * g6.dim * sizeof(bool));
 
     for (int i = 0; i < outof; ++i) {
-        randomconnectedgraphfixedvertices(&g5,edgecnt);
-        //osadjacencymatrix(std::cout,g5);
-        //std::cout << "\n";
-        randomconnectedgraphfixedvertices(&g6,edgecnt);
-        //osadjacencymatrix(std::cout,g6);
+        randomconnectedgraph(&g5);
+        osadjacencymatrix(std::cout,g5);
+        std::cout << "\n";
+        randomconnectedgraph(&g6);
+        osadjacencymatrix(std::cout,g6);
+        std::cout << "\n\n";
 
         neighbors ns5;
         ns5 = computeneighborslist(g5);
@@ -337,7 +342,7 @@ int main(int argc, char* argv[]) {
         free(ns6.neighborslist);
         free(ns6.degrees);
     }
-    std::cout << "Probability amongst random connected graphs of dimension "<<dim<<" and edge count " << edgecnt << "\n";
+    std::cout << "Probability amongst random connected graphs of dimension "<<dim<<"\n";
     std::cout << "of fingerprints matching is " << cnt << " out of " << outof << " == " << float(cnt)/float(outof) << "\n";
     //verboseio vio;
     //verbosedbio vdbio(getenv("DBSERVER"), getenv("DBUSR"), getenv("DBPWD"), getenv("DBSCHEMA"));

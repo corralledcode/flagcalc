@@ -8,6 +8,8 @@
 
 void randomgraph( graph* gptr, int edgecnt );
 
-void randomconnectedgraphfixedvertices( graph* gptr, const int edgecnt );
+void randomconnectedgraphfixededgecnt( graph* gptr, const int edgecnt );
+
+void randomconnectedgraph( graph* gptr );
 
 #endif //PROB_H
