@@ -273,8 +273,8 @@ void sortvertices( graph g ) {
 
 bool ispartialiso( graph g1, graph g2, graphmorphism map) {
     bool match = true;
-    for (int n = 0; match && (n < map.size()); ++n) {
-        for (int i = 0; match && (i < map.size()); ++i) {
+    for (int n = 0; match && (n < map.size()-1); ++n) {
+        for (int i = n+1; match && (i < map.size()); ++i) {
             match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
         }
     }
@@ -286,8 +286,8 @@ bool isiso( graph g1, graph g2, graphmorphism map ) {
     if (g1.dim != g2.dim) {
         return false;
     }
-    for (vertextype n = 0; (n < g1.dim) && match; ++n ) {
-        for (vertextype i = 0; (i < g1.dim) && match; ++i ) {
+    for (vertextype n = 0; (n < g1.dim-1) && match; ++n ) {
+        for (vertextype i = n+1; (i < g1.dim) && match; ++i ) {
             match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
         }
     }

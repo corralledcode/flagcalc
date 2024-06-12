@@ -187,24 +187,21 @@ int main(int argc, char* argv[]) {
         dim = std::stoi(argv[2]);
         edgecnt = std::stof(argv[3]);
         outof = std::stoi(argv[4]);
+        stdrandomgraph* rg1 = new stdrandomgraph( edgecnt );
+        samplematchingrandomgraphs(rg1,dim,outof,std::cout);
+        // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
+        // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
+        // vertices are obtained, is rather efficient too.
+        // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
+        //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
+
+        delete rg1;
+
+        randomconnectedgraphfixededgecnt* rg2 = new randomconnectedgraphfixededgecnt( 8 );
+        samplematchingrandomgraphs(rg2,dim,outof,std::cout);
+
+        delete rg2;
     }
-
-    stdrandomgraph* rg1 = new stdrandomgraph( edgecnt );
-    samplematchingrandomgraphs(rg1,dim,outof,std::cout);
-    // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
-    // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
-    // vertices are obtained, is rather efficient too.
-    // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
-    //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
-
-    delete rg1;
-
-    randomconnectedgraphfixededgecnt* rg2 = new randomconnectedgraphfixededgecnt( 8 );
-    samplematchingrandomgraphs(rg2,dim,outof,std::cout);
-
-    delete rg2;
-
-    
 
     return 0;
 }
