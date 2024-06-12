@@ -486,7 +486,7 @@ void osneighbors( std::ostream &os, neighbors ns ) {
 
 void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps ) {
     for (int n = 0; n < maps.size(); ++n) {
-        os << "Map number " << n << " of " << maps.size() << ":\n";
+        os << "Map number " << n+1 << " of " << maps.size() << ":\n";
         for (int i = 0; i < maps[n].size(); ++i) {
             os << maps[n][i].first << " maps to " << maps[n][i].second << "\n";
         }
