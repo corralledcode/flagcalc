@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 
+#include "asymp.h"
 #include "graphs.h"
 #include "EdgesforHelly.cpp"
 #include "Graph.cpp"
@@ -112,8 +113,10 @@ public:
             std::string filename = argv[1];
             std::cout << "Opening file " << filename << "\n";
             ifs.open(filename);
-            if (!ifs)
+            if (!ifs) {
                 std::cout << "Couldn't open file for reading \n";
+                return;
+            }
             is = &ifs;
             *cnt = 1;
         } else {
@@ -275,6 +278,37 @@ public:
         free(ns2.neighborslist);
         free(ns2.degrees);
         freefps(fps2, g2.dim);
+
+    }
+};
+
+class mantelstheoremfeature : public feature {
+public:
+    std::string cmdlineoption() { return "m"; }
+    std::string cmdlineoptionlong() { return "mantels"; }
+    mantelstheoremfeature( std::istream* is, std::ostream* os ) : feature( is, os) {}
+    void execute(int argc, char *argv[], int *cnt) override {
+        int outof = 100;
+        int limitdim = 10;
+        *cnt=0;
+        if (argc > 1) {
+            limitdim = std::stoi(argv[1]);
+            if (argc > 2) {
+                outof = std::stoi(argv[2]);
+                (*cnt)++;
+            }
+            (*cnt)++;
+        }
+
+        asymp* as = new asymp();
+        trianglefreecriterion* cr = new trianglefreecriterion();
+        edgecountmeasure* ms = new edgecountmeasure();;
+        float max = as->computeasymptotic(cr,ms,outof,limitdim);
+        *_os << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
+        *_os << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
+        delete ms;
+        delete cr;
+        delete as;
 
     }
 };

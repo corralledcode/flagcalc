@@ -14,10 +14,12 @@ int main(int argc, char* argv[]) {
 
     enumisomorphismsfeature* ei = new enumisomorphismsfeature(&std::cin, &std::cout);
     samplerandomgraphsfeature* sr = new samplerandomgraphsfeature(&std::cin, &std::cout);
+    mantelstheoremfeature* mt = new mantelstheoremfeature(&std::cin,&std::cout);
 
     std::vector<feature*> featureslist {};
     featureslist.push_back(ei);
     featureslist.push_back(sr);
+    featureslist.push_back(mt);
 
     int cnt; // count of how many args are consumed by executing the feature
     int idx = 1;
@@ -64,23 +66,5 @@ int main(int argc, char* argv[]) {
 
 
 
-/*
-        if (argc >= 5) {
-            int limitdim = std::stoi(argv[5]);
-            if (argc >= 6)
-                outof = std::stoi(argv[6]);
-            else
-                outof = 100;
-
-            asymp* as = new asymp();
-            trianglefreecriterion* cr = new trianglefreecriterion();
-            edgecountmeasure* ms = new edgecountmeasure();;
-            float max = as->computeasymptotic(cr,ms,outof,limitdim);
-            std::cout << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
-            std::cout << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
-            delete ms;
-            delete cr;
-        }
-    }*/
     return 0;
 }
