@@ -197,9 +197,15 @@ int main(int argc, char* argv[]) {
 
         delete rg1;
 
-        randomconnectedgraphfixededgecnt* rg2 = new randomconnectedgraphfixededgecnt( 8 );
+
+        std::vector<weightstype> weights = computeweights(dim);
+        weightedrandomconnectedgraph* rg2 = new weightedrandomconnectedgraph( weights );
         samplematchingrandomgraphs(rg2,dim,outof,std::cout);
 
+/*
+        randomconnectedgraphfixededgecnt* rg2 = new randomconnectedgraphfixededgecnt( 8 );
+        samplematchingrandomgraphs(rg2,dim,outof,std::cout);
+*/
         delete rg2;
     }
 
