@@ -22,24 +22,31 @@ public:
 class asymp {
 public:
     virtual float computeasymptotic( criterion* cr, measure* ms, const int outof, const int dim ) {
-        float max = 0.0;
-        for (int n = 0; n < dim*(dim-1)/2.0; ++n) {
-            graph g;
-            g.dim = dim;
-            randomconnectedgraphfixededgecnt* rg = new randomconnectedgraphfixededgecnt(n);
-            g.adjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
-            for (int k = 0; k < outof; ++k) {
+        int max = 0;
+        int sampled = 0;
+        int n = 1;
+        randomconnectedgraphfixededgecnt* rg = new randomconnectedgraphfixededgecnt(n);
+        graph g;
+        g.dim = dim;
+        g.adjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
+        while (sampled < outof) {
+            while (max < n && sampled < outof) {
                 rg->randomgraph(&g);
                 neighbors ns;
-                ns = computeneighborslist(g);
+                //ns = computeneighborslist(g); ns isn't used by criterion...
                 if (cr->checkcriterion(g,ns)) {
                     //float tmp = ms->takemeasure(g,ns);
                     //max = (tmp > max ? tmp : max);
                     max = n;
+                    n++;
+                    delete rg;
+                    rg = new randomconnectedgraphfixededgecnt(n);
                 }
+                sampled++;
             }
-            delete rg;
+            //free(ns.neighborslist);
         }
+        free(g.adjacencymatrix);
         return max;
     }
 };
@@ -50,11 +57,12 @@ public:
     bool checkcriterion(graph g, neighbors ns) override {
         for (int n = 0; n < g.dim-2; ++n) {
             for (int i = n+1; i < g.dim-1; ++i) {
-                for (int k = i+1; k < g.dim; ++k) {
-                    if (g.adjacencymatrix[n*g.dim + k]
-                        && g.adjacencymatrix[i*g.dim + k]
-                        && g.adjacencymatrix[n*g.dim + i])
-                        return false;
+                if (g.adjacencymatrix[n*g.dim + i]) {
+                    for (int k = i+1; k < g.dim; ++k) {
+                        if (g.adjacencymatrix[n*g.dim + k]
+                            && g.adjacencymatrix[i*g.dim + k])
+                            return false;
+                    }
                 }
             }
         }
