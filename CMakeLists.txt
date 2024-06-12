@@ -21,4 +21,6 @@ add_executable(flagcalc main.cpp
         asymp.cpp
         asymp.h
         feature.cpp
-        feature.h)
+        feature.h
+        workspace.cpp
+        workspace.h)

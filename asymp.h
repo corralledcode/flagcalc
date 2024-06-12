@@ -8,6 +8,7 @@
 
 #include "graphs.h"
 #include "prob.h"
+#include "workspace.h"
 
 class measure {
 public:
@@ -21,7 +22,7 @@ public:
 
 class asymp {
 public:
-    virtual float computeasymptotic( criterion* cr, measure* ms, const int outof, const int dim, std::ostream& os ) {
+    virtual float computeasymptotic( criterion* cr, measure* ms, const int outof, const int dim, std::ostream& os, workspace* ws ) {
         int max = 0;
         int sampled = 0;
         int n = 1;
@@ -62,7 +63,12 @@ public:
             std::cout << "Size n == " << i << ":\n";
             osadjacencymatrix(os, tmpg);
         }
-        for (int i = 0; i < samplegraphs.size(); ++i) {
+        graphitem* gi = new graphitem();
+        gi->g.dim = dim;
+        gi->g.adjacencymatrix = samplegraphs[samplegraphs.size()-1];
+        gi->name = ws->getuniquename();
+        ws->items.push_back(gi);
+        for (int i = 0; i < samplegraphs.size()-1; ++i) {
             free(samplegraphs[i]);
         }
         return max;

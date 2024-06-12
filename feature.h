@@ -14,20 +14,22 @@
 #include "Formatgraph.cpp"
 #include "Formatdata.cpp"
 #include "prob.h"
+#include "workspace.h"
 
 
 class feature {
 protected:
     std::istream* _is;
     std::ostream* _os;
-
+    workspace* _ws;
 public:
     virtual std::string cmdlineoption() {return "";};
     virtual std::string cmdlineoptionlong() { return "";};
     virtual void execute(int argc, char* argv[], int* cnt) {};
-    feature( std::istream* is, std::ostream* os ) {
+    feature( std::istream* is, std::ostream* os, workspace* ws ) {
         _is = is;
         _os = os;
+        _ws = ws;
     }
 };
 
@@ -39,7 +41,7 @@ public:
     std::string cmdlineoptionlong() {
         return "samplerandomgraphs";
     }
-    samplerandomgraphsfeature( std::istream* is, std::ostream* os ) : feature( is, os) {
+    samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
         //cmdlineoption = "r";
         //cmdlineoptionlong = "samplerandomgraphs";
     };
@@ -99,9 +101,11 @@ public:
 
 class enumisomorphismsfeature: public feature {
 public:
+    graph internalg;
+    bool useinternalg = false;
     std::string cmdlineoption() { return "i"; }
     std::string cmdlineoptionlong() { return "enumisomorphisms"; }
-    enumisomorphismsfeature( std::istream* is, std::ostream* os ) : feature( is, os) {
+    enumisomorphismsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
         //cmdlineoption = "i";
         //cmdlineoptionlong = "enumisomorphisms";
     };
@@ -164,58 +168,61 @@ public:
         auto V2 = new Vertices();
         auto EV2 = new Batchprocesseddata<strtype>();
         auto FV2 = new Formatvertices(V2,EV2);
-        FV2->pause();
-        FV2->readdata(*is);
-        FV2->resume();
-        int sV2 = FV2->size();
-        for( int n = 0; n<sV2; ++n)
-            *os << n << "{" << FV2->idata->getdata(n) << ":" << FV2->edata->getdata(n) << "}, ";
-        *os << "\b\b  \n";
-
         auto E2 = new EdgesforHelly();
         auto EE2 = new Batchprocesseddata<Edgestr>();
         auto FE2 = new Formatedges(E2,EE2);
-        FE2->pause();
-        FE2->readdata(*is);
-        FE2->setvertices(FV2);
-        FE2->resume();
-        int sE2 = FE2->size();
-
-        for (int m = 0; m < sE2; ++m) {
-            *os << "{" << FE2->idata->getdata(m).first << ", " << FE2->idata->getdata(m).second;
-            *os << ":" << FE2->edata->getdata(m).first << ", " << FE2->edata->getdata(m).second << "}, ";
-        }
-        *os << "\b\b  \n";
-
 
         graph g1;
+        graph g2 = internalg;
+
         g1.dim = V->size();
+        if (!useinternalg) {
+            FV2->pause();
+            FV2->readdata(*is);
+            FV2->resume();
+            int sV2 = FV2->size();
+            for( int n = 0; n<sV2; ++n)
+                *os << n << "{" << FV2->idata->getdata(n) << ":" << FV2->edata->getdata(n) << "}, ";
+            *os << "\b\b  \n";
 
-        graph g2;
-        g2.dim = V2->size();
+            FE2->pause();
+            FE2->readdata(*is);
+            FE2->setvertices(FV2);
+            FE2->resume();
+            int sE2 = FE2->size();
 
-        // below is rather embarrassing hack around some omissions in the general purpose intent of the HellyTool code...
-        // (recall that HellyTool does not make use of the vertexadjacency matrix, hence the lack of debugging around its use...)
+            for (int m = 0; m < sE2; ++m) {
+                *os << "{" << FE2->idata->getdata(m).first << ", " << FE2->idata->getdata(m).second;
+                *os << ":" << FE2->edata->getdata(m).first << ", " << FE2->edata->getdata(m).second << "}, ";
+            }
+            *os << "\b\b  \n";
+            g2.dim = V2->size();
+
+            // below is rather embarrassing hack around some omissions in the general purpose intent of the HellyTool code...
+            // (recall that HellyTool does not make use of the vertexadjacency matrix, hence the lack of debugging around its use...)
+
+            E2->maxvertex = g2.dim-1;
+            E2->vertexadjacency = new bool[(g2.dim) * g2.dim];
+            E2->computevertexadjacency();
+            g2.adjacencymatrix = E2->vertexadjacency;
+        } // else g2 remains as internalg from above
         E->maxvertex = g1.dim-1;
         E->vertexadjacency = new bool[(g1.dim) * g1.dim];
         E->computevertexadjacency();
         g1.adjacencymatrix = E->vertexadjacency;
 
-        E2->maxvertex = g2.dim-1;
-        E2->vertexadjacency = new bool[(g2.dim) * g2.dim];
-        E2->computevertexadjacency();
-        g2.adjacencymatrix = E2->vertexadjacency;
-
+        *os << "Graph 1:\n";
         osadjacencymatrix( *os, g1 );
+        *os << "Graph 2:\n";
         osadjacencymatrix( *os, g2 );
 
         neighbors ns1;
         ns1 = computeneighborslist(g1);
-        osneighbors(*os,ns1);
+        //osneighbors(*os,ns1);
 
         neighbors ns2;
         ns2 = computeneighborslist(g2);
-        osneighbors(*os,ns2);
+        //osneighbors(*os,ns2);
 
         FP fps1[g1.dim];
         for (vertextype n = 0; n < g1.dim; ++n) {
@@ -227,7 +234,7 @@ public:
 
         takefingerprint(ns1,fps1,g1.dim);
 
-        osfingerprint(*os,ns1,fps1,g1.dim);
+        //osfingerprint(*os,ns1,fps1,g1.dim);
 
         FP fps2[g1.dim];
         for (vertextype n = 0; n < g2.dim; ++n) {
@@ -249,7 +256,7 @@ public:
         fpstmp2.ns = fps2;
         fpstmp2.nscnt = g2.dim;
 
-        osfingerprint(*os,ns2,fps2,g2.dim);
+        //osfingerprint(*os,ns2,fps2,g2.dim);
         if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
             *os << "Fingerprints MATCH\n";
         } else {
@@ -286,7 +293,7 @@ class mantelstheoremfeature : public feature {
 public:
     std::string cmdlineoption() { return "m"; }
     std::string cmdlineoptionlong() { return "mantels"; }
-    mantelstheoremfeature( std::istream* is, std::ostream* os ) : feature( is, os) {}
+    mantelstheoremfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
     void execute(int argc, char *argv[], int *cnt) override {
         int outof = 100;
         int limitdim = 10;
@@ -303,7 +310,7 @@ public:
         asymp* as = new asymp();
         trianglefreecriterion* cr = new trianglefreecriterion();
         edgecountmeasure* ms = new edgecountmeasure();;
-        float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os);
+        float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os, _ws);
         *_os << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
         *_os << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
         delete ms;
@@ -311,6 +318,28 @@ public:
         delete as;
 
     }
+};
+
+class mantelsverifyfeature : public feature {
+public:
+    std::string cmdlineoption() { return "v"; }
+    std::string cmdlineoptionlong() { return "mantelsverify"; }
+    mantelsverifyfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
+    void execute(int argc, char *argv[], int *cnt) override {
+        mantelstheoremfeature* ms = new mantelstheoremfeature(_is,_os,_ws);
+        ms->execute(argc, argv, cnt);
+        std::cout << "cnt == " << *cnt << "\n";
+        enumisomorphismsfeature* ei = new enumisomorphismsfeature(_is,_os,_ws);
+        ei->internalg = ((graphitem*)(_ws->items[_ws->items.size()-1]))->g;
+        ei->useinternalg = true;
+        int tmpcnt = *cnt;
+        ei->execute(argc-tmpcnt,argv+(tmpcnt*sizeof(char)),cnt);
+        *cnt = *cnt + tmpcnt;
+        delete ms;
+        delete ei;
+    }
+
+
 };
 
 

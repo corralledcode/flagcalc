@@ -7,19 +7,22 @@
 #include "prob.h"
 #include "verboseio.h"
 #include "feature.h"
+#include "workspace.h"
 
 
 int main(int argc, char* argv[]) {
+    workspace* ws = new workspace();
 
-
-    enumisomorphismsfeature* ei = new enumisomorphismsfeature(&std::cin, &std::cout);
-    samplerandomgraphsfeature* sr = new samplerandomgraphsfeature(&std::cin, &std::cout);
-    mantelstheoremfeature* mt = new mantelstheoremfeature(&std::cin,&std::cout);
+    enumisomorphismsfeature* ei = new enumisomorphismsfeature(&std::cin, &std::cout,ws);
+    samplerandomgraphsfeature* sr = new samplerandomgraphsfeature(&std::cin, &std::cout,ws);
+    mantelstheoremfeature* mt = new mantelstheoremfeature(&std::cin,&std::cout,ws);
+    mantelsverifyfeature* mv = new mantelsverifyfeature(&std::cin,&std::cout, ws);
 
     std::vector<feature*> featureslist {};
     featureslist.push_back(ei);
     featureslist.push_back(sr);
     featureslist.push_back(mt);
+    featureslist.push_back(mv);
 
     int cnt; // count of how many args are consumed by executing the feature
     int idx = 1;
@@ -63,6 +66,11 @@ int main(int argc, char* argv[]) {
     }
         // --- separate functionality below... aiming to have a main menu feature, or addl command line options
 
+    for (int n = 0; n < ws->items.size(); ++n) {
+        ws->items[n]->freemem();
+        delete ws->items[n];
+    }
+    delete ws;
 
 
 
