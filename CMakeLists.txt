@@ -17,4 +17,8 @@ add_executable(flagcalc main.cpp
         prob.cpp
         prob.h
         verboseio.cpp
-        verboseio.h)
+        verboseio.h
+        asymp.cpp
+        asymp.h
+        feature.cpp
+        feature.h)

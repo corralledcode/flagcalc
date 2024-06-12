@@ -17,6 +17,7 @@ using weightstype = std::vector<float>;
 
 class abstractrandomgraph {
 public:
+    virtual std::string shortname() {return "";};
     std::string name;
     virtual void randomgraph( graph* gptr ) {};
     abstractrandomgraph() {};
@@ -27,6 +28,7 @@ public:
 class stdrandomgraph : public abstractrandomgraph {
     float _edgecnt;
 public:
+    std::string shortname() {return "r1";};
     stdrandomgraph( const float edgecnt ) {
         _edgecnt = edgecnt;
         name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
@@ -45,10 +47,47 @@ public:
     }
 };
 
+class randomgraphonnedges : public abstractrandomgraph {
+    int _edgecnt;
+public:
+    std::string shortname() {return "r2";}
+    randomgraphonnedges( const int edgecnt ) {
+        _edgecnt = edgecnt;
+        name = "random graph with edgecnt == " + std::to_string(edgecnt);
+    }
+    void randomgraph( graph* gptr ) {
+        if (_edgecnt > (gptr->dim * gptr->dim / 2)) {
+            std::cout << "Too many edges requested of randomgraph\n";
+            return;
+        }
+        std::random_device dev;
+        std::mt19937 rng(dev());
+        std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
+        for (int n = 0; n < gptr->dim; ++n) {
+            for (int i = 0; i < gptr->dim; ++i) {
+                gptr->adjacencymatrix[n*gptr->dim + i] = false;
+            }
+        }
+        int n = 0;
+
+        while (n < _edgecnt) {
+            vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+            vertextype v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+            if ((v1 != v2) && !gptr->adjacencymatrix[v1*gptr->dim + v2]) {
+                gptr->adjacencymatrix[v1*gptr->dim + v2] = true;
+                gptr->adjacencymatrix[v2*gptr->dim + v1] = true;
+                ++n;
+            }
+        }
+    }
+};
+
+
 class randomconnectedgraphfixededgecnt : public abstractrandomgraph {
     int _edgecnt;
 
 public:
+    std::string shortname() {return "r3";}
     randomconnectedgraphfixededgecnt( const int edgecnt ) {
         _edgecnt = edgecnt;
         name = "random connected graph with fixed edge count " + std::to_string(_edgecnt) + " (ignoring unconnected outliers)";
@@ -114,9 +153,10 @@ public:
 class randomconnectedgraph : public abstractrandomgraph {
     int _edgecnt;
 public:
+    std::string shortname() {return "r4";}
     randomconnectedgraph( const int edgecnt ) {
         _edgecnt = edgecnt;
-        name = "random connected graph (algorithm does not find all such graphs...)" + std::to_string(_edgecnt);
+        name = "random connected graph (algorithm does not find all such graphs...) edgecnt == " + std::to_string(_edgecnt);
     }
     void randomgraph( graph* gptr ) {
         for (int i = 0; i < gptr->dim; ++i) {
@@ -190,9 +230,9 @@ inline std::vector<weightstype> computeweights(int n) {
             tmpweights.push_back(thisweights[i-k]);
         }
         res.push_back(tmpweights);
-        for (int i = 0; i < tmpweights.size(); ++i)
-            std::cout << i << " with prob " << tmpweights[i] << ", ";
-        std::cout << "\n";
+        //for (int i = 0; i < tmpweights.size(); ++i)
+        //    std::cout << i << " with prob " << tmpweights[i] << ", ";
+        //std::cout << "\n";
     }
     return res;
 }
@@ -200,6 +240,7 @@ inline std::vector<weightstype> computeweights(int n) {
 class weightedrandomconnectedgraph : public abstractrandomgraph {
     std::vector<weightstype> _weights;
 public:
+    std::string shortname() {return "r5";}
     weightedrandomconnectedgraph( std::vector<weightstype> weights ) {
         _weights = weights;
         name = "random connected graph with balanced/weighted search";
