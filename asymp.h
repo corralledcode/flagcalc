@@ -21,10 +21,11 @@ public:
 
 class asymp {
 public:
-    virtual float computeasymptotic( criterion* cr, measure* ms, const int outof, const int dim ) {
+    virtual float computeasymptotic( criterion* cr, measure* ms, const int outof, const int dim, std::ostream& os ) {
         int max = 0;
         int sampled = 0;
         int n = 1;
+        std::vector<bool*> samplegraphs;
         randomconnectedgraphfixededgecnt* rg = new randomconnectedgraphfixededgecnt(n);
         graph g;
         g.dim = dim;
@@ -38,6 +39,13 @@ public:
                     //float tmp = ms->takemeasure(g,ns);
                     //max = (tmp > max ? tmp : max);
                     max = n;
+                    bool* tmpadjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
+                    for (int i = 0; i < dim; ++i) {
+                        for (int j = 0; j < dim; ++j) {
+                            tmpadjacencymatrix[g.dim*i + j] = g.adjacencymatrix[g.dim*i+j];
+                        }
+                    }
+                    samplegraphs.push_back(tmpadjacencymatrix);
                     n++;
                     delete rg;
                     rg = new randomconnectedgraphfixededgecnt(n);
@@ -47,6 +55,16 @@ public:
             //free(ns.neighborslist);
         }
         free(g.adjacencymatrix);
+        graph tmpg;
+        tmpg.dim = dim;
+        for (int i = 0; i < samplegraphs.size(); ++i) {
+            tmpg.adjacencymatrix = samplegraphs[i];
+            std::cout << "Size n == " << i << ":\n";
+            osadjacencymatrix(os, tmpg);
+        }
+        for (int i = 0; i < samplegraphs.size(); ++i) {
+            free(samplegraphs[i]);
+        }
         return max;
     }
 };

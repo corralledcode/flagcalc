@@ -303,7 +303,7 @@ public:
         asymp* as = new asymp();
         trianglefreecriterion* cr = new trianglefreecriterion();
         edgecountmeasure* ms = new edgecountmeasure();;
-        float max = as->computeasymptotic(cr,ms,outof,limitdim);
+        float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os);
         *_os << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
         *_os << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
         delete ms;
