@@ -10,6 +10,8 @@
 #include <ranges>
 #include <vector>
 
+#define MAXFACTORIAL 0
+
 int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == w2; 1 if w1 < w2
     int res = -1;
     if (w1.parent == nullptr) {
@@ -273,6 +275,16 @@ void sortvertices( graph g ) {
 
 */
 
+bool ispartialisoonlynewest( graph g1, graph g2, graphmorphism map) {
+    bool match = true;
+    int i = map.size()-1;
+    for (int n = 0; match && (n < map.size()-1); ++n) {
+        match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
+    }
+    return match;
+}
+
+
 bool ispartialiso( graph g1, graph g2, graphmorphism map) {
     bool match = true;
     for (int n = 0; match && (n < map.size()-1); ++n) {
@@ -311,13 +323,12 @@ std::vector<std::vector<int>> getpermutations( const int i ) {
             std::vector<int> tmpperm {};
             //std::cout << "tmp[n].size()==" << tmp[n].size() << ", i == " << i << "\n";
 
-            for (int k = 0; k < i; ++k) {
-                if (k < j)
-                    tmpperm.push_back(tmp[n][k]+1);
-                if (j == k)
-                    tmpperm.push_back(0);
-                if (k > j)
-                    tmpperm.push_back(tmp[n][k-1]+1);
+            for (int k = 0; k < j; ++k) {
+                tmpperm.push_back(tmp[n][k]+1);
+            }
+            tmpperm.push_back(0);
+            for (int k = j+1; k < i; ++k) {
+                tmpperm.push_back(tmp[n][k-1]+1);
             }
             res.push_back(tmpperm);
         }
@@ -338,46 +349,45 @@ std::vector<std::vector<int>> getpermutations( const int i ) {
 // and it may be that with some work fastgetpermutations speeds such a graph's processing
 // time up.
 
-std::vector<std::vector<int>> fastgetpermutations( const int i, graph g1, graph g2, FP* fps1, FP* fps2, int idx ) {
-    std::vector<std::vector<int>> res {};
-    std::vector<int> base {0};
-    res.push_back(base);
-    //std::cout << "getpermutations " << i << "\n";
-    if (i == 1)
-        return res;
-    std::vector<std::vector<int>> tmp =fastgetpermutations(i-1,  g1, g2, fps1, fps2, idx);
+/*
+fastgetpermutations pseudocope
 
-    res.clear();
-    for (int j = 0; j < i; ++j) {
-        for (int n = 0; n < tmp.size(); ++n) {
-            std::vector<int> tmpperm {};
-            //std::cout << "tmp[n].size()==" << tmp[n].size() << ", i == " << i << "\n";
+in: cnt, index, targetset,
+out: add one map per pair {index,t}, t from targetset
 
-            for (int k = 0; k < i; ++k) {
-                if (k < j)
-                    tmpperm.push_back(tmp[n][k]+1);
-                if (j == k)
-                    tmpperm.push_back(0);
-                if (k > j)
-                    tmpperm.push_back(tmp[n][k-1]+1);
-            }
-            bool iso = true;
-            std::vector<std::pair<vertextype,vertextype>> tmpmap {};
-            for (int i = 0; i < tmpperm.size();++i) {
-                tmpmap.push_back({fps1[idx+j].v,fps2[idx+tmpperm[j]].v});
-            }
-            for (int k =0; iso && (k < tmpperm.size()); ++k) {
-                iso = ispartialiso(g1,g2,tmpmap);
-            }
-            if (iso)
-                res.push_back(tmpperm);
+*/
+
+bool fastgetpermutations( std::vector<vertextype> targetset, graph g1, graph g2, FP* fps1, FP* fps2, int idx, graphmorphism partialmap, std::vector<graphmorphism>* results) {
+
+    // implicit variable "cnt" == targetset.size
+
+    std::vector<graphmorphism> res {};
+    if (targetset.size() <= 1) {
+        partialmap.push_back( {fps1[idx].v,fps2[targetset[0]].v});
+        results->push_back(partialmap);
+        if (ispartialisoonlynewest(g1,g2,partialmap)) {
+            return true;
+        } else {
+            results->resize(results->size()-1); // can't seem to get to work erase(partialmap->size()-1);
+            return false;
         }
     }
-    //std::cout << "i, res.size() == " << i << ", " << res.size() << "\n";
-    //for (int j = 0; j < res.size(); ++j) {
-    //    std::cout << "j, res[j].size() == " << j << ", " << res[j].size() << "\n";
-    //}
-    return res;
+    graphmorphism tmppartial {};
+    for (int n = 0; n < targetset.size(); ++n) {
+        tmppartial = partialmap;
+        tmppartial.push_back( {fps1[idx].v, fps2[targetset[n]].v});
+        std::vector<vertextype> newtargetset {};
+        for (int i = 0; i < targetset.size(); ++i) { // this for loop because erase doesn't seem to work
+            if (i != n)
+                newtargetset.push_back(targetset[i]);
+        }
+        if (ispartialisoonlynewest(g1,g2,tmppartial)) {
+            if (fastgetpermutations(newtargetset,g1,g2,fps1,fps2,idx+1,tmppartial,results)) {
+                results->push_back(tmppartial);
+            }
+        }
+    }
+    return true;
 }
 
 
@@ -449,30 +459,50 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
         //std::cout << "maps.size == " << maps.size() << "\n";
 
         int permsidx = del[l+1]-del[l];
-        if (permsidx > perms.size())
-            perms.resize(permsidx+1);
-        if (perms[permsidx].size() == 0)
-            perms[permsidx] = getpermutations(permsidx);
 
-        for (int k = 0; k < maps.size(); ++k) {
-            //std::cout << "del[l] == " << del[l] << ", del[l+1] == " << del[l+1] << "delcnt == " << delcnt << "\n";
-            //std::vector<std::vector<int>> perm = fastgetpermutations(del[l+1]-del[l],g1,g2,fps1,fps2,del[l]);
-            std::vector<std::vector<int>> perm = perms[permsidx];
-            for (int i = 0; i < perm.size(); ++i) {
-                graphmorphism newmap = maps[k];
-                for (int j = 0; j < perm[i].size(); ++j) {
-                    std::pair<vertextype,vertextype> newpair;
-                    //std::cout << "i,j, perm[i][j] == "<<i<<", "<<j<<", "<< perm[i][j]<<"\n";
-                    newpair = {fps1[del[l]+j].v,fps2[del[l]+perm[i][j]].v};
-                    newmap.push_back(newpair);
+        if (permsidx < MAXFACTORIAL) {
+            if (permsidx > perms.size())
+                perms.resize(permsidx+1);
+            if (perms[permsidx].size() == 0)
+                perms[permsidx] = getpermutations(permsidx);
+
+            for (int k = 0; k < maps.size(); ++k) {
+                //std::cout << "del[l] == " << del[l] << ", del[l+1] == " << del[l+1] << "delcnt == " << delcnt << "\n";
+                //std::vector<std::vector<int>> perm = fastgetpermutations(del[l+1]-del[l],g1,g2,fps1,fps2,del[l]);
+                std::vector<std::vector<int>> perm = perms[permsidx];
+                for (int i = 0; i < perm.size(); ++i) {
+                    graphmorphism newmap = maps[k];
+                    for (int j = 0; j < perm[i].size(); ++j) {
+                        std::pair<vertextype,vertextype> newpair;
+                        //std::cout << "i,j, perm[i][j] == "<<i<<", "<<j<<", "<< perm[i][j]<<"\n";
+                        newpair = {fps1[del[l]+j].v,fps2[del[l]+perm[i][j]].v};
+                        newmap.push_back(newpair);
+                    }
+                    newmaps.push_back(newmap);
                 }
-                newmaps.push_back(newmap);
             }
-        }
-        maps.clear();
-        for (int i = 0; i < newmaps.size(); ++i ) {
-            if (ispartialiso(g1,g2,newmaps[i])) {
-                maps.push_back(newmaps[i]);
+            maps.clear();
+            for (int i = 0; i < newmaps.size(); ++i ) {
+                if (ispartialiso(g1,g2,newmaps[i])) {
+                    maps.push_back(newmaps[i]);
+                }
+            }
+        } else { // the case when permsidx >= MAXFACTORIAL
+            for (int k = 0; k < maps.size(); ++k) {
+                std::vector<vertextype> targetset {};
+                for (int j = 0; j < permsidx; ++j) {
+                    targetset.push_back(del[l]+j);
+                    //std::cout << targetset[targetset.size()-1] << "\n";;
+                }
+                if (permsidx > 0) {
+                    fastgetpermutations(targetset,g1,g2,fps1,fps2,del[l],maps[k],&(newmaps));
+
+                }
+            }
+            maps.clear();
+            for (int i = 0; i < newmaps.size(); ++i) {
+                if (newmaps[i].size() == del[l] + permsidx)
+                    maps.push_back(newmaps[i]);
             }
         }
     }

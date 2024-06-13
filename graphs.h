@@ -64,6 +64,4 @@ void osneighbors( std::ostream &os, neighbors ns );
 
 void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps );
 
-
-
 #endif //GRAPHS_H
