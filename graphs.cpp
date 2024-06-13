@@ -390,18 +390,23 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
     //basepair = {-1,-1};
     graphmorphism basemap {};
     maps.push_back(basemap);
+    std::vector<std::vector<std::vector<int>>> perms;
     for (int l = 0; l<delcnt; ++l) {
         std::vector<graphmorphism> newmaps {};
         //std::cout << "maps.size == " << maps.size() << "\n";
+        int permsidx = del[l+1]-del[l];
+        if (permsidx > perms.size())
+            perms.resize(permsidx+1);
+        if (perms[permsidx].size() == 0)
+            perms[permsidx] = getpermutations(permsidx);
         for (int k = 0; k < maps.size(); ++k) {
             //std::cout << "del[l] == " << del[l] << ", del[l+1] == " << del[l+1] << "delcnt == " << delcnt << "\n";
-            std::vector<std::vector<int>> perm = getpermutations(del[l+1]-del[l]);
-            for (int i = 0; i < perm.size(); ++i) {
+            for (int i = 0; i < perms[permsidx].size(); ++i) {
                 graphmorphism newmap = maps[k];
-                for (int j = 0; j < perm[i].size(); ++j) {
+                for (int j = 0; j < perms[permsidx][i].size(); ++j) {
                     std::pair<vertextype,vertextype> newpair;
                     //std::cout << "i,j, perm[i][j] == "<<i<<", "<<j<<", "<< perm[i][j]<<"\n";
-                    newpair = {fps1[del[l]+j].v,fps2[del[l]+perm[i][j]].v};
+                    newpair = {fps1[del[l]+j].v,fps2[del[l]+perms[permsidx][i][j]].v};
                     newmap.push_back(newpair);
                 }
                 newmaps.push_back(newmap);
