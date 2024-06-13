@@ -215,6 +215,7 @@ neighbors computeneighborslist( graph g ) {
     return ns;
 }
 
+/*
 void sortneighborslist( neighbors* nsptr ) {
 
     int idx = 0;
@@ -251,6 +252,7 @@ int seqtoindex( vertextype* seq, const int idx, const int sz ) {
         return 0;
     return seq[idx]*sz + seqtoindex( seq, idx+1, sz);
 }
+*/
 
 /*
 void sortvertices( graph g ) {
@@ -328,6 +330,57 @@ std::vector<std::vector<int>> getpermutations( const int i ) {
 }
 
 
+// fastgetpermuations: it turns out to be slower, at least on the graphs tested,
+// so for now this feature is not used (what it does is to check each possible permutation
+// for being a partial iso; the difficulty is that say a graph of four disjoiht
+// isomorphic subgraph, each of size n, has (n!)^4*4!;
+// we have huge jumps in runtime by adding one more isomorphic disjoint subgraph
+// and it may be that with some work fastgetpermutations speeds such a graph's processing
+// time up.
+
+std::vector<std::vector<int>> fastgetpermutations( const int i, graph g1, graph g2, FP* fps1, FP* fps2, int idx ) {
+    std::vector<std::vector<int>> res {};
+    std::vector<int> base {0};
+    res.push_back(base);
+    //std::cout << "getpermutations " << i << "\n";
+    if (i == 1)
+        return res;
+    std::vector<std::vector<int>> tmp =fastgetpermutations(i-1,  g1, g2, fps1, fps2, idx);
+
+    res.clear();
+    for (int j = 0; j < i; ++j) {
+        for (int n = 0; n < tmp.size(); ++n) {
+            std::vector<int> tmpperm {};
+            //std::cout << "tmp[n].size()==" << tmp[n].size() << ", i == " << i << "\n";
+
+            for (int k = 0; k < i; ++k) {
+                if (k < j)
+                    tmpperm.push_back(tmp[n][k]+1);
+                if (j == k)
+                    tmpperm.push_back(0);
+                if (k > j)
+                    tmpperm.push_back(tmp[n][k-1]+1);
+            }
+            bool iso = true;
+            std::vector<std::pair<vertextype,vertextype>> tmpmap {};
+            for (int i = 0; i < tmpperm.size();++i) {
+                tmpmap.push_back({fps1[idx+j].v,fps2[idx+tmpperm[j]].v});
+            }
+            for (int k =0; iso && (k < tmpperm.size()); ++k) {
+                iso = ispartialiso(g1,g2,tmpmap);
+            }
+            if (iso)
+                res.push_back(tmpperm);
+        }
+    }
+    //std::cout << "i, res.size() == " << i << ", " << res.size() << "\n";
+    //for (int j = 0; j < res.size(); ++j) {
+    //    std::cout << "j, res[j].size() == " << j << ", " << res[j].size() << "\n";
+    //}
+    return res;
+}
+
+
 std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
     graph g1 = ns1.g;
     graph g2 = ns2.g;
@@ -388,25 +441,29 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
 
     //std::pair<vertextype,vertextype> basepair;
     //basepair = {-1,-1};
+    std::vector<std::vector<std::vector<int>>> perms {};
     graphmorphism basemap {};
     maps.push_back(basemap);
-    std::vector<std::vector<std::vector<int>>> perms;
     for (int l = 0; l<delcnt; ++l) {
         std::vector<graphmorphism> newmaps {};
         //std::cout << "maps.size == " << maps.size() << "\n";
+
         int permsidx = del[l+1]-del[l];
         if (permsidx > perms.size())
             perms.resize(permsidx+1);
         if (perms[permsidx].size() == 0)
             perms[permsidx] = getpermutations(permsidx);
+
         for (int k = 0; k < maps.size(); ++k) {
             //std::cout << "del[l] == " << del[l] << ", del[l+1] == " << del[l+1] << "delcnt == " << delcnt << "\n";
-            for (int i = 0; i < perms[permsidx].size(); ++i) {
+            //std::vector<std::vector<int>> perm = fastgetpermutations(del[l+1]-del[l],g1,g2,fps1,fps2,del[l]);
+            std::vector<std::vector<int>> perm = perms[permsidx];
+            for (int i = 0; i < perm.size(); ++i) {
                 graphmorphism newmap = maps[k];
-                for (int j = 0; j < perms[permsidx][i].size(); ++j) {
+                for (int j = 0; j < perm[i].size(); ++j) {
                     std::pair<vertextype,vertextype> newpair;
                     //std::cout << "i,j, perm[i][j] == "<<i<<", "<<j<<", "<< perm[i][j]<<"\n";
-                    newpair = {fps1[del[l]+j].v,fps2[del[l]+perms[permsidx][i][j]].v};
+                    newpair = {fps1[del[l]+j].v,fps2[del[l]+perm[i][j]].v};
                     newmap.push_back(newpair);
                 }
                 newmaps.push_back(newmap);

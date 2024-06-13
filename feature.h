@@ -274,6 +274,8 @@ public:
         free(V);
         free(ns1.neighborslist);
         free(ns1.degrees);
+        free(g1.adjacencymatrix);  // as in the "embarrassing" comment above, this allocating and freeing should
+                                   // be handled by the constructor/destructor of EdgesforHelly
         freefps(fps1, g1.dim);
 
         free(FE2);
@@ -284,6 +286,8 @@ public:
         free(V2);
         free(ns2.neighborslist);
         free(ns2.degrees);
+        free(g2.adjacencymatrix);   // as in the "embarrassing" comment above, this allocating and freeing should
+                                    // be handled by the constructor/destructor of EdgesforHelly
         freefps(fps2, g2.dim);
 
     }
