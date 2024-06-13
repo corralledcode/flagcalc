@@ -234,7 +234,7 @@ public:
 
         takefingerprint(ns1,fps1,g1.dim);
 
-        //osfingerprint(*os,ns1,fps1,g1.dim);
+        osfingerprint(*os,ns1,fps1,g1.dim);
 
         FP fps2[g1.dim];
         for (vertextype n = 0; n < g2.dim; ++n) {
@@ -256,7 +256,7 @@ public:
         fpstmp2.ns = fps2;
         fpstmp2.nscnt = g2.dim;
 
-        //osfingerprint(*os,ns2,fps2,g2.dim);
+        osfingerprint(*os,ns2,fps2,g2.dim);
         if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
             *os << "Fingerprints MATCH\n";
         } else {
