@@ -99,6 +99,198 @@ public:
 };
 
 
+class cmpfingerprintsfeature: public feature {
+public:
+    graph internalg;
+    bool useinternalg = false;
+    std::string cmdlineoption() { return "f"; }
+    std::string cmdlineoptionlong() { return "cmpfingerprints"; }
+    cmpfingerprintsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+        //cmdlineoption = "f";
+        //cmdlineoptionlong = "cmpfingerprints";
+    };
+    void execute(int argc, char* argv[], int* cnt) override {
+        std::ifstream ifs;
+        std::istream* is = &std::cin;
+        std::ostream* os = _os;
+        if (argc > 1) {
+            std::string filename = argv[1];
+            std::cout << "Opening file " << filename << "\n";
+            ifs.open(filename);
+            if (!ifs) {
+                std::cout << "Couldn't open file for reading \n";
+                return;
+            }
+            is = &ifs;
+            *cnt = 1;
+        } else {
+            std::cout << "Enter a filename or enter T for terminal mode: ";
+            std::string filename;
+            std::cin >> filename;
+            if (filename != "T") {
+                ifs.open(filename);
+                if (!ifs)
+                    std::cout << "Couldn't open file for reading \n";
+                is = &ifs;
+            }
+            *cnt = 0;
+        }
+
+
+        auto V = new Vertices();
+        auto EV = new Batchprocesseddata<strtype>();
+        auto FV = new Formatvertices(V,EV);
+        FV->pause();
+        FV->readdata(*is);
+        FV->resume();
+        int sV = FV->size();
+        for( int n = 0; n<sV; ++n)
+            *os << n << "{" << FV->idata->getdata(n) << ":" << FV->edata->getdata(n) << "}, ";
+        *os << "\b\b  \n";
+
+        auto E = new EdgesforHelly();
+        auto EE = new Batchprocesseddata<Edgestr>();
+        auto FE = new Formatedges(E,EE);
+        FE->pause();
+        FE->readdata(*is);
+        FE->setvertices(FV);
+        FE->resume();
+        int sE = FE->size();
+
+        for (int m = 0; m < sE; ++m) {
+            *os << "{" << FE->idata->getdata(m).first << ", " << FE->idata->getdata(m).second;
+            *os << ":" << FE->edata->getdata(m).first << ", " << FE->edata->getdata(m).second << "}, ";
+        }
+        *os << "\b\b  \n";
+
+        // repeat the code above for a second graph...
+
+        auto V2 = new Vertices();
+        auto EV2 = new Batchprocesseddata<strtype>();
+        auto FV2 = new Formatvertices(V2,EV2);
+        auto E2 = new EdgesforHelly();
+        auto EE2 = new Batchprocesseddata<Edgestr>();
+        auto FE2 = new Formatedges(E2,EE2);
+
+        graph g1;
+        graph g2 = internalg;
+
+        g1.dim = V->size();
+        if (!useinternalg) {
+            FV2->pause();
+            FV2->readdata(*is);
+            FV2->resume();
+            int sV2 = FV2->size();
+            for( int n = 0; n<sV2; ++n)
+                *os << n << "{" << FV2->idata->getdata(n) << ":" << FV2->edata->getdata(n) << "}, ";
+            *os << "\b\b  \n";
+
+            FE2->pause();
+            FE2->readdata(*is);
+            FE2->setvertices(FV2);
+            FE2->resume();
+            int sE2 = FE2->size();
+
+            for (int m = 0; m < sE2; ++m) {
+                *os << "{" << FE2->idata->getdata(m).first << ", " << FE2->idata->getdata(m).second;
+                *os << ":" << FE2->edata->getdata(m).first << ", " << FE2->edata->getdata(m).second << "}, ";
+            }
+            *os << "\b\b  \n";
+            g2.dim = V2->size();
+
+            // below is rather embarrassing hack around some omissions in the general purpose intent of the HellyTool code...
+            // (recall that HellyTool does not make use of the vertexadjacency matrix, hence the lack of debugging around its use...)
+
+            E2->maxvertex = g2.dim-1;
+            E2->vertexadjacency = new bool[(g2.dim) * g2.dim];
+            E2->computevertexadjacency();
+            g2.adjacencymatrix = E2->vertexadjacency;
+        } // else g2 remains as internalg from above
+        E->maxvertex = g1.dim-1;
+        E->vertexadjacency = new bool[(g1.dim) * g1.dim];
+        E->computevertexadjacency();
+        g1.adjacencymatrix = E->vertexadjacency;
+
+        *os << "Graph 1:\n";
+        osadjacencymatrix( *os, g1 );
+        *os << "Graph 2:\n";
+        osadjacencymatrix( *os, g2 );
+
+        neighbors ns1;
+        ns1 = computeneighborslist(g1);
+        //osneighbors(*os,ns1);
+
+        neighbors ns2;
+        ns2 = computeneighborslist(g2);
+        //osneighbors(*os,ns2);
+
+        FP fps1[g1.dim];
+        for (vertextype n = 0; n < g1.dim; ++n) {
+            fps1[n].v = n;
+            fps1[n].ns = nullptr;
+            fps1[n].nscnt = 0;
+            fps1[n].parent = nullptr;
+        }
+
+        takefingerprint(ns1,fps1,g1.dim);
+
+        //osfingerprint(*os,ns1,fps1,g1.dim);
+
+        FP fps2[g1.dim];
+        for (vertextype n = 0; n < g2.dim; ++n) {
+            fps2[n].v = n;
+            fps2[n].ns = nullptr;
+            fps2[n].nscnt = 0;
+            fps2[n].parent = nullptr;
+        }
+
+        takefingerprint(ns2,fps2,g2.dim);
+
+        FP fpstmp1;
+        fpstmp1.parent = nullptr;
+        fpstmp1.ns = fps1;
+        fpstmp1.nscnt = g1.dim;
+
+        FP fpstmp2;
+        fpstmp2.parent = nullptr;
+        fpstmp2.ns = fps2;
+        fpstmp2.nscnt = g2.dim;
+
+        //osfingerprint(*os,ns2,fps2,g2.dim);
+        if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
+            *os << "Fingerprints MATCH\n";
+        } else {
+            *os << "Fingerprints DO NOT MATCH\n";
+        }
+
+        free(FE);
+        free(EE);
+        free(E);
+        free(FV);
+        free(EV);
+        free(V);
+        free(ns1.neighborslist);
+        free(ns1.degrees);
+        free(g1.adjacencymatrix);  // as in the "embarrassing" comment above, this allocating and freeing should
+                                   // be handled by the constructor/destructor of EdgesforHelly
+        freefps(fps1, g1.dim);
+
+        free(FE2);
+        free(EE2);
+        free(E2);
+        free(FV2);
+        free(EV2);
+        free(V2);
+        free(ns2.neighborslist);
+        free(ns2.degrees);
+        free(g2.adjacencymatrix);   // as in the "embarrassing" comment above, this allocating and freeing should
+                                    // be handled by the constructor/destructor of EdgesforHelly
+        freefps(fps2, g2.dim);
+
+    }
+};
+
+
 class enumisomorphismsfeature: public feature {
 public:
     graph internalg;

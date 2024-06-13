@@ -14,12 +14,14 @@ int main(int argc, char* argv[]) {
     workspace* ws = new workspace();
 
     enumisomorphismsfeature* ei = new enumisomorphismsfeature(&std::cin, &std::cout,ws);
+    cmpfingerprintsfeature* cf = new cmpfingerprintsfeature(&std::cin, &std::cout,ws);
     samplerandomgraphsfeature* sr = new samplerandomgraphsfeature(&std::cin, &std::cout,ws);
     mantelstheoremfeature* mt = new mantelstheoremfeature(&std::cin,&std::cout,ws);
     mantelsverifyfeature* mv = new mantelsverifyfeature(&std::cin,&std::cout, ws);
 
     std::vector<feature*> featureslist {};
     featureslist.push_back(ei);
+    featureslist.push_back(cf);
     featureslist.push_back(sr);
     featureslist.push_back(mt);
     featureslist.push_back(mv);
