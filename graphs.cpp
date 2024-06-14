@@ -49,7 +49,7 @@
 #include <thread>
 #endif
 
-#define MAXFACTORIAL 3
+#define MAXFACTORIAL 0
 
 int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == w2; 1 if w1 < w2
     int res = -1;

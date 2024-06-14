@@ -29,6 +29,9 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(mv);
     featureslist.push_back(vb);
 
+
+    auto totalstarttime = std::chrono::high_resolution_clock::now();
+
     int cnt; // count of how many args are consumed by executing the feature
     int idx = 1;
     if (argc <= 1) // that is, only the executable's name
@@ -71,7 +74,8 @@ int main(int argc, char* argv[]) {
                 auto stoptime = std::chrono::high_resolution_clock::now();
                 auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
 
-                tr->duration = float(duration.count())/1000000;
+                tr->duration = duration.count();
+                tr->name = "TimedRun" +  ws->items[ws->items.size()-1]->name;
                 ws->items.push_back(tr);
 
                 //std::cout << "Time elapsed: " << float(duration.count())/1000000 << "\n";
@@ -80,15 +84,20 @@ int main(int argc, char* argv[]) {
             idx += (cnt+1);
         }
     }
+
+    auto totalstoptime = std::chrono::high_resolution_clock::now();
+    auto totalduration = duration_cast<std::chrono::microseconds>(totalstoptime - totalstarttime);
+    std::cout << "Total time elapsed: " << float(totalduration.count())/1000000 << "\n";
+
     for (int n = 0; n < featureslist.size(); ++n) {
         delete featureslist[n];
     }
 
-    /*
+
     for (int n = 0; n < ws->items.size(); ++n) {
-        ws->items[n]->freemem();
+        //ws->items[n]->freemem();  // figure out if this is a memory leak
         delete ws->items[n];
-    }*/
+    }
     delete ws;
 
 

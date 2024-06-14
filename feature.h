@@ -6,13 +6,10 @@
 #define FEATURE_H
 #include <iostream>
 #include <string>
+#include <fstream>
 
 #include "asymp.h"
 #include "graphs.h"
-#include "EdgesforHelly.cpp"
-#include "Graph.cpp"
-#include "Formatgraph.cpp"
-#include "Formatdata.cpp"
 #include "prob.h"
 #include "workspace.h"
 
@@ -173,161 +170,72 @@ public:
             *cnt = 0;
         }
 
+        graphitem* gi1 = new graphitem();
+        gi1->isitem(*is);
 
-        auto V = new Vertices();
-        auto EV = new Batchprocesseddata<strtype>();
-        auto FV = new Formatvertices(V,EV);
-        FV->pause();
-        FV->readdata(*is);
-        FV->resume();
-        int sV = FV->size();
-        for( int n = 0; n<sV; ++n)
-            *os << n << "{" << FV->idata->getdata(n) << ":" << FV->edata->getdata(n) << "}, ";
-        *os << "\b\b  \n";
-
-        auto E = new EdgesforHelly();
-        auto EE = new Batchprocesseddata<Edgestr>();
-        auto FE = new Formatedges(E,EE);
-        FE->pause();
-        FE->readdata(*is);
-        FE->setvertices(FV);
-        FE->resume();
-        int sE = FE->size();
-
-        for (int m = 0; m < sE; ++m) {
-            *os << "{" << FE->idata->getdata(m).first << ", " << FE->idata->getdata(m).second;
-            *os << ":" << FE->edata->getdata(m).first << ", " << FE->edata->getdata(m).second << "}, ";
+        graphitem* gi2 = new graphitem();
+        if (useinternalg) {
+            gi2->g = internalg;  // a better approach is to find it on the workspace
         }
-        *os << "\b\b  \n";
-
-        // repeat the code above for a second graph...
-
-        auto V2 = new Vertices();
-        auto EV2 = new Batchprocesseddata<strtype>();
-        auto FV2 = new Formatvertices(V2,EV2);
-        auto E2 = new EdgesforHelly();
-        auto EE2 = new Batchprocesseddata<Edgestr>();
-        auto FE2 = new Formatedges(E2,EE2);
-
-        graph g1;
-        graph g2 = internalg;
-
-        g1.dim = V->size();
-        if (!useinternalg) {
-            FV2->pause();
-            FV2->readdata(*is);
-            FV2->resume();
-            int sV2 = FV2->size();
-            for( int n = 0; n<sV2; ++n)
-                *os << n << "{" << FV2->idata->getdata(n) << ":" << FV2->edata->getdata(n) << "}, ";
-            *os << "\b\b  \n";
-
-            FE2->pause();
-            FE2->readdata(*is);
-            FE2->setvertices(FV2);
-            FE2->resume();
-            int sE2 = FE2->size();
-
-            for (int m = 0; m < sE2; ++m) {
-                *os << "{" << FE2->idata->getdata(m).first << ", " << FE2->idata->getdata(m).second;
-                *os << ":" << FE2->edata->getdata(m).first << ", " << FE2->edata->getdata(m).second << "}, ";
+        gi2->isitem(*is);
+        if (gi2->g.dim == 0) {
+            gi2->g.dim = gi1->g.dim;
+            gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
+            for (int n = 0; n < gi2->g.dim; ++n) {
+                for (int i = 0; i < gi2->g.dim; ++i) {
+                    gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi2->g.dim + i];
+                }
             }
-            *os << "\b\b  \n";
-            g2.dim = V2->size();
+            gi2->ns = computeneighborslist(gi2->g);
 
-            // below is rather embarrassing hack around some omissions in the general purpose intent of the HellyTool code...
-            // (recall that HellyTool does not make use of the vertexadjacency matrix, hence the lack of debugging around its use...)
+            //gi2->g = gi1->g;
+        }
 
-            E2->maxvertex = g2.dim-1;
-            E2->vertexadjacency = new bool[(g2.dim) * g2.dim];
-            E2->computevertexadjacency();
-            g2.adjacencymatrix = E2->vertexadjacency;
-        } // else g2 remains as internalg from above
-        E->maxvertex = g1.dim-1;
-        E->vertexadjacency = new bool[(g1.dim) * g1.dim];
-        E->computevertexadjacency();
-        g1.adjacencymatrix = E->vertexadjacency;
-
-        /*
-        *os << "Graph 1:\n";
-        osadjacencymatrix( *os, g1 );
-        *os << "Graph 2:\n";
-        osadjacencymatrix( *os, g2 );
-        */
-
-        neighbors ns1;
-        ns1 = computeneighborslist(g1);
-        //osneighbors(*os,ns1);
-
-        neighbors ns2;
-        ns2 = computeneighborslist(g2);
-        //osneighbors(*os,ns2);
-
-        FP fps1[g1.dim];
-        for (vertextype n = 0; n < g1.dim; ++n) {
+        FP fps1[gi1->g.dim];
+        for (vertextype n = 0; n < gi1->g.dim; ++n) {
             fps1[n].v = n;
             fps1[n].ns = nullptr;
             fps1[n].nscnt = 0;
             fps1[n].parent = nullptr;
         }
 
-        takefingerprint(ns1,fps1,g1.dim);
+        takefingerprint(gi1->ns,fps1,gi1->g.dim);
 
-        //osfingerprint(*os,ns1,fps1,g1.dim);
-
-        FP fps2[g1.dim];
-        for (vertextype n = 0; n < g2.dim; ++n) {
+        FP fps2[gi2->g.dim];
+        for (vertextype n = 0; n < gi2->g.dim; ++n) {
             fps2[n].v = n;
             fps2[n].ns = nullptr;
             fps2[n].nscnt = 0;
             fps2[n].parent = nullptr;
         }
 
-        takefingerprint(ns2,fps2,g2.dim);
+        takefingerprint(gi2->ns,fps2,gi2->g.dim);
 
         FP fpstmp1;
         fpstmp1.parent = nullptr;
         fpstmp1.ns = fps1;
-        fpstmp1.nscnt = g1.dim;
+        fpstmp1.nscnt = gi1->g.dim;
 
         FP fpstmp2;
         fpstmp2.parent = nullptr;
         fpstmp2.ns = fps2;
-        fpstmp2.nscnt = g2.dim;
+        fpstmp2.nscnt = gi2->g.dim;
 
-        //osfingerprint(*os,ns2,fps2,g2.dim);
-/*
-        if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
-            *os << "Fingerprints MATCH\n";
-        } else {
-            *os << "Fingerprints DO NOT MATCH\n";
-        }
-*/
-        bool res = (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0);
-        graphitem* gi1 = new graphitem();
-        gi1->g = g1;
-        gi1->ns = ns1;
-        gi1->name = _ws->getuniquename();
-        _ws->items.push_back(gi1);
 
-        graphitem* gi2 = new graphitem();
-        gi2->g = g2;
-        gi2->ns = ns2;
-        gi2->name = _ws->getuniquename();
-        _ws->items.push_back(gi2);
+        bool res = (FPcmp(gi1->ns,gi2->ns,fpstmp1,fpstmp2) == 0);
 
         cmpfingerprintsitem* wi = new cmpfingerprintsitem();
         wi->fingerprintsmatch = res;
         wi->name = _ws->getuniquename();
-        wi->g1 = g1;
-        wi->ns1 = ns1;
+        wi->g1 = gi1->g;
+        wi->ns1 = gi1->ns;
 
 
-        wi->fps1 = (FP*)malloc(g1.dim * sizeof(FP));
+        wi->fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
 
 
         //wi->fps1 = fps1;
-        for (int n = 0; n < g1.dim; ++n) {
+        for (int n = 0; n < gi1->g.dim; ++n) {
             wi->fps1[n].ns = nullptr; //fps1[n].ns;
             wi->fps1[n].v = fps1[n].v;
             wi->fps1[n].nscnt = 0; //fps1[n].nscnt;
@@ -335,52 +243,26 @@ public:
 
         }
 
-        wi->fps1cnt = g1.dim;
-        wi->g2 = g2;
-        wi->ns2 = ns2;
+        wi->fps1cnt = gi1->g.dim;
 
-        wi->fps2 = (FP*)malloc(g2.dim * sizeof(FP));
+        wi->g2 = gi2->g;
+        wi->ns2 = gi2->ns;
 
-        for (int n = 0; n < g2.dim; ++n) {
+        wi->fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
+
+
+        //wi->fps2 = fps2;
+
+        for (int n = 0; n < gi2->g.dim; ++n) {
             wi->fps2[n].ns = nullptr; //fps2[n].ns;
             wi->fps2[n].v = fps2[n].v;
             wi->fps2[n].nscnt = 0; //fps2[n].nscnt;
             wi->fps2[n].parent = nullptr;
         }
-        //wi->fps2 = fps2;
 
-        wi->fps2cnt = g2.dim;
+        wi->fps2cnt = gi2->g.dim;
 
         _ws->items.push_back(wi);
-        free(FE);
-        free(EE);
-        free(E);
-        free(FV);
-        free(EV);
-        free(V);
-
-/* now handled by workspace
-        free(ns1.neighborslist);
-        free(ns1.degrees);
-        free(g1.adjacencymatrix);  // as in the "embarrassing" comment above, this allocating and freeing should
-                                   // be handled by the constructor/destructor of EdgesforHelly
-        freefps(fps1, g1.dim);
-*/
-
-        free(FE2);
-        free(EE2);
-        free(E2);
-        free(FV2);
-        free(EV2);
-        free(V2);
-
-        /*
-        free(ns2.neighborslist);
-        free(ns2.degrees);
-        free(g2.adjacencymatrix);   // as in the "embarrassing" comment above, this allocating and freeing should
-                                    // be handled by the constructor/destructor of EdgesforHelly
-        freefps(fps2, g2.dim);
-*/
     }
 };
 
@@ -426,186 +308,77 @@ public:
             *cnt = 0;
         }
 
+        graphitem* gi1 = new graphitem();
+        gi1->isitem(*is);
 
-        auto V = new Vertices();
-        auto EV = new Batchprocesseddata<strtype>();
-        auto FV = new Formatvertices(V,EV);
-        FV->pause();
-        FV->readdata(*is);
-        FV->resume();
-        int sV = FV->size();
-        for( int n = 0; n<sV; ++n)
-            *os << n << "{" << FV->idata->getdata(n) << ":" << FV->edata->getdata(n) << "}, ";
-        *os << "\b\b  \n";
-
-        auto E = new EdgesforHelly();
-        auto EE = new Batchprocesseddata<Edgestr>();
-        auto FE = new Formatedges(E,EE);
-        FE->pause();
-        FE->readdata(*is);
-        FE->setvertices(FV);
-        FE->resume();
-        int sE = FE->size();
-
-        for (int m = 0; m < sE; ++m) {
-            *os << "{" << FE->idata->getdata(m).first << ", " << FE->idata->getdata(m).second;
-            *os << ":" << FE->edata->getdata(m).first << ", " << FE->edata->getdata(m).second << "}, ";
+        graphitem* gi2 = new graphitem();
+        if (useinternalg) {
+            gi2->g = internalg;  // a better approach is to find it on the workspace
         }
-        *os << "\b\b  \n";
-
-        // repeat the code above for a second graph...
-
-        auto V2 = new Vertices();
-        auto EV2 = new Batchprocesseddata<strtype>();
-        auto FV2 = new Formatvertices(V2,EV2);
-        auto E2 = new EdgesforHelly();
-        auto EE2 = new Batchprocesseddata<Edgestr>();
-        auto FE2 = new Formatedges(E2,EE2);
-
-        graph g1;
-        graph g2 = internalg;
-
-        g1.dim = V->size();
-        if (!useinternalg) {
-            FV2->pause();
-            FV2->readdata(*is);
-            FV2->resume();
-            int sV2 = FV2->size();
-            for( int n = 0; n<sV2; ++n)
-                *os << n << "{" << FV2->idata->getdata(n) << ":" << FV2->edata->getdata(n) << "}, ";
-            *os << "\b\b  \n";
-
-            FE2->pause();
-            FE2->readdata(*is);
-            FE2->setvertices(FV2);
-            FE2->resume();
-            int sE2 = FE2->size();
-
-            for (int m = 0; m < sE2; ++m) {
-                *os << "{" << FE2->idata->getdata(m).first << ", " << FE2->idata->getdata(m).second;
-                *os << ":" << FE2->edata->getdata(m).first << ", " << FE2->edata->getdata(m).second << "}, ";
+        gi2->isitem(*is);
+        if (gi2->g.dim == 0) {
+            gi2->g.dim = gi1->g.dim;
+            gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
+            for (int n = 0; n < gi2->g.dim; ++n) {
+                for (int i = 0; i < gi2->g.dim; ++i) {
+                    gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi2->g.dim + i];
+                }
             }
-            *os << "\b\b  \n";
-            g2.dim = V2->size();
+            gi2->ns = computeneighborslist(gi2->g);
 
-            // below is rather embarrassing hack around some omissions in the general purpose intent of the HellyTool code...
-            // (recall that HellyTool does not make use of the vertexadjacency matrix, hence the lack of debugging around its use...)
+            //gi2->g = gi1->g;
+        }
 
-            E2->maxvertex = g2.dim-1;
-            E2->vertexadjacency = new bool[(g2.dim) * g2.dim];
-            E2->computevertexadjacency();
-            g2.adjacencymatrix = E2->vertexadjacency;
-        } // else g2 remains as internalg from above
-        E->maxvertex = g1.dim-1;
-        E->vertexadjacency = new bool[(g1.dim) * g1.dim];
-        E->computevertexadjacency();
-        g1.adjacencymatrix = E->vertexadjacency;
-
-        //*os << "Graph 1:\n";
-        //osadjacencymatrix( *os, g1 );
-        //*os << "Graph 2:\n";
-        //osadjacencymatrix( *os, g2 );
-
-        neighbors ns1;
-        ns1 = computeneighborslist(g1);
-        //osneighbors(*os,ns1);
-
-        neighbors ns2;
-        ns2 = computeneighborslist(g2);
-        //osneighbors(*os,ns2);
-
-        FP fps1[g1.dim];
-        for (vertextype n = 0; n < g1.dim; ++n) {
+        FP fps1[gi1->g.dim];
+        for (vertextype n = 0; n < gi1->g.dim; ++n) {
             fps1[n].v = n;
             fps1[n].ns = nullptr;
             fps1[n].nscnt = 0;
             fps1[n].parent = nullptr;
         }
 
-        takefingerprint(ns1,fps1,g1.dim);
+        takefingerprint(gi1->ns,fps1,gi1->g.dim);
 
-        //osfingerprint(*os,ns1,fps1,g1.dim);
-
-        FP fps2[g1.dim];
-        for (vertextype n = 0; n < g2.dim; ++n) {
+        FP fps2[gi2->g.dim];
+        for (vertextype n = 0; n < gi2->g.dim; ++n) {
             fps2[n].v = n;
             fps2[n].ns = nullptr;
             fps2[n].nscnt = 0;
             fps2[n].parent = nullptr;
         }
 
-        takefingerprint(ns2,fps2,g2.dim);
+        takefingerprint(gi2->ns,fps2,gi2->g.dim);
 
         FP fpstmp1;
         fpstmp1.parent = nullptr;
         fpstmp1.ns = fps1;
-        fpstmp1.nscnt = g1.dim;
+        fpstmp1.nscnt = gi1->g.dim;
 
         FP fpstmp2;
         fpstmp2.parent = nullptr;
         fpstmp2.ns = fps2;
-        fpstmp2.nscnt = g2.dim;
+        fpstmp2.nscnt = gi2->g.dim;
 
-        //osfingerprint(*os,ns2,fps2,g2.dim);
-        //if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
-       //     *os << "Fingerprints MATCH\n";
-        //} else {
-        //    *os << "Fingerprints DO NOT MATCH\n";
-        //}
+        std::vector<graphmorphism> maps = enumisomorphisms(gi1->ns,gi2->ns);
 
-        std::vector<graphmorphism> maps = enumisomorphisms(ns1,ns2);
-
-        graphitem* gi1 = new graphitem();
-        gi1->g = g1;
-        gi1->ns = ns1;
         gi1->name = _ws->getuniquename();
         _ws->items.push_back(gi1);
 
-        graphitem* gi2 = new graphitem();
-        gi2->g = g2;
-        gi2->ns = ns2;
         gi2->name = _ws->getuniquename();
         _ws->items.push_back(gi2);
 
         enumisomorphismsitem* wi = new enumisomorphismsitem();
         wi->name = _ws->getuniquename();
-        wi->g1 = g1;
-        wi->ns1 = ns1;
-        wi->g2 = g2;
-        wi->ns2 = ns2;
+        wi->g1 = gi1->g;
+        wi->ns1 = gi1->ns;
+        wi->g2 = gi2->g;
+        wi->ns2 = gi2->ns;
 
         wi->gm = maps;
 
         _ws->items.push_back(wi);
 
 
-        free(FE);
-        free(EE);
-        free(E);
-        free(FV);
-        free(EV);
-        free(V);
-
-/* now handled by workspace
-        free(ns1.neighborslist);
-        free(ns1.degrees);
-        free(g1.adjacencymatrix);  // as in the "embarrassing" comment above, this allocating and freeing should
-                                   // be handled by the constructor/destructor of EdgesforHelly
-        freefps(fps1, g1.dim);
-*/
-        free(FE2);
-        free(EE2);
-        free(E2);
-        free(FV2);
-        free(EV2);
-        free(V2);
-/*
-        free(ns2.neighborslist);
-        free(ns2.degrees);
-        free(g2.adjacencymatrix);   // as in the "embarrassing" comment above, this allocating and freeing should
-                                    // be handled by the constructor/destructor of EdgesforHelly
-        freefps(fps2, g2.dim);
-*/
     }
 
 };

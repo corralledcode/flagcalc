@@ -1,0 +1,35 @@
+/*
+
+                std::vector<std::future<std::vector<graphmorphism>>> threadpool;
+                threadpool.resize(maps.size());
+                //std::vector<std::future<int>> threadpool;
+                //std::vector<std::vector<graphmorphism>> rireturn {};
+                //threadholder* th = new threadholder;
+                for (int k = 0; k < maps.size(); ++k) {
+                    //int a = 4;
+                    //threadpool[k] = pool.submit(std::bind(&threadholder::helloworld,this,a,tmpfps1,g1,&maps));
+                    threadpool[k] = pool.submit(std::bind(&threadholder::threadrecurseisomorphisms, this,permsidx,delptr,k,l,g1,g2,fps1ptr,fps2ptr, &maps) );
+                }
+
+                //            std::vector<graphmorphism> threadrecurseisomorphisms( const int permsidx, int* del, int k, int l, graph g1, graph g2, FP* fps1, FP* fps2,std::vector<graphmorphism>* maps ) {
+
+                //            for (int m = 0; m < maps.size(); ++m) {
+                //                threadpool[m] = pool.submit(std::bind(&Hellytheory::threadfindcovers,this,&Cvrs[m],&es) );
+                //            }
+                for (int m = 0; m < maps.size(); ++m) {
+                    while (threadpool[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
+                        pool.run_pending_task();
+                    }
+                    std::vector<graphmorphism> mapreturned = threadpool[m].get();
+                    //std::cout << "CvrReturned.size() " << CvrReturned.size() << "\n";
+                    for (int r = 0; r < mapreturned.size();++r) {
+                        newmaps.push_back(mapreturned[r]);
+                    }
+                }
+
+                maps.clear();
+                for (int i = 0; i < newmaps.size(); ++i) {
+                    if (newmaps[i].size() == del[l] + permsidx)
+                        maps.push_back(newmaps[i]);
+                }//delete th;
+*/
