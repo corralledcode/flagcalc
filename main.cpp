@@ -9,7 +9,7 @@
 #include "verboseio.h"
 #include "feature.h"
 #include "workspace.h"
-
+#include <cstring>
 
 int main(int argc, char* argv[]) {
     workspace* ws = new workspace();

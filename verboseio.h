@@ -7,18 +7,19 @@
 #include <iostream>
 #include <string>
 
+/*
 #include "mysql_connection.h"
 #include "cppconn/driver.h"
 #include "cppconn/exception.h"
 #include "cppconn/resultset.h"
 #include "cppconn/statement.h"
-
+*/
 //#include <mysqlx/xdevapi.h>
 // the above line is commented out because it won't compile; note the xdevapi route is more modern, I think
 
 #define VERBOSE
 
-
+/*
 class verboseio {
 public:
     verboseio() {};
@@ -34,12 +35,12 @@ public:
 
     verbosedbio( std::string hostName, std::string userName, std::string password, std::string catalog) {
         try {
-            /* Create a connection */
+            // Create a connection
             //driver = get_driver_instance();
             // the above line is commented out because it won't compile; and of course it is a needed line
             // for this code to run, so for now not utilizing the code here
             con = driver->connect(hostName,userName,password);
-            /* Connect to the MySQL test database */
+            // Connect to the MySQL test database
             con->setSchema(catalog);
 
         } catch (sql::SQLException &e) {
@@ -96,5 +97,5 @@ inline void verbosestreamio::output(std::string str) {
     os << str;
 }
 
-
+*/
 #endif //VERBOSEIO_H
