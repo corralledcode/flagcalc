@@ -130,8 +130,11 @@ public:
             std::cin >> filename;
             if (filename != "T") {
                 ifs.open(filename);
-                if (!ifs)
+                if (!ifs) {
                     std::cout << "Couldn't open file for reading \n";
+                    (*cnt)++;
+                    return;
+                }
                 is = &ifs;
             }
             *cnt = 0;
@@ -323,8 +326,11 @@ public:
             std::cin >> filename;
             if (filename != "T") {
                 ifs.open(filename);
-                if (!ifs)
+                if (!ifs) {
                     std::cout << "Couldn't open file for reading \n";
+                    (*cnt)++;
+                    return;
+                }
                 is = &ifs;
             }
             *cnt = 0;
