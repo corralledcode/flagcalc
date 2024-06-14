@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
     samplerandomgraphsfeature* sr = new samplerandomgraphsfeature(&std::cin, &std::cout,ws);
     mantelstheoremfeature* mt = new mantelstheoremfeature(&std::cin,&std::cout,ws);
     mantelsverifyfeature* mv = new mantelsverifyfeature(&std::cin,&std::cout, ws);
+    verbosityfeature* vb = new verbosityfeature(&std::cin,&std::cout, ws);
 
     std::vector<feature*> featureslist {};
     featureslist.push_back(ei);
@@ -26,6 +27,7 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(sr);
     featureslist.push_back(mt);
     featureslist.push_back(mv);
+    featureslist.push_back(vb);
 
     int cnt; // count of how many args are consumed by executing the feature
     int idx = 1;
@@ -74,12 +76,12 @@ int main(int argc, char* argv[]) {
     for (int n = 0; n < featureslist.size(); ++n) {
         delete featureslist[n];
     }
-        // --- separate functionality below... aiming to have a main menu feature, or addl command line options
 
+    /*
     for (int n = 0; n < ws->items.size(); ++n) {
         ws->items[n]->freemem();
         delete ws->items[n];
-    }
+    }*/
     delete ws;
 
 

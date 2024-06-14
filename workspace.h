@@ -10,12 +10,24 @@
 #include <vector>
 #include "graphs.h"
 
+#define VERBOSE_DONTLISTISOS 7
+#define VERBOSE_LISTGRAPHS 2
+#define VERBOSE_LISTFINGERPRINTS 3
+#define VERBOSE_ISOS 5
+
 class workitems {
 public:
+    std::string classname;
     std::string name;
-    virtual void ositem( std::ostream& os ) {}
+    int verbosityfactor = 0;
+    virtual void ositem( std::ostream& os, int verbositylevel ) {
+        os << classname << " " << name << ":\n";
+    }
     virtual void isitem( std::istream& is ) {}
     virtual void freemem() {}
+    workitems() {
+        classname = "Unnamed class";
+    }
 };
 
 class workspace {
@@ -36,6 +48,8 @@ public:
         } while (!unique);
         return tmpname;
     }
+    workspace() {
+    }
 };
 
 class graphitem : public workitems {
@@ -45,8 +59,11 @@ public:
     graphitem() : workitems() {
         g.adjacencymatrix = nullptr;
         ns.neighborslist = nullptr;
+        verbosityfactor = VERBOSE_LISTGRAPHS;
+        classname = "Graph";
     }
     void freemem() override {
+
         if (g.adjacencymatrix != nullptr) {
             free(g.adjacencymatrix);
             g.adjacencymatrix = nullptr;
@@ -55,11 +72,14 @@ public:
             free(ns.neighborslist);
             ns.neighborslist = nullptr;
         }
+
     }
-    void ositem( std::ostream& os ) override {
+    void ositem( std::ostream& os, int verbositylevel ) override {
+        workitems::ositem( os, verbositylevel );
         osadjacencymatrix(os,g);
         osneighbors(os,ns);
     }
+    /*
     void isitem( std::istream& is ) override {
         std::string tmp;
         int tmpdim =0;
@@ -106,8 +126,102 @@ public:
 
         }
 
-    }
+    }*/
 
+};
+
+
+class enumisomorphismsitem : public workitems {
+public:
+    graph g1;
+    graph g2;
+    neighbors ns1;
+    neighbors ns2;
+    std::vector<graphmorphism> gm;
+    enumisomorphismsitem() : workitems() {
+        classname = "Graph isomorphisms";
+        verbosityfactor = VERBOSE_ISOS; // use primes
+    }
+    void freemem() override {
+/*
+        if (g1.adjacencymatrix != nullptr) {
+            free(g1.adjacencymatrix);
+            g1.adjacencymatrix = nullptr;
+        }
+        if (ns1.neighborslist != nullptr) {
+            free(ns1.neighborslist);
+            ns1.neighborslist = nullptr;
+        }
+        if (g2.adjacencymatrix != nullptr) {
+            free(g2.adjacencymatrix);
+            g2.adjacencymatrix = nullptr;
+        }
+        if (ns2.neighborslist != nullptr) {
+            free(ns2.neighborslist);
+            ns2.neighborslist = nullptr;
+        }
+        */
+    }
+    void ositem( std::ostream& os, int verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        if ((verbositylevel % VERBOSE_DONTLISTISOS) == 0) {
+            os << "Total number of isomorphisms == " << gm.size() << "\n";
+        } else {
+            osgraphmorphisms(os, gm);
+        }
+    }
+};
+
+class cmpfingerprintsitem : public workitems {
+public:
+    graph g1;
+    graph g2;
+    neighbors ns1;
+    neighbors ns2;
+    FP* fps1;
+    FP* fps2;
+    int fps1cnt = 0;
+    int fps2cnt = 0;
+    bool fingerprintsmatch;
+    cmpfingerprintsitem() : workitems() {
+        classname = "Graph fingerprint comparison";
+        verbosityfactor = VERBOSE_LISTFINGERPRINTS;
+    }
+    void freemem() override {
+        if (g1.adjacencymatrix != nullptr) {
+            free(g1.adjacencymatrix);
+            g1.adjacencymatrix = nullptr;
+        }
+        if (ns1.neighborslist != nullptr) {
+            free(ns1.neighborslist);
+            ns1.neighborslist = nullptr;
+        }
+        if (g2.adjacencymatrix != nullptr) {
+            free(g2.adjacencymatrix);
+            g2.adjacencymatrix = nullptr;
+        }
+        if (ns2.neighborslist != nullptr) {
+            free(ns2.neighborslist);
+            ns2.neighborslist = nullptr;
+        }
+        if (fps1cnt > 0)
+            freefps(fps1,fps1cnt);
+        if (fps2cnt > 0)
+            freefps(fps2,fps2cnt);
+
+    }
+    void ositem( std::ostream& os, int verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        os << "fingerprint of first graph\n";
+        osfingerprint(os,ns1, fps1,fps1cnt);
+        os << "fingerprint of second graph\n";
+        //osfingerprint(os,ns2, fps2,fps2cnt);
+        if (fingerprintsmatch) {
+            os << "Fingerprints MATCH\n";
+        } else {
+            os << "Fingerprints DO NOT MATCH\n";
+        }
+    }
 };
 
 

@@ -98,6 +98,39 @@ public:
 
 };
 
+class verbosityfeature : public feature {
+public:
+    int verbositylevel = 0;
+    std::string ofname {};
+    std::string cmdlineoption() {
+        return "v";
+    }
+    std::string cmdlineoptionlong() {
+        return "verbosity";
+    }
+    verbosityfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+        //cmdlineoption = "r";
+        //cmdlineoptionlong = "samplerandomgraphs";
+    };
+    void execute(int argc, char* argv[], int* cnt) override {
+        if (argc > 1) {
+            verbositylevel = std::stoi(argv[1]);
+            if (argc > 2) {
+                ofname = argv[2];
+                (*cnt)++;
+            }
+            (*cnt)++;
+        }
+        for (int n = 0; n < _ws->items.size(); ++n) {
+            if (verbositylevel % _ws->items[n]->verbosityfactor == 0) {
+                _ws->items[n]->ositem(*_os,verbositylevel);
+            }
+        }
+    }
+
+};
+
+
 
 class cmpfingerprintsfeature: public feature {
 public:
@@ -215,10 +248,12 @@ public:
         E->computevertexadjacency();
         g1.adjacencymatrix = E->vertexadjacency;
 
+        /*
         *os << "Graph 1:\n";
         osadjacencymatrix( *os, g1 );
         *os << "Graph 2:\n";
         osadjacencymatrix( *os, g2 );
+        */
 
         neighbors ns1;
         ns1 = computeneighborslist(g1);
@@ -238,7 +273,7 @@ public:
 
         takefingerprint(ns1,fps1,g1.dim);
 
-        osfingerprint(*os,ns1,fps1,g1.dim);
+        //osfingerprint(*os,ns1,fps1,g1.dim);
 
         FP fps2[g1.dim];
         for (vertextype n = 0; n < g2.dim; ++n) {
@@ -260,24 +295,77 @@ public:
         fpstmp2.ns = fps2;
         fpstmp2.nscnt = g2.dim;
 
-        osfingerprint(*os,ns2,fps2,g2.dim);
+        //osfingerprint(*os,ns2,fps2,g2.dim);
+/*
         if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
             *os << "Fingerprints MATCH\n";
         } else {
             *os << "Fingerprints DO NOT MATCH\n";
         }
+*/
+        bool res = (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0);
+        graphitem* gi1 = new graphitem();
+        gi1->g = g1;
+        gi1->ns = ns1;
+        gi1->name = _ws->getuniquename();
+        _ws->items.push_back(gi1);
 
+        graphitem* gi2 = new graphitem();
+        gi2->g = g2;
+        gi2->ns = ns2;
+        gi2->name = _ws->getuniquename();
+        _ws->items.push_back(gi2);
+
+        cmpfingerprintsitem* wi = new cmpfingerprintsitem();
+        wi->fingerprintsmatch = res;
+        wi->name = _ws->getuniquename();
+        wi->g1 = g1;
+        wi->ns1 = ns1;
+
+
+        wi->fps1 = (FP*)malloc(g1.dim * sizeof(FP));
+
+
+        //wi->fps1 = fps1;
+        for (int n = 0; n < g1.dim; ++n) {
+            wi->fps1[n].ns = nullptr; //fps1[n].ns;
+            wi->fps1[n].v = fps1[n].v;
+            wi->fps1[n].nscnt = 0; //fps1[n].nscnt;
+            wi->fps1[n].parent = nullptr;
+
+        }
+
+        wi->fps1cnt = g1.dim;
+        wi->g2 = g2;
+        wi->ns2 = ns2;
+
+        wi->fps2 = (FP*)malloc(g2.dim * sizeof(FP));
+
+        for (int n = 0; n < g2.dim; ++n) {
+            wi->fps2[n].ns = nullptr; //fps2[n].ns;
+            wi->fps2[n].v = fps2[n].v;
+            wi->fps2[n].nscnt = 0; //fps2[n].nscnt;
+            wi->fps2[n].parent = nullptr;
+        }
+        //wi->fps2 = fps2;
+
+        wi->fps2cnt = g2.dim;
+
+        _ws->items.push_back(wi);
         free(FE);
         free(EE);
         free(E);
         free(FV);
         free(EV);
         free(V);
+
+/* now handled by workspace
         free(ns1.neighborslist);
         free(ns1.degrees);
         free(g1.adjacencymatrix);  // as in the "embarrassing" comment above, this allocating and freeing should
                                    // be handled by the constructor/destructor of EdgesforHelly
         freefps(fps1, g1.dim);
+*/
 
         free(FE2);
         free(EE2);
@@ -285,12 +373,14 @@ public:
         free(FV2);
         free(EV2);
         free(V2);
+
+        /*
         free(ns2.neighborslist);
         free(ns2.degrees);
         free(g2.adjacencymatrix);   // as in the "embarrassing" comment above, this allocating and freeing should
                                     // be handled by the constructor/destructor of EdgesforHelly
         freefps(fps2, g2.dim);
-
+*/
     }
 };
 
@@ -411,10 +501,10 @@ public:
         E->computevertexadjacency();
         g1.adjacencymatrix = E->vertexadjacency;
 
-        *os << "Graph 1:\n";
-        osadjacencymatrix( *os, g1 );
-        *os << "Graph 2:\n";
-        osadjacencymatrix( *os, g2 );
+        //*os << "Graph 1:\n";
+        //osadjacencymatrix( *os, g1 );
+        //*os << "Graph 2:\n";
+        //osadjacencymatrix( *os, g2 );
 
         neighbors ns1;
         ns1 = computeneighborslist(g1);
@@ -457,14 +547,37 @@ public:
         fpstmp2.nscnt = g2.dim;
 
         //osfingerprint(*os,ns2,fps2,g2.dim);
-        if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
-            *os << "Fingerprints MATCH\n";
-        } else {
-            *os << "Fingerprints DO NOT MATCH\n";
-        }
+        //if (FPcmp(ns1,ns2,fpstmp1,fpstmp2) == 0) {
+       //     *os << "Fingerprints MATCH\n";
+        //} else {
+        //    *os << "Fingerprints DO NOT MATCH\n";
+        //}
 
         std::vector<graphmorphism> maps = enumisomorphisms(ns1,ns2);
-        osgraphmorphisms(*os, maps);
+
+        graphitem* gi1 = new graphitem();
+        gi1->g = g1;
+        gi1->ns = ns1;
+        gi1->name = _ws->getuniquename();
+        _ws->items.push_back(gi1);
+
+        graphitem* gi2 = new graphitem();
+        gi2->g = g2;
+        gi2->ns = ns2;
+        gi2->name = _ws->getuniquename();
+        _ws->items.push_back(gi2);
+
+        enumisomorphismsitem* wi = new enumisomorphismsitem();
+        wi->name = _ws->getuniquename();
+        wi->g1 = g1;
+        wi->ns1 = ns1;
+        wi->g2 = g2;
+        wi->ns2 = ns2;
+
+        wi->gm = maps;
+
+        _ws->items.push_back(wi);
+
 
         free(FE);
         free(EE);
@@ -472,25 +585,29 @@ public:
         free(FV);
         free(EV);
         free(V);
+
+/* now handled by workspace
         free(ns1.neighborslist);
         free(ns1.degrees);
         free(g1.adjacencymatrix);  // as in the "embarrassing" comment above, this allocating and freeing should
                                    // be handled by the constructor/destructor of EdgesforHelly
         freefps(fps1, g1.dim);
-
+*/
         free(FE2);
         free(EE2);
         free(E2);
         free(FV2);
         free(EV2);
         free(V2);
+/*
         free(ns2.neighborslist);
         free(ns2.degrees);
         free(g2.adjacencymatrix);   // as in the "embarrassing" comment above, this allocating and freeing should
                                     // be handled by the constructor/destructor of EdgesforHelly
         freefps(fps2, g2.dim);
-
+*/
     }
+
 };
 
 class mantelstheoremfeature : public feature {
@@ -526,7 +643,7 @@ public:
 
 class mantelsverifyfeature : public feature {
 public:
-    std::string cmdlineoption() { return "v"; }
+    std::string cmdlineoption() { return "M"; }
     std::string cmdlineoptionlong() { return "mantelsverify"; }
     mantelsverifyfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
     void execute(int argc, char *argv[], int *cnt) override {
