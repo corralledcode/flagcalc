@@ -14,6 +14,7 @@
 #define VERBOSE_LISTGRAPHS 2
 #define VERBOSE_LISTFINGERPRINTS 3
 #define VERBOSE_ISOS 5
+#define VERBOSE_RUNTIMES 11
 
 class workitems {
 public:
@@ -222,6 +223,21 @@ public:
             os << "Fingerprints DO NOT MATCH\n";
         }
     }
+};
+
+class timedrunitem : public workitems {
+public:
+    float duration;
+
+    timedrunitem() : workitems() {
+        classname = "TimedRun";
+        verbosityfactor = VERBOSE_RUNTIMES;
+    }
+    void ositem( std::ostream& os, int verbositylevel ) override {
+        workitems::ositem( os, verbositylevel );
+        os << duration << "\n";
+    }
+
 };
 
 

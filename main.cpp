@@ -61,13 +61,20 @@ int main(int argc, char* argv[]) {
                     }
                 }
                 //std::cout << argv[idx] << "\n";
+
+                timedrunitem* tr = new timedrunitem();
+
                 auto starttime = std::chrono::high_resolution_clock::now();
 
                 featureslist[f]->execute(argc - idx, &(argv[idx]), &cnt);
 
                 auto stoptime = std::chrono::high_resolution_clock::now();
                 auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
-                std::cout << "Time elapsed: " << float(duration.count())/1000000 << "\n";
+
+                tr->duration = float(duration.count())/1000000;
+                ws->items.push_back(tr);
+
+                //std::cout << "Time elapsed: " << float(duration.count())/1000000 << "\n";
 
             }
             idx += (cnt+1);
