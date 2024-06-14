@@ -119,6 +119,7 @@ public:
             ifs.open(filename);
             if (!ifs) {
                 std::cout << "Couldn't open file for reading \n";
+                (*cnt)++;
                 return;
             }
             is = &ifs;
@@ -311,6 +312,7 @@ public:
             ifs.open(filename);
             if (!ifs) {
                 std::cout << "Couldn't open file for reading \n";
+                (*cnt)++;
                 return;
             }
             is = &ifs;

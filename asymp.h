@@ -4,7 +4,7 @@
 
 #ifndef ASYMP_H
 #define ASYMP_H
-#include <bits/stl_algo.h>
+//#include <bits/stl_algo.h>
 
 #include "graphs.h"
 #include "prob.h"
