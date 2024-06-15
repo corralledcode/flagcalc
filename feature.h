@@ -293,6 +293,13 @@ public:
 
         wi->fps2cnt = gi2->g.dim;
 
+        gi1->name = _ws->getuniquename();
+        _ws->items.push_back(gi1);
+
+        gi2->name = _ws->getuniquename();
+        _ws->items.push_back(gi2);
+
+
         _ws->items.push_back(wi);
     }
 };
@@ -360,7 +367,8 @@ public:
             //gi2->g = gi1->g;
         }
 
-        FP fps1[gi1->g.dim];
+
+        FP* fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
         for (vertextype n = 0; n < gi1->g.dim; ++n) {
             fps1[n].v = n;
             fps1[n].ns = nullptr;
@@ -370,7 +378,9 @@ public:
 
         takefingerprint(gi1->ns,fps1,gi1->g.dim);
 
-        FP fps2[gi2->g.dim];
+        //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
+
+        FP* fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
         for (vertextype n = 0; n < gi2->g.dim; ++n) {
             fps2[n].v = n;
             fps2[n].ns = nullptr;
@@ -379,6 +389,8 @@ public:
         }
 
         takefingerprint(gi2->ns,fps2,gi2->g.dim);
+
+
 
         FP fpstmp1;
         fpstmp1.parent = nullptr;
@@ -409,6 +421,10 @@ public:
 
         _ws->items.push_back(wi);
 
+        freefps(fps1,gi1->g.dim);
+        freefps(fps2,gi2->g.dim);
+        free(fps1);
+        free(fps2);
 
     }
 

@@ -298,6 +298,7 @@ public:
         verbosityfactor = VERBOSE_LISTFINGERPRINTS;
     }
     void freemem() override {
+        /*
         if (g1.adjacencymatrix != nullptr) {
             free(g1.adjacencymatrix);
             g1.adjacencymatrix = nullptr;
@@ -313,11 +314,15 @@ public:
         if (ns2.neighborslist != nullptr) {
             free(ns2.neighborslist);
             ns2.neighborslist = nullptr;
-        }
-        if (fps1cnt > 0)
+        }*/
+        if (fps1cnt > 0) {
             freefps(fps1,fps1cnt);
-        if (fps2cnt > 0)
+            free(fps1);
+        }
+        if (fps2cnt > 0) {
             freefps(fps2,fps2cnt);
+            free(fps2);
+        }
 
     }
     void ositem( std::ostream& os, int verbositylevel ) override {
