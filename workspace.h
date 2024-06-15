@@ -85,28 +85,6 @@ public:
     }
 
 
-/*
-    Formatvertices( Vertices* iin, Batchprocesseddata<strtype>* ein)
-        : Formatdata<vertextype,strtype,Vertices,Batchprocesseddata<strtype>>(*iin,*ein) {
-
-        template<typename I, typename E, typename IBPD, typename EBPD>
-        class Formatdata : public Batchprocessed {
-
-            void readvector(const std::vector<T> datain) {
-                auto p = paused();
-                pause();
-                if (data)
-                    delete[] data;
-                size_ = datain.size();
-                data = new T[size_]{};
-                for (int n = 0; n < size_; ++n) {
-                    setdata(datain[n], n);
-                }
-                if (!p)
-                    resume();
-            }
-*/
-
 
 
     void isitem( std::istream& is) {
@@ -190,7 +168,7 @@ public:
             if (edgecommands[n].size() > 0) {
                 if (edgecommands[n][0] == '*')
                     cmdcomplete=true;
-                if (edgecommands[n][0] == '#') {
+                if (edgecommands[n][0] == '!') {
                     cmdomit = true;
                     if (edgecommands[n].size()>1) {
                         if (edgecommands[n][1] == '-') {

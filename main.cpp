@@ -65,7 +65,6 @@ int main(int argc, char* argv[]) {
                 }
                 //std::cout << argv[idx] << "\n";
 
-                timedrunitem* tr = new timedrunitem();
 
                 auto starttime = std::chrono::high_resolution_clock::now();
 
@@ -74,10 +73,12 @@ int main(int argc, char* argv[]) {
                 auto stoptime = std::chrono::high_resolution_clock::now();
                 auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
 
+                timedrunitem* tr = new timedrunitem();
                 tr->duration = duration.count();
-                tr->name = "TimedRun" +  ws->items[ws->items.size()-1]->name;
+                if (ws->items.size()>0) {
+                    tr->name = "TimedRun" +  ws->items[ws->items.size()-1]->name;
+                }
                 ws->items.push_back(tr);
-
                 //std::cout << "Time elapsed: " << float(duration.count())/1000000 << "\n";
 
             }

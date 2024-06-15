@@ -605,7 +605,8 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
 
     //osfingerprint(std::cout,ns2,fps2,g2.dim);
 
-    vertextype del[ns1.maxdegree+2];
+    //vertextype del[ns1.maxdegree+2];
+    vertextype del[g1.dim+2];
     int delcnt = 0;
     del[delcnt] = 0;
     ++delcnt;
