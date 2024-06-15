@@ -23,4 +23,6 @@ add_executable(flagcalc main.cpp
         feature.cpp
         feature.h
         workspace.cpp
-        workspace.h)
+        workspace.h
+        thread_pool.cpp
+        thread_safe_queue.cpp)

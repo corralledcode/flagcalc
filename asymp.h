@@ -53,24 +53,26 @@ public:
                 }
                 sampled++;
             }
-            //free(ns.neighborslist);
+            //free(ns.neighborslist); // nothing to free
         }
-        free(g.adjacencymatrix);
-        graph tmpg;
-        tmpg.dim = dim;
-        for (int i = 0; i < samplegraphs.size(); ++i) {
-            tmpg.adjacencymatrix = samplegraphs[i];
-            std::cout << "Size n == " << i << ":\n";
-            osadjacencymatrix(os, tmpg);
-        }
+
+
+        //free(g.adjacencymatrix);
+
+/*        for (int i = 0; i < samplegraphs.size()-1; ++i) {
+            //std::cout << "Size n == " << i << ":\n";
+            //osadjacencymatrix(os, tmpg);
+        }*/
         graphitem* gi = new graphitem();
         gi->g.dim = dim;
         gi->g.adjacencymatrix = samplegraphs[samplegraphs.size()-1];
         gi->name = ws->getuniquename();
+        gi->ns = computeneighborslist(gi->g);
         ws->items.push_back(gi);
-        for (int i = 0; i < samplegraphs.size()-1; ++i) {
+        for (int i = 0; i < (samplegraphs.size()-1); ++i) {
             free(samplegraphs[i]);
         }
+        delete rg;
         return max;
     }
 };

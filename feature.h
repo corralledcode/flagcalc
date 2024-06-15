@@ -31,6 +31,57 @@ public:
     }
 };
 
+class _sandboxfeature : public feature { // to be used to code hack jobs for testing purposes
+public:
+    std::string cmdlineoption() {
+        return "+";
+    }
+    std::string cmdlineoptionlong() {
+        return "sandboxfeature";
+    }
+
+    _sandboxfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws ) {
+        //
+    }
+    void execute(int argc, char* argv[], int* cnt) override {
+        std::ifstream ifs;
+        std::istream* is = &std::cin;
+        std::ostream* os = _os;
+        if (argc > 1) {
+            std::string filename = argv[1];
+            *_os << "Opening file " << filename << "\n";
+            ifs.open(filename);
+            if (!ifs) {
+                std::cout << "Couldn't open file for reading \n";
+                (*cnt)++;
+                return;
+            }
+            is = &ifs;
+            *cnt = 1;
+        } else {
+            std::cout << "Enter a filename or enter T for terminal mode: ";
+            std::string filename;
+            std::cin >> filename;
+            if (filename != "T") {
+                ifs.open(filename);
+                if (!ifs) {
+                    std::cout << "Couldn't open file for reading \n";
+                    (*cnt)++;
+                    return;
+                }
+                is = &ifs;
+            }
+            *cnt = 0;
+        }
+
+        graphitem* gi1 = new graphitem();
+        gi1->isitem(*is);
+        trianglefreecriterion tf;
+        std::cout << "Triangle free returns " << tf.checkcriterion(gi1->g,gi1->ns) << "\n";
+    }
+
+};
+
 class samplerandomgraphsfeature : public feature {
 public:
     std::string cmdlineoption() {
@@ -96,6 +147,8 @@ public:
 
 };
 
+
+
 class verbosityfeature : public feature {
 public:
     int verbositylevel = 0;
@@ -112,19 +165,29 @@ public:
     };
     void execute(int argc, char* argv[], int* cnt) override {
         std::ofstream ofs;
+        bool ofsrequiresclose = false;
         if (argc > 1) {
             verbositylevel = std::stoi(argv[1]);
             if (argc > 2) {
                 ofname = argv[2];
                 (*cnt)++;
-                ofs.open(ofname);
-                if (!ofs) {
-                    std::cout << "Couldn't open file for writing \n";
-                    (*cnt)++;
-                    return;
+                if (ofname == "std::cout") {
+                    _os = &std::cout;
+                } else {
+                    std::ifstream infile(ofname);
+                    if (infile.good() && verbositylevel % VERBOSE_VERBOSITYFILEAPPEND != 0) {
+                        std::cout << "Output file " << ofname << " already exists; use prime multiplier " << VERBOSE_VERBOSITYFILEAPPEND << " to append it.\n";
+                        return;
+                    }
+                    ofs.open(ofname,  std::ios::app);
+                    if (!ofs) {
+                        std::cout << "Couldn't open file for writing \n";
+                        (*cnt)++;
+                        return;
+                    }
+                    _os = &ofs;
+                    ofsrequiresclose = true;
                 }
-                _os = &ofs;
-
             } else
             {
                 _os = &std::cout;
@@ -151,6 +214,8 @@ public:
             tr->name = "TimedRunVerbosity";
             tr->ositem(*_os,verbositylevel);
         }
+        if (ofsrequiresclose)
+            ofs.close();
 
     }
 
@@ -160,8 +225,7 @@ public:
 
 class cmpfingerprintsfeature: public feature {
 public:
-    graph internalg;
-    bool useinternalg = false;
+    bool useworkspaceg2 = false;
     std::string cmdlineoption() { return "f"; }
     std::string cmdlineoptionlong() { return "cmpfingerprints"; }
     cmpfingerprintsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
@@ -199,25 +263,47 @@ public:
             *cnt = 0;
         }
 
+
+
+
         graphitem* gi1 = new graphitem();
         gi1->isitem(*is);
 
-        graphitem* gi2 = new graphitem();
-        if (useinternalg) {
-            gi2->g = internalg;  // a better approach is to find it on the workspace
-        }
-        gi2->isitem(*is);
-        if (gi2->g.dim == 0) {
-            gi2->g.dim = gi1->g.dim;
-            gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
-            for (int n = 0; n < gi2->g.dim; ++n) {
-                for (int i = 0; i < gi2->g.dim; ++i) {
-                    gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi2->g.dim + i];
+        graphitem* gi2;
+        if (useworkspaceg2) {
+            int idx = _ws->items.size();
+
+            if (idx == 0) {
+                std::cout << "Error: no item on workspace\n";
+                return;
+            }
+            while (idx > 0) {
+                idx--;
+                if (_ws->items[idx]->classname == "Graph")  {  // take the first graph found
+
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                    gi2 = (graphitem*)(_ws->items[idx]);
+                    //gi2->ositem(*_os,11741730);
+                } else {
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
                 }
             }
-            gi2->ns = computeneighborslist(gi2->g);
+        } else {
+            gi2 = new graphitem();
+            gi2->isitem(*is);
+            if (gi2->g.dim == 0) {
+                gi2->g.dim = gi1->g.dim;
+                gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
+                for (int n = 0; n < gi2->g.dim; ++n) {
+                    for (int i = 0; i < gi2->g.dim; ++i) {
+                        gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi1->g.dim + i];
+                    }
+                }
+                gi2->ns = computeneighborslist(gi2->g);
 
-            //gi2->g = gi1->g;
+                //gi2->g = gi1->g;
+
+            }
         }
 
         FP* fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
@@ -301,14 +387,14 @@ public:
 
 
         _ws->items.push_back(wi);
+
     }
 };
 
 
 class enumisomorphismsfeature: public feature {
 public:
-    graph internalg;
-    bool useinternalg = false;
+    bool useworkspaceg2 = false;
     std::string cmdlineoption() { return "i"; }
     std::string cmdlineoptionlong() { return "enumisomorphisms"; }
     enumisomorphismsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
@@ -319,6 +405,7 @@ public:
         std::ifstream ifs;
         std::istream* is = &std::cin;
         std::ostream* os = _os;
+
         if (argc > 1) {
             std::string filename = argv[1];
             *_os << "Opening file " << filename << "\n";
@@ -349,22 +436,42 @@ public:
         graphitem* gi1 = new graphitem();
         gi1->isitem(*is);
 
-        graphitem* gi2 = new graphitem();
-        if (useinternalg) {
-            gi2->g = internalg;  // a better approach is to find it on the workspace
-        }
-        gi2->isitem(*is);
-        if (gi2->g.dim == 0) {
-            gi2->g.dim = gi1->g.dim;
-            gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
-            for (int n = 0; n < gi2->g.dim; ++n) {
-                for (int i = 0; i < gi2->g.dim; ++i) {
-                    gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi1->g.dim + i];
+        graphitem* gi2;
+        if (useworkspaceg2) {
+            int idx = _ws->items.size();
+
+            if (idx == 0) {
+                std::cout << "Error: no item on workspace\n";
+                return;
+            }
+            while (idx > 0) {
+                idx--;
+                if (_ws->items[idx]->classname == "Graph")  {  // take the first graph found
+
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                    gi2 = (graphitem*)(_ws->items[idx]);
+                    //gi2->ns = computeneighborslist(gi2->g); // thought this was done by asymp.h but random unininitialized data is prevailing
+                    //gi2->ositem(*_os,11741730);
+                } else {
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
                 }
             }
-            gi2->ns = computeneighborslist(gi2->g);
+        } else {
+            gi2 = new graphitem();
+            gi2->isitem(*is);
+            if (gi2->g.dim == 0) {
+                gi2->g.dim = gi1->g.dim;
+                gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
+                for (int n = 0; n < gi2->g.dim; ++n) {
+                    for (int i = 0; i < gi2->g.dim; ++i) {
+                        gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi1->g.dim + i];
+                    }
+                }
+                gi2->ns = computeneighborslist(gi2->g);
 
-            //gi2->g = gi1->g;
+                //gi2->g = gi1->g;
+
+            }
         }
 
 
@@ -407,8 +514,10 @@ public:
         gi1->name = _ws->getuniquename();
         _ws->items.push_back(gi1);
 
-        gi2->name = _ws->getuniquename();
-        _ws->items.push_back(gi2);
+        if (!useworkspaceg2) {
+            gi2->name = _ws->getuniquename();
+            _ws->items.push_back(gi2);
+        }
 
         enumisomorphismsitem* wi = new enumisomorphismsitem();
         wi->name = _ws->getuniquename();
@@ -429,6 +538,12 @@ public:
     }
 
 };
+
+
+
+
+
+
 
 class mantelstheoremfeature : public feature {
 public:
@@ -452,8 +567,14 @@ public:
         trianglefreecriterion* cr = new trianglefreecriterion();
         edgecountmeasure* ms = new edgecountmeasure();;
         float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os, _ws);
-        *_os << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
-        *_os << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
+
+        auto mi = new mantelstheoremitem();
+        mi->limitdim = limitdim;
+        mi->outof = outof;
+        mi->max = max;
+
+        _ws->items.push_back(mi);
+
         delete ms;
         delete cr;
         delete as;
@@ -469,18 +590,14 @@ public:
     void execute(int argc, char *argv[], int *cnt) override {
         mantelstheoremfeature* ms = new mantelstheoremfeature(_is,_os,_ws);
         ms->execute(argc, argv, cnt);
-        std::cout << "cnt == " << *cnt << "\n";
         enumisomorphismsfeature* ei = new enumisomorphismsfeature(_is,_os,_ws);
-        ei->internalg = ((graphitem*)(_ws->items[_ws->items.size()-1]))->g;
-        ei->useinternalg = true;
+        ei->useworkspaceg2 = true;
         int tmpcnt = *cnt;
         ei->execute(argc-tmpcnt,argv+(tmpcnt*sizeof(char)),cnt);
         *cnt = *cnt + tmpcnt;
         delete ms;
         delete ei;
     }
-
-
 };
 
 

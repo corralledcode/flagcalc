@@ -19,6 +19,9 @@
 #define VERBOSE_ISOS 5
 #define VERBOSE_RUNTIMES 11
 #define VERBOSE_VERBOSITYRUNTIME 13
+#define VERBOSE_VERBOSITYFILEAPPEND 17
+#define VERBOSE_MINIMAL 19
+#define VERBOSE_MANTELSTHEOREM 23
 
 class workitems {
 public:
@@ -350,6 +353,24 @@ public:
     void ositem( std::ostream& os, int verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
         os << ((float)duration)/1000000<< "\n";
+    }
+
+};
+
+class mantelstheoremitem : public workitems {
+public:
+    float max;
+    int limitdim;
+    int outof;
+
+    mantelstheoremitem() : workitems() {
+        classname = "MantelsTheorem";
+        verbosityfactor = VERBOSE_MANTELSTHEOREM;
+    }
+    void ositem( std::ostream& os, int verbositylevel ) override {
+        workitems::ositem( os, verbositylevel );
+        os << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
+        os << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
     }
 
 };

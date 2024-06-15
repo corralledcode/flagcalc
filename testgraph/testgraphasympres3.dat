@@ -1,0 +1,14 @@
+a b c d e f g h END
+ab ad af ah
+bc be bg
+cd cf ch
+de dg
+ef eh
+fg
+gh
+END
+a b c d
+e f g h END
+*abcdefgh
+!abcd
+!efgh END

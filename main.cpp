@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     mantelstheoremfeature* mt = new mantelstheoremfeature(&std::cin,&std::cout,ws);
     mantelsverifyfeature* mv = new mantelsverifyfeature(&std::cin,&std::cout, ws);
     verbosityfeature* vb = new verbosityfeature(&std::cin,&std::cout, ws);
+    _sandboxfeature* _sb = new _sandboxfeature(&std::cin,&std::cout, ws);
 
     std::vector<feature*> featureslist {};
     featureslist.push_back(ei);
@@ -28,6 +29,7 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(mt);
     featureslist.push_back(mv);
     featureslist.push_back(vb);
+    featureslist.push_back(_sb);
 
 
 
