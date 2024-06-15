@@ -85,6 +85,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
+
     for (int n = 0; n < featureslist.size(); ++n) {
         delete featureslist[n];
     }

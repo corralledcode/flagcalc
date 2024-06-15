@@ -350,7 +350,7 @@ public:
             gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
             for (int n = 0; n < gi2->g.dim; ++n) {
                 for (int i = 0; i < gi2->g.dim; ++i) {
-                    gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi2->g.dim + i];
+                    gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi1->g.dim + i];
                 }
             }
             gi2->ns = computeneighborslist(gi2->g);
