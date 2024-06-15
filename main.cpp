@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
 
 
     for (int n = 0; n < ws->items.size(); ++n) {
-        //ws->items[n]->freemem();  // figure out if this is a memory leak
+        ws->items[n]->freemem();  // figure out if this is a memory leak
         delete ws->items[n];
     }
     delete ws;
