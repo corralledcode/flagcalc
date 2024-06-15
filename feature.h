@@ -4,6 +4,7 @@
 
 #ifndef FEATURE_H
 #define FEATURE_H
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -110,19 +111,47 @@ public:
         //cmdlineoptionlong = "samplerandomgraphs";
     };
     void execute(int argc, char* argv[], int* cnt) override {
+        std::ofstream ofs;
         if (argc > 1) {
             verbositylevel = std::stoi(argv[1]);
             if (argc > 2) {
                 ofname = argv[2];
                 (*cnt)++;
+                ofs.open(ofname);
+                if (!ofs) {
+                    std::cout << "Couldn't open file for writing \n";
+                    (*cnt)++;
+                    return;
+                }
+                _os = &ofs;
+
+            } else
+            {
+                _os = &std::cout;
             }
-            (*cnt)++;
+            //(*cnt)++;
         }
+
+
+        auto starttime = std::chrono::high_resolution_clock::now();
+
         for (int n = 0; n < _ws->items.size(); ++n) {
             if (verbositylevel % _ws->items[n]->verbosityfactor == 0) {
                 _ws->items[n]->ositem(*_os,verbositylevel);
             }
         }
+
+        auto stoptime = std::chrono::high_resolution_clock::now();
+        auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
+
+        if (verbositylevel % VERBOSE_VERBOSITYRUNTIME == 0)
+        {
+            timedrunitem* tr = new timedrunitem();
+            tr->duration = duration.count();
+            tr->name = "TimedRunVerbosity";
+            tr->ositem(*_os,verbositylevel);
+        }
+
     }
 
 };
@@ -145,7 +174,7 @@ public:
         std::ostream* os = _os;
         if (argc > 1) {
             std::string filename = argv[1];
-            std::cout << "Opening file " << filename << "\n";
+            *_os << "Opening file " << filename << "\n";
             ifs.open(filename);
             if (!ifs) {
                 std::cout << "Couldn't open file for reading \n";
@@ -283,7 +312,7 @@ public:
         std::ostream* os = _os;
         if (argc > 1) {
             std::string filename = argv[1];
-            std::cout << "Opening file " << filename << "\n";
+            *_os << "Opening file " << filename << "\n";
             ifs.open(filename);
             if (!ifs) {
                 std::cout << "Couldn't open file for reading \n";

@@ -30,7 +30,6 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(vb);
 
 
-    auto totalstarttime = std::chrono::high_resolution_clock::now();
 
     int cnt; // count of how many args are consumed by executing the feature
     int idx = 1;
@@ -85,10 +84,6 @@ int main(int argc, char* argv[]) {
             idx += (cnt+1);
         }
     }
-
-    auto totalstoptime = std::chrono::high_resolution_clock::now();
-    auto totalduration = duration_cast<std::chrono::microseconds>(totalstoptime - totalstarttime);
-    std::cout << "Total time elapsed: " << float(totalduration.count())/1000000 << "\n";
 
     for (int n = 0; n < featureslist.size(); ++n) {
         delete featureslist[n];

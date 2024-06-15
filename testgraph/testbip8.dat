@@ -9,8 +9,7 @@ END
 a b c d
 e f g h
 END
-ae af ag ah
-be bf bg bh
-ce cf cg ch
-de df dg dh
+*abcdefgh
+!abcd
+!efgh
 END

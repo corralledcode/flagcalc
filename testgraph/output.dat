@@ -1,0 +1,60 @@
+Graph WORKITEM0:
+0 1 0 0 1 0 0 0 0 0 0 0 0 
+1 0 1 0 0 0 0 0 0 0 0 0 0 
+0 1 0 1 0 0 1 0 0 0 0 0 0 
+0 0 1 0 1 0 0 0 0 0 0 0 0 
+1 0 0 1 0 0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 0 0 0 0 0 
+0 0 1 0 0 0 0 1 0 0 0 1 0 
+0 0 0 0 0 0 1 0 1 0 0 0 0 
+0 0 0 0 0 0 0 1 0 1 0 0 0 
+0 0 0 0 0 0 0 0 1 0 1 0 0 
+0 0 0 0 0 0 0 0 0 1 0 1 0 
+0 0 0 0 0 0 1 0 0 0 1 0 0 
+0 0 0 0 0 0 0 0 0 0 0 0 0 
+ns.degrees[0] == 2: 1, 4, 
+ns.degrees[1] == 2: 0, 2, 
+ns.degrees[2] == 3: 1, 3, 6, 
+ns.degrees[3] == 2: 2, 4, 
+ns.degrees[4] == 2: 0, 3, 
+ns.degrees[5] == 0: 
+ns.degrees[6] == 3: 2, 7, 11, 
+ns.degrees[7] == 2: 6, 8, 
+ns.degrees[8] == 2: 7, 9, 
+ns.degrees[9] == 2: 8, 10, 
+ns.degrees[10] == 2: 9, 11, 
+ns.degrees[11] == 2: 6, 10, 
+ns.degrees[12] == 0: 
+Graph WORKITEM1:
+0 1 0 0 0 1 0 0 0 0 0 0 0 
+1 0 1 0 0 0 0 0 0 0 0 0 0 
+0 1 0 1 0 0 1 0 0 0 0 0 0 
+0 0 1 0 1 0 0 0 0 0 0 0 0 
+0 0 0 1 0 1 0 0 0 0 0 0 0 
+1 0 0 0 1 0 0 0 0 0 0 0 0 
+0 0 1 0 0 0 0 1 0 0 1 0 0 
+0 0 0 0 0 0 1 0 1 0 0 0 0 
+0 0 0 0 0 0 0 1 0 1 0 0 0 
+0 0 0 0 0 0 0 0 1 0 1 0 0 
+0 0 0 0 0 0 1 0 0 1 0 0 0 
+0 0 0 0 0 0 0 0 0 0 0 0 0 
+0 0 0 0 0 0 0 0 0 0 0 0 0 
+ns.degrees[0] == 2: 1, 5, 
+ns.degrees[1] == 2: 0, 2, 
+ns.degrees[2] == 3: 1, 3, 6, 
+ns.degrees[3] == 2: 2, 4, 
+ns.degrees[4] == 2: 3, 5, 
+ns.degrees[5] == 2: 0, 4, 
+ns.degrees[6] == 3: 2, 7, 10, 
+ns.degrees[7] == 2: 6, 8, 
+ns.degrees[8] == 2: 7, 9, 
+ns.degrees[9] == 2: 8, 10, 
+ns.degrees[10] == 2: 6, 9, 
+ns.degrees[11] == 0: 
+ns.degrees[12] == 0: 
+Graph isomorphisms WORKITEM2:
+Total number of isomorphisms == 8
+TimedRun TimedRunWORKITEM2:
+0.001531
+TimedRun TimedRunVerbosity:
+3.9e-05

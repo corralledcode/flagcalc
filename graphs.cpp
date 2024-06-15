@@ -728,7 +728,8 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
                 //int a = 4;
                 //threadpool[k] = pool.submit(std::bind(&threadholder::helloworld,this,a,tmpfps1,g1,&maps));
 
-                threadpool[k] = pool.submit(std::bind(&threadrecurseisomorphisms,l, permsidx,g1, g2, delptr,fps1ptr,fps2ptr, maps[k],&(res[k] )));
+                threadpool[k] = pool.submit(std::bind(&threadrecurseisomorphisms,l,
+                    permsidx,g1, g2, delptr,fps1ptr,fps2ptr, maps[k],&(res[k] )));
 
                 //                bool threadrecurseisomorphisms(int l, int permsidx, graph g1, graph g2, int* del, FP* fps1, FP* fps2, graphmorphism parentmap,std::vector<graphmorphism>* res) {
 
@@ -745,7 +746,8 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
                 }
                 //std::vector<graphmorphism> mapreturned = threadpool[m].get();
                 //bool mapreturned = threadpool[m].get();
-                threadpool[m].get();  // don't use the always true boolean return value, it is meaningless
+                //threadpool[m].get();  // don't use the always true boolean return value, it is meaningless
+                threadpool[m].wait();
                 //std::cout << "CvrReturned.size() " << CvrReturned.size() << "\n";
                 for (int r = 0; r < res[m].size();++r) {
                     newmaps.push_back(res[m][r]);
@@ -754,7 +756,7 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
 
             maps.clear();
             for (int i = 0; i < newmaps.size(); ++i) {
-                if (newmaps[i].size() == del[l] + permsidx)
+                if (newmaps[i].size() == (del[l] + permsidx))
                     maps.push_back(newmaps[i]);
             }
 
@@ -848,19 +850,19 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
                 os << "   ";
             }
             FP* parent = fps[n].parent;
-            std::cout << "Total walk by degrees: <" << ns.degrees[fps[n].v] << ", ";
+            //std::cout << "Total walk by degrees: <" << ns.degrees[fps[n].v] << ", ";
             while (parent != nullptr) {
-                std::cout << ns.degrees[parent->v] << ", ";
+                //std::cout << ns.degrees[parent->v] << ", ";
                 parent = ((*parent).parent);
             }
-            std::cout << "\b\b>, ";
+            //std::cout << "\b\b>, ";
             parent = fps[n].parent;
-            std::cout << " and by vertices: <" << fps[n].v << ", ";
+            //std::cout << " and by vertices: <" << fps[n].v << ", ";
             while (parent != nullptr) {
-                std::cout << parent->v << ", ";
+                //std::cout << parent->v << ", ";
                 parent = (*parent).parent;
             }
-            std::cout << "\b\b>\n";
+            //std::cout << "\b\b>\n";
         }
     }
     //for (int i = 0; i < depth; ++i) {
@@ -886,9 +888,9 @@ void osneighbors( std::ostream &os, neighbors ns ) {
     for (int n = 0; n < ns.g.dim; ++n ) {
         os << "ns.degrees["<<n<<"] == "<<ns.degrees[n]<<": ";
         for (int i = 0; i < ns.degrees[n]; ++i) {
-            std::cout << ns.neighborslist[n*ns.g.dim + i] << ", " ;
+            os << ns.neighborslist[n*ns.g.dim + i] << ", " ;
         }
-        std::cout << "\b\b\n";
+        os << "\b\b\n";
     }
 }
 

@@ -18,6 +18,7 @@
 #define VERBOSE_LISTFINGERPRINTS 3
 #define VERBOSE_ISOS 5
 #define VERBOSE_RUNTIMES 11
+#define VERBOSE_VERBOSITYRUNTIME 13
 
 class workitems {
 public:
@@ -126,10 +127,10 @@ public:
             return;   // in case only one graph is given, default to computing automorphisms
         }
 
-        for (int n = 0; n < vertexlabels.size(); ++n) {
-            std::cout << vertexlabels[n] << ", ";
-        }
-        std::cout << "\b\b\n";
+        //for (int n = 0; n < vertexlabels.size(); ++n) {
+        //    std::cout << vertexlabels[n] << ", ";
+        //}
+        //std::cout << "\b\b\n";
         s = 0;
 
         tmp = "";
@@ -150,9 +151,9 @@ public:
                 std::string tmp3;
                 tmp3 = (*p)[1];
                 edgecommands.push_back(tmp3);
-                std::cout << tmp3 << ", ";
+                //std::cout << tmp3 << ", ";
             }
-            std::cout << "\n";
+            //std::cout << "\n";
 
             // idata->removeduplicates(); must not remove duplicates yet... wait until setvertices has been called
         }
@@ -187,7 +188,7 @@ public:
             if (!cmdline)
                 std::sort(v.begin(), v.end());
             int sz = v.size();
-            std::cout<< "v.size == " << v.size() << "\n";
+            //std::cout<< "v.size == " << v.size() << "\n";
             if (cmdcomplete) {
                 // connect all pairs within the sequence of vertices
                 for (int m = 0; m < sz; ++m) {
@@ -203,7 +204,7 @@ public:
                                 if (j != i) {
                                     g.adjacencymatrix[i*g.dim + j] = !cmdomit;
                                     g.adjacencymatrix[j*g.dim + i] = !cmdomit;
-                                    std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
+                                    //std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
                                 }
                             }
                         }
@@ -223,7 +224,7 @@ public:
                             if (i != j) {
                                 g.adjacencymatrix[i*g.dim + j] = !cmdomit;
                                 g.adjacencymatrix[j*g.dim + i] = !cmdomit;
-                                std::cout << "v[m]: " << v[m] << " v[m+1]: " << v[m+1] << "\n";
+                                //std::cout << "v[m]: " << v[m] << " v[m+1]: " << v[m+1] << "\n";
                             }
                         }
                     }
