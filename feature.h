@@ -220,7 +220,7 @@ public:
             //gi2->g = gi1->g;
         }
 
-        FP fps1[gi1->g.dim];
+        FP* fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
         for (vertextype n = 0; n < gi1->g.dim; ++n) {
             fps1[n].v = n;
             fps1[n].ns = nullptr;
@@ -230,7 +230,9 @@ public:
 
         takefingerprint(gi1->ns,fps1,gi1->g.dim);
 
-        FP fps2[gi2->g.dim];
+        //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
+
+        FP* fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
         for (vertextype n = 0; n < gi2->g.dim; ++n) {
             fps2[n].v = n;
             fps2[n].ns = nullptr;
@@ -260,34 +262,34 @@ public:
         wi->ns1 = gi1->ns;
 
 
-        wi->fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
+        //wi->fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
 
 
-        //wi->fps1 = fps1;
-        for (int n = 0; n < gi1->g.dim; ++n) {
+        wi->fps1 = fps1;
+        /*for (int n = 0; n < gi1->g.dim; ++n) {
             wi->fps1[n].ns = nullptr; //fps1[n].ns;
             wi->fps1[n].v = fps1[n].v;
             wi->fps1[n].nscnt = 0; //fps1[n].nscnt;
             wi->fps1[n].parent = nullptr;
 
-        }
+        }*/
 
         wi->fps1cnt = gi1->g.dim;
 
         wi->g2 = gi2->g;
         wi->ns2 = gi2->ns;
 
-        wi->fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
+        //wi->fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
 
 
-        //wi->fps2 = fps2;
+        wi->fps2 = fps2;
 
-        for (int n = 0; n < gi2->g.dim; ++n) {
+        /*for (int n = 0; n < gi2->g.dim; ++n) {
             wi->fps2[n].ns = nullptr; //fps2[n].ns;
             wi->fps2[n].v = fps2[n].v;
             wi->fps2[n].nscnt = 0; //fps2[n].nscnt;
             wi->fps2[n].parent = nullptr;
-        }
+        }*/
 
         wi->fps2cnt = gi2->g.dim;
 
