@@ -375,8 +375,13 @@ public:
         }
 
         if (items.size()!=2) {
-            std::cout << "No two graphs available to enum isomorphisms\n";
-            return;
+            if (items.size() == 1)
+            {
+                items.push_back(items[0]); // use one graph and compute automorphisms
+            } else {
+                std::cout << "No graphs available to enum isomorphisms\n";
+                return;
+            }
         }
         auto wi = new enumisomorphismsitem;
         std::vector<neighbors> nslist {};
