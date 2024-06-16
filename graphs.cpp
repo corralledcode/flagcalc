@@ -893,7 +893,10 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
 void osfingerprintrecurseminimal( std::ostream &os, neighbors ns, FP* fps, int fpscnt, std::vector<vertextype> path ) {
     std::vector<vertextype> tmppath {};
     for (int n = 0; n < fpscnt; ++n) {
-        tmppath = path;
+        tmppath.clear();
+        for (int j = 0; j < path.size(); ++j) {
+            tmppath.push_back(path[j]);
+        }
         tmppath.push_back(fps[n].v);
         osfingerprintrecurseminimal(os, ns, fps[n].ns, fps[n].nscnt,tmppath);
         if (fps[n].nscnt == 0) {
