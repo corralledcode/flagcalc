@@ -22,16 +22,18 @@
 #define VERBOSE_VERBOSITYFILEAPPEND 17
 #define VERBOSE_MINIMAL 19
 #define VERBOSE_MANTELSTHEOREM 23
+#define VERBOSE_FINGERPRINT 27
 
 class workitems {
 public:
     std::string classname;
     std::string name;
     int verbosityfactor = 0;
-    virtual void ositem( std::ostream& os, int verbositylevel ) {
+    virtual bool ositem( std::ostream& os, int verbositylevel ) {
         os << classname << " " << name << ":\n";
+        return true;
     }
-    virtual void isitem( std::istream& is ) {}
+    virtual bool isitem( std::istream& is ) {return true;}
     virtual void freemem() {}
     workitems() {
         classname = "Unnamed class";
@@ -82,16 +84,22 @@ public:
         }
 
     }
-    void ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, int verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
+
+        //to do: would be nice to have a list of edges
+        //and a labelling for the adjacency matrix;
+        //add vertexlabels to graph struct type
+
         osadjacencymatrix(os,g);
         osneighbors(os,ns);
+        return true;
     }
 
 
 
 
-    void isitem( std::istream& is) {
+    bool isitem( std::istream& is) {
         //auto p = paused();
         //pause();
         //if (!idata || !edata)
@@ -127,7 +135,7 @@ public:
         } else {
             g.dim = 0;
             g.adjacencymatrix = nullptr;
-            return;   // in case only one graph is given, default to computing automorphisms
+            return false;   // in case only one graph is given, default to computing automorphisms
         }
 
         //for (int n = 0; n < vertexlabels.size(); ++n) {
@@ -235,11 +243,8 @@ public:
             }
         }
         ns = computeneighborslist(g);
+        return g.dim > 0;   // for now no support for trivial empty graphs
     }
-
-
-
-
 
 };
 
@@ -275,70 +280,55 @@ public:
         }*/
     }
 
-    void ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, int verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
         if ((verbositylevel % VERBOSE_DONTLISTISOS) == 0) {
             os << "Total number of isomorphisms == " << gm.size() << "\n";
         } else {
             osgraphmorphisms(os, gm);
         }
+        return true;
     }
 };
 
 class cmpfingerprintsitem : public workitems {
 public:
-    graph g1;
-    graph g2;
-    neighbors ns1;
-    neighbors ns2;
-    FP* fps1;
-    FP* fps2;
-    int fps1cnt = 0;
-    int fps2cnt = 0;
+    std::vector<graph> glist;
+    std::vector<neighbors> nslist;
+    std::vector<FP> fpslist;
+
     bool fingerprintsmatch;
+    std::vector<int> sorted {};
     cmpfingerprintsitem() : workitems() {
         classname = "Graph fingerprint comparison";
         verbosityfactor = VERBOSE_LISTFINGERPRINTS;
     }
     void freemem() override {
-        /*
-        if (g1.adjacencymatrix != nullptr) {
-            free(g1.adjacencymatrix);
-            g1.adjacencymatrix = nullptr;
-        }
-        if (ns1.neighborslist != nullptr) {
-            free(ns1.neighborslist);
-            ns1.neighborslist = nullptr;
-        }
-        if (g2.adjacencymatrix != nullptr) {
-            free(g2.adjacencymatrix);
-            g2.adjacencymatrix = nullptr;
-        }
-        if (ns2.neighborslist != nullptr) {
-            free(ns2.neighborslist);
-            ns2.neighborslist = nullptr;
-        }*/
-        if (fps1cnt > 0) {
-            freefps(fps1,fps1cnt);
-            free(fps1);
-        }
-        if (fps2cnt > 0) {
-            freefps(fps2,fps2cnt);
-            free(fps2);
+
+        // graph items are already freed by graphitem freemem
+
+        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n].nscnt > 0) {
+                freefps(fpslist[n].ns,fpslist[n].nscnt);
+                free(fpslist[n].ns);
+            }
         }
 
     }
-    void ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, int verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
-        os << "fingerprint of first graph\n";
-        osfingerprint(os,ns1, fps1,fps1cnt);
-        os << "fingerprint of second graph\n";
-        osfingerprint(os,ns2, fps2,fps2cnt);
+        for (int n = 0; n < sorted.size(); ++n) {
+            if (verbositylevel % VERBOSE_FINGERPRINT == 0) {
+                os << "fingerprint of graph ordered number " << n+1 << " out of " << sorted.size() << "\n";
+                osfingerprint(os,nslist[sorted[n]], fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+            }
+        }
         if (fingerprintsmatch) {
             os << "Fingerprints MATCH\n";
         } else {
-            os << "Fingerprints DO NOT MATCH\n";
+            os << "Some fingerprints DO NOT MATCH\n";
         }
+        return true;
     }
 };
 
@@ -350,9 +340,10 @@ public:
         classname = "TimedRun";
         verbosityfactor = VERBOSE_RUNTIMES;
     }
-    void ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, int verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
         os << ((float)duration)/1000000<< "\n";
+        return true;
     }
 
 };
@@ -367,10 +358,11 @@ public:
         classname = "MantelsTheorem";
         verbosityfactor = VERBOSE_MANTELSTHEOREM;
     }
-    void ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, int verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
         os << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
         os << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
+        return true;
     }
 
 };

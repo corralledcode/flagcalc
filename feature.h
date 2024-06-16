@@ -14,6 +14,8 @@
 #include "prob.h"
 #include "workspace.h"
 
+//default is to enumisomorphisms
+#define DEFAULTCMDLINESWITCH "i"
 
 class feature {
 protected:
@@ -23,7 +25,7 @@ protected:
 public:
     virtual std::string cmdlineoption() {return "";};
     virtual std::string cmdlineoptionlong() { return "";};
-    virtual void execute(int argc, char* argv[], int* cnt) {};
+    virtual void execute(std::vector<std::string>) {};
     feature( std::istream* is, std::ostream* os, workspace* ws ) {
         _is = is;
         _os = os;
@@ -43,41 +45,16 @@ public:
     _sandboxfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws ) {
         //
     }
-    void execute(int argc, char* argv[], int* cnt) override {
+    void execute(std::vector<std::string> args) override {
+/*
         std::ifstream ifs;
         std::istream* is = &std::cin;
         std::ostream* os = _os;
-        if (argc > 1) {
-            std::string filename = argv[1];
-            *_os << "Opening file " << filename << "\n";
-            ifs.open(filename);
-            if (!ifs) {
-                std::cout << "Couldn't open file for reading \n";
-                (*cnt)++;
-                return;
-            }
-            is = &ifs;
-            *cnt = 1;
-        } else {
-            std::cout << "Enter a filename or enter T for terminal mode: ";
-            std::string filename;
-            std::cin >> filename;
-            if (filename != "T") {
-                ifs.open(filename);
-                if (!ifs) {
-                    std::cout << "Couldn't open file for reading \n";
-                    (*cnt)++;
-                    return;
-                }
-                is = &ifs;
-            }
-            *cnt = 0;
-        }
-
         graphitem* gi1 = new graphitem();
         gi1->isitem(*is);
         trianglefreecriterion tf;
         std::cout << "Triangle free returns " << tf.checkcriterion(gi1->g,gi1->ns) << "\n";
+*/
     }
 
 };
@@ -94,23 +71,19 @@ public:
         //cmdlineoption = "r";
         //cmdlineoptionlong = "samplerandomgraphs";
     };
-    void execute(int argc, char* argv[], int* cnt) override {
+    void execute(std::vector<std::string> args) override {
         int outof = 1000;
         int dim = 5;
         float edgecnt = dim*(dim-1)/4.0;
-        *cnt=0;
         int rgidx = 0;
-        if (argc > 1) {
-            dim = std::stoi(argv[1]);
-            if (argc > 2) {
-                edgecnt = std::stoi(argv[2]);
-                if (argc > 3) {
-                    outof = std::stoi(argv[3]);
-                    (*cnt)++;
+        if (args.size() > 1) {
+            dim = std::stoi(args[1]);
+            if (args.size() > 2) {
+                edgecnt = std::stoi(args[2]);
+                if (args.size() > 3) {
+                    outof = std::stoi(args[3]);
                 }
-                (*cnt)++;
             }
-            (*cnt)++;
         }
         abstractrandomgraph* rg1 = new stdrandomgraph((int)edgecnt);
         abstractrandomgraph* rg2 = new randomgraphonnedges((int)edgecnt);
@@ -125,13 +98,12 @@ public:
         rgs.push_back(rg3);
         rgs.push_back(rg4);
         rgs.push_back(rg5);
-        if (argc > 4) {
+        if (args.size() > 4) {
             for (int i = 0; i < rgs.size(); ++i) {
-                if (argv[4] == rgs[i]->shortname()) {
+                if (args[4] == rgs[i]->shortname()) {
                     rgidx = i;
                 }
             }
-            (*cnt)++;
         }
         samplematchingrandomgraphs(rgs[rgidx],dim,outof,*_os);
             // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
@@ -163,31 +135,25 @@ public:
         //cmdlineoption = "r";
         //cmdlineoptionlong = "samplerandomgraphs";
     };
-    void execute(int argc, char* argv[], int* cnt) override {
+    void execute(std::vector<std::string> args) override {
         std::ofstream ofs;
         bool ofsrequiresclose = false;
-        if (argc > 1) {
-            verbositylevel = std::stoi(argv[1]);
-            if (argc > 2) {
-                ofname = argv[2];
-                (*cnt)++;
-                if (ofname == "std::cout") {
-                    _os = &std::cout;
-                } else {
-                    std::ifstream infile(ofname);
-                    if (infile.good() && verbositylevel % VERBOSE_VERBOSITYFILEAPPEND != 0) {
-                        std::cout << "Output file " << ofname << " already exists; use prime multiplier " << VERBOSE_VERBOSITYFILEAPPEND << " to append it.\n";
-                        return;
-                    }
-                    ofs.open(ofname,  std::ios::app);
-                    if (!ofs) {
-                        std::cout << "Couldn't open file for writing \n";
-                        (*cnt)++;
-                        return;
-                    }
-                    _os = &ofs;
-                    ofsrequiresclose = true;
+        if (args.size() > 1) {
+            verbositylevel = std::stoi(args[1]);
+            if (args.size() > 2) {
+                ofname = args[2];
+                std::ifstream infile(ofname);
+                if (infile.good() && verbositylevel % VERBOSE_VERBOSITYFILEAPPEND != 0) {
+                    std::cout << "Output file " << ofname << " already exists; use prime multiplier " << VERBOSE_VERBOSITYFILEAPPEND << " to append it.\n";
+                    return;
                 }
+                ofs.open(ofname,  std::ios::app);
+                if (!ofs) {
+                    std::cout << "Couldn't open file for writing \n";
+                    return;
+                }
+                _os = &ofs;
+                ofsrequiresclose = true;
             } else
             {
                 _os = &std::cout;
@@ -221,33 +187,32 @@ public:
 
 };
 
-
-
-class cmpfingerprintsfeature: public feature {
+class readgraphsfeature : public feature {
 public:
-    bool useworkspaceg2 = false;
-    std::string cmdlineoption() { return "f"; }
-    std::string cmdlineoptionlong() { return "cmpfingerprints"; }
-    cmpfingerprintsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
-        //cmdlineoption = "f";
-        //cmdlineoptionlong = "cmpfingerprints";
-    };
-    void execute(int argc, char* argv[], int* cnt) override {
+    std::string cmdlineoption() { return "d"; }
+    std::string cmdlineoptionlong() { return "readgraphs"; }
+    readgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+        //cmdlineoption = "d";
+        //cmdlineoptionlong = "readgraphs";
+    }
+
+    void execute(std::vector<std::string> args) override {
         std::ifstream ifs;
         std::istream* is = &std::cin;
         std::ostream* os = _os;
-        if (argc > 1) {
-            std::string filename = argv[1];
+        if (args.size() > 1) {
+            std::string filename = args[1];
             *_os << "Opening file " << filename << "\n";
             ifs.open(filename);
             if (!ifs) {
                 std::cout << "Couldn't open file for reading \n";
-                (*cnt)++;
                 return;
             }
             is = &ifs;
-            *cnt = 1;
         } else {
+            std::cout << "Using std::cin for input\n";
+
+            /*
             std::cout << "Enter a filename or enter T for terminal mode: ";
             std::string filename;
             std::cin >> filename;
@@ -259,133 +224,111 @@ public:
                     return;
                 }
                 is = &ifs;
-            }
-            *cnt = 0;
+            }*/
         }
 
 
+        graphitem* gi = new graphitem();
+        while (gi->isitem(*is)) {
+            gi->name = _ws->getuniquename();
+            _ws->items.push_back(gi);
+            gi = new graphitem();
+        }
+        delete gi;
+    }
+
+};
 
 
-        graphitem* gi1 = new graphitem();
-        gi1->isitem(*is);
+class cmpfingerprintsfeature: public feature {
+public:
+    bool useworkspaceg2 = false;
+    std::string cmdlineoption() { return "f"; }
+    std::string cmdlineoptionlong() { return "cmpfingerprints"; }
+    cmpfingerprintsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+        //cmdlineoption = "f";
+        //cmdlineoptionlong = "cmpfingerprints";
+    };
+    void execute(std::vector<std::string> args) override {
 
-        graphitem* gi2;
-        if (useworkspaceg2) {
-            int idx = _ws->items.size();
+        std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
-            if (idx == 0) {
-                std::cout << "Error: no item on workspace\n";
-                return;
-            }
-            while (idx > 0) {
-                idx--;
-                if (_ws->items[idx]->classname == "Graph")  {  // take the first graph found
 
-                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
-                    gi2 = (graphitem*)(_ws->items[idx]);
-                    //gi2->ositem(*_os,11741730);
-                } else {
-                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
-                }
-            }
-        } else {
-            gi2 = new graphitem();
-            gi2->isitem(*is);
-            if (gi2->g.dim == 0) {
-                gi2->g.dim = gi1->g.dim;
-                gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
-                for (int n = 0; n < gi2->g.dim; ++n) {
-                    for (int i = 0; i < gi2->g.dim; ++i) {
-                        gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi1->g.dim + i];
-                    }
-                }
-                gi2->ns = computeneighborslist(gi2->g);
+        bool takeallgraphitems = true;
+        int numofitemstotake = 0;
 
-                //gi2->g = gi1->g;
-
+        if (args.size() > 1) {
+            if (args[1] == "all")
+                takeallgraphitems = true;
+            else {
+                takeallgraphitems = false;
+                numofitemstotake = 2;   // to do: code the regex of say "c=3" to mean go back three graphs on the workspace
+                // also code a list of indices in reverse chrono order
             }
         }
 
-        FP* fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
-        for (vertextype n = 0; n < gi1->g.dim; ++n) {
-            fps1[n].v = n;
-            fps1[n].ns = nullptr;
-            fps1[n].nscnt = 0;
-            fps1[n].parent = nullptr;
+        int idx = _ws->items.size();
+        while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
+            idx--;
+            if (_ws->items[idx]->classname == "Graph")  {
+                items.push_back(idx);
+                --numofitemstotake;
+
+            } else {
+                //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+            }
         }
 
-        takefingerprint(gi1->ns,fps1,gi1->g.dim);
+        auto wi = new cmpfingerprintsitem;
+        wi->nslist.resize(items.size());
+        wi->fpslist.resize(items.size());
+        wi->glist.resize(items.size());
+        for (int i = 0; i < items.size(); ++i) {
+            auto gi = (graphitem*)(_ws->items[items[i]]);
+            //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+            //gi->ositem(*_os,11741730);
 
+            FP* fpsptr = (FP*)malloc(gi->g.dim * sizeof(FP));
+            wi->fpslist[i].ns = fpsptr;
+            wi->fpslist[i].parent = nullptr;
+            wi->fpslist[i].nscnt = gi->g.dim;
+
+            for (vertextype n = 0; n < gi->g.dim; ++n) {
+                fpsptr[n].v = n;
+                fpsptr[n].ns = nullptr;
+                fpsptr[n].nscnt = 0;
+                fpsptr[n].parent = nullptr;
+            }
+            takefingerprint(gi->ns,wi->fpslist[i].ns,gi->g.dim);
+            wi->nslist[i] = gi->ns;
+            wi->glist[i] = gi->g;
+        }
         //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
 
-        FP* fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
-        for (vertextype n = 0; n < gi2->g.dim; ++n) {
-            fps2[n].v = n;
-            fps2[n].ns = nullptr;
-            fps2[n].nscnt = 0;
-            fps2[n].parent = nullptr;
+        bool changed = true;
+        bool overallres = true;
+        wi->sorted.resize(items.size());
+        for (int i = 0; i < items.size(); ++i) {
+            wi->sorted[i] = i;
         }
-
-        takefingerprint(gi2->ns,fps2,gi2->g.dim);
-
-        FP fpstmp1;
-        fpstmp1.parent = nullptr;
-        fpstmp1.ns = fps1;
-        fpstmp1.nscnt = gi1->g.dim;
-
-        FP fpstmp2;
-        fpstmp2.parent = nullptr;
-        fpstmp2.ns = fps2;
-        fpstmp2.nscnt = gi2->g.dim;
-
-
-        bool res = (FPcmp(gi1->ns,gi2->ns,fpstmp1,fpstmp2) == 0);
-
-        cmpfingerprintsitem* wi = new cmpfingerprintsitem();
-        wi->fingerprintsmatch = res;
+        while (changed) {
+            // to do: use threads to sort quickly
+            changed = false;
+            for (int i = 0; i < items.size()-1; ++i) {
+                int res = FPcmp(wi->nslist[wi->sorted[i]],wi->nslist[wi->sorted[i+1]],wi->fpslist[wi->sorted[i]],wi->fpslist[wi->sorted[i+1]]);
+                if (res < 0) {
+                    int tmp;
+                    tmp = wi->sorted[i+1];
+                    wi->sorted[i+1] = wi->sorted[i];
+                    wi->sorted[i] = tmp;
+                    changed = true;
+                }
+                if (res != 0)
+                    overallres = false;
+            }
+        }
+        wi->fingerprintsmatch = overallres;
         wi->name = _ws->getuniquename();
-        wi->g1 = gi1->g;
-        wi->ns1 = gi1->ns;
-
-
-        //wi->fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
-
-
-        wi->fps1 = fps1;
-        /*for (int n = 0; n < gi1->g.dim; ++n) {
-            wi->fps1[n].ns = nullptr; //fps1[n].ns;
-            wi->fps1[n].v = fps1[n].v;
-            wi->fps1[n].nscnt = 0; //fps1[n].nscnt;
-            wi->fps1[n].parent = nullptr;
-
-        }*/
-
-        wi->fps1cnt = gi1->g.dim;
-
-        wi->g2 = gi2->g;
-        wi->ns2 = gi2->ns;
-
-        //wi->fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
-
-
-        wi->fps2 = fps2;
-
-        /*for (int n = 0; n < gi2->g.dim; ++n) {
-            wi->fps2[n].ns = nullptr; //fps2[n].ns;
-            wi->fps2[n].v = fps2[n].v;
-            wi->fps2[n].nscnt = 0; //fps2[n].nscnt;
-            wi->fps2[n].parent = nullptr;
-        }*/
-
-        wi->fps2cnt = gi2->g.dim;
-
-        gi1->name = _ws->getuniquename();
-        _ws->items.push_back(gi1);
-
-        gi2->name = _ws->getuniquename();
-        _ws->items.push_back(gi2);
-
-
         _ws->items.push_back(wi);
 
     }
@@ -401,140 +344,77 @@ public:
         //cmdlineoption = "i";
         //cmdlineoptionlong = "enumisomorphisms";
     };
-    void execute(int argc, char* argv[], int* cnt) override {
-        std::ifstream ifs;
-        std::istream* is = &std::cin;
-        std::ostream* os = _os;
+    void execute(std::vector<std::string> args) override {
+        std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
-        if (argc > 1) {
-            std::string filename = argv[1];
-            *_os << "Opening file " << filename << "\n";
-            ifs.open(filename);
-            if (!ifs) {
-                std::cout << "Couldn't open file for reading \n";
-                (*cnt)++;
-                return;
+
+        bool takeallgraphitems = false;
+        int numofitemstotake = 2;
+
+        /*
+        if (args.size() > 1) {
+            if (args[1] == "all")
+                takeallgraphitems = true;
+            else {
+                takeallgraphitems = false;
+                numofitemstotake = 2;   // to do: code the regex of say "c=3" to mean go back three graphs on the workspace
+                // also code a list of indices in reverse chrono order
             }
-            is = &ifs;
-            *cnt = 1;
-        } else {
-            std::cout << "Enter a filename or enter T for terminal mode: ";
-            std::string filename;
-            std::cin >> filename;
-            if (filename != "T") {
-                ifs.open(filename);
-                if (!ifs) {
-                    std::cout << "Couldn't open file for reading \n";
-                    (*cnt)++;
-                    return;
-                }
-                is = &ifs;
-            }
-            *cnt = 0;
-        }
+        }*/
 
-        graphitem* gi1 = new graphitem();
-        gi1->isitem(*is);
+        int idx = _ws->items.size();
+        while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
+            idx--;
+            if (_ws->items[idx]->classname == "Graph")  {
+                items.push_back(idx);
+                --numofitemstotake;
 
-        graphitem* gi2;
-        if (useworkspaceg2) {
-            int idx = _ws->items.size();
-
-            if (idx == 0) {
-                std::cout << "Error: no item on workspace\n";
-                return;
-            }
-            while (idx > 0) {
-                idx--;
-                if (_ws->items[idx]->classname == "Graph")  {  // take the first graph found
-
-                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
-                    gi2 = (graphitem*)(_ws->items[idx]);
-                    //gi2->ns = computeneighborslist(gi2->g); // thought this was done by asymp.h but random unininitialized data is prevailing
-                    //gi2->ositem(*_os,11741730);
-                } else {
-                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
-                }
-            }
-        } else {
-            gi2 = new graphitem();
-            gi2->isitem(*is);
-            if (gi2->g.dim == 0) {
-                gi2->g.dim = gi1->g.dim;
-                gi2->g.adjacencymatrix = (bool*)malloc(gi2->g.dim*gi2->g.dim*sizeof(bool));
-                for (int n = 0; n < gi2->g.dim; ++n) {
-                    for (int i = 0; i < gi2->g.dim; ++i) {
-                        gi2->g.adjacencymatrix[n*gi2->g.dim + i] = gi1->g.adjacencymatrix[n*gi1->g.dim + i];
-                    }
-                }
-                gi2->ns = computeneighborslist(gi2->g);
-
-                //gi2->g = gi1->g;
-
+            } else {
+                //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
             }
         }
 
-
-        FP* fps1 = (FP*)malloc(gi1->g.dim * sizeof(FP));
-        for (vertextype n = 0; n < gi1->g.dim; ++n) {
-            fps1[n].v = n;
-            fps1[n].ns = nullptr;
-            fps1[n].nscnt = 0;
-            fps1[n].parent = nullptr;
+        if (items.size()!=2) {
+            std::cout << "No two graphs available to enum isomorphisms\n";
+            return;
         }
+        auto wi = new enumisomorphismsitem;
+        std::vector<neighbors> nslist {};
+        nslist.resize(items.size());
+        std::vector<graph> glist {};
+        glist.resize(items.size());
+        std::vector<FP> fpslist {};
+        fpslist.resize(items.size());
+        for (int i = 0; i < items.size(); ++i) {
+            auto gi = (graphitem*)(_ws->items[items[i]]);
+            //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+            //gi->ositem(*_os,11741730);
 
-        takefingerprint(gi1->ns,fps1,gi1->g.dim);
+            FP* fpsptr = (FP*)malloc(gi->g.dim * sizeof(FP));
+            fpslist[i].ns = fpsptr;
+            fpslist[i].parent = nullptr;
+            fpslist[i].nscnt = gi->g.dim;
 
+            for (vertextype n = 0; n < gi->g.dim; ++n) {
+                fpsptr[n].v = n;
+                fpsptr[n].ns = nullptr;
+                fpsptr[n].nscnt = 0;
+                fpsptr[n].parent = nullptr;
+            }
+            takefingerprint(gi->ns,fpslist[i].ns,gi->g.dim);
+            nslist[i] = gi->ns;
+            glist[i] = gi->g;
+        }
         //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
 
-        FP* fps2 = (FP*)malloc(gi2->g.dim * sizeof(FP));
-        for (vertextype n = 0; n < gi2->g.dim; ++n) {
-            fps2[n].v = n;
-            fps2[n].ns = nullptr;
-            fps2[n].nscnt = 0;
-            fps2[n].parent = nullptr;
-        }
-
-        takefingerprint(gi2->ns,fps2,gi2->g.dim);
-
-
-
-        FP fpstmp1;
-        fpstmp1.parent = nullptr;
-        fpstmp1.ns = fps1;
-        fpstmp1.nscnt = gi1->g.dim;
-
-        FP fpstmp2;
-        fpstmp2.parent = nullptr;
-        fpstmp2.ns = fps2;
-        fpstmp2.nscnt = gi2->g.dim;
-
-        std::vector<graphmorphism> maps = enumisomorphisms(gi1->ns,gi2->ns);
-
-        gi1->name = _ws->getuniquename();
-        _ws->items.push_back(gi1);
-
-        if (!useworkspaceg2) {
-            gi2->name = _ws->getuniquename();
-            _ws->items.push_back(gi2);
-        }
-
-        enumisomorphismsitem* wi = new enumisomorphismsitem();
+        wi->gm = enumisomorphisms(nslist[0],nslist[1]);
         wi->name = _ws->getuniquename();
-        wi->g1 = gi1->g;
-        wi->ns1 = gi1->ns;
-        wi->g2 = gi2->g;
-        wi->ns2 = gi2->ns;
-
-        wi->gm = maps;
-
         _ws->items.push_back(wi);
 
-        freefps(fps1,gi1->g.dim);
-        freefps(fps2,gi2->g.dim);
-        free(fps1);
-        free(fps2);
-
+        freefps(fpslist[0].ns,wi->g1.dim);
+        freefps(fpslist[1].ns,wi->g2.dim);
+        free(fpslist[0].ns);
+        free(fpslist[1].ns);
     }
 
 };
@@ -550,17 +430,14 @@ public:
     std::string cmdlineoption() { return "m"; }
     std::string cmdlineoptionlong() { return "mantels"; }
     mantelstheoremfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
-    void execute(int argc, char *argv[], int *cnt) override {
+    void execute(std::vector<std::string> args) override {
         int outof = 100;
         int limitdim = 10;
-        *cnt=0;
-        if (argc > 1) {
-            limitdim = std::stoi(argv[1]);
-            if (argc > 2) {
-                outof = std::stoi(argv[2]);
-                (*cnt)++;
+        if (args.size() > 1) {
+            limitdim = std::stoi(args[1]);
+            if (args.size() > 2) {
+                outof = std::stoi(args[2]);
             }
-            (*cnt)++;
         }
 
         asymp* as = new asymp();
@@ -587,14 +464,12 @@ public:
     std::string cmdlineoption() { return "M"; }
     std::string cmdlineoptionlong() { return "mantelsverify"; }
     mantelsverifyfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
-    void execute(int argc, char *argv[], int *cnt) override {
+    void execute(std::vector<std::string> args) override {
         mantelstheoremfeature* ms = new mantelstheoremfeature(_is,_os,_ws);
-        ms->execute(argc, argv, cnt);
+        ms->execute(args);
         enumisomorphismsfeature* ei = new enumisomorphismsfeature(_is,_os,_ws);
         ei->useworkspaceg2 = true;
-        int tmpcnt = *cnt;
-        ei->execute(argc-tmpcnt,argv+(tmpcnt*sizeof(char)),cnt);
-        *cnt = *cnt + tmpcnt;
+        ei->execute(args); // or send it a smaller subset of args
         delete ms;
         delete ei;
     }
