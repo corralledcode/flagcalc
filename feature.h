@@ -15,6 +15,7 @@
 #include "workspace.h"
 
 //default is to enumisomorphisms
+#define DEFAULTCMDLINE "-d -i"
 #define DEFAULTCMDLINESWITCH "i"
 
 class feature {
@@ -31,6 +32,7 @@ public:
         _os = os;
         _ws = ws;
     }
+    virtual ~feature() {}
 };
 
 class _sandboxfeature : public feature { // to be used to code hack jobs for testing purposes
@@ -123,7 +125,7 @@ public:
 
 class verbosityfeature : public feature {
 public:
-    int verbositylevel = 0;
+    int verbositylevel = -1;
     std::string ofname {};
     std::string cmdlineoption() {
         return "v";
@@ -135,13 +137,23 @@ public:
         //cmdlineoption = "r";
         //cmdlineoptionlong = "samplerandomgraphs";
     };
+    ~verbosityfeature() {
+        if (verbositylevel == -1) {  // if hasn't been run yet
+            std::vector<std::string> args {};
+            args.push_back(cmdlineoption());
+            args.push_back("std::cout");
+            args.push_back(std::to_string(VERBOSE_DEFAULT));
+            execute(args);
+        }
+    }
     void execute(std::vector<std::string> args) override {
         std::ofstream ofs;
         bool ofsrequiresclose = false;
         if (args.size() > 1) {
-            verbositylevel = std::stoi(args[1]);
-            if (args.size() > 2) {
-                ofname = args[2];
+            if (args[1] == "std::cout") {
+                _os = &std::cout;
+            } else {
+                ofname = args[1];
                 std::ifstream infile(ofname);
                 if (infile.good() && verbositylevel % VERBOSE_VERBOSITYFILEAPPEND != 0) {
                     std::cout << "Output file " << ofname << " already exists; use prime multiplier " << VERBOSE_VERBOSITYFILEAPPEND << " to append it.\n";
@@ -154,11 +166,16 @@ public:
                 }
                 _os = &ofs;
                 ofsrequiresclose = true;
+            }
+            if (args.size() > 2) {
+                verbositylevel = std::stoi(args[2]);
             } else
             {
                 _os = &std::cout;
             }
             //(*cnt)++;
+        } else {
+            verbositylevel = VERBOSE_DEFAULT;
         }
 
 
@@ -197,44 +214,34 @@ public:
     }
 
     void execute(std::vector<std::string> args) override {
-        std::ifstream ifs;
-        std::istream* is = &std::cin;
-        std::ostream* os = _os;
-        if (args.size() > 1) {
-            std::string filename = args[1];
-            *_os << "Opening file " << filename << "\n";
-            ifs.open(filename);
-            if (!ifs) {
-                std::cout << "Couldn't open file for reading \n";
-                return;
-            }
-            is = &ifs;
-        } else {
-            std::cout << "Using std::cin for input\n";
-
-            /*
-            std::cout << "Enter a filename or enter T for terminal mode: ";
-            std::string filename;
-            std::cin >> filename;
-            if (filename != "T") {
+        int filenameidx = 0;
+        while (filenameidx < args.size()-1) {
+            ++filenameidx;
+            std::ifstream ifs;
+            std::istream* is = &std::cin;
+            std::ostream* os = _os;
+            if (args.size() > filenameidx) {
+                std::string filename = args[filenameidx];
+                *_os << "Opening file " << filename << "\n";
                 ifs.open(filename);
                 if (!ifs) {
                     std::cout << "Couldn't open file for reading \n";
-                    (*cnt)++;
                     return;
                 }
                 is = &ifs;
-            }*/
-        }
+            } else {
+                std::cout << "Using std::cin for input\n"; // recode so this is possible
+            }
 
 
-        graphitem* gi = new graphitem();
-        while (gi->isitem(*is)) {
-            gi->name = _ws->getuniquename();
-            _ws->items.push_back(gi);
-            gi = new graphitem();
+            graphitem* gi = new graphitem();
+            while (gi->isitem(*is)) {
+                gi->name = _ws->getuniquename();
+                _ws->items.push_back(gi);
+                gi = new graphitem();
+            }
+            delete gi;
         }
-        delete gi;
     }
 
 };

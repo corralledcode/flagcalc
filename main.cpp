@@ -37,6 +37,9 @@ int main(int argc, char* argv[]) {
 
     int i = 1;
     std::vector<std::string> tmpv {};
+
+    // add a few lines to implement DEFAULTCMDLINE
+
     while (i < argc) {
         std::vector<std::string> newargs {};
         if (std::strlen(argv[i])>1 && argv[i][0] == '-'&& argv[i][1] == '-') {
@@ -68,9 +71,9 @@ int main(int argc, char* argv[]) {
         }
 
     }
-    if (tmpv.size() > 0)
-        args.push_back(tmpv);
 
+    if (tmpv.size()>0)
+        args.push_back(tmpv);
 
     /*  test code to ensure right parsing of the command line switches
     for (int i = 0; i < args.size(); ++i) {
