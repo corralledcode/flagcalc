@@ -58,6 +58,9 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 );
 
 void osfingerprint( std::ostream &os, neighbors ns, FP* fps, int fpscnt );
 
+void osfingerprintminimal( std::ostream &os, neighbors ns, FP* fps, int fpscnt );
+
+
 void osadjacencymatrix( std::ostream &os, graph g );
 
 void osneighbors( std::ostream &os, neighbors ns );

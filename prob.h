@@ -320,8 +320,9 @@ public:
 
 };
 
-void samplematchingrandomgraphs( abstractrandomgraph* rg, int dim, int outof, std::ostream &os );
+int samplematchingrandomgraphs( abstractrandomgraph* rg, int dim, int outof );
 
+std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const int cnt );
 /*
 
 void randomgraph( graph* gptr, const float edgecnt ); // legacy replaced as above by class

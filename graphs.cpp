@@ -889,10 +889,34 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
     //os << "end fpscnt == " << fpscnt << "\n";
 }
 
+
+void osfingerprintrecurseminimal( std::ostream &os, neighbors ns, FP* fps, int fpscnt, std::vector<vertextype> path ) {
+    std::vector<vertextype> tmppath {};
+    for (int n = 0; n < fpscnt; ++n) {
+        tmppath = path;
+        tmppath.push_back(fps[n].v);
+        osfingerprintrecurseminimal(os, ns, fps[n].ns, fps[n].nscnt,tmppath);
+        if (fps[n].nscnt == 0) {
+            for (int i = 0; i < path.size(); ++i) {
+                os << ns.degrees[path[i]] << " ";
+            }
+            os << "\n";
+        }
+    }
+}
+
+
+
 void osfingerprint( std::ostream &os, neighbors ns, FP* fps, int fpscnt ) {
     osfingerprintrecurse( os, ns, fps, fpscnt, 0 );
     os << "\n";
 }
+
+void osfingerprintminimal( std::ostream &os, neighbors ns, FP* fps, int fpscnt ) {
+    std::vector<vertextype> nullpath {};
+    osfingerprintrecurseminimal( os, ns, fps, fpscnt, nullpath );
+}
+
 
 void osadjacencymatrix( std::ostream &os, graph g ) {
     for (int n = 0; n < g.dim; ++n ) {

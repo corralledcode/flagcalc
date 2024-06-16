@@ -11,7 +11,8 @@
 #include <iostream>
 #include <stdbool.h>
 
-void samplematchingrandomgraphs( abstractrandomgraph* rg, int dim, int outof, std::ostream &os ) {
+
+int samplematchingrandomgraphs( abstractrandomgraph* rg, int dim, int outof ) { // returns the count of how many pairs share a fingerprint
     int cnt = 0;
     graph g5;
     g5.dim = dim;
@@ -83,8 +84,6 @@ void samplematchingrandomgraphs( abstractrandomgraph* rg, int dim, int outof, st
         free(ns6.neighborslist);
         free(ns6.degrees);
     }
-    os << "Probability amongst " << rg->name << ", dimension "<<dim<<"\n";
-    os << "of fingerprints matching is " << cnt << " out of " << outof << " == " << float(cnt)/float(outof) << "\n";
     //verboseio vio;
     //verbosedbio vdbio(getenv("DBSERVER"), getenv("DBUSR"), getenv("DBPWD"), getenv("DBSCHEMA"));
     //vio = vdbio;
@@ -93,7 +92,25 @@ void samplematchingrandomgraphs( abstractrandomgraph* rg, int dim, int outof, st
 
     free(g5.adjacencymatrix);
     free(g6.adjacencymatrix);
+    return cnt;
 
+}
+
+std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const int cnt ) {
+    std::vector<graph> gv {};
+    gv.resize(cnt);
+    for (int i = 0; i < cnt; ++i) {
+        gv[i].dim = dim;
+        gv[i].adjacencymatrix = (bool*)malloc(dim * dim * sizeof(bool));
+    }
+
+    for (int i = 0; i < cnt; ++i) {
+        rg->randomgraph(&(gv[i]));
+        //osadjacencymatrix(std::cout,g5);
+        //std::cout << "\n";
+        //osneighbors(std::cout,ns5);
+    }
+    return gv;
 }
 
 

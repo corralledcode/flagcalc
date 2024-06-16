@@ -63,14 +63,15 @@ public:
 
 class samplerandomgraphsfeature : public feature {
 public:
+    float percent = -1;
     std::string cmdlineoption() {
-        return "r";
+        return "R";
     }
     std::string cmdlineoptionlong() {
         return "samplerandomgraphs";
     }
     samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
-        //cmdlineoption = "r";
+        //cmdlineoption = "R";
         //cmdlineoptionlong = "samplerandomgraphs";
     };
     void execute(std::vector<std::string> args) override {
@@ -107,12 +108,89 @@ public:
                 }
             }
         }
-        samplematchingrandomgraphs(rgs[rgidx],dim,outof,*_os);
+        int cnt = samplematchingrandomgraphs(rgs[rgidx],dim,outof);
             // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
             // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
             // vertices are obtained, is rather efficient too.
             // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
             //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
+
+        auto wi = new samplerandommatchinggraphsitem;
+        wi->dim = dim;
+        wi->cnt = cnt;
+        wi->outof = outof;
+        wi->name = _ws->getuniquename();
+
+        wi-> percent = ((float)wi->cnt / (float)wi->outof);
+        wi->rgname = rgs[rgidx]->name;
+        _ws->items.push_back(wi);
+
+        for (int i = 0; i < rgs.size();++i) {
+            delete rgs[i];
+        }
+    }
+
+};
+
+class randomgraphsfeature : public feature {
+public:
+    std::string cmdlineoption() {
+        return "r";
+    }
+    std::string cmdlineoptionlong() {
+        return "outputrandomgraphs";
+    }
+    randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+        //cmdlineoption = "r";
+        //cmdlineoptionlong = "outputrandomgraphs";
+    };
+    void execute(std::vector<std::string> args) override {
+        int dim = 5;
+        int cnt = 2;
+        float edgecnt = dim*(dim-1)/4.0;
+        int rgidx = 0;
+        if (args.size() > 1) {
+            dim = std::stoi(args[1]);
+            edgecnt = dim*(dim-1)/4.0;
+            if (args.size() > 2) {
+                edgecnt = std::stoi(args[2]);
+                if (args.size() > 3) {
+                    cnt = std::stoi(args[3]);
+                }
+            }
+        }
+        abstractrandomgraph* rg1 = new stdrandomgraph((int)edgecnt);
+        abstractrandomgraph* rg2 = new randomgraphonnedges((int)edgecnt);
+        abstractrandomgraph* rg3 = new randomconnectedgraph((int)edgecnt);
+        abstractrandomgraph* rg4 = new randomconnectedgraphfixededgecnt((int)edgecnt);
+        std::vector<weightstype> weights;
+        weights = computeweights(dim);
+        abstractrandomgraph* rg5 = new weightedrandomconnectedgraph(weights);
+        std::vector<abstractrandomgraph*> rgs {};
+        rgs.push_back(rg1);
+        rgs.push_back(rg2);
+        rgs.push_back(rg3);
+        rgs.push_back(rg4);
+        rgs.push_back(rg5);
+        rgidx = 0;
+        if (args.size() > 4) {
+            for (int i = 0; i < rgs.size(); ++i) {
+                if (args[4] == rgs[i]->shortname()) {
+                    rgidx = i;
+                }
+            }
+        }
+        std::vector<graph> gv {};
+        gv = randomgraphs(rgs[rgidx],dim,cnt);
+
+        for (int i = 0; i < gv.size(); ++i) {
+            auto wi = new graphitem;
+            wi->g.dim = gv[i].dim;
+            wi->g.adjacencymatrix = gv[i].adjacencymatrix;
+            wi->ns = computeneighborslist(wi->g);
+            wi->name = _ws->getuniquename();
+            _ws->items.push_back(wi);
+        }
 
         for (int i = 0; i < rgs.size();++i) {
             delete rgs[i];
@@ -290,6 +368,7 @@ public:
         wi->nslist.resize(items.size());
         wi->fpslist.resize(items.size());
         wi->glist.resize(items.size());
+        wi->gnames.resize(items.size());
         for (int i = 0; i < items.size(); ++i) {
             auto gi = (graphitem*)(_ws->items[items[i]]);
             //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
@@ -309,6 +388,7 @@ public:
             takefingerprint(gi->ns,wi->fpslist[i].ns,gi->g.dim);
             wi->nslist[i] = gi->ns;
             wi->glist[i] = gi->g;
+            wi->gnames[i] = gi->name;
         }
         //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
 
@@ -381,14 +461,9 @@ public:
             }
         }
 
-        if (items.size()!=2) {
-            if (items.size() == 1)
-            {
-                items.push_back(items[0]); // use one graph and compute automorphisms
-            } else {
-                std::cout << "No graphs available to enum isomorphisms\n";
-                return;
-            }
+        if (items.size() == 0) {
+            std::cout << "No graphs available to enum isomorphisms\n";
+            return;
         }
         auto wi = new enumisomorphismsitem;
         std::vector<neighbors> nslist {};
@@ -397,6 +472,7 @@ public:
         glist.resize(items.size());
         std::vector<FP> fpslist {};
         fpslist.resize(items.size());
+        // code this to run takefingerprint only once if graph 1 = graph 2
         for (int i = 0; i < items.size(); ++i) {
             auto gi = (graphitem*)(_ws->items[items[i]]);
             //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
@@ -419,14 +495,19 @@ public:
         }
         //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
 
-        wi->gm = enumisomorphisms(nslist[0],nslist[1]);
+        if (items.size() == 1)
+        {
+            wi->gm = enumisomorphisms(nslist[0],nslist[0]);
+        } else {
+            wi->gm = enumisomorphisms(nslist[0],nslist[1]);
+        }
         wi->name = _ws->getuniquename();
         _ws->items.push_back(wi);
 
-        freefps(fpslist[0].ns,wi->g1.dim);
-        freefps(fpslist[1].ns,wi->g2.dim);
-        free(fpslist[0].ns);
-        free(fpslist[1].ns);
+        for (int i = 0; i < fpslist.size(); ++i) {
+            freefps(fpslist[i].ns,wi->g1.dim);
+            free(fpslist[i].ns);
+        }
     }
 
 };

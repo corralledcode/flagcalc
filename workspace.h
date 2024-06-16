@@ -27,9 +27,10 @@
 #define VERBOSE_MINIMAL 19
 #define VERBOSE_MANTELSTHEOREM 23
 #define VERBOSE_FINGERPRINT 29
+#define VERBOSE_SAMPLERANDOMMATCHING 31
 
-#define VERBOSE_ALL (VERBOSE_LISTGRAPHS * VERBOSE_ISOS * VERBOSE_RUNTIMES * VERBOSE_VERBOSITYRUNTIME * VERBOSE_VERBOSITYFILEAPPEND * VERBOSE_MANTELSTHEOREM *VERBOSE_FINGERPRINT * VERBOSE_LISTFINGERPRINTS)
-#define VERBOSE_DEFAULT VERBOSE_ALL
+#define VERBOSE_ALL (VERBOSE_LISTGRAPHS * VERBOSE_ISOS * VERBOSE_RUNTIMES * VERBOSE_VERBOSITYRUNTIME * VERBOSE_VERBOSITYFILEAPPEND * VERBOSE_MANTELSTHEOREM *VERBOSE_FINGERPRINT * VERBOSE_LISTFINGERPRINTS* VERBOSE_SAMPLERANDOMMATCHING)
+#define VERBOSE_DEFAULT VERBOSE_LISTFINGERPRINTS * VERBOSE_MINIMAL * VERBOSE_FINGERPRINT
 
 class workitems {
 public:
@@ -303,6 +304,7 @@ public:
     std::vector<graph> glist;
     std::vector<neighbors> nslist;
     std::vector<FP> fpslist;
+    std::vector<std::string> gnames;
 
     bool fingerprintsmatch;
     std::vector<int> sorted {};
@@ -326,14 +328,27 @@ public:
         workitems::ositem(os,verbositylevel);
         for (int n = 0; n < sorted.size(); ++n) {
             if (verbositylevel % VERBOSE_FINGERPRINT == 0) {
-                os << "fingerprint of graph ordered number " << n+1 << " out of " << sorted.size() << "\n";
-                osfingerprint(os,nslist[sorted[n]], fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+                if (verbositylevel % VERBOSE_MINIMAL == 0) {
+                    os << "fingerprint of graph "<<sorted[n]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
+                    osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+                } else {
+                    os << "fingerprint of graph "<<sorted[n]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
+                    osfingerprint(os,nslist[sorted[n]], fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+                }
             }
         }
+        os << "Ordered: ";
+        for (int n = 0; n < sorted.size(); ++n) {
+            os << sorted[n] << ", ";
+        }
+        if (sorted.size()>0)
+            os << "\b\b\n";
+        else
+            os << "<none>\n";
         if (fingerprintsmatch) {
             os << "Fingerprints MATCH\n";
         } else {
-            os << "Some fingerprints DO NOT MATCH\n";
+            os << "Some fingerprints DO NOT MATCH\n"; // and feature delimeters when time to code
         }
         return true;
     }
@@ -373,6 +388,32 @@ public:
     }
 
 };
+
+
+class samplerandommatchinggraphsitem : public workitems {
+public:
+    float percent = -1;
+    int cnt = 0;
+    int outof = 0;
+    int dim = 0;
+    std::string rgname {};
+    samplerandommatchinggraphsitem() : workitems() {
+        classname = "SampleRandomMatchingGraphs";
+        verbosityfactor = VERBOSE_SAMPLERANDOMMATCHING;
+    }
+
+    bool ositem( std::ostream& os, int verbositylevel ) override {
+        workitems::ositem( os, verbositylevel );
+        percent = float(cnt)/float(outof);
+        os << "Probability amongst \""<< rgname << "\", dimension "<<dim<<"\n";
+        os << "of fingerprints matching is " << cnt << " out of " << outof << " == " << percent << "\n";
+        return true;
+    }
+
+
+};
+
+
 
 
 
