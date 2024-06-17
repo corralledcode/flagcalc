@@ -52,6 +52,7 @@ bool isiso( graph g1, graph g2, graphmorphism map );
 
 std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 );
 
+int edgecnt( graph g );
 
 
 //bool areisomorphic( graph g1, graph g2, neighbors ns1, neighbors ns2 );

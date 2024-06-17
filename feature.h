@@ -68,6 +68,11 @@ public:
         trianglefreecriterion tf;
         std::cout << "Triangle free returns " << tf.checkcriterion(gi1->g,gi1->ns) << "\n";
 */
+
+        std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
+        for (int i = 0; i < res.size(); ++i) {
+            std::cout << res[i].first << " === " << res[i].second << "\n";
+        }
     }
 
 };
@@ -265,7 +270,9 @@ public:
     void listoptions() override {
         feature::listoptions();
         *_os << "\t" << "<filename>: \t\t output filename, or \"std::cout\"\n";
-        *_os << "\t" << "<verbositystring>: \t all options, strung together\n";
+        *_os << "\t" << "o=<filename>: \t\t output filename, or \"std::cout\"\n";
+        *_os << "\t" << "i=<filename>: \t\t input filename (use to prepackage verbosity commands)\n";
+        *_os << "\t" << "<verbositystring>: \t options\n";
         // eventually do a loop which calls on each verbosity option to identify itself
     }
 
@@ -273,7 +280,8 @@ public:
     verbosityfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
         //cmdlineoption = "r";
         //cmdlineoptionlong = "samplerandomgraphs";
-    };
+    }
+
     ~verbosityfeature() {
         feature::~feature();
         if (verbositylevel == "") {  // if hasn't been run yet
@@ -286,30 +294,56 @@ public:
     }
     void execute(std::vector<std::string> args) override {
         std::ofstream ofs;
+        std::string ifname {};
         bool ofsrequiresclose = false;
-        verbositylevel = VERBOSE_DEFAULT;
-        if (args.size() > 2) {
-            verbositylevel = args[2];
-        }
-        if (args.size() > 1) {
-            if (args[1] == "std::cout") {
-                _os = &std::cout;
-            } else {
-                ofname = args[1];
-                std::ifstream infile(ofname);
-                if (infile.good() && !verbositycmdlineincludes(verbositylevel, VERBOSE_VERBOSITYFILEAPPEND)) {
-                    std::cout << "Output file " << ofname << " already exists; use verbosity \"" << VERBOSE_VERBOSITYFILEAPPEND << "\" to append it.\n";
-                    return;
+        verbositylevel = "";
+        std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
+        for (int n = 0; n < cmdlineoptions.size(); ++n) {
+            if (cmdlineoptions[n].first == "o" || (cmdlineoptions[n].first == "default" && ofname == "")) {
+                ofname = cmdlineoptions[n].second;
+                if (ofname != "std::cout") {
+                    std::ifstream infile(ofname);
+                    if (infile.good() && !verbositycmdlineincludes(verbositylevel, VERBOSE_VERBOSITYFILEAPPEND)) {
+                        std::cout << "Output file " << ofname << " already exists; use verbosity \"" << VERBOSE_VERBOSITYFILEAPPEND << "\" to append it.\n";
+                        return;
+                    }
+                    ofs.open(ofname,  std::ios::app);
+                    if (!ofs) {
+                        std::cout << "Couldn't open file for writing \n";
+                        return;
+                    }
+                    _os = &ofs;
+                    ofsrequiresclose = true;
+                } else {
+                    _os = &std::cout;
                 }
-                ofs.open(ofname,  std::ios::app);
-                if (!ofs) {
-                    std::cout << "Couldn't open file for writing \n";
-                    return;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "i") {
+                ifname = cmdlineoptions[n].second;
+                std::ifstream infile(ifname);
+                if (infile.good()) {
+                    std::ifstream ifs;
+                    ifs.open(ifname, std::fstream::in );
+                    while (!ifs.eof()) {
+                        std::string tmp {};
+                        ifs >> tmp;
+                        verbositylevel += tmp;
+                    }
+                    ifs.close();
+                    //std::cout << "Verbosity: " << verbositylevel << "\n";
+                } else {
+                    std::cout << "Couldn't open file for reading " << ifname << "\n";
                 }
-                _os = &ofs;
-                ofsrequiresclose = true;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default") {
+                verbositylevel += cmdlineoptions[n].second;
+                continue;
             }
         }
+        if (verbositylevel == "")
+            verbositylevel = VERBOSE_DEFAULT;
 
         auto starttime = std::chrono::high_resolution_clock::now();
 

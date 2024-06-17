@@ -29,11 +29,37 @@
 #define VERBOSE_SAMPLERANDOMMATCHING "srm"
 
 #define VERBOSE_ALL "NoisographsfpIsortvruntvappendminMantelFpsrm"
-#define VERBOSE_DEFAULT "graphsfpIsortvruntvappendminMantelFpsrm"
+#define VERBOSE_DEFAULT "NoisographsfpIsortvruntvappendminMantelFpsrm"
 
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
     return (str.find(s2) != std::string::npos);
+}
+
+inline std::vector<std::pair<std::string,std::string>>  cmdlineparseiterationtwo( const std::vector<std::string> args ) {
+    std::vector<std::pair<std::string,std::string>> res {};
+    for (int i = 1; i < args.size(); ++i) {
+
+        std::regex r("([[:alnum:]]+)=((\\w|[[:punct:]])*)"); // entire match will be 2 numbers
+
+        std::smatch m;
+        std::regex_search(args[i], m, r);
+
+        if (m.size() > 2) {
+            res.push_back({m[1],m[2]});
+        } else {
+            if (m.size() > 0) {
+                res.push_back( {"default",m[0]});
+            } else {
+                res.push_back( {"default",args[i]});
+            }
+        }
+        //for(auto v: m) {
+        //    std::cout << v << std::endl;
+        //    res.push_back({std::to_string(i),v});
+    }
+    return res;
+
 }
 
 
@@ -106,10 +132,13 @@ public:
         //to do: would be nice to have a list of edges
         //and a labelling for the adjacency matrix;
         //add vertexlabels to graph struct type
-
-        osadjacencymatrix(os,g);
-        osedges(os,g);
-        osneighbors(os,ns);
+        if (verbositycmdlineincludes(verbositylevel, VERBOSE_MINIMAL)) {
+            os << name << ", dim==" << g.dim << ", edgecount==" << edgecnt(g) << "\n";
+        } else {
+            osadjacencymatrix(os,g);
+            osedges(os,g);
+            osneighbors(os,ns);
+        }
         return true;
     }
 

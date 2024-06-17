@@ -919,6 +919,18 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
     return *maps;
 }
 
+int edgecnt( graph g ) {
+    int res = 0;
+    for (int n = 0; n < g.dim; ++n) {
+        for (int i = n+1; i < g.dim; ++i) {
+            if (g.adjacencymatrix[n*g.dim + i]) {
+                res++;
+            }
+        }
+    }
+    return res;
+}
+
 void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, int depth ) {
     for (int i = 0; i < depth; ++i) {
         os << "   ";
