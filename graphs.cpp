@@ -900,8 +900,8 @@ void osfingerprintrecurseminimal( std::ostream &os, neighbors ns, FP* fps, int f
         tmppath.push_back(fps[n].v);
         osfingerprintrecurseminimal(os, ns, fps[n].ns, fps[n].nscnt,tmppath);
         if (fps[n].nscnt == 0) {
-            for (int i = 0; i < path.size(); ++i) {
-                os << ns.degrees[path[i]] << " ";
+            for (int i = 0; i < tmppath.size(); ++i) {
+                os << ns.degrees[tmppath[i]] << " ";
             }
             os << "\n";
         }
