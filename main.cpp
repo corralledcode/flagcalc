@@ -104,9 +104,10 @@ int main(int argc, char* argv[]) {
 
         timedrunitem* tr = new timedrunitem();
         tr->duration = duration.count();
-        if (ws->items.size()>0) {
-            tr->name = "TimedRun" +  ws->items[ws->items.size()-1]->name;
-        }
+        tr->name = ws->getuniquename(tr->classname);
+//        if (ws->items.size()>0) {
+//            tr->name = "TimedRun" +  ws->items[ws->items.size()-1]->name;
+//        }
         ws->items.push_back(tr);
     }
 

@@ -36,6 +36,8 @@ inline bool verbositycmdlineincludes( const std::string str, const std::string s
     return (str.find(s2) != std::string::npos);
 }
 
+
+
 class workitems {
 public:
     std::string classname;
@@ -56,12 +58,14 @@ class workspace {
     int namesused = 0;
 public:
     std::vector<workitems*> items {};
-    std::string getuniquename() {
+    std::string getuniquename(std::string name) {
         bool unique = true;
         std::string tmpname;
         int namesused = 0;
+        if (name == "")
+            name = "WORKITEM";
         do {
-            tmpname = "WORKITEM" + std::to_string(namesused);
+            tmpname = name + std::to_string(namesused);
             unique = true;
             for (int n = 0; unique && (n < items.size()); ++n) {
                 unique = unique && (items[n]->name != tmpname);
@@ -82,7 +86,7 @@ public:
         g.adjacencymatrix = nullptr;
         ns.neighborslist = nullptr;
         verbositylevel = VERBOSE_LISTGRAPHS;
-        classname = "Graph";
+        classname = "GRAPH";
     }
     void freemem() override {
 
@@ -269,7 +273,7 @@ public:
     neighbors ns2;
     std::vector<graphmorphism> gm;
     enumisomorphismsitem() : workitems() {
-        classname = "Graph isomorphisms";
+        classname = "GRAPHISOS";
         verbositylevel = VERBOSE_ISOS; // use primes
     }
     void freemem() override {
@@ -314,7 +318,7 @@ public:
     std::vector<int> res;
     std::vector<int> sorted {};
     cmpfingerprintsitem() : workitems() {
-        classname = "Graph fingerprint comparison";
+        classname = "CMPFINGERPRINTS";
         verbositylevel = VERBOSE_LISTFINGERPRINTS;
     }
     void freemem() override {
@@ -344,19 +348,19 @@ public:
         }
         os << "Ordered, with pairwise results: ";
         for (int n = 0; n < sorted.size(); ++n) {
-            os << gnames[sorted[n]] << " (";
+            os << gnames[sorted[n]] << " ";
             if (n < sorted.size()-1) {
                 if (res[n] == 1) {
-                    os << "<) ";
+                    os << "< ";
                 } else
                     if (res[n] == -1) {
-                        os << "> (error)) ";
+                        os << "> (error) ";
                     } else
-                        os << "==) ";
+                        os << "== ";
             }
         }
         if (sorted.size()>0)
-            os << "\b\b\n";
+            os << "\b\n";
         else
             os << "<none>\n";
         if (fingerprintsmatch) {
@@ -373,7 +377,7 @@ public:
     long duration;
 
     timedrunitem() : workitems() {
-        classname = "TimedRun";
+        classname = "TIMEDRUN";
         verbositylevel = VERBOSE_RUNTIMES;
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
@@ -391,7 +395,7 @@ public:
     int outof;
 
     mantelstheoremitem() : workitems() {
-        classname = "MantelsTheorem";
+        classname = "MANTELSTHM";
         verbositylevel = VERBOSE_MANTELSTHEOREM;
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
@@ -412,7 +416,7 @@ public:
     int dim = 0;
     std::string rgname {};
     samplerandommatchinggraphsitem() : workitems() {
-        classname = "SampleRandomMatchingGraphs";
+        classname = "SAMPLEGRAPHS";
         verbositylevel = VERBOSE_SAMPLERANDOMMATCHING;
     }
 

@@ -134,7 +134,7 @@ public:
         wi->dim = dim;
         wi->cnt = cnt;
         wi->outof = outof;
-        wi->name = _ws->getuniquename();
+        wi->name = _ws->getuniquename(wi->classname);
 
         wi-> percent = ((float)wi->cnt / (float)wi->outof);
         wi->rgname = rgs[rgidx]->name;
@@ -188,7 +188,7 @@ public:
             wi->g.dim = gv[i].dim;
             wi->g.adjacencymatrix = gv[i].adjacencymatrix;
             wi->ns = computeneighborslist(wi->g);
-            wi->name = _ws->getuniquename();
+            wi->name = _ws->getuniquename(wi->classname);
             _ws->items.push_back(wi);
         }
     }
@@ -305,7 +305,7 @@ public:
 
             graphitem* gi = new graphitem();
             while (gi->isitem(*is)) {
-                gi->name = _ws->getuniquename();
+                gi->name = _ws->getuniquename(gi->classname);
                 _ws->items.push_back(gi);
                 gi = new graphitem();
             }
@@ -345,7 +345,7 @@ public:
         int idx = _ws->items.size();
         while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
             idx--;
-            if (_ws->items[idx]->classname == "Graph")  {
+            if (_ws->items[idx]->classname == "GRAPH")  {
                 items.push_back(idx);
                 --numofitemstotake;
 
@@ -409,7 +409,7 @@ public:
         }
         wi->fingerprintsmatch = overallres;
         wi->res = res;
-        wi->name = _ws->getuniquename();
+        wi->name = _ws->getuniquename(wi->classname);
         _ws->items.push_back(wi);
 
     }
@@ -446,7 +446,7 @@ public:
         int idx = _ws->items.size();
         while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
             idx--;
-            if (_ws->items[idx]->classname == "Graph")  {
+            if (_ws->items[idx]->classname == "GRAPH")  {
                 items.push_back(idx);
                 --numofitemstotake;
 
@@ -495,7 +495,7 @@ public:
         } else {
             wi->gm = enumisomorphisms(nslist[0],nslist[1]);
         }
-        wi->name = _ws->getuniquename();
+        wi->name = _ws->getuniquename(wi->classname);
         _ws->items.push_back(wi);
 
         for (int i = 0; i < fpslist.size(); ++i) {
