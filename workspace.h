@@ -28,8 +28,8 @@
 #define VERBOSE_FINGERPRINT "Fp"
 #define VERBOSE_SAMPLERANDOMMATCHING "srm"
 
-#define VERBOSE_ALL "noisographsfpisortvruntvappendminMantelFpsrm"
-#define VERBOSE_DEFAULT "graphsfpisortvruntvappendminMantelFpsrm"
+#define VERBOSE_ALL "NoisographsfpIsortvruntvappendminMantelFpsrm"
+#define VERBOSE_DEFAULT "graphsfpIsortvruntvappendminMantelFpsrm"
 
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
