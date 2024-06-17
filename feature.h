@@ -26,6 +26,9 @@ protected:
 public:
     virtual std::string cmdlineoption() {return "";};
     virtual std::string cmdlineoptionlong() { return "";};
+    virtual void listoptions() {
+        *_os << "Options for command line \"-" << cmdlineoption() << "\": " << cmdlineoptionlong() << "\n";
+    }
     virtual void execute(std::vector<std::string>) {};
     feature( std::istream* is, std::ostream* os, workspace* ws ) {
         _is = is;
@@ -44,6 +47,7 @@ public:
         return "sandboxfeature";
     }
 
+    void listoptions() override {}; // don't publicize _sandboxfeature
     _sandboxfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws ) {
         //
     }
@@ -61,11 +65,33 @@ public:
 
 };
 
+class userguidefeature : public feature {
+public:
+    std::vector<feature*> featureslist {};
+    std::string cmdlineoption() {return "h";};
+    std::string cmdlineoptionlong() { return "userguide";};
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "  " << "(this feature)\n";
+    }
+    virtual void execute(std::vector<std::string> args) {
+        feature::execute(args);
+        for (int n = 0; n < featureslist.size(); ++n) {
+            featureslist[n]->listoptions();
+        }
+    };
+    userguidefeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
+    ~userguidefeature() {feature::~feature();}
+};
+
 class abstractrandomgraphsfeature : public feature {
 protected:
     std::vector<abstractrandomgraph*> rgs {};
 
 public:
+    virtual void listoptions() override {
+        feature::listoptions();
+    }
     abstractrandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
 
         // add any new abstractrandomgraph types to the list here...
@@ -83,6 +109,7 @@ public:
     }
 
     ~abstractrandomgraphsfeature() {
+        feature::~feature();
         for (int i = 0; i < rgs.size();++i) {
             delete rgs[i];
         }
@@ -98,6 +125,16 @@ public:
     }
     std::string cmdlineoptionlong() {
         return "samplerandomgraphs";
+    }
+    void listoptions() override {
+        abstractrandomgraphsfeature::listoptions();
+        *_os << "\t" << "<dim>: \t\t\t\t dimension of the graph\n";
+        *_os << "\t" << "<edgecount>: \t\t edge count, where probability is <edgecount>/maxedges, maxedges = (dim-choose-2)\n";
+        *_os << "\t" << "<outof>: \t\t\t how many samples to take\n";
+        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r0,...,r4:\n";
+        for (int n = 0; n < rgs.size(); ++n) {
+            *_os << "\t\t\"" << rgs[n]->shortname() << "\": " << rgs[n]->name << "\n";
+        }
     }
 
     samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
@@ -155,6 +192,17 @@ public:
         return "outputrandomgraphs";
     }
 
+    void listoptions() override {
+        abstractrandomgraphsfeature::listoptions();
+        *_os << "\t" << "<dim>: \t\t\t\t dimension of the graph\n";
+        *_os << "\t" << "<edgecount>: \t\t edge count, where probability is <edgecount>/maxedges, maxedges = (dim-choose-2)\n";
+        *_os << "\t" << "<count>: \t\t\t how many random graphs to output to the workspace\n";
+        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r0,...,r4:\n";
+        for (int n = 0; n < rgs.size(); ++n) {
+            *_os << "\t\t\"" << rgs[n]->shortname() << "\": " << rgs[n]->name << "\n";
+        }
+    }
+
     randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {
     }
 
@@ -206,11 +254,21 @@ public:
     std::string cmdlineoptionlong() {
         return "verbosity";
     }
+
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "<filename>: \t\t output filename, or \"std::cout\"\n";
+        *_os << "\t" << "<verbositystring>: \t all options, strung together\n";
+        // eventually do a loop which calls on each verbosity option to identify itself
+    }
+
+
     verbosityfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
         //cmdlineoption = "r";
         //cmdlineoptionlong = "samplerandomgraphs";
     };
     ~verbosityfeature() {
+        feature::~feature();
         if (verbositylevel == "") {  // if hasn't been run yet
             std::vector<std::string> args {};
             args.push_back(cmdlineoption());
@@ -280,6 +338,12 @@ public:
         //cmdlineoptionlong = "readgraphs";
     }
 
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "<filename>: \t\t input filename, or \"std::cin\"; <filename> can be repeated any number of times\n";
+    }
+
+
     void execute(std::vector<std::string> args) override {
         int filenameidx = 0;
         bool oncethrough = true;
@@ -324,6 +388,13 @@ public:
         //cmdlineoption = "f";
         //cmdlineoptionlong = "cmpfingerprints";
     };
+
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "\"all\": \t\t computes fingerprints and sorts ALL graphs found on the workspace\n";
+        *_os << "\t" << "\"c=<n>\": \t (not implemented yet) computes fingerprints for the last n graphs on the workspace\n";
+    }
+
     void execute(std::vector<std::string> args) override {
 
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
@@ -425,23 +496,34 @@ public:
         //cmdlineoption = "i";
         //cmdlineoptionlong = "enumisomorphisms";
     };
+
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "\"all\": \t\t computes automorphisms for ALL graphs found on the workspace\n";
+        *_os << "\t" << "\"c=<n>\": \t (not implemented yet) computes automorphisms for the last n graphs on the workspace\n";
+        *_os << "\t" << "\t\t\t (the default is to compute isomorphisms between the last two graphs found on the workspace\n";
+        *_os << "\t" << "\t\t\t or if only one is found, to compute its automorphisms)\n";
+    }
+
+
     void execute(std::vector<std::string> args) override {
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
 
         bool takeallgraphitems = false;
+        bool computeautomorphisms = false;
         int numofitemstotake = 2;
 
-        /*
         if (args.size() > 1) {
-            if (args[1] == "all")
+            if (args[1] == "all") {
                 takeallgraphitems = true;
-            else {
+                computeautomorphisms = true;
+            } else {
                 takeallgraphitems = false;
                 numofitemstotake = 2;   // to do: code the regex of say "c=3" to mean go back three graphs on the workspace
                 // also code a list of indices in reverse chrono order
             }
-        }*/
+        }
 
         int idx = _ws->items.size();
         while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
@@ -459,7 +541,6 @@ public:
             std::cout << "No graphs available to enum isomorphisms\n";
             return;
         }
-        auto wi = new enumisomorphismsitem;
         std::vector<neighbors> nslist {};
         nslist.resize(items.size());
         std::vector<graph> glist {};
@@ -489,18 +570,27 @@ public:
         }
         //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
 
-        if (items.size() == 1)
+        if (computeautomorphisms || (items.size() == 1))
         {
-            wi->gm = enumisomorphisms(nslist[0],nslist[0]);
-        } else {
-            wi->gm = enumisomorphisms(nslist[0],nslist[1]);
-        }
-        wi->name = _ws->getuniquename(wi->classname);
-        _ws->items.push_back(wi);
+            for (int j = 0; j < items.size(); ++j) {
+                auto wi = new enumisomorphismsitem;
+                wi->gm = enumisomorphisms(nslist[j],nslist[j]);
+                wi->name = _ws->getuniquename(wi->classname);
+                _ws->items.push_back(wi);
 
-        for (int i = 0; i < fpslist.size(); ++i) {
-            freefps(fpslist[i].ns,wi->g1.dim);
-            free(fpslist[i].ns);
+                freefps(fpslist[j].ns,glist[j].dim);
+                free(fpslist[j].ns);
+            }
+        } else {
+            auto wi = new enumisomorphismsitem;
+            wi->gm = enumisomorphisms(nslist[0],nslist[1]);
+            wi->name = _ws->getuniquename(wi->classname);
+            _ws->items.push_back(wi);
+
+            for (int i = 0; i < fpslist.size(); ++i) {
+                freefps(fpslist[i].ns,glist[i].dim);
+                free(fpslist[i].ns);
+            }
         }
     }
 
@@ -517,6 +607,14 @@ public:
     std::string cmdlineoption() { return "m"; }
     std::string cmdlineoptionlong() { return "mantels"; }
     mantelstheoremfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
+
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "<limitdim>: \t the dimension of graph being analyzed\n";
+        *_os << "\t" << "<outof>: \t\t uses up to outof random graphs looking for edge-count-maximal triangle-free graphs\n";
+    }
+
+
     void execute(std::vector<std::string> args) override {
         int outof = 100;
         int limitdim = 10;

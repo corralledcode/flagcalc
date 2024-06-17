@@ -32,6 +32,7 @@ public:
     stdrandomgraph() : abstractrandomgraph() {
         //_edgecnt = edgecnt;
         //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
+        name = "random graph with given edgecnt";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
         name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
@@ -54,6 +55,7 @@ class randomgraphonnedges : public abstractrandomgraph {
 public:
     std::string shortname() {return "r2";}
     randomgraphonnedges() : abstractrandomgraph() {
+        name = "random graph with given edgecnt";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
         _edgecnt = (int)edgecnt;
@@ -91,6 +93,7 @@ class randomconnectedgraphfixededgecnt : public abstractrandomgraph {
 public:
     std::string shortname() {return "r3";}
     randomconnectedgraphfixededgecnt() : abstractrandomgraph() {
+        name = "random connected graph with given fixed edge count (ignoring unconnected outliers)";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
         _edgecnt = edgecnt;
@@ -157,6 +160,7 @@ class randomconnectedgraph : public abstractrandomgraph {
 public:
     std::string shortname() {return "r4";}
     randomconnectedgraph() : abstractrandomgraph() {
+        name = "random connected graph (algorithm does not find all such graphs...) with given edgecnt";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
         _edgecnt = (int)edgecnt;
@@ -244,6 +248,7 @@ class weightedrandomconnectedgraph : public abstractrandomgraph {
 public:
     std::string shortname() {return "r5";}
     weightedrandomconnectedgraph() : abstractrandomgraph() {
+        name = "random connected graph with balanced/weighted search";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
         _weights = computeweights(gptr->dim);

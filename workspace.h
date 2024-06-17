@@ -267,10 +267,6 @@ public:
 
 class enumisomorphismsitem : public workitems {
 public:
-    graph g1;
-    graph g2;
-    neighbors ns1;
-    neighbors ns2;
     std::vector<graphmorphism> gm;
     enumisomorphismsitem() : workitems() {
         classname = "GRAPHISOS";
