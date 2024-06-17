@@ -65,6 +65,8 @@ void osadjacencymatrix( std::ostream &os, graph g );
 
 void osneighbors( std::ostream &os, neighbors ns );
 
+void osedges( std::ostream &os, graph g );
+
 void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps );
 
 #endif //GRAPHS_H

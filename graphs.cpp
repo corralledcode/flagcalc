@@ -940,6 +940,20 @@ void osneighbors( std::ostream &os, neighbors ns ) {
     }
 }
 
+void osedges( std::ostream &os, graph g) {
+    if (g.adjacencymatrix == nullptr) {
+        return;
+    }
+    for (int i = 0; i < g.dim-1; ++i) {
+        for (int j = i+1; j < g.dim; ++j) {
+            if (g.adjacencymatrix[g.dim*i + j])
+                os << "[" << i << "," << j << "], ";
+        }
+        os << "\b\b\n";
+    }
+
+}
+
 void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps ) {
     for (int n = 0; n < maps.size(); ++n) {
         os << "Map number " << n+1 << " of " << maps.size() << ":\n";

@@ -462,7 +462,7 @@ public:
         }
         std::vector<int> res {};
         res.resize(items.size());
-        overallres = true;
+
         while (changed) {
             // to do: use threads to sort quickly
             changed = false;

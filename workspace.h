@@ -108,6 +108,7 @@ public:
         //add vertexlabels to graph struct type
 
         osadjacencymatrix(os,g);
+        osedges(os,g);
         osneighbors(os,ns);
         return true;
     }
@@ -294,8 +295,8 @@ public:
 
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
+        os << "Total number of isomorphisms == " << gm.size() << "\n";
         if (verbositycmdlineincludes(verbositylevel, VERBOSE_DONTLISTISOS)) {
-            os << "Total number of isomorphisms == " << gm.size() << "\n";
         } else {
             osgraphmorphisms(os, gm);
         }

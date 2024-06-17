@@ -105,7 +105,7 @@ public:
         }
         if (_edgecnt == 0)
             return;
-        if (_edgecnt > (int)((gptr->dim*(gptr->dim-1)/2))) {
+        if (_edgecnt >= (int)((gptr->dim*(gptr->dim-1)/2))) {
             //populate entire adjacency matrix
             for (int i = 0; i < gptr->dim; ++i) {
                 for (int j = 0; j < gptr->dim; ++j) {
