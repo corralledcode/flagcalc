@@ -3,7 +3,7 @@
 //
 
 // Use caution: one out of three must be asserted to be #defined:
-//#define THREADPOOL1
+//define THREADPOOL1
 //#define THREADED1
 #define NOTTHREADED1
 
@@ -785,7 +785,6 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
 
 #ifdef THREADPOOL1
 
-            // BELOW A VERY EARLY / NOT WORKING ATTEMPT TO DO THIS WITH A THREAD POOL INSTEAD
 
             std::vector<std::future<std::vector<graphmorphism>>> threadpool;
             threadpool.resize(maps->size());

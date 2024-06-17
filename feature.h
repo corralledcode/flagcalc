@@ -21,6 +21,10 @@
 #define NAIVESORT
 //#define QUICKSORT
 
+//Choose ONE of the two following
+#define THREADPOOL4
+//#define NOTTHREADED4
+
 class feature {
 protected:
     std::istream* _is;
@@ -631,8 +635,44 @@ public:
         }
         //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
 
-        if (computeautomorphisms || (items.size() == 1))
-        {
+        if (computeautomorphisms || (items.size() == 1)) {
+
+
+
+
+
+#ifdef THREADPOOL4
+
+
+            unsigned const thread_count = std::thread::hardware_concurrency();
+            //unsigned const thread_count = 1;
+
+            std::vector<std::future<std::vector<graphmorphism>>> t {};
+            t.resize(items.size());
+            for (int m = 0; m < items.size(); ++m) {
+                t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m]);
+            }
+            std::vector<std::vector<graphmorphism>> threadgm {};
+            threadgm.resize(items.size());
+            for (int m = 0; m < items.size(); ++m) {
+                //t[m].join();
+                //t[m].detach();
+                threadgm[m] = t[m].get();
+            }
+            for (int j=0; j < items.size(); ++j) {
+                auto wi = new enumisomorphismsitem;
+                wi->gm = threadgm[j];
+                wi->name = _ws->getuniquename(wi->classname);
+                _ws->items.push_back(wi);
+
+                freefps(fpslist[j].ns,glist[j].dim);
+                free(fpslist[j].ns);
+            }
+
+#endif
+
+#ifdef NOTTHREADED4
+
             for (int j = 0; j < items.size(); ++j) {
                 auto wi = new enumisomorphismsitem;
                 wi->gm = enumisomorphisms(nslist[j],nslist[j]);
@@ -642,7 +682,11 @@ public:
                 freefps(fpslist[j].ns,glist[j].dim);
                 free(fpslist[j].ns);
             }
+
+#endif
+
         } else {
+
             auto wi = new enumisomorphismsitem;
             wi->gm = enumisomorphisms(nslist[0],nslist[1]);
             wi->name = _ws->getuniquename(wi->classname);
