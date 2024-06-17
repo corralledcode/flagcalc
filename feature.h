@@ -318,7 +318,6 @@ public:
 
 class cmpfingerprintsfeature: public feature {
 public:
-    bool useworkspaceg2 = false;
     std::string cmdlineoption() { return "f"; }
     std::string cmdlineoptionlong() { return "cmpfingerprints"; }
     cmpfingerprintsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
@@ -389,23 +388,27 @@ public:
         for (int i = 0; i < items.size(); ++i) {
             wi->sorted[i] = i;
         }
+        std::vector<int> res {};
+        res.resize(items.size());
+        overallres = true;
         while (changed) {
             // to do: use threads to sort quickly
             changed = false;
             for (int i = 0; i < items.size()-1; ++i) {
-                int res = FPcmp(wi->nslist[wi->sorted[i]],wi->nslist[wi->sorted[i+1]],wi->fpslist[wi->sorted[i]],wi->fpslist[wi->sorted[i+1]]);
-                if (res < 0) {
+                res[i] = FPcmp(wi->nslist[wi->sorted[i]],wi->nslist[wi->sorted[i+1]],wi->fpslist[wi->sorted[i]],wi->fpslist[wi->sorted[i+1]]);
+                if (res[i] < 0) {
                     int tmp;
                     tmp = wi->sorted[i+1];
                     wi->sorted[i+1] = wi->sorted[i];
                     wi->sorted[i] = tmp;
                     changed = true;
                 }
-                if (res != 0)
+                if (res[i] != 0)
                     overallres = false;
             }
         }
         wi->fingerprintsmatch = overallres;
+        wi->res = res;
         wi->name = _ws->getuniquename();
         _ws->items.push_back(wi);
 

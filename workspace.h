@@ -311,6 +311,7 @@ public:
     std::vector<std::string> gnames;
 
     bool fingerprintsmatch;
+    std::vector<int> res;
     std::vector<int> sorted {};
     cmpfingerprintsitem() : workitems() {
         classname = "Graph fingerprint comparison";
@@ -333,7 +334,7 @@ public:
         for (int n = 0; n < sorted.size(); ++n) {
             if (verbositycmdlineincludes(verbositylevel, VERBOSE_FINGERPRINT)) {
                 if (verbositycmdlineincludes(verbositylevel, VERBOSE_MINIMAL)) {
-                    os << "fingerprint of graph "<<sorted[n]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
+                    os << "fingerprint of graph "<<gnames[sorted[n]]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
                     osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
                 } else {
                     os << "fingerprint of graph "<<sorted[n]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
@@ -341,9 +342,18 @@ public:
                 }
             }
         }
-        os << "Ordered: ";
+        os << "Ordered, with pairwise results: ";
         for (int n = 0; n < sorted.size(); ++n) {
-            os << sorted[n] << ", ";
+            os << gnames[sorted[n]] << " (";
+            if (n < sorted.size()-1) {
+                if (res[n] == 1) {
+                    os << "<) ";
+                } else
+                    if (res[n] == -1) {
+                        os << "> (error)) ";
+                    } else
+                        os << "==) ";
+            }
         }
         if (sorted.size()>0)
             os << "\b\b\n";
