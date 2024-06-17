@@ -27,13 +27,13 @@ public:
         int sampled = 0;
         int n = 1;
         std::vector<bool*> samplegraphs;
-        randomconnectedgraphfixededgecnt* rg = new randomconnectedgraphfixededgecnt(n);
+        auto rg = new randomconnectedgraphfixededgecnt();
         graph g;
         g.dim = dim;
         g.adjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
         while (sampled < outof) {
             while (max < n && sampled < outof) {
-                rg->randomgraph(&g);
+                rg->randomgraph(&g,n);
                 neighbors ns;
                 //ns = computeneighborslist(g); ns isn't used by criterion...
                 if (cr->checkcriterion(g,ns)) {
@@ -48,8 +48,6 @@ public:
                     }
                     samplegraphs.push_back(tmpadjacencymatrix);
                     n++;
-                    delete rg;
-                    rg = new randomconnectedgraphfixededgecnt(n);
                 }
                 sampled++;
             }

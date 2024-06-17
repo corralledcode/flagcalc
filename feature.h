@@ -15,8 +15,8 @@
 #include "workspace.h"
 
 //default is to enumisomorphisms
-#define DEFAULTCMDLINE "-d -i"
 #define DEFAULTCMDLINESWITCH "i"
+
 
 class feature {
 protected:
@@ -61,7 +61,36 @@ public:
 
 };
 
-class samplerandomgraphsfeature : public feature {
+class abstractrandomgraphsfeature : public feature {
+protected:
+    std::vector<abstractrandomgraph*> rgs {};
+
+public:
+    abstractrandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+
+        // add any new abstractrandomgraph types to the list here...
+
+        auto rg1 = new stdrandomgraph();
+        auto rg2 = new randomgraphonnedges();
+        auto rg3 = new randomconnectedgraph();
+        auto rg4 = new randomconnectedgraphfixededgecnt();
+        auto rg5 = new weightedrandomconnectedgraph();
+        rgs.push_back(rg1);
+        rgs.push_back(rg2);
+        rgs.push_back(rg3);
+        rgs.push_back(rg4);
+        rgs.push_back(rg5);
+    }
+
+    ~abstractrandomgraphsfeature() {
+        for (int i = 0; i < rgs.size();++i) {
+            delete rgs[i];
+        }
+    }
+
+};
+
+class samplerandomgraphsfeature : public abstractrandomgraphsfeature {
 public:
     float percent = -1;
     std::string cmdlineoption() {
@@ -70,10 +99,9 @@ public:
     std::string cmdlineoptionlong() {
         return "samplerandomgraphs";
     }
-    samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
-        //cmdlineoption = "R";
-        //cmdlineoptionlong = "samplerandomgraphs";
-    };
+
+    samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
+
     void execute(std::vector<std::string> args) override {
         int outof = 1000;
         int dim = 5;
@@ -82,25 +110,12 @@ public:
         if (args.size() > 1) {
             dim = std::stoi(args[1]);
             if (args.size() > 2) {
-                edgecnt = std::stoi(args[2]);
+                edgecnt = std::stof(args[2]);
                 if (args.size() > 3) {
                     outof = std::stoi(args[3]);
                 }
             }
         }
-        abstractrandomgraph* rg1 = new stdrandomgraph((int)edgecnt);
-        abstractrandomgraph* rg2 = new randomgraphonnedges((int)edgecnt);
-        abstractrandomgraph* rg3 = new randomconnectedgraph((int)edgecnt);
-        abstractrandomgraph* rg4 = new randomconnectedgraphfixededgecnt((int)edgecnt);
-        std::vector<weightstype> weights;
-        weights = computeweights(dim);
-        abstractrandomgraph* rg5 = new weightedrandomconnectedgraph(weights);
-        std::vector<abstractrandomgraph*> rgs {};
-        rgs.push_back(rg1);
-        rgs.push_back(rg2);
-        rgs.push_back(rg3);
-        rgs.push_back(rg4);
-        rgs.push_back(rg5);
         if (args.size() > 4) {
             for (int i = 0; i < rgs.size(); ++i) {
                 if (args[4] == rgs[i]->shortname()) {
@@ -108,7 +123,7 @@ public:
                 }
             }
         }
-        int cnt = samplematchingrandomgraphs(rgs[rgidx],dim,outof);
+        int cnt = samplematchingrandomgraphs(rgs[rgidx],dim,edgecnt, outof);
             // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
             // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
             // vertices are obtained, is rather efficient too.
@@ -125,14 +140,13 @@ public:
         wi->rgname = rgs[rgidx]->name;
         _ws->items.push_back(wi);
 
-        for (int i = 0; i < rgs.size();++i) {
-            delete rgs[i];
-        }
+        // to do: add a work item class and feature that announces which random alg was used to produce the graphs
+
     }
 
 };
 
-class randomgraphsfeature : public feature {
+class randomgraphsfeature : public abstractrandomgraphsfeature {
 public:
     std::string cmdlineoption() {
         return "r";
@@ -140,10 +154,10 @@ public:
     std::string cmdlineoptionlong() {
         return "outputrandomgraphs";
     }
-    randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
-        //cmdlineoption = "r";
-        //cmdlineoptionlong = "outputrandomgraphs";
-    };
+
+    randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {
+    }
+
     void execute(std::vector<std::string> args) override {
         int dim = 5;
         int cnt = 2;
@@ -153,26 +167,12 @@ public:
             dim = std::stoi(args[1]);
             edgecnt = dim*(dim-1)/4.0;
             if (args.size() > 2) {
-                edgecnt = std::stoi(args[2]);
+                edgecnt = std::stof(args[2]);
                 if (args.size() > 3) {
                     cnt = std::stoi(args[3]);
                 }
             }
         }
-        abstractrandomgraph* rg1 = new stdrandomgraph((int)edgecnt);
-        abstractrandomgraph* rg2 = new randomgraphonnedges((int)edgecnt);
-        abstractrandomgraph* rg3 = new randomconnectedgraph((int)edgecnt);
-        abstractrandomgraph* rg4 = new randomconnectedgraphfixededgecnt((int)edgecnt);
-        std::vector<weightstype> weights;
-        weights = computeweights(dim);
-        abstractrandomgraph* rg5 = new weightedrandomconnectedgraph(weights);
-        std::vector<abstractrandomgraph*> rgs {};
-        rgs.push_back(rg1);
-        rgs.push_back(rg2);
-        rgs.push_back(rg3);
-        rgs.push_back(rg4);
-        rgs.push_back(rg5);
-        rgidx = 0;
         if (args.size() > 4) {
             for (int i = 0; i < rgs.size(); ++i) {
                 if (args[4] == rgs[i]->shortname()) {
@@ -181,7 +181,7 @@ public:
             }
         }
         std::vector<graph> gv {};
-        gv = randomgraphs(rgs[rgidx],dim,cnt);
+        gv = randomgraphs(rgs[rgidx],dim,edgecnt,cnt);
 
         for (int i = 0; i < gv.size(); ++i) {
             auto wi = new graphitem;
@@ -191,19 +191,14 @@ public:
             wi->name = _ws->getuniquename();
             _ws->items.push_back(wi);
         }
-
-        for (int i = 0; i < rgs.size();++i) {
-            delete rgs[i];
-        }
     }
-
 };
 
 
 
 class verbosityfeature : public feature {
 public:
-    int verbositylevel = -1;
+    std::string verbositylevel = "";
     std::string ofname {};
     std::string cmdlineoption() {
         return "v";
@@ -216,25 +211,29 @@ public:
         //cmdlineoptionlong = "samplerandomgraphs";
     };
     ~verbosityfeature() {
-        if (verbositylevel == -1) {  // if hasn't been run yet
+        if (verbositylevel == "") {  // if hasn't been run yet
             std::vector<std::string> args {};
             args.push_back(cmdlineoption());
             args.push_back("std::cout");
-            args.push_back(std::to_string(VERBOSE_DEFAULT));
+            args.push_back(VERBOSE_DEFAULT);
             execute(args);
         }
     }
     void execute(std::vector<std::string> args) override {
         std::ofstream ofs;
         bool ofsrequiresclose = false;
+        verbositylevel = VERBOSE_DEFAULT;
+        if (args.size() > 2) {
+            verbositylevel = args[2];
+        }
         if (args.size() > 1) {
             if (args[1] == "std::cout") {
                 _os = &std::cout;
             } else {
                 ofname = args[1];
                 std::ifstream infile(ofname);
-                if (infile.good() && verbositylevel % VERBOSE_VERBOSITYFILEAPPEND != 0) {
-                    std::cout << "Output file " << ofname << " already exists; use prime multiplier " << VERBOSE_VERBOSITYFILEAPPEND << " to append it.\n";
+                if (infile.good() && !verbositycmdlineincludes(verbositylevel, VERBOSE_VERBOSITYFILEAPPEND)) {
+                    std::cout << "Output file " << ofname << " already exists; use verbosity \"" << VERBOSE_VERBOSITYFILEAPPEND << "\" to append it.\n";
                     return;
                 }
                 ofs.open(ofname,  std::ios::app);
@@ -245,22 +244,12 @@ public:
                 _os = &ofs;
                 ofsrequiresclose = true;
             }
-            if (args.size() > 2) {
-                verbositylevel = std::stoi(args[2]);
-            } else
-            {
-                _os = &std::cout;
-            }
-            //(*cnt)++;
-        } else {
-            verbositylevel = VERBOSE_DEFAULT;
         }
-
 
         auto starttime = std::chrono::high_resolution_clock::now();
 
         for (int n = 0; n < _ws->items.size(); ++n) {
-            if (verbositylevel % _ws->items[n]->verbosityfactor == 0) {
+            if (verbositycmdlineincludes(verbositylevel, _ws->items[n]->verbositylevel)) {
                 _ws->items[n]->ositem(*_os,verbositylevel);
             }
         }
@@ -268,7 +257,7 @@ public:
         auto stoptime = std::chrono::high_resolution_clock::now();
         auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
 
-        if (verbositylevel % VERBOSE_VERBOSITYRUNTIME == 0)
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_VERBOSITYRUNTIME))
         {
             timedrunitem* tr = new timedrunitem();
             tr->duration = duration.count();
@@ -293,8 +282,10 @@ public:
 
     void execute(std::vector<std::string> args) override {
         int filenameidx = 0;
-        while (filenameidx < args.size()-1) {
+        bool oncethrough = true;
+        while ((args.size() <= 1 && oncethrough) || filenameidx < args.size()-1) {
             ++filenameidx;
+            oncethrough = false;
             std::ifstream ifs;
             std::istream* is = &std::cin;
             std::ostream* os = _os;

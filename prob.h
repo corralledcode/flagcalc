@@ -19,7 +19,7 @@ class abstractrandomgraph {
 public:
     virtual std::string shortname() {return "";};
     std::string name;
-    virtual void randomgraph( graph* gptr ) {};
+    virtual void randomgraph( graph* gptr, const float edgecnt ) {};
     abstractrandomgraph() {};
     ~abstractrandomgraph() {};
 };
@@ -29,11 +29,13 @@ class stdrandomgraph : public abstractrandomgraph {
     float _edgecnt;
 public:
     std::string shortname() {return "r1";};
-    stdrandomgraph( const float edgecnt ) {
-        _edgecnt = edgecnt;
-        name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
+    stdrandomgraph() : abstractrandomgraph() {
+        //_edgecnt = edgecnt;
+        //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
     }
-    void randomgraph( graph* gptr ) {
+    void randomgraph( graph* gptr, float edgecnt ) {
+        name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
+        _edgecnt = edgecnt;
         std::random_device dev;
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
@@ -51,11 +53,11 @@ class randomgraphonnedges : public abstractrandomgraph {
     int _edgecnt;
 public:
     std::string shortname() {return "r2";}
-    randomgraphonnedges( const int edgecnt ) {
-        _edgecnt = edgecnt;
-        name = "random graph with edgecnt == " + std::to_string(edgecnt);
+    randomgraphonnedges() : abstractrandomgraph() {
     }
-    void randomgraph( graph* gptr ) {
+    void randomgraph( graph* gptr, float edgecnt ) {
+        _edgecnt = (int)edgecnt;
+        name = "random graph with edgecnt == " + std::to_string(edgecnt);
         if (_edgecnt > (gptr->dim * gptr->dim / 2)) {
             std::cout << "Too many edges requested of randomgraph\n";
             return;
@@ -88,11 +90,11 @@ class randomconnectedgraphfixededgecnt : public abstractrandomgraph {
 
 public:
     std::string shortname() {return "r3";}
-    randomconnectedgraphfixededgecnt( const int edgecnt ) {
+    randomconnectedgraphfixededgecnt() : abstractrandomgraph() {
+    }
+    void randomgraph( graph* gptr, float edgecnt ) {
         _edgecnt = edgecnt;
         name = "random connected graph with fixed edge count " + std::to_string(_edgecnt) + " (ignoring unconnected outliers)";
-    }
-    void randomgraph( graph* gptr ) {
         for (int i = 0; i < gptr->dim; ++i) {
             for (int j = 0; j < gptr->dim; ++j) {
                 gptr->adjacencymatrix[gptr->dim*i + j] = false;
@@ -154,11 +156,11 @@ class randomconnectedgraph : public abstractrandomgraph {
     int _edgecnt;
 public:
     std::string shortname() {return "r4";}
-    randomconnectedgraph( const int edgecnt ) {
-        _edgecnt = edgecnt;
-        name = "random connected graph (algorithm does not find all such graphs...) edgecnt == " + std::to_string(_edgecnt);
+    randomconnectedgraph() : abstractrandomgraph() {
     }
-    void randomgraph( graph* gptr ) {
+    void randomgraph( graph* gptr, float edgecnt ) {
+        _edgecnt = (int)edgecnt;
+        name = "random connected graph (algorithm does not find all such graphs...) edgecnt == " + std::to_string(_edgecnt);
         for (int i = 0; i < gptr->dim; ++i) {
             for (int j = 0; j < gptr->dim; ++j) {
                 gptr->adjacencymatrix[gptr->dim*i + j] = false;
@@ -241,11 +243,11 @@ class weightedrandomconnectedgraph : public abstractrandomgraph {
     std::vector<weightstype> _weights;
 public:
     std::string shortname() {return "r5";}
-    weightedrandomconnectedgraph( std::vector<weightstype> weights ) {
-        _weights = weights;
-        name = "random connected graph with balanced/weighted search";
+    weightedrandomconnectedgraph() : abstractrandomgraph() {
     }
-    void randomgraph( graph* gptr ) {
+    void randomgraph( graph* gptr, float edgecnt ) {
+        _weights = computeweights(gptr->dim);
+        name = "random connected graph with balanced/weighted search";
         for (int i = 0; i < gptr->dim; ++i) {
             for (int j = 0; j < gptr->dim; ++j) {
                 gptr->adjacencymatrix[gptr->dim*i + j] = false;
@@ -320,9 +322,9 @@ public:
 
 };
 
-int samplematchingrandomgraphs( abstractrandomgraph* rg, int dim, int outof );
+int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int outof );
 
-std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const int cnt );
+std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt );
 /*
 
 void randomgraph( graph* gptr, const float edgecnt ); // legacy replaced as above by class

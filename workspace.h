@@ -13,31 +13,35 @@
 
 #include "graphs.h"
 
-// Use the prime bases along with an exponent to assign a number to any given category
-#define VERBOSE_CMPFINGERPRINTLEVEL 3
-#define VERBOSE_ENUMISOMORPHISMSLEVEL 5
+#define VERBOSE_CMPFINGERPRINTLEVEL "cmp"
+#define VERBOSE_ENUMISOMORPHISMSLEVEL "enum"
 
-#define VERBOSE_DONTLISTISOS 7
-#define VERBOSE_LISTGRAPHS 2
-#define VERBOSE_LISTFINGERPRINTS 3
-#define VERBOSE_ISOS 5
-#define VERBOSE_RUNTIMES 11
-#define VERBOSE_VERBOSITYRUNTIME 13
-#define VERBOSE_VERBOSITYFILEAPPEND 17
-#define VERBOSE_MINIMAL 19
-#define VERBOSE_MANTELSTHEOREM 23
-#define VERBOSE_FINGERPRINT 29
-#define VERBOSE_SAMPLERANDOMMATCHING 31
+#define VERBOSE_DONTLISTISOS "noiso"
+#define VERBOSE_LISTGRAPHS "graphs"
+#define VERBOSE_LISTFINGERPRINTS "fp"
+#define VERBOSE_ISOS "iso"
+#define VERBOSE_RUNTIMES "rt"
+#define VERBOSE_VERBOSITYRUNTIME "vrunt"
+#define VERBOSE_VERBOSITYFILEAPPEND "vappend"
+#define VERBOSE_MINIMAL "min"
+#define VERBOSE_MANTELSTHEOREM "Mantel"
+#define VERBOSE_FINGERPRINT "Fp"
+#define VERBOSE_SAMPLERANDOMMATCHING "srm"
 
-#define VERBOSE_ALL (VERBOSE_LISTGRAPHS * VERBOSE_ISOS * VERBOSE_RUNTIMES * VERBOSE_VERBOSITYRUNTIME * VERBOSE_VERBOSITYFILEAPPEND * VERBOSE_MANTELSTHEOREM *VERBOSE_FINGERPRINT * VERBOSE_LISTFINGERPRINTS* VERBOSE_SAMPLERANDOMMATCHING)
-#define VERBOSE_DEFAULT VERBOSE_LISTFINGERPRINTS * VERBOSE_MINIMAL * VERBOSE_FINGERPRINT
+#define VERBOSE_ALL "noisographsfpisortvruntvappendminMantelFpsrm"
+#define VERBOSE_DEFAULT "graphsfpisortvruntvappendminMantelFpsrm"
+
+
+inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
+    return (str.find(s2) != std::string::npos);
+}
 
 class workitems {
 public:
     std::string classname;
     std::string name;
-    int verbosityfactor = 0;
-    virtual bool ositem( std::ostream& os, int verbositylevel ) {
+    std::string verbositylevel;
+    virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
         os << classname << " " << name << ":\n";
         return true;
     }
@@ -77,7 +81,7 @@ public:
     graphitem() : workitems() {
         g.adjacencymatrix = nullptr;
         ns.neighborslist = nullptr;
-        verbosityfactor = VERBOSE_LISTGRAPHS;
+        verbositylevel = VERBOSE_LISTGRAPHS;
         classname = "Graph";
     }
     void freemem() override {
@@ -92,7 +96,7 @@ public:
         }
 
     }
-    bool ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
 
         //to do: would be nice to have a list of edges
@@ -266,7 +270,7 @@ public:
     std::vector<graphmorphism> gm;
     enumisomorphismsitem() : workitems() {
         classname = "Graph isomorphisms";
-        verbosityfactor = VERBOSE_ISOS; // use primes
+        verbositylevel = VERBOSE_ISOS; // use primes
     }
     void freemem() override {
 /* already freed by graphitem
@@ -288,9 +292,9 @@ public:
         }*/
     }
 
-    bool ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
-        if ((verbositylevel % VERBOSE_DONTLISTISOS) == 0) {
+        if (verbositycmdlineincludes(verbositylevel, VERBOSE_DONTLISTISOS)) {
             os << "Total number of isomorphisms == " << gm.size() << "\n";
         } else {
             osgraphmorphisms(os, gm);
@@ -310,7 +314,7 @@ public:
     std::vector<int> sorted {};
     cmpfingerprintsitem() : workitems() {
         classname = "Graph fingerprint comparison";
-        verbosityfactor = VERBOSE_LISTFINGERPRINTS;
+        verbositylevel = VERBOSE_LISTFINGERPRINTS;
     }
     void freemem() override {
 
@@ -324,11 +328,11 @@ public:
         }
 
     }
-    bool ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
         for (int n = 0; n < sorted.size(); ++n) {
-            if (verbositylevel % VERBOSE_FINGERPRINT == 0) {
-                if (verbositylevel % VERBOSE_MINIMAL == 0) {
+            if (verbositycmdlineincludes(verbositylevel, VERBOSE_FINGERPRINT)) {
+                if (verbositycmdlineincludes(verbositylevel, VERBOSE_MINIMAL)) {
                     os << "fingerprint of graph "<<sorted[n]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
                     osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
                 } else {
@@ -360,9 +364,9 @@ public:
 
     timedrunitem() : workitems() {
         classname = "TimedRun";
-        verbosityfactor = VERBOSE_RUNTIMES;
+        verbositylevel = VERBOSE_RUNTIMES;
     }
-    bool ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
         os << ((float)duration)/1000000<< "\n";
         return true;
@@ -378,9 +382,9 @@ public:
 
     mantelstheoremitem() : workitems() {
         classname = "MantelsTheorem";
-        verbosityfactor = VERBOSE_MANTELSTHEOREM;
+        verbositylevel = VERBOSE_MANTELSTHEOREM;
     }
-    bool ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
         os << "Asymptotic approximation at limitdim == " << limitdim << ", outof == " << outof << ": " << max << "\n";
         os << "(n^2/4) == " << limitdim * limitdim / 4.0 << "\n";
@@ -399,10 +403,10 @@ public:
     std::string rgname {};
     samplerandommatchinggraphsitem() : workitems() {
         classname = "SampleRandomMatchingGraphs";
-        verbosityfactor = VERBOSE_SAMPLERANDOMMATCHING;
+        verbositylevel = VERBOSE_SAMPLERANDOMMATCHING;
     }
 
-    bool ositem( std::ostream& os, int verbositylevel ) override {
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
         percent = float(cnt)/float(outof);
         os << "Probability amongst \""<< rgname << "\", dimension "<<dim<<"\n";
