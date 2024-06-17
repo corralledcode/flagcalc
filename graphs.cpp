@@ -31,6 +31,9 @@
 #define NOTTHREADED
 #endif
 
+// Choose one of the two following; they affect the FPs sorting in the code below "sortneighbors"
+//#define QUICKSORT2
+#define NAIVESORT2
 
 
 #include "graphs.h"
@@ -121,7 +124,50 @@ int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consid
     return res;
 }
 
+inline int partition2( std::vector<int> &arr, int start, int end, neighbors ns, FP* fpslist ) {
+    int pivot = arr[start];
+    int count = 0;
+    for (int i = start+1;i <= end; i++) {
+        if (FPcmp(ns,ns,fpslist[arr[i]],fpslist[pivot]) >= 0) {
+            count++;
+        }
+    }
+
+    int pivotIndex = start + count;
+    std::swap(arr[pivotIndex],arr[start]);
+
+    int i = start;
+    int j = end;
+    while (i < pivotIndex && j > pivotIndex) {
+        while (FPcmp(ns,ns,fpslist[arr[i]],fpslist[pivot]) >= 0) {
+            i++;
+        }
+        while (FPcmp(ns,ns,fpslist[arr[j]],fpslist[pivot]) < 0) {
+            j--;
+        }
+        if (i < pivotIndex && j > pivotIndex) {
+            std::swap(arr[i++],arr[j--]);
+        }
+    }
+    return pivotIndex;
+}
+
+inline void quickSort2( std::vector<int> &arr, int start, int end,neighbors ns, FP* fpslist ) {
+
+    if (start >= end)
+        return;
+
+    int p = partition2(arr,start,end,ns,fpslist);
+
+    quickSort2(arr, start, p-1,ns,fpslist);
+    quickSort2(arr, p+1, end,ns,fpslist);
+}
+
+
 void sortneighbors( neighbors ns, FP* fps, int fpscnt ) {
+
+
+#ifdef NAIVESORT2
     bool changed = true;
     while (changed) {
         changed = false;
@@ -138,6 +184,28 @@ void sortneighbors( neighbors ns, FP* fps, int fpscnt ) {
         }
     }
     //std::cout << "sorted.\n";
+#endif
+
+#ifdef QUICKSORT2
+
+    std::vector<int> sorted;
+    sorted.resize(fpscnt);
+    for (int i = 0; i < fpscnt; ++i) {
+        sorted[i] = i;
+    }
+    quickSort2( sorted,0,fpscnt-1, ns, fps);
+
+    std::vector<FP> tmpfp {};
+    tmpfp.resize(fpscnt);
+    for (int i = 0; i < fpscnt; ++i) {
+        tmpfp[i] = fps[sorted[i]];
+    }
+    for (int i = 0; i < fpscnt; ++i) {
+        fps[i] = tmpfp[i];
+    }
+
+
+#endif
 
 }
 

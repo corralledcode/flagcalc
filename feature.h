@@ -17,6 +17,9 @@
 //default is to enumisomorphisms
 #define DEFAULTCMDLINESWITCH "i"
 
+//Choose ONE of the two following
+#define NAIVESORT
+//#define QUICKSORT
 
 class feature {
 protected:
@@ -131,7 +134,7 @@ public:
         *_os << "\t" << "<dim>: \t\t\t\t dimension of the graph\n";
         *_os << "\t" << "<edgecount>: \t\t edge count, where probability is <edgecount>/maxedges, maxedges = (dim-choose-2)\n";
         *_os << "\t" << "<outof>: \t\t\t how many samples to take\n";
-        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r0,...,r4:\n";
+        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are:\n";
         for (int n = 0; n < rgs.size(); ++n) {
             *_os << "\t\t\"" << rgs[n]->shortname() << "\": " << rgs[n]->name << "\n";
         }
@@ -380,6 +383,45 @@ public:
 };
 
 
+inline int partition( std::vector<int> &arr, int start, int end, std::vector<neighbors>* nslist, std::vector<FP>* fpslist ) {
+    int pivot = arr[start];
+    int count = 0;
+    for (int i = start+1;i <= end; i++) {
+        if (FPcmp((*nslist)[arr[i]],(*nslist)[pivot],(*fpslist)[arr[i]],(*fpslist)[pivot]) >= 0) {
+            count++;
+        }
+    }
+
+    int pivotIndex = start + count;
+    std::swap(arr[pivotIndex],arr[start]);
+
+    int i = start;
+    int j = end;
+    while (i < pivotIndex && j > pivotIndex) {
+        while (FPcmp((*nslist)[arr[i]],(*nslist)[pivot],(*fpslist)[arr[i]],(*fpslist)[pivot]) >= 0) {
+            i++;
+        }
+        while (FPcmp((*nslist)[arr[j]],(*nslist)[pivot],(*fpslist)[arr[j]],(*fpslist)[pivot]) < 0) {
+            j--;
+        }
+        if (i < pivotIndex && j > pivotIndex) {
+            std::swap(arr[i++],arr[j--]);
+        }
+    }
+    return pivotIndex;
+}
+
+inline void quickSort( std::vector<int> &arr, int start, int end,std::vector<neighbors>* nslist, std::vector<FP>* fpslist ) {
+
+    if (start >= end)
+        return;
+
+    int p = partition(arr,start,end,nslist,fpslist);
+
+    quickSort(arr, start, p-1,nslist,fpslist);
+    quickSort(arr, p+1, end,nslist,fpslist);
+}
+
 class cmpfingerprintsfeature: public feature {
 public:
     std::string cmdlineoption() { return "f"; }
@@ -463,6 +505,19 @@ public:
         std::vector<int> res {};
         res.resize(items.size());
 
+#ifdef QUICKSORT
+        quickSort( wi->sorted,0,wi->sorted.size()-1, &(wi->nslist), &(wi->fpslist));
+
+        for (int i = 0; i < items.size()-1; ++i) {
+            res[i] = FPcmp(wi->nslist[wi->sorted[i]],wi->nslist[wi->sorted[i+1]],wi->fpslist[wi->sorted[i]],wi->fpslist[wi->sorted[i+1]]);
+            if (res[i] != 0)
+                overallres = false;
+            else
+                overallresdont = false;
+        }
+#endif
+#ifdef NAIVESORT
+
         while (changed) {
             // to do: use threads to sort quickly
             changed = false;
@@ -481,6 +536,8 @@ public:
                     overallresdont = false;
             }
         }
+#endif
+
         wi->fingerprintsmatch = overallres;
         wi->fingerprintsdontmatch = overallresdont;
         wi->res = res;
