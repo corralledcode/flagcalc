@@ -310,7 +310,8 @@ public:
     std::vector<FP> fpslist;
     std::vector<std::string> gnames;
 
-    bool fingerprintsmatch;
+    bool fingerprintsmatch;  // all
+    bool fingerprintsdontmatch; // all
     std::vector<int> res;
     std::vector<int> sorted {};
     cmpfingerprintsitem() : workitems() {
@@ -362,7 +363,11 @@ public:
         if (fingerprintsmatch) {
             os << "Fingerprints MATCH\n";
         } else {
-            os << "Some fingerprints DO NOT MATCH\n"; // and feature delimeters when time to code
+            if (fingerprintsdontmatch) {
+                os << "NO fingerprints match\n";
+            } else {
+                os << "Some fingerprints MATCH and some DON'T MATCH\n";
+            }
         }
         return true;
     }

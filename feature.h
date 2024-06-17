@@ -455,6 +455,7 @@ public:
 
         bool changed = true;
         bool overallres = true;
+        bool overallresdont = true;
         wi->sorted.resize(items.size());
         for (int i = 0; i < items.size(); ++i) {
             wi->sorted[i] = i;
@@ -476,9 +477,12 @@ public:
                 }
                 if (res[i] != 0)
                     overallres = false;
+                else
+                    overallresdont = false;
             }
         }
         wi->fingerprintsmatch = overallres;
+        wi->fingerprintsdontmatch = overallresdont;
         wi->res = res;
         wi->name = _ws->getuniquename(wi->classname);
         _ws->items.push_back(wi);

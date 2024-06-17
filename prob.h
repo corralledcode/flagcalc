@@ -105,6 +105,15 @@ public:
         }
         if (_edgecnt == 0)
             return;
+        if (_edgecnt > (int)((gptr->dim*(gptr->dim-1)/2))) {
+            //populate entire adjacency matrix
+            for (int i = 0; i < gptr->dim; ++i) {
+                for (int j = 0; j < gptr->dim; ++j) {
+                    gptr->adjacencymatrix[i*gptr->dim + j] = (i != j);
+                }
+                return;
+            }
+        }
         std::random_device dev;
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
