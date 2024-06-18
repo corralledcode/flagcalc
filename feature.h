@@ -25,7 +25,7 @@
 //#define THREADPOOL4
 #define NOTTHREADED4
 
-// Leave this ON 
+// Leave this ON
 #define THREADPOOL5
 
 //#define THREADED7
@@ -302,15 +302,16 @@ public:
 */
         gv = randomgraphs(rgs[rgidx],dim,edgecnt,cnt);
 
+        /*
         auto starttime = std::chrono::high_resolution_clock::now();
         std::vector<std::chrono::time_point<std::chrono::system_clock>> starray {};
-
+*/
         int s = _ws->items.size();
 
         _ws->items.resize(s + cnt);
         for (int i = 0; i < cnt; ++i) {
 
-            starray.push_back(std::chrono::high_resolution_clock::now());
+            //starray.push_back(std::chrono::high_resolution_clock::now());
 
 
             auto wi = new graphitem;
@@ -324,10 +325,10 @@ public:
 /*        for (int i = 0; i < cnt; ++i) {
             _ws->items[s+i]->name = _ws->getuniquename(_ws->items[s+i]->classname);
         }*/
-        for (int i =1; i < starray.size(); ++i) {
+/*        for (int i =1; i < starray.size(); ++i) {
             std::cout << (starray[i]- starray[i-1])/1000000.0 << ",";
         }
-        std::cout << "\n";
+        std::cout << "\n";*/
     }
 };
 
