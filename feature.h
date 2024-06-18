@@ -272,7 +272,8 @@ public:
         *_os << "\t" << "<filename>: \t\t output filename, or \"std::cout\"\n";
         *_os << "\t" << "o=<filename>: \t\t output filename, or \"std::cout\"\n";
         *_os << "\t" << "i=<filename>: \t\t input filename (use to prepackage verbosity commands)\n";
-        *_os << "\t" << "<verbositystring>: \t options\n";
+        *_os << "\t" << "<verbosityname>: \t any levels can be listed, delimited by spaces;\n";
+        *_os << "\t\t\t\t\t\t in addition to what's optionally in the input file\n";
         // eventually do a loop which calls on each verbosity option to identify itself
     }
 
