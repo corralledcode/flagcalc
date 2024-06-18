@@ -7,9 +7,14 @@
 // in a separate file such as here in prob.cpp...
 
 #include "prob.h"
+
+#include <functional>
+#include <future>
 #include <random>
 #include <iostream>
 #include <stdbool.h>
+
+//#define THREADPOOL6
 
 
 int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int outof ) { // returns the count of how many pairs share a fingerprint
@@ -96,6 +101,8 @@ int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const fl
 
 }
 
+
+/* PRE-threading variant
 std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
     std::vector<graph> gv {};
     gv.resize(cnt);
@@ -111,6 +118,29 @@ std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const f
         //osneighbors(std::cout,ns5);
     }
     return gv;
+}
+*/
+
+
+
+std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
+    std::vector<graph> gv {};
+    gv.resize(cnt);
+
+    for (int i = 0; i < cnt; ++i) {
+        gv[i].dim = dim;
+        gv[i].adjacencymatrix = (bool*)malloc(dim * dim * sizeof(bool));
+    }
+    for (int i = 0; i < cnt; ++i) {
+        rg->randomgraph(&(gv[i]),edgecnt);
+        //osadjacencymatrix(std::cout,g5);
+        //std::cout << "\n";
+        //osneighbors(std::cout,ns5);
+    }
+
+    return gv;
+
+    //return rg->randomgraphs(dim,edgecnt,cnt);  //<-- an attempt to use the multithreaded, but it is no faster than the above
 }
 
 

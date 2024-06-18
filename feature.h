@@ -25,7 +25,10 @@
 //#define THREADPOOL4
 #define NOTTHREADED4
 
-//#define THREADPOOL5
+// Leave this ON 
+#define THREADPOOL5
+
+//#define THREADED7
 
 class feature {
 protected:
@@ -242,17 +245,89 @@ public:
                 }
             }
         }
+
+
         std::vector<graph> gv {};
+        gv.resize(cnt);
+#ifdef THREADED7
+        unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+        // Note: MUST play safe in the abstractrandomgraph class so it won't contend
+
+        std::vector<std::future<std::vector<graph>>> t {};
+        t.resize(thread_count);
+        for (int j = 0; j < thread_count; ++j) {
+            t[j] = std::async(&randomgraphs,rgs[rgidx],dim,edgecnt,int(float(cnt)/float(thread_count)));
+        }
+        std::vector<std::vector<graph>> gvv {};
+        gvv.resize(thread_count);
+        for (int j = 0; j < thread_count; ++j) {
+            gvv[j] = t[j].get();
+        }
+        for (int j = 0; j < thread_count; ++j) {
+            for (int i = 0; i < gvv[j].size(); ++i) {
+                gv.push_back(gvv[j][i]);
+            }
+
+        }
+#else
+
+        //gv = randomgraphs(rgs[rgidx],dim,edgecnt,cnt);
+
+#endif
+
+
+/*
+        std::vector<std::future<neighbors>> t {};
+        t.resize(gv.size());
+        for (int j = 0; j < gv.size(); ++j) {
+            t[j] = std::async(&computeneighborslist,gv[j]);
+        }
+        std::vector<neighbors> nv {};
+        nv.resize(gv.size());
+        for (int j = 0; j < gv.size(); ++j) {
+            nv[j] = t[j].get();
+        }
+        for (int j = 0; j < gv.size(); ++j) {
+            auto wi = new graphitem;
+            wi->g.dim = gv[j].dim;
+            wi->g.adjacencymatrix = gv[j].adjacencymatrix;
+            wi->ns = nv[j];
+            wi->name = _ws->getuniquename(wi->classname);
+            _ws->items.push_back(wi);
+        }
+
+
+*/
         gv = randomgraphs(rgs[rgidx],dim,edgecnt,cnt);
 
-        for (int i = 0; i < gv.size(); ++i) {
+        auto starttime = std::chrono::high_resolution_clock::now();
+        std::vector<std::chrono::time_point<std::chrono::system_clock>> starray {};
+
+        int s = _ws->items.size();
+
+        _ws->items.resize(s + cnt);
+        for (int i = 0; i < cnt; ++i) {
+
+            starray.push_back(std::chrono::high_resolution_clock::now());
+
+
             auto wi = new graphitem;
             wi->g.dim = gv[i].dim;
             wi->g.adjacencymatrix = gv[i].adjacencymatrix;
             wi->ns = computeneighborslist(wi->g);
-            wi->name = _ws->getuniquename(wi->classname);
-            _ws->items.push_back(wi);
+            wi->name = wi->classname + std::to_string(_ws->namesused++);
+
+            _ws->items[s+i] = wi;
         }
+/*        for (int i = 0; i < cnt; ++i) {
+            _ws->items[s+i]->name = _ws->getuniquename(_ws->items[s+i]->classname);
+        }*/
+        for (int i =1; i < starray.size(); ++i) {
+            std::cout << (starray[i]- starray[i-1])/1000000.0 << ",";
+        }
+        std::cout << "\n";
     }
 };
 

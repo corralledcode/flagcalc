@@ -84,8 +84,8 @@ public:
 };
 
 class workspace {
-    int namesused = 0;
 public:
+    int namesused = 0;
     std::vector<workitems*> items {};
     std::string getuniquename(std::string name) {
         bool unique = true;

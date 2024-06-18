@@ -4,6 +4,7 @@
 
 #ifndef PROB_H
 #define PROB_H
+#include <future>
 #include <iostream>
 #include <random>
 #include <iostream>
@@ -16,14 +17,90 @@
 using weightstype = std::vector<float>;
 
 class abstractrandomgraph {
+
+    std::vector<graph> randomgraphsinternal(const int dim, const float edgecnt, const int cnt) {
+        std::vector<graph> res {};
+        res.resize(cnt);
+        for (int i = 0; i < cnt; ++i) {
+            graph g;
+            g.dim = dim;
+            g.adjacencymatrix = (bool*)malloc(dim*dim*sizeof(bool));
+            this->randomgraph(&g,edgecnt);
+            res[i].dim=dim;
+            res[i].adjacencymatrix = g.adjacencymatrix;
+        }
+        return res;
+    }
+
 public:
     virtual std::string shortname() {return "";};
     std::string name;
+
     virtual void randomgraph( graph* gptr, const float edgecnt ) {};
+
+
+    std::vector<graph> randomgraphs( const int dim, const float edgecnt, const int cnt ) {
+        unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+        float section = float(cnt)/float(thread_count);
+        // Note: MUST play safe in the abstractrandomgraph class so it won't contend
+
+        std::vector<std::future<std::vector<graph>>> t {};
+        t.resize(thread_count);
+        for (int j = 0; j < thread_count; ++j) {
+            t[j] = std::async(&abstractrandomgraph::randomgraphsinternal,this,dim,edgecnt,int(section));
+        }
+        std::vector<std::vector<graph>> gvv {};
+        gvv.resize(thread_count);
+        for (int j = 0; j < thread_count; ++j) {
+            gvv[j] = t[j].get();
+        }
+        std::vector<graph> res {};
+        res.resize(cnt);
+        //std::cout << (thread_count-1)*section + int(section) << "<-- highest index\n";
+        for (int j = 0; j < thread_count; ++j) {
+            for (int i = 0; i < gvv[j].size(); ++i) {
+                //res.push_back(gvv[j][i]);
+                res[int(j*section + i)] = gvv[j][i];
+            }
+        }
+        return res;
+    }
+
     abstractrandomgraph() {};
     ~abstractrandomgraph() {};
+
+
 };
 
+/*
+class abstractrandomgraphptrtof : public abstractrandomgraph {
+public:
+    void (*randomgraphfunc)(graph* gptr, float edgecnt);
+
+    void randomgraph( graph* gptr, float edgecnt ) override {
+        abstractrandomgraph::randomgraph(gptr, edgecnt);
+        randomgraphfunc(gptr,edgecnt);
+    }
+};*/
+
+// E.G. a non-OOP function for use with abstractrandomgraphptrtof
+
+/*
+inline void stdrandomgraphfunc( graph* gptr, float edgecnt ) {
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
+    for (int n = 0; n < gptr->dim; ++n) {
+        gptr->adjacencymatrix[n*gptr->dim + n] = 0;
+        for (int i = n+1; i < gptr->dim; ++i) {
+            gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*float(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
+            gptr->adjacencymatrix[i*gptr->dim + n] = gptr->adjacencymatrix[n*gptr->dim+i];
+        }
+    }
+
+}*/
 
 class stdrandomgraph : public abstractrandomgraph {
     float _edgecnt;
@@ -34,16 +111,18 @@ public:
         //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
         name = "random graph with given edgecnt";
     }
-    void randomgraph( graph* gptr, float edgecnt ) {
+    virtual void randomgraph( graph* gptr, float edgecnt ) override {
+        abstractrandomgraph::randomgraph(gptr,edgecnt);
         name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
-        _edgecnt = edgecnt;
+        //_edgecnt = edgecnt;
+
         std::random_device dev;
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
         for (int n = 0; n < gptr->dim; ++n) {
             gptr->adjacencymatrix[n*gptr->dim + n] = 0;
             for (int i = n+1; i < gptr->dim; ++i) {
-                gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*float(_edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
+                gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*float(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
                 gptr->adjacencymatrix[i*gptr->dim + n] = gptr->adjacencymatrix[n*gptr->dim+i];
             }
         }
