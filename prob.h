@@ -113,7 +113,7 @@ public:
     }
     virtual void randomgraph( graph* gptr, float edgecnt ) override {
         abstractrandomgraph::randomgraph(gptr,edgecnt);
-        name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
+        //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
         //_edgecnt = edgecnt;
 
         std::random_device dev;
@@ -137,9 +137,9 @@ public:
         name = "random graph with given edgecnt";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
-        _edgecnt = (int)edgecnt;
-        name = "random graph with edgecnt == " + std::to_string(edgecnt);
-        if (_edgecnt > (gptr->dim * gptr->dim / 2)) {
+        //_edgecnt = (int)edgecnt;
+        //name = "random graph with edgecnt == " + std::to_string(edgecnt);
+        if (edgecnt > (gptr->dim * gptr->dim / 2)) {
             std::cout << "Too many edges requested of randomgraph\n";
             return;
         }
@@ -153,7 +153,7 @@ public:
         }
         int n = 0;
 
-        while (n < _edgecnt) {
+        while (n < edgecnt) {
             vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
             vertextype v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
             if ((v1 != v2) && !gptr->adjacencymatrix[v1*gptr->dim + v2]) {
@@ -175,16 +175,16 @@ public:
         name = "random connected graph with given fixed edge count (ignoring unconnected outliers)";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
-        _edgecnt = edgecnt;
-        name = "random connected graph with fixed edge count " + std::to_string(_edgecnt) + " (ignoring unconnected outliers)";
+        //_edgecnt = edgecnt;
+        //name = "random connected graph with fixed edge count " + std::to_string(_edgecnt) + " (ignoring unconnected outliers)";
         for (int i = 0; i < gptr->dim; ++i) {
             for (int j = 0; j < gptr->dim; ++j) {
                 gptr->adjacencymatrix[gptr->dim*i + j] = false;
             }
         }
-        if (_edgecnt == 0)
+        if (edgecnt == 0)
             return;
-        if (_edgecnt >= (int)((gptr->dim*(gptr->dim-1)/2))) {
+        if (edgecnt >= (int)((gptr->dim*(gptr->dim-1)/2))) {
             //populate entire adjacency matrix
             for (int i = 0; i < gptr->dim; ++i) {
                 for (int j = 0; j < gptr->dim; ++j) {
@@ -211,7 +211,7 @@ public:
         int visitedcnt = 2;
         gptr->adjacencymatrix[v1*(gptr->dim) + v2] = true;
         gptr->adjacencymatrix[v2*(gptr->dim) + v1] = true;
-        int cnt = _edgecnt-1;
+        int cnt = edgecnt-1;
         while (cnt > 0) {
             vertextype candidatev1index = (vertextype)(float((dist10000(rng)) * float(visitedcnt))/RANDOMRANGEFLOAT);
             int cnt2 = 0;
@@ -250,9 +250,10 @@ public:
     randomconnectedgraph() : abstractrandomgraph() {
         name = "random connected graph (algorithm does not find all such graphs...) with given edgecnt";
     }
-    void randomgraph( graph* gptr, float edgecnt ) {
-        _edgecnt = (int)edgecnt;
-        name = "random connected graph (algorithm does not find all such graphs...) edgecnt == " + std::to_string(_edgecnt);
+    void randomgraph( graph* gptr, float edgecnt ) override {
+        abstractrandomgraph::randomgraph(gptr, edgecnt);
+        //_edgecnt = (int)edgecnt;
+        //name = "random connected graph (algorithm does not find all such graphs...) edgecnt == " + std::to_string(_edgecnt);
         for (int i = 0; i < gptr->dim; ++i) {
             for (int j = 0; j < gptr->dim; ++j) {
                 gptr->adjacencymatrix[gptr->dim*i + j] = false;
@@ -332,15 +333,15 @@ inline std::vector<weightstype> computeweights(int n) {
 }
 
 class weightedrandomconnectedgraph : public abstractrandomgraph {
-    std::vector<weightstype> _weights;
+    //std::vector<weightstype> _weights;
 public:
     std::string shortname() {return "r5";}
     weightedrandomconnectedgraph() : abstractrandomgraph() {
         name = "random connected graph with balanced/weighted search";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
-        _weights = computeweights(gptr->dim);
-        name = "random connected graph with balanced/weighted search";
+        std::vector<weightstype> weights = computeweights(gptr->dim);
+        //name = "random connected graph with balanced/weighted search";
         for (int i = 0; i < gptr->dim; ++i) {
             for (int j = 0; j < gptr->dim; ++j) {
                 gptr->adjacencymatrix[gptr->dim*i + j] = false;
@@ -370,7 +371,7 @@ public:
         while (visitedcnt < gptr->dim) {
             int tmprnd = dist10000(rng);
             vertextype candidatev1index = 0;
-            while (candidatev1index < visitedcnt-1 && tmprnd > RANDOMRANGEFLOAT*_weights[visitedcnt][candidatev1index+1])
+            while (candidatev1index < visitedcnt-1 && tmprnd > RANDOMRANGEFLOAT*weights[visitedcnt][candidatev1index+1])
                 ++candidatev1index;
             if (candidatev1index > visitedcnt-1) {
                 std::cout << "Error in candidatev1index\n";

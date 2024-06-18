@@ -124,7 +124,7 @@ std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const f
 
 
 std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
-    std::vector<graph> gv {};
+/*    std::vector<graph> gv {};
     gv.resize(cnt);
 
     for (int i = 0; i < cnt; ++i) {
@@ -138,9 +138,9 @@ std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const f
         //osneighbors(std::cout,ns5);
     }
 
-    return gv;
+    return gv;*/
 
-    //return rg->randomgraphs(dim,edgecnt,cnt);  //<-- an attempt to use the multithreaded, but it is no faster than the above
+    return rg->randomgraphs(dim,edgecnt,cnt);  //<-- an attempt to use the multithreaded, but it is no faster than the above
 }
 
 
