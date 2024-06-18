@@ -18,12 +18,14 @@
 #define DEFAULTCMDLINESWITCH "i"
 
 //Choose ONE of the two following
-#define NAIVESORT
-//#define QUICKSORT
+//#define NAIVESORT
+#define QUICKSORT
 
 //Choose ONE of the two following
-#define THREADPOOL4
-//#define NOTTHREADED4
+//#define THREADPOOL4
+#define NOTTHREADED4
+
+//#define THREADPOOL5
 
 class feature {
 protected:
@@ -486,7 +488,6 @@ public:
     }
 
     void execute(std::vector<std::string> args) override {
-
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
 
@@ -515,6 +516,16 @@ public:
             }
         }
 
+#ifdef THREADPOOL5
+
+
+        unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+        std::vector<std::future<void>> t {};
+        t.resize(items.size());
+#endif
+
         auto wi = new cmpfingerprintsitem;
         wi->nslist.resize(items.size());
         wi->fpslist.resize(items.size());
@@ -536,12 +547,31 @@ public:
                 fpsptr[n].nscnt = 0;
                 fpsptr[n].parent = nullptr;
             }
+
+#ifdef THREADPOOL5
+
+            wi->nslist[i] = gi->ns;
+            t[i] = std::async(&takefingerprint,wi->nslist[i],wi->fpslist[i].ns,gi->g.dim);
+            wi->glist[i] = gi->g;
+            wi->gnames[i] = gi->name;
+
+#endif
+
+#ifndef THREADPOOL5
             takefingerprint(gi->ns,wi->fpslist[i].ns,gi->g.dim);
             wi->nslist[i] = gi->ns;
             wi->glist[i] = gi->g;
             wi->gnames[i] = gi->name;
+
+#endif
         }
-        //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
+#ifdef THREADPOOL5
+        for (int m = 0; m < items.size(); ++m) {
+            t[m].get();
+            //t[m].detach();
+            //threadgm[m] = t[m].get();
+        }
+#endif
 
         bool changed = true;
         bool overallres = true;

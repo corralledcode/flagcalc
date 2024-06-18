@@ -424,7 +424,7 @@ public:
                 os << "Some fingerprints MATCH and some DON'T MATCH: ";
             }
         }
-        os << overallmatchcount << " out of " << sorted.size() << " match\n";
+        os << overallmatchcount << " adjacent pairs out of " << sorted.size()-1 << " match\n";
         return true;
     }
 };
