@@ -301,22 +301,6 @@ public:
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
-                if (ofname != "std::cout") {
-                    std::ifstream infile(ofname);
-                    if (infile.good() && !verbositycmdlineincludes(verbositylevel, VERBOSE_VERBOSITYFILEAPPEND)) {
-                        std::cout << "Output file " << ofname << " already exists; use verbosity \"" << VERBOSE_VERBOSITYFILEAPPEND << "\" to append it.\n";
-                        return;
-                    }
-                    ofs.open(ofname,  std::ios::app);
-                    if (!ofs) {
-                        std::cout << "Couldn't open file for writing \n";
-                        return;
-                    }
-                    _os = &ofs;
-                    ofsrequiresclose = true;
-                } else {
-                    _os = &std::cout;
-                }
                 continue;
             }
             if (cmdlineoptions[n].first == "i") {
@@ -350,6 +334,25 @@ public:
         }
         if (verbositylevel == "")
             verbositylevel = VERBOSE_DEFAULT;
+        if (ofname != "") {
+            if (ofname != "std::cout") {
+                std::ifstream infile(ofname);
+                if (infile.good() && !verbositycmdlineincludes(verbositylevel, VERBOSE_VERBOSITYFILEAPPEND)) {
+                    std::cout << "Output file " << ofname << " already exists; use verbosity \"" << VERBOSE_VERBOSITYFILEAPPEND << "\" to append it.\n";
+                    return;
+                }
+                ofs.open(ofname,  std::ios::app);
+                if (!ofs) {
+                    std::cout << "Couldn't open file for writing \n";
+                    return;
+                }
+                _os = &ofs;
+                ofsrequiresclose = true;
+            } else {
+                _os = &std::cout;
+            }
+        } else
+            _os = &std::cout;
 
         auto starttime = std::chrono::high_resolution_clock::now();
 
