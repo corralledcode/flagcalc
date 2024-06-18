@@ -88,7 +88,9 @@ public:
     int namesused = 0;
     std::vector<workitems*> items {};
     std::string getuniquename(std::string name) {
-        bool unique = true;
+        return name + std::to_string(namesused++);
+
+        /*bool unique = true;
         std::string tmpname;
         int namesused = 0;
         if (name == "")
@@ -101,7 +103,7 @@ public:
             }
             namesused++;
         } while (!unique);
-        return tmpname;
+        return tmpname;*/
     }
     workspace() {
     }
