@@ -139,7 +139,7 @@ public:
             os << name << ", dim==" << g.dim << ", edgecount==" << edgecnt(g) << "\n";
         } else {
             osadjacencymatrix(os,g);
-            osedges(os,g);
+            //osedges(os,g);  // duplicates osneighbors
             osneighbors(os,ns);
         }
         return true;
