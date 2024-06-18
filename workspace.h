@@ -362,17 +362,23 @@ public:
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
-        for (int n = 0; n < sorted.size(); ++n) {
-            if (verbositycmdlineincludes(verbositylevel, VERBOSE_FINGERPRINT)) {
-                if (verbositycmdlineincludes(verbositylevel, VERBOSE_MINIMAL)) {
-                    os << "fingerprint of graph "<<gnames[sorted[n]]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
-                    osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
-                } else {
-                    os << "fingerprint of graph "<<sorted[n]<<", ordered number " << n+1 << " out of " << sorted.size() << "\n";
-                    osfingerprint(os,nslist[sorted[n]], fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+        if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
+            for (int n = 0; n < sorted.size(); ++n) {
+                os << "fingerprint of graph "<<gnames[sorted[n]]<<", ordered number " << n+1 << " out of " << sorted.size();
+                if (n < sorted.size()-1) {
+                    if (res[n] == 1) {
+                        os << " (<)";
+                    } else
+                        if (res[n] == -1) {
+                            os << "(>) (error) ";
+                        } else
+                            os << "(==)";
                 }
+                os << ":\n";
+                osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
             }
         }
+
         os << "Ordered, with pairwise results: ";
         for (int n = 0; n < sorted.size(); ++n) {
             os << gnames[sorted[n]] << " ";

@@ -1,0 +1,30 @@
+GRAPH GRAPH0:
+GRAPH0, dim==8, edgecount==12
+GRAPH GRAPH1:
+GRAPH1, dim==9, edgecount==10
+GRAPH GRAPH2:
+GRAPH2, dim==9, edgecount==10
+GRAPH GRAPH3:
+GRAPH3, dim==7, edgecount==10
+GRAPH GRAPH4:
+GRAPH4, dim==7, edgecount==10
+GRAPH GRAPH5:
+GRAPH5, dim==7, edgecount==10
+TIMEDRUN TIMEDRUN0:
+0.002118
+GRAPHISOS GRAPHISOS0:
+Total number of isomorphisms == 240
+GRAPHISOS GRAPHISOS1:
+Total number of isomorphisms == 240
+GRAPHISOS GRAPHISOS2:
+Total number of isomorphisms == 240
+GRAPHISOS GRAPHISOS3:
+Total number of isomorphisms == 32
+GRAPHISOS GRAPHISOS4:
+Total number of isomorphisms == 32
+GRAPHISOS GRAPHISOS5:
+Total number of isomorphisms == 48
+TIMEDRUN TIMEDRUN1:
+0.002621
+TIMEDRUN TimedRunVerbosity:
+2.3e-05
