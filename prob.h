@@ -37,7 +37,9 @@ public:
     std::string name;
 
     virtual void randomgraph( graph* gptr, const float edgecnt ) {};
-
+    /* The rules for the above virtual function: it must not modify the object's variables
+     * lest it create a contention when threaded. Use local variables instead,
+     * e.g. such as _edgecnt; just use the local version of it. */
 
     std::vector<graph> randomgraphs( const int dim, const float edgecnt, const int cnt ) {
         unsigned const thread_count = std::thread::hardware_concurrency();
@@ -340,7 +342,7 @@ public:
         name = "random connected graph with balanced/weighted search";
     }
     void randomgraph( graph* gptr, float edgecnt ) {
-        std::vector<weightstype> weights = computeweights(gptr->dim);
+        std::vector<weightstype> weights = computeweights(gptr->dim); // obviously would be nice to only do this once per dim...
         //name = "random connected graph with balanced/weighted search";
         for (int i = 0; i < gptr->dim; ++i) {
             for (int j = 0; j < gptr->dim; ++j) {
