@@ -546,6 +546,7 @@ public:
         bool changed = true;
         bool overallres = true;
         bool overallresdont = true;
+        int overallmatchcount = 0;
         wi->sorted.resize(items.size());
         for (int i = 0; i < items.size(); ++i) {
             wi->sorted[i] = i;
@@ -560,9 +561,12 @@ public:
             res[i] = FPcmp(wi->nslist[wi->sorted[i]],wi->nslist[wi->sorted[i+1]],wi->fpslist[wi->sorted[i]],wi->fpslist[wi->sorted[i+1]]);
             if (res[i] != 0)
                 overallres = false;
-            else
+            else {
                 overallresdont = false;
+                ++overallmatchcount;
+            }
         }
+
 #endif
 #ifdef NAIVESORT
 
@@ -577,17 +581,21 @@ public:
                     wi->sorted[i+1] = wi->sorted[i];
                     wi->sorted[i] = tmp;
                     changed = true;
+                    overallmatchcount = 0;
                 }
                 if (res[i] != 0)
                     overallres = false;
-                else
+                else {
                     overallresdont = false;
+                    ++overallmatchcount;
+                }
             }
         }
 #endif
 
         wi->fingerprintsmatch = overallres;
         wi->fingerprintsdontmatch = overallresdont;
+        wi->overallmatchcount = overallmatchcount;
         wi->res = res;
         wi->name = _ws->getuniquename(wi->classname);
         _ws->items.push_back(wi);

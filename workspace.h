@@ -345,6 +345,7 @@ public:
 
     bool fingerprintsmatch;  // all
     bool fingerprintsdontmatch; // all
+    int overallmatchcount = 0;
     std::vector<int> res;
     std::vector<int> sorted {};
     cmpfingerprintsitem() : workitems() {
@@ -403,14 +404,15 @@ public:
         else
             os << "<none>\n";
         if (fingerprintsmatch) {
-            os << "Fingerprints MATCH\n";
+            os << "Fingerprints MATCH: ";
         } else {
             if (fingerprintsdontmatch) {
-                os << "NO fingerprints match\n";
+                os << "NO fingerprints match: ";
             } else {
-                os << "Some fingerprints MATCH and some DON'T MATCH\n";
+                os << "Some fingerprints MATCH and some DON'T MATCH: ";
             }
         }
+        os << overallmatchcount << " out of " << sorted.size() << " match\n";
         return true;
     }
 };

@@ -28,3 +28,95 @@ TIMEDRUN TIMEDRUN1:
 0.002621
 TIMEDRUN TimedRunVerbosity:
 2.3e-05
+GRAPH GRAPH0:
+GRAPH0, dim==10, edgecount==15
+GRAPH GRAPH1:
+GRAPH1, dim==10, edgecount==17
+GRAPH GRAPH2:
+GRAPH2, dim==10, edgecount==14
+GRAPH GRAPH3:
+GRAPH3, dim==10, edgecount==21
+GRAPH GRAPH4:
+GRAPH4, dim==10, edgecount==18
+GRAPH GRAPH5:
+GRAPH5, dim==10, edgecount==21
+GRAPH GRAPH6:
+GRAPH6, dim==10, edgecount==22
+GRAPH GRAPH7:
+GRAPH7, dim==10, edgecount==21
+GRAPH GRAPH8:
+GRAPH8, dim==10, edgecount==20
+GRAPH GRAPH9:
+GRAPH9, dim==10, edgecount==18
+CMPFINGERPRINTS CMPFINGERPRINTS0:
+Ordered, with pairwise results: GRAPH0 < GRAPH2 < GRAPH1 < GRAPH6 < GRAPH7 < GRAPH9 < GRAPH4 < GRAPH5 < GRAPH8 < GRAPH3 
+NO fingerprints match
+GRAPH GRAPH0:
+GRAPH0, dim==10, edgecount==23
+GRAPH GRAPH1:
+GRAPH1, dim==10, edgecount==19
+GRAPH GRAPH2:
+GRAPH2, dim==10, edgecount==21
+GRAPH GRAPH3:
+GRAPH3, dim==10, edgecount==24
+GRAPH GRAPH4:
+GRAPH4, dim==10, edgecount==22
+GRAPH GRAPH5:
+GRAPH5, dim==10, edgecount==16
+GRAPH GRAPH6:
+GRAPH6, dim==10, edgecount==18
+GRAPH GRAPH7:
+GRAPH7, dim==10, edgecount==16
+GRAPH GRAPH8:
+GRAPH8, dim==10, edgecount==22
+GRAPH GRAPH9:
+GRAPH9, dim==10, edgecount==25
+CMPFINGERPRINTS CMPFINGERPRINTS0:
+Ordered, with pairwise results: GRAPH7 < GRAPH5 < GRAPH6 < GRAPH2 < GRAPH1 < GRAPH3 < GRAPH0 < GRAPH4 < GRAPH8 < GRAPH9 
+NO fingerprints match
+GRAPH GRAPH0:
+GRAPH0, dim==10, edgecount==19
+GRAPH GRAPH1:
+GRAPH1, dim==10, edgecount==22
+GRAPH GRAPH2:
+GRAPH2, dim==10, edgecount==21
+GRAPH GRAPH3:
+GRAPH3, dim==10, edgecount==20
+GRAPH GRAPH4:
+GRAPH4, dim==10, edgecount==23
+GRAPH GRAPH5:
+GRAPH5, dim==10, edgecount==17
+GRAPH GRAPH6:
+GRAPH6, dim==10, edgecount==15
+GRAPH GRAPH7:
+GRAPH7, dim==10, edgecount==22
+GRAPH GRAPH8:
+GRAPH8, dim==10, edgecount==14
+GRAPH GRAPH9:
+GRAPH9, dim==10, edgecount==17
+CMPFINGERPRINTS CMPFINGERPRINTS0:
+Ordered, with pairwise results: GRAPH5 < GRAPH8 < GRAPH9 < GRAPH6 < GRAPH3 < GRAPH0 < GRAPH2 < GRAPH1 < GRAPH7 < GRAPH4 
+NO fingerprints match
+GRAPH GRAPH0:
+GRAPH0, dim==10, edgecount==20
+GRAPH GRAPH1:
+GRAPH1, dim==10, edgecount==23
+GRAPH GRAPH2:
+GRAPH2, dim==10, edgecount==19
+GRAPH GRAPH3:
+GRAPH3, dim==10, edgecount==18
+GRAPH GRAPH4:
+GRAPH4, dim==10, edgecount==25
+GRAPH GRAPH5:
+GRAPH5, dim==10, edgecount==16
+GRAPH GRAPH6:
+GRAPH6, dim==10, edgecount==20
+GRAPH GRAPH7:
+GRAPH7, dim==10, edgecount==21
+GRAPH GRAPH8:
+GRAPH8, dim==10, edgecount==18
+GRAPH GRAPH9:
+GRAPH9, dim==10, edgecount==17
+CMPFINGERPRINTS CMPFINGERPRINTS0:
+Ordered, with pairwise results: GRAPH5 < GRAPH8 < GRAPH2 < GRAPH9 < GRAPH6 < GRAPH7 < GRAPH3 < GRAPH0 < GRAPH4 < GRAPH1 
+NO fingerprints match
