@@ -27,13 +27,16 @@
 #define VERBOSE_MANTELSTHEOREM "Mantel"
 #define VERBOSE_FINGERPRINT "Fp"
 #define VERBOSE_SAMPLERANDOMMATCHING "srm"
+#define VERBOSE_FPMINIMAL "FpMin"
 
-#define VERBOSE_ALL "NoisographsfpIsortvruntvappendminMantelFpsrm"
-#define VERBOSE_DEFAULT "NoisographsfpIsortvruntvappendminMantelFpsrm"
+#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
+#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
 
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
-    return (str.find(s2) != std::string::npos);
+    std::string tmp2 = " " + s2 + " ";
+    std::string tmp1 = " " + str + " ";
+    return (tmp1.find(tmp2) != std::string::npos);
 }
 
 inline std::vector<std::pair<std::string,std::string>>  cmdlineparseiterationtwo( const std::vector<std::string> args ) {
@@ -375,7 +378,10 @@ public:
                             os << "(==)";
                 }
                 os << ":\n";
-                osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+                if (verbositycmdlineincludes(verbositylevel, VERBOSE_FPMINIMAL)) {
+                    osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+                } else
+                    osfingerprint(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
             }
         }
 

@@ -299,7 +299,7 @@ public:
         verbositylevel = "";
         std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
-            if (cmdlineoptions[n].first == "o" || (cmdlineoptions[n].first == "default" && ofname == "")) {
+            if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
                 if (ofname != "std::cout") {
                     std::ifstream infile(ofname);
@@ -328,6 +328,9 @@ public:
                     while (!ifs.eof()) {
                         std::string tmp {};
                         ifs >> tmp;
+                        if (verbositylevel != "") {
+                            verbositylevel += " ";
+                        }
                         verbositylevel += tmp;
                     }
                     ifs.close();
@@ -338,6 +341,9 @@ public:
                 continue;
             }
             if (cmdlineoptions[n].first == "default") {
+                if (verbositylevel != "") {
+                    verbositylevel += " ";
+                }
                 verbositylevel += cmdlineoptions[n].second;
                 continue;
             }
