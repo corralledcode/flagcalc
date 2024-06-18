@@ -1023,12 +1023,18 @@ void osedges( std::ostream &os, graph g) {
     if (g.adjacencymatrix == nullptr) {
         return;
     }
+    bool found = false;
     for (int i = 0; i < g.dim-1; ++i) {
         for (int j = i+1; j < g.dim; ++j) {
-            if (g.adjacencymatrix[g.dim*i + j])
+            if (g.adjacencymatrix[g.dim*i + j]) {
+                found = true;
                 os << "[" << i << "," << j << "], ";
+            }
         }
-        os << "\b\b\n";
+        if (found) {
+            os << "\b\b\n";
+            found = false;
+        }
     }
 
 }

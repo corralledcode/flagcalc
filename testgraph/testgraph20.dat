@@ -1,3 +1,5 @@
+/* This pair of graphs should have 1 isomorphism */
+
 a b c d e f g h i
 j
 END

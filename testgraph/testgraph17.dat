@@ -1,3 +1,5 @@
+/* This graph should have 3!=6 isomorphisms */
+
 a b c END
 ab bc ca END
 a b c END

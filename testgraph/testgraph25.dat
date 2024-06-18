@@ -1,3 +1,5 @@
+/* This trio of graphs should all be isomorphic and hence share the same fingerprint */
+
 a b c d e f g
 END
 abcde

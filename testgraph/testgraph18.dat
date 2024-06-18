@@ -1,3 +1,5 @@
+/* This graph should have 2*2=4 automorphisms */
+
 a b c d e f
 END
 -abcdefca END

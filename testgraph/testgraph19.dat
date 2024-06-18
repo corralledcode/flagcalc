@@ -1,2 +1,4 @@
+/* This graph should have 3!*4! = 144 automorphisms */
+
 a b c d e f g END
 *abcdefg !abc END

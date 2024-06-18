@@ -159,6 +159,12 @@ public:
         std::string tmp = "";
         std::string tmp2 = "";
         while ((is >> tmp) && (tmp != "END") && (tmp != "###")) {
+            if (tmp == "/*") {
+                bool res = bool(is >> tmp);
+                while (res && (tmp != "*/"))
+                    res = bool(is >> tmp);
+                continue;
+            }
             eres.push_back(tmp);
             tmp2 += tmp + " ";
             tmp = "";
@@ -198,6 +204,12 @@ public:
 
         eres.clear();
         while ((is >> tmp) && (tmp != "END") && (tmp != "###")) {
+            if (tmp == "/*") {
+                bool res = bool(is >> tmp);
+                while (res && (tmp != "*/"))
+                    res = bool(is >> tmp);
+                continue;
+            }
             eres.push_back(tmp);
             tmp2 += tmp + " ";
             tmp = "";

@@ -1,3 +1,6 @@
+/* This pair of graphs should have 2*2*2 = 8 isomorphisms */
+
+
 a b c d e f g h i j k l m END
 ab bc cd de ea
 cg

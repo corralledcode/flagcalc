@@ -1,3 +1,5 @@
+/* This pair of graphs should have 2 isomorphisms */
+
 a b c END
 ab ac END
 a b c END

@@ -1,3 +1,5 @@
+/* This graph should have 3!*2=12 isomorphisms */
+
 a b c d e f g END
 abc cd END
 a b c d e f g END

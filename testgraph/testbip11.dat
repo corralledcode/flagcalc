@@ -1,3 +1,5 @@
+/* This pair of graphs should have 5!*6! = 86400 isomorphisms */
+
 a b c d e
 f g h i j k END
 af ag ah ai aj ak

@@ -1,3 +1,5 @@
+/* This pair of graphs should have 0 isomorphisms */
+
 a b c d e f g h i j k l END
 ab bc cd de
 fg gh hi ij jk

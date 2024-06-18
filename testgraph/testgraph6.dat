@@ -1,3 +1,5 @@
+/* This pair of graphs should have 2! = 2 isomorphisms */
+
 a b c d e f g h i j k END
 ab bc cd
 ef fg gh hi

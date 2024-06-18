@@ -1,3 +1,5 @@
+/* This pair of graphs should have 4*4*2! = 32 isomorphisms */
+
 a b c d e f g h i END
 ab bc cd da
 bd

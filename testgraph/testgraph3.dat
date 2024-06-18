@@ -1,3 +1,5 @@
+/* This graph should have 6!=720 isomorphisms */
+
 a b c d e f g END
 abcdef END
 a b c d e f g END

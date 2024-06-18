@@ -1,3 +1,5 @@
+/* This pair of graphs should have 5!*5!*2 = 28800 isomorphisms */
+
 a b c d e
 f g h i j END
 af ag ah ai aj
