@@ -22,8 +22,8 @@
 #define QUICKSORT
 
 //Choose ONE of the two following
-//#define THREADPOOL4
-#define NOTTHREADED4
+#define THREADPOOL4
+//#define NOTTHREADED4
 
 // Leave this ON
 #define THREADPOOL5
