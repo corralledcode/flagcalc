@@ -111,25 +111,16 @@ public:
 
 class graphitem : public workitems {
 public:
-    graph g;
-    neighbors ns;
+    graphtype* g;
+    neighbors* ns;
     graphitem() : workitems() {
-        g.adjacencymatrix = nullptr;
-        ns.neighborslist = nullptr;
+        g = nullptr;
+        ns = nullptr;
         verbositylevel = VERBOSE_LISTGRAPHS;
         classname = "GRAPH";
     }
     void freemem() override {
-
-        if (g.adjacencymatrix != nullptr) {
-            free(g.adjacencymatrix);
-            g.adjacencymatrix = nullptr;
-        }
-        if (ns.neighborslist != nullptr) {
-            free(ns.neighborslist);
-            ns.neighborslist = nullptr;
-        }
-
+        workitems::freemem();
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
@@ -138,11 +129,13 @@ public:
         //and a labelling for the adjacency matrix;
         //add vertexlabels to graph struct type
         if (verbositycmdlineincludes(verbositylevel, VERBOSE_MINIMAL)) {
-            os << name << ", dim==" << g.dim << ", edgecount==" << edgecnt(g) << "\n";
+            os << name << ", dim==" << g->dim << ", edgecount==" << edgecnt(g) << "\n";
         } else {
-            osadjacencymatrix(os,g);
+            if (g != nullptr)
+                osadjacencymatrix(os,g);
             //osedges(os,g);  // duplicates osneighbors
-            osneighbors(os,ns);
+            if (ns != nullptr)
+                osneighbors(os,ns);
         }
         return true;
     }
@@ -172,7 +165,6 @@ public:
             tmp = "";
             s++;
         }
-        g.dim = s;
         std::vector<std::string> vertexlabels {}; // ultimately store this in workitem to use for readouts
         if (tmp2.size() > 0) {
             std::regex pat{"([\\w]+)"};
@@ -184,14 +176,15 @@ public:
             }
 
             // idata->removeduplicates(); must not remove duplicates yet... wait until setvertices has been called
-            g.dim = vertexlabels.size();
-            g.adjacencymatrix = (bool*)malloc(g.dim*g.dim*sizeof(bool));
-            for (int i = 0; i <  g.dim; ++i)
-                for (int n = 0; n< g.dim; ++n)
-                    g.adjacencymatrix[n*g.dim + i] = false;
+            this->g = new graphtype(vertexlabels.size());
+            int dim = this->g->dim;
+            for (int i = 0; i <  dim; ++i)
+                for (int n = 0; n< dim; ++n)
+                    this->g->adjacencymatrix[n*dim + i] = false;
+            //for (int i = 0; i < vertexlabels.size(); ++i)
+            //    g->vertexlabels[i] = vertexlabels[i];
         } else {
-            g.dim = 0;
-            g.adjacencymatrix = nullptr;
+            this->g = new graphtype(0);
             return false;   // in case only one graph is given, default to computing automorphisms
         }
 
@@ -275,8 +268,8 @@ public:
                             if (j < vertexlabels.size() && i < vertexlabels.size()) {
                                 if (vertexlabels[j] == v[n] && vertexlabels[i] == v[m]) {
                                     if (j != i) {
-                                        g.adjacencymatrix[i*g.dim + j] = !cmdomit;
-                                        g.adjacencymatrix[j*g.dim + i] = !cmdomit;
+                                        g->adjacencymatrix[i*g->dim + j] = !cmdomit;
+                                        g->adjacencymatrix[j*g->dim + i] = !cmdomit;
                                         //std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
                                     }
                                 }
@@ -295,8 +288,8 @@ public:
                         if (j < vertexlabels.size() && i < vertexlabels.size()) {
                             if (vertexlabels[i] == v[m] && vertexlabels[j] == v[m+1]) {
                                 if (i != j) {
-                                    g.adjacencymatrix[i*g.dim + j] = !cmdomit;
-                                    g.adjacencymatrix[j*g.dim + i] = !cmdomit;
+                                    g->adjacencymatrix[i*g->dim + j] = !cmdomit;
+                                    g->adjacencymatrix[j*g->dim + i] = !cmdomit;
                                     //std::cout << "v[m]: " << v[m] << " v[m+1]: " << v[m+1] << "\n";
                                 }
                             }
@@ -305,8 +298,9 @@ public:
                 }
             }
         }
-        ns = computeneighborslist(g);
-        return g.dim > 0;   // for now no support for trivial empty graphs
+        ns = new neighbors(this->g);
+        //ns->computeneighborslist();
+        return (g->dim > 0);   // for now no support for trivial empty graphs
     }
 
 };
@@ -314,34 +308,18 @@ public:
 
 class enumisomorphismsitem : public workitems {
 public:
-    std::vector<graphmorphism> gm;
+    std::vector<graphmorphism>* gm;
     enumisomorphismsitem() : workitems() {
         classname = "GRAPHISOS";
         verbositylevel = VERBOSE_ISOS; // use primes
     }
     void freemem() override {
-/* already freed by graphitem
-        if (g1.adjacencymatrix != nullptr) {
-            free(g1.adjacencymatrix);
-            g1.adjacencymatrix = nullptr;
-        }
-        if (ns1.neighborslist != nullptr) {
-            free(ns1.neighborslist);
-            ns1.neighborslist = nullptr;
-        }
-        if (g2.adjacencymatrix != nullptr) {
-            free(g2.adjacencymatrix);
-            g2.adjacencymatrix = nullptr;
-        }
-        if (ns2.neighborslist != nullptr) {
-            free(ns2.neighborslist);
-            ns2.neighborslist = nullptr;
-        }*/
+/* already freed by graphitem */
     }
 
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
-        os << "Total number of isomorphisms == " << gm.size() << "\n";
+        os << "Total number of isomorphisms == " << gm->size() << "\n";
         if (verbositycmdlineincludes(verbositylevel, VERBOSE_DONTLISTISOS)) {
         } else {
             osgraphmorphisms(os, gm);
@@ -352,9 +330,9 @@ public:
 
 class cmpfingerprintsitem : public workitems {
 public:
-    std::vector<graph> glist;
-    std::vector<neighbors> nslist;
-    std::vector<FP> fpslist;
+    std::vector<graphtype*> glist;
+    std::vector<neighborstype*> nslist;
+    std::vector<FP*> fpslist;
     std::vector<std::string> gnames;
 
     bool fingerprintsmatch;  // all
@@ -370,12 +348,12 @@ public:
 
         // graph items are already freed by graphitem freemem
 
-        for (int n = 0; n < fpslist.size(); ++n) {
-            if (fpslist[n].nscnt > 0) {
-                freefps(fpslist[n].ns,fpslist[n].nscnt);
-                free(fpslist[n].ns);
+/*        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n]->nscnt > 0) {
+                freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                free(fpslist[n]->ns);
             }
-        }
+        }*/ // no: the format has changed to a vector of pointers
 
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
@@ -394,9 +372,9 @@ public:
                 }
                 os << ":\n";
                 if (verbositycmdlineincludes(verbositylevel, VERBOSE_FPMINIMAL)) {
-                    osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+                    osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]]->ns, fpslist[sorted[n]]->nscnt);
                 } else
-                    osfingerprint(os,nslist[sorted[n]],fpslist[sorted[n]].ns, fpslist[sorted[n]].nscnt);
+                    osfingerprint(os,nslist[sorted[n]],fpslist[sorted[n]]->ns, fpslist[sorted[n]]->nscnt);
             }
         }
 

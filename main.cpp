@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
 
 
     for (int i = 0; i < args.size(); ++i) {
-        int f = 0;
+        int f = 0; // note that this setup defaults to the most recently added feature in the list above
         for (int n = 0; n < featureslist.size(); ++n) {
             if (featureslist[n]->cmdlineoption()[0] == args[i][0][0] || featureslist[n]->cmdlineoptionlong() == args[i][0]) {
                 f = n;

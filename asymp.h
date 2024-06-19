@@ -29,10 +29,10 @@ public:
 
 class criterion {
 public:
-    virtual bool checkcriterion( graph g, neighbors ns ) {return false;};
+    virtual bool checkcriterion( graph* g, neighbors* ns ) {return false;};
 };
 
-inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* cr, graph g,
+inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* cr, graph* g,
     int n, const int outof, int sampled, bool** samplegraph )
 {
     int max = 0;
@@ -40,18 +40,18 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* 
     while( sampled < outof )
     {
         sampled++;
-        rg->randomgraph(&g,n);
-        neighbors ns;
-        //ns = computeneighborslist(g); ns isn't used by criterion...
+        rg->randomgraph(g,n);
+        auto ns = new neighbors(g);
+        //ns->computeneighborslist(g); ns isn't used by criterion...
         if (cr->checkcriterion(g,ns)) {
             //float tmp = ms->takemeasure(g,ns);
             //max = (tmp > max ? tmp : max);
             max = n;
             //bool* tmpadjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
-            *samplegraph = (bool*)malloc(g.dim * g.dim * sizeof(bool));
-            for (int i = 0; i < g.dim; ++i) {
-                for (int j = 0; j < g.dim; ++j) {
-                    (*samplegraph)[g.dim*i + j] = g.adjacencymatrix[g.dim*i+j];
+            *samplegraph = (bool*)malloc(g->dim * g->dim * sizeof(bool));
+            for (int i = 0; i < g->dim; ++i) {
+                for (int j = 0; j < g->dim; ++j) {
+                    (*samplegraph)[g->dim*i + j] = g->adjacencymatrix[g->dim*i+j];
                 }
             }
             std::cout << "1\n";
@@ -76,8 +76,7 @@ public:
         int n = 1;
         std::vector<bool*> samplegraphs;
         auto rg = new randomconnectedgraphfixededgecnt();
-        graph g;
-        g.dim = dim;
+        auto g = new graphtype(dim);
 #ifdef THREADED3
 
         unsigned const thread_count = std::thread::hardware_concurrency();
@@ -131,22 +130,20 @@ public:
 #endif
 
 
-#ifdef NOTTHREADED3
-        g.dim = dim;
-        g.adjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
+#ifndef THREADED3
         while (sampled < outof) {
             while (max < n && sampled < outof) {
-                rg->randomgraph(&g,n);
-                neighbors ns;
+                rg->randomgraph(g,n);
+                //auto ns = new neighbors(g);
                 //ns = computeneighborslist(g); ns isn't used by criterion...
-                if (cr->checkcriterion(g,ns)) {
+                if (cr->checkcriterion(g,nullptr)) {
                     //float tmp = ms->takemeasure(g,ns);
                     //max = (tmp > max ? tmp : max);
                     max = n;
-                    bool* tmpadjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
+                    bool* tmpadjacencymatrix = (bool*)malloc(g->dim * g->dim * sizeof(bool));
                     for (int i = 0; i < dim; ++i) {
                         for (int j = 0; j < dim; ++j) {
-                            tmpadjacencymatrix[g.dim*i + j] = g.adjacencymatrix[g.dim*i+j];
+                            tmpadjacencymatrix[g->dim*i + j] = g->adjacencymatrix[g->dim*i+j];
                         }
                     }
                     samplegraphs.push_back(tmpadjacencymatrix);
@@ -167,10 +164,11 @@ public:
         }*/
 
         graphitem* gi = new graphitem();
-        gi->g.dim = dim;
-        gi->g.adjacencymatrix = samplegraphs[samplegraphs.size()-1];
+        gi->g = g;
+        gi->g->adjacencymatrix = samplegraphs[samplegraphs.size()-1];
         gi->name = ws->getuniquename(gi->classname);
-        gi->ns = computeneighborslist(gi->g);
+        gi->ns = new neighbors(g);
+        //gi->ns->computeneighborslist();
         ws->items.push_back(gi);
         for (int i = 0; i < (samplegraphs.size()-1); ++i) {
             free(samplegraphs[i]);
@@ -183,13 +181,14 @@ public:
 
 class trianglefreecriterion : public criterion {
 public:
-    bool checkcriterion(graph g, neighbors ns) override {
-        for (int n = 0; n < g.dim-2; ++n) {
-            for (int i = n+1; i < g.dim-1; ++i) {
-                if (g.adjacencymatrix[n*g.dim + i]) {
-                    for (int k = i+1; k < g.dim; ++k) {
-                        if (g.adjacencymatrix[n*g.dim + k]
-                            && g.adjacencymatrix[i*g.dim + k])
+    bool checkcriterion(graph* g, neighbors* ns) override {
+        int dim = g->dim;
+        for (int n = 0; n < dim-2; ++n) {
+            for (int i = n+1; i < dim-1; ++i) {
+                if (g->adjacencymatrix[n*dim + i]) {
+                    for (int k = i+1; k < dim; ++k) {
+                        if (g->adjacencymatrix[n*dim + k]
+                            && g->adjacencymatrix[i*dim + k])
                             return false;
                     }
                 }

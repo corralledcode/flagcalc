@@ -224,6 +224,7 @@ public:
     }
 
     void execute(std::vector<std::string> args) override {
+        abstractrandomgraphsfeature::execute(args);
         int dim = 5;
         int cnt = 2;
         float edgecnt = dim*(dim-1)/4.0;
@@ -247,7 +248,7 @@ public:
         }
 
 
-        std::vector<graph> gv {};
+        std::vector<graphtype*> gv {};
         gv.resize(cnt);
 #ifdef THREADED7
         unsigned const thread_count = std::thread::hardware_concurrency();
@@ -255,12 +256,12 @@ public:
 
         // Note: MUST play safe in the abstractrandomgraph class so it won't contend
 
-        std::vector<std::future<std::vector<graph>>> t {};
+        std::vector<std::future<std::vector<graphtype>>> t {};
         t.resize(thread_count);
         for (int j = 0; j < thread_count; ++j) {
             t[j] = std::async(&randomgraphs,rgs[rgidx],dim,edgecnt,int(float(cnt)/float(thread_count)));
         }
-        std::vector<std::vector<graph>> gvv {};
+        std::vector<std::vector<graphtype>> gvv {};
         gvv.resize(thread_count);
         for (int j = 0; j < thread_count; ++j) {
             gvv[j] = t[j].get();
@@ -306,21 +307,20 @@ public:
         auto starttime = std::chrono::high_resolution_clock::now();
         std::vector<std::chrono::time_point<std::chrono::system_clock>> starray {};
 */
-        int s = _ws->items.size();
+        //int s = _ws->items.size();
 
-        _ws->items.resize(s + cnt);
+        //_ws->items.resize(s + cnt);
         for (int i = 0; i < cnt; ++i) {
 
             //starray.push_back(std::chrono::high_resolution_clock::now());
 
 
             auto wi = new graphitem;
-            wi->g.dim = gv[i].dim;
-            wi->g.adjacencymatrix = gv[i].adjacencymatrix;
-            wi->ns = computeneighborslist(wi->g);
-            wi->name = wi->classname + std::to_string(_ws->namesused++);
+            wi->ns = new neighbors(gv[i]);
+            wi->g = gv[i];
+            wi->name = _ws->getuniquename(wi->classname);
 
-            _ws->items[s+i] = wi;
+            _ws->items.push_back( wi );
         }
 /*        for (int i = 0; i < cnt; ++i) {
             _ws->items[s+i]->name = _ws->getuniquename(_ws->items[s+i]->classname);
@@ -509,7 +509,7 @@ public:
 };
 
 
-inline int partition( std::vector<int> &arr, int start, int end, std::vector<neighbors>* nslist, std::vector<FP>* fpslist ) {
+inline int partition( std::vector<int> &arr, int start, int end, std::vector<neighbors*>* nslist, std::vector<FP*>* fpslist ) {
     int pivot = arr[start];
     int count = 0;
     for (int i = start+1;i <= end; i++) {
@@ -537,7 +537,7 @@ inline int partition( std::vector<int> &arr, int start, int end, std::vector<nei
     return pivotIndex;
 }
 
-inline void quickSort( std::vector<int> &arr, int start, int end,std::vector<neighbors>* nslist, std::vector<FP>* fpslist ) {
+inline void quickSort( std::vector<int> &arr, int start, int end,std::vector<neighbors*>* nslist, std::vector<FP*>* fpslist ) {
 
     if (start >= end)
         return;
@@ -612,22 +612,30 @@ public:
             //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
             //gi->ositem(*_os,11741730);
 
-            FP* fpsptr = (FP*)malloc(gi->g.dim * sizeof(FP));
-            wi->fpslist[i].ns = fpsptr;
-            wi->fpslist[i].parent = nullptr;
-            wi->fpslist[i].nscnt = gi->g.dim;
+            wi->fpslist[i] = (FP*)malloc(gi->g->dim * sizeof(FP));
+            FP* fpsptr = (FP*)malloc(gi->g->dim * sizeof(FP));
+            wi->fpslist[i]->ns = fpsptr;
+            wi->fpslist[i]->parent = nullptr;
+            wi->fpslist[i]->nscnt = gi->g->dim;
+            wi->fpslist[i]->invert = false;
+            wi->nslist[i] = gi->ns;
 
-            for (vertextype n = 0; n < gi->g.dim; ++n) {
+            //osadjacencymatrix(std::cout, gi->g);
+            //std::cout << "(" << i << ")\n";
+
+
+            for (vertextype n = 0; n < gi->g->dim; ++n) {
                 fpsptr[n].v = n;
                 fpsptr[n].ns = nullptr;
                 fpsptr[n].nscnt = 0;
                 fpsptr[n].parent = nullptr;
+                fpsptr[n].invert = false; //wi->nslist[i]->degrees[n] >= gi->g->dim/2;
             }
 
 #ifdef THREADPOOL5
 
-            wi->nslist[i] = gi->ns;
-            t[i] = std::async(&takefingerprint,wi->nslist[i],wi->fpslist[i].ns,gi->g.dim);
+            //wi->nslist[i] = gi->ns;
+            t[i] = std::async(&takefingerprint,(wi->nslist[i]),fpsptr,gi->g->dim);
             wi->glist[i] = gi->g;
             wi->gnames[i] = gi->name;
 
@@ -635,7 +643,7 @@ public:
 
 #ifndef THREADPOOL5
             takefingerprint(gi->ns,wi->fpslist[i].ns,gi->g.dim);
-            wi->nslist[i] = gi->ns;
+            //wi->nslist[i] = gi->ns;
             wi->glist[i] = gi->g;
             wi->gnames[i] = gi->name;
 
@@ -674,7 +682,7 @@ public:
         }
 
 #endif
-#ifdef NAIVESORT
+#ifndef QUICKSORT
 
         while (changed) {
             // to do: use threads to sort quickly
@@ -764,32 +772,43 @@ public:
             std::cout << "No graphs available to enum isomorphisms\n";
             return;
         }
-        std::vector<neighbors> nslist {};
+
+        std::vector<neighbors*> nslist {};
         nslist.resize(items.size());
-        std::vector<graph> glist {};
+        /*
+        std::vector<graphtype*> glist {};
         glist.resize(items.size());
         std::vector<FP> fpslist {};
         fpslist.resize(items.size());
         // code this to run takefingerprint only once if graph 1 = graph 2
+*/
         for (int i = 0; i < items.size(); ++i) {
             auto gi = (graphitem*)(_ws->items[items[i]]);
             //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
             //gi->ositem(*_os,11741730);
 
-            FP* fpsptr = (FP*)malloc(gi->g.dim * sizeof(FP));
+/*
+            FP* fpsptr = (FP*)malloc(gi->g->dim * sizeof(FP));
             fpslist[i].ns = fpsptr;
             fpslist[i].parent = nullptr;
-            fpslist[i].nscnt = gi->g.dim;
+            fpslist[i].nscnt = gi->g->dim;
+            fpslist[i].invert = false;
 
-            for (vertextype n = 0; n < gi->g.dim; ++n) {
+            for (vertextype n = 0; n < gi->g->dim; ++n) {
                 fpsptr[n].v = n;
                 fpsptr[n].ns = nullptr;
                 fpsptr[n].nscnt = 0;
                 fpsptr[n].parent = nullptr;
+                fpsptr[n].invert = false;
             }
-            takefingerprint(gi->ns,fpslist[i].ns,gi->g.dim);
-            nslist[i] = gi->ns;
-            glist[i] = gi->g;
+            takefingerprint(gi->ns,fpslist[i].ns,gi->g->dim);
+*/            nslist[i] = gi->ns;
+/*            glist[i] = gi->g;
+            std::cout << gi->g->dim << "gdim " << fpslist[i].v << "\n";
+            std::string ts;
+            std::cin >> ts;
+            osfingerprint(std::cout,gi->ns,fpslist[i].ns,gi->g->dim);
+*/
         }
         //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
 
@@ -805,12 +824,12 @@ public:
             unsigned const thread_count = std::thread::hardware_concurrency();
             //unsigned const thread_count = 1;
 
-            std::vector<std::future<std::vector<graphmorphism>>> t {};
+            std::vector<std::future<std::vector<graphmorphism>*>> t {};
             t.resize(items.size());
             for (int m = 0; m < items.size(); ++m) {
                 t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m]);
             }
-            std::vector<std::vector<graphmorphism>> threadgm {};
+            std::vector<std::vector<graphmorphism>*> threadgm {};
             threadgm.resize(items.size());
             for (int m = 0; m < items.size(); ++m) {
                 //t[m].join();
@@ -823,8 +842,8 @@ public:
                 wi->name = _ws->getuniquename(wi->classname);
                 _ws->items.push_back(wi);
 
-                freefps(fpslist[j].ns,glist[j].dim);
-                free(fpslist[j].ns);
+                //freefps(fpslist[j].ns,glist[j]->dim);
+                //delete fpslist[j].ns;
             }
 
 #endif
@@ -849,11 +868,11 @@ public:
             wi->gm = enumisomorphisms(nslist[0],nslist[1]);
             wi->name = _ws->getuniquename(wi->classname);
             _ws->items.push_back(wi);
-
+/*
             for (int i = 0; i < fpslist.size(); ++i) {
-                freefps(fpslist[i].ns,glist[i].dim);
-                free(fpslist[i].ns);
-            }
+                freefps(fpslist[i].ns,glist[i]->dim);
+                delete fpslist[i].ns;
+            }*/
         }
     }
 

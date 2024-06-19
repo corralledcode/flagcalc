@@ -85,7 +85,7 @@ int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == 
 }
 
 
-int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consideration of self or parents; looks only downwards
+int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without consideration of self or parents; looks only downwards
 
     //std::cout << "FPcmp checking in: w1.v == " << w1.v << ", w2.v == " << w2.v << "\n";
 /* take out part that checks parents
@@ -96,39 +96,76 @@ int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 ) { // acts without consid
 */
     // ... and otherwise ...
 
-    if (w1.nscnt > w2.nscnt) {
-        return -1;
-    } else {
-        if (w1.nscnt < w2.nscnt) {
-            return 1;
-        }
+    if (w1->invert != w2->invert) {
+        return (w1->invert ? -1 : 1);
     }
 
-    for (int n = 0; (n < w1.nscnt) && (n < w2.nscnt); ++n) {
-        if (ns1.degrees[w1.ns[n].v] < ns2.degrees[w2.ns[n].v]) {
+    if (!w1->invert) {
+        if (w1->nscnt > w2->nscnt) {
+            return -1;
+        } else {
+            if (w1->nscnt < w2->nscnt) {
+                return 1;
+            }
+        }
+
+        for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
+            if (w1->ns[n].invert != w2->ns[n].invert) {
+                return (w1->ns[n].invert ? -1 : 1);
+            }
+            if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
+                return 1;
+            } else {
+                if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
+                    return -1;
+                }
+            }
+        }
+    } else {  // if inverted then reverse the ordering
+
+        if (w1->nscnt > w2->nscnt) {
             return 1;
         } else {
-            if (ns1.degrees[w1.ns[n].v] > ns2.degrees[w2.ns[n].v]) {
+            if (w1->nscnt < w2->nscnt) {
                 return -1;
+            }
+        }
+
+//        if (ns1->degrees == nullptr || ns2->degrees == nullptr) {
+//            std::cout << "ERROR\n";
+//        }
+//        if (w1 == nullptr || w2 == nullptr) {
+//            std::cout << "ERROR2\n";
+//        }
+
+        for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
+            if (w1->ns[n].invert != w2->ns[n].invert) {
+                return (w1->ns[n].invert ? -1 : 1);
+            }
+            if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
+                return 1;
+            } else {
+                if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
+                    return -1;
+                }
             }
         }
     }
 
-
     int n = 0;
     int res = 0;
-    while ((res == 0) && (n < w1.nscnt)) {
-        res = FPcmp(ns1,ns2,w1.ns[n],w2.ns[n]);
+    while ((res == 0) && (n < w1->nscnt)) {
+        res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
         n++;
     }
     return res;
 }
 
-inline int partition2( std::vector<int> &arr, int start, int end, neighbors ns, FP* fpslist ) {
+inline int partition2( std::vector<int> &arr, int start, int end, neighbors* ns, FP* fpslist ) {
     int pivot = arr[start];
     int count = 0;
     for (int i = start+1;i <= end; i++) {
-        if (FPcmp(ns,ns,fpslist[arr[i]],fpslist[pivot]) >= 0) {
+        if (FPcmp(ns,ns,&fpslist[arr[i]],&fpslist[pivot]) >= 0) {
             count++;
         }
     }
@@ -139,10 +176,10 @@ inline int partition2( std::vector<int> &arr, int start, int end, neighbors ns, 
     int i = start;
     int j = end;
     while (i < pivotIndex && j > pivotIndex) {
-        while (FPcmp(ns,ns,fpslist[arr[i]],fpslist[pivot]) >= 0) {
+        while (FPcmp(ns,ns,&fpslist[arr[i]],&fpslist[pivot]) >= 0) {
             i++;
         }
-        while (FPcmp(ns,ns,fpslist[arr[j]],fpslist[pivot]) < 0) {
+        while (FPcmp(ns,ns,&fpslist[arr[j]],&fpslist[pivot]) < 0) {
             j--;
         }
         if (i < pivotIndex && j > pivotIndex) {
@@ -152,7 +189,7 @@ inline int partition2( std::vector<int> &arr, int start, int end, neighbors ns, 
     return pivotIndex;
 }
 
-inline void quickSort2( std::vector<int> &arr, int start, int end,neighbors ns, FP* fpslist ) {
+inline void quickSort2( std::vector<int> &arr, int start, int end,neighbors* ns, FP* fpslist ) {
 
     if (start >= end)
         return;
@@ -164,7 +201,7 @@ inline void quickSort2( std::vector<int> &arr, int start, int end,neighbors ns, 
 }
 
 
-void sortneighbors( neighbors ns, FP* fps, int fpscnt ) {
+void sortneighbors( neighbors* ns, FP* fps, int fpscnt ) {
 
 
 #ifdef NAIVESORT2
@@ -172,7 +209,7 @@ void sortneighbors( neighbors ns, FP* fps, int fpscnt ) {
     while (changed) {
         changed = false;
         for (int n = 0; n < (fpscnt-1); ++n) {
-            if (FPcmp(ns,ns,fps[n],fps[n+1]) == -1) {
+            if (FPcmp(ns,ns,&fps[n],&fps[n+1]) == -1) {
                 //std::cout << "...reversing two... n == " << n << "\n";
                 //std::cout << "Before swap: fps[n].v ==" << fps[n].v << ", fps[n+1].v == " << fps[n+1].v << "\n";
                 FP tmpfp = fps[n];
@@ -210,27 +247,37 @@ void sortneighbors( neighbors ns, FP* fps, int fpscnt ) {
 }
 
 
-void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
+void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
 
-    if (fpscnt == 0)
+    if (fpscnt == 0 || ns == nullptr)
         return;
 
-    FP sorted[ns.g.dim];
+    const int dim = ns->g->dim;
+    FP sorted[dim];
+    int halfdegree = dim/2;
+    bool invert = false;
     int idx = 0;
-    int sizeofdegree[ns.maxdegree+1];
 
     //std::cout << "fpscnt == " << fpscnt << ", ns.maxdegree == " << ns.maxdegree << "\n";
-
-    for (int d = 0; d <= ns.maxdegree; ++d) {
+    int md = ns->maxdegree;
+    if (ns->maxdegree < halfdegree)
+        md = dim - ns->maxdegree;
+    //md = dim-1;
+    int sizeofdegree[md+1];
+    for (int d = 0; d <= md; ++d) {
         sizeofdegree[d] = 0;
         //std::cout << "d == " << d << " \n";
         for (int vidx = 0; vidx < fpscnt; ++vidx) {
-            int deg = ns.degrees[fps[vidx].v];
+            invert = (ns->degrees[fps[vidx].v] >= halfdegree);
+            fps[vidx].invert = invert;
+            int deg = ( invert ? dim - ns->degrees[fps[vidx].v] -1  : ns->degrees[fps[vidx].v] );
             if (deg == d) {
                 ++sizeofdegree[d];
                 FP* parent = fps[vidx].parent;
                 if (parent != nullptr)
-                    deg--;
+                    if (!parent->invert && !invert) {
+                        deg--;
+                    }
                 bool dupe = false;
                 while (!dupe && (parent != nullptr)) {
                     //std::cout << "Checking dupes: fps[vidx].v == " << fps[vidx].v << ", parent->v == " << parent->v << "\n";
@@ -241,31 +288,55 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
                 if (dupe) {
                     fps[vidx].ns = nullptr;
                     fps[vidx].nscnt = 0;
+                    fps[vidx].invert = false;
                 } else {
                     int tmpn = 0;
-                    vertextype parentv;
+                    int parentv;
                     if (fps[vidx].parent != nullptr) {
                         parentv = fps[vidx].parent->v;
                     } else {
                         parentv = -1;
                     }
-                    if (deg > 0) {
+                    if ((deg > 0) && !invert) {
                         fps[vidx].nscnt = deg;
-                        fps[vidx].ns = (FP*)malloc(deg*sizeof(FP));
-                        for (int n = 0; n < ns.degrees[fps[vidx].v]; ++n) {
-                            vertextype nv = ns.neighborslist[ns.g.dim*fps[vidx].v + n];
+                        //std::cout << "deg " << deg << ", vidx = " << vidx << "\n";
+                        fps[vidx].ns = (FP*)malloc((deg)*sizeof(FP));
+                        for (int n = 0; n < ns->degrees[fps[vidx].v]; ++n) {
+                            vertextype nv = ns->neighborslist[dim*fps[vidx].v + n];
                             if (nv != parentv) {
                                 fps[vidx].ns[tmpn].parent = &(fps[vidx]);
                                 fps[vidx].ns[tmpn].v = nv;
                                 fps[vidx].ns[tmpn].ns = nullptr;
                                 fps[vidx].ns[tmpn].nscnt = 0;
+                                fps[vidx].ns[tmpn].invert = false; //ns->degrees[fps[vidx].v] >= halfdegree;
                                 ++tmpn;
                             }
                         }
                         takefingerprint( ns, fps[vidx].ns, tmpn );
                     } else {
-                        fps[vidx].ns = nullptr;
-                        fps[vidx].nscnt = 0;
+                        if ((deg > 0) && invert) {
+                            fps[vidx].nscnt = deg;
+                            //std::cout << "deg " << deg << ", vidx = " << vidx << ", v = " << fps[vidx].v << " invert";
+                            //std::cout << "degree " << ns->degrees[fps[vidx].v] << "\n";
+                            fps[vidx].ns = (FP*)malloc(deg * sizeof(FP));
+                            for (int n = 0; n < (dim - ns->degrees[fps[vidx].v] - 1); ++n) {
+                                vertextype nv = ns->nonneighborslist[dim*fps[vidx].v + n];
+                                //std::cout << "nv = " << nv << "\n";
+                                if (nv != parentv) {
+                                    fps[vidx].ns[tmpn].parent = &(fps[vidx]);
+                                    fps[vidx].ns[tmpn].v = nv;
+                                    fps[vidx].ns[tmpn].ns = nullptr;
+                                    fps[vidx].ns[tmpn].nscnt = 0;
+                                    fps[vidx].ns[tmpn].invert = false; //ns->degrees[fps[vidx].v] >= halfdegree;
+                                    ++tmpn;  // tmp keeps a separate count from n in order to account for the omitted parentv
+                                }
+                            }
+                            takefingerprint( ns, fps[vidx].ns, tmpn );
+                        } else {
+                            fps[vidx].ns = nullptr;
+                            fps[vidx].nscnt = 0;
+                            fps[vidx].invert = false;
+                        }
                     }
                 }
                 //++sizeofdegree[d];
@@ -276,7 +347,7 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
     }
 
     int startidx = 0;
-    for (int i = 0; i <= ns.maxdegree; ++i) {
+    for (int i = 0; i <= md; ++i) {
         FP fps2[sizeofdegree[i]];
         //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
         for (int j = 0; j < sizeofdegree[i]; ++j) {
@@ -290,7 +361,8 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
     }
 
     // the following loop can be avoided it seems if we replace "parent" the pointer with a list of vertices already visited
-    for (int i=0; i < idx; ++i) {  // idx == fpscnt
+    //std::cout << idx << " " << fpscnt << "\n";
+    for (int i=0; i < idx; ++i) {  // idx == fpscnt -- nooe
         fps[i] = sorted[i];
         for(int j = 0; j < fps[i].nscnt; ++j) {
             fps[i].ns[j].parent = &fps[i];
@@ -301,16 +373,22 @@ void takefingerprint( neighbors ns, FP* fps, int fpscnt ) {
 void freefps( FP* fps, int fpscnt ) {
     for( int n = 0; n < fpscnt; ++n ) {
         freefps( fps[n].ns, fps[n].nscnt );
-        free( fps[n].ns );
+        delete fps[n].ns;
     }
 }
 
-neighbors computeneighborslist( graph g ) {
-    neighbors ns;
+
+// superceded by neighbors class in graphs.h
+
+/*
+neighbors<vltype> computeneighborslist( graphtype g ) {
+    neighbors<vltype> ns;
     ns.g = g;
     ns.maxdegree = -1;
     ns.neighborslist = (vertextype*)malloc(g.dim * (g.dim) * sizeof(vertextype));
+    ns.nonneighborslist = (vertextype*)malloc(g.dim * (g.dim) * sizeof(vertextype));
     ns.degrees = (int*)malloc(g.dim * sizeof(int) );
+    int nondegrees[g.dim];
     for (vertextype n = 0; n < g.dim; ++n) {
         ns.degrees[n] = 0;
         for (vertextype i = 0; i < g.dim; ++i) {
@@ -321,8 +399,23 @@ neighbors computeneighborslist( graph g ) {
         }
         ns.maxdegree = (ns.degrees[n] > ns.maxdegree ? ns.degrees[n] : ns.maxdegree );
     }
+    for (vertextype n = 0; n < g.dim; ++n) {
+        nondegrees[n] = 0;
+        for (vertextype i = 0; i < g.dim; ++i) {
+            if (!g.adjacencymatrix[n*g.dim + i]) {
+                ns.nonneighborslist[n*g.dim + nondegrees[n]] = i;
+                nondegrees[n]++;
+            }
+        }
+    }
+    for (vertextype n = 0; n < g.dim; ++n) {
+        if (ns.degrees[n] + nondegrees[n] != g.dim)
+            std::cout << "BUG in computeneighborslist\n";
+    }
+
     return ns;
 }
+*/
 
 /*
 int seqtoindex( vertextype* seq, const int idx, const int sz ) {
@@ -332,7 +425,7 @@ int seqtoindex( vertextype* seq, const int idx, const int sz ) {
 }
 */
 
-bool ispartialisoonlynewest( graph g1, graph g2, graphmorphism map) {
+bool ispartialisoonlynewest( graphtype g1, graphtype g2, graphmorphism map) {
     bool match = true;
     int i = map.size()-1;
     for (int n = 0; match && (n < map.size()-1); ++n) {
@@ -342,7 +435,7 @@ bool ispartialisoonlynewest( graph g1, graph g2, graphmorphism map) {
 }
 
 
-bool ispartialiso( graph g1, graph g2, graphmorphism map) {
+bool ispartialiso( graphtype g1, graphtype g2, graphmorphism map) {
     bool match = true;
     for (int n = 0; match && (n < map.size()-1); ++n) {
         for (int i = n+1; match && (i < map.size()); ++i) {
@@ -352,7 +445,7 @@ bool ispartialiso( graph g1, graph g2, graphmorphism map) {
     return match;
 }
 
-bool isiso( graph g1, graph g2, graphmorphism map ) {
+bool isiso( graphtype g1, graphtype g2, graphmorphism map ) {
     bool match = true;
     if (g1.dim != g2.dim) {
         return false;
@@ -416,7 +509,7 @@ out: add one map per pair {index,t}, t from targetset
 
 
 /*
-void fastgetpermutationscoretmp(int n, const std::vector<vertextype> targetset, const graph g1, const FP* fps1,graphmorphism tmppartial, std::vector<graphmorphism>* result) {
+void fastgetpermutationscoretmp(int n, const std::vector<vertextype> targetset, const graphtype g1, const FP* fps1,graphmorphism tmppartial, std::vector<graphmorphism>* result) {
     std::cout << n << "\n";
     if (targetset.size()>0){
         std::cout << targetset[0] << "\n";
@@ -429,7 +522,7 @@ void fastgetpermutationscoretmp(int n, const std::vector<vertextype> targetset, 
 */
 
 
-bool fastgetpermutationscore( const std::vector<vertextype> targetset, const graph g1, const graph g2, const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* resptr) {
+bool fastgetpermutationscore( const std::vector<vertextype> targetset, const graphtype g1, const graphtype g2, const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* resptr) {
 /*
            if (targetset.size()>0) {
                 partialmap.push_back({fps1[idx].v,fps2[targetset[0]].v});
@@ -487,7 +580,7 @@ bool fastgetpermutationscore( const std::vector<vertextype> targetset, const gra
 }
 
 
-bool fastgetpermutations( const std::vector<vertextype> targetset, const graph g1, const graph g2,
+bool fastgetpermutations( const std::vector<vertextype> targetset, const graphtype g1, const graphtype g2,
     const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* results) {
 
     // implicit variable "cnt" == targetset.size
@@ -611,7 +704,7 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graph g
 
 
 
-std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int permsidx, const graph g1, const graph g2, const int* del,
+std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int permsidx, const graphtype g1, const graphtype g2, const int* del,
     const FP* fps1, const FP* fps2, graphmorphism parentmap ) {
     //std::vector<graphmorphism> newmaps {};
     std::vector<graphmorphism> results {};
@@ -644,40 +737,44 @@ bool threadrecurseisomorphisms2(const int l, const int permsidx, const graph g1,
 */
 
 
-std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
-    graph g1 = ns1.g;
-    graph g2 = ns2.g;
+std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype* ns2 ) {
+    if (ns1 == nullptr || ns2 == nullptr)
+        return {};
+    graph* g1 = ns1->g;
+    graph* g2 = ns2->g;
     std::vector<graphmorphism>* maps = new std::vector<graphmorphism>;
     maps->clear();
-    if (g1.dim != g2.dim || ns1.maxdegree != ns2.maxdegree)
-        return *maps;
-    //neighbors ns1 = computeneighborslist(g1);
-    //neighbors ns2 = computeneighborslist(g2);
+    if (g1->dim != g2->dim || ns1->maxdegree != ns2->maxdegree)
+        return maps;
 
     // to do: save time in most cases by checking that ns1 matches ns2
 
-    FP* fps1ptr = (FP*)malloc(g1.dim * sizeof(FP));
-    for (vertextype n = 0; n < g1.dim; ++n) {
+    int dim = g1->dim;
+
+    FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
+    for (int n = 0; n < dim; ++n) {
         fps1ptr[n].v = n;
         fps1ptr[n].ns = nullptr;
         fps1ptr[n].nscnt = 0;
         fps1ptr[n].parent = nullptr;
+        fps1ptr[n].invert = ns1->degrees[n] >= int(dim/2);
     }
 
-    takefingerprint(ns1,fps1ptr,g1.dim);
+    takefingerprint(ns1,fps1ptr,dim);
 
     //osfingerprint(std::cout,ns1,fps1,g1.dim);
 
-    FP* fps2ptr = (FP*)malloc(g2.dim * sizeof(FP));
+    FP* fps2ptr = (FP*)malloc(dim * sizeof(FP));
 
-    for (vertextype n = 0; n < g2.dim; ++n) {
+    for (int n = 0; n < dim; ++n) {
         fps2ptr[n].v = n;
         fps2ptr[n].ns = nullptr;
         fps2ptr[n].nscnt = 0;
         fps2ptr[n].parent = nullptr;
+        fps2ptr[n].invert = ns2->degrees[n] >= int(dim/2);
     }
 
-    takefingerprint(ns2,fps2ptr,g2.dim);
+    takefingerprint(ns2,fps2ptr,dim);
 
     //osfingerprint(std::cout,ns2,fps2,g2.dim);
 
@@ -685,22 +782,22 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
     //vertextype del[g1.dim+2];
 
     vertextype* delptr;
-    delptr = (vertextype*)malloc((g1.dim+2)*sizeof(vertextype));
+    delptr = (vertextype*)malloc((dim+2)*sizeof(vertextype));
 
 
     int delcnt = 0;
     delptr[delcnt] = 0;
     ++delcnt;
-    for( vertextype n = 0; n < g1.dim-1; ++n ) {
-        if (ns1.degrees[fps1ptr[n].v] != ns2.degrees[fps2ptr[n].v])
-            return *maps; // return empty set of maps
-        int res1 = FPcmp(ns1,ns1,fps1ptr[n],fps1ptr[n+1]);
-        int res2 = FPcmp(ns2,ns2,fps2ptr[n],fps2ptr[n+1]);
+    for( vertextype n = 0; n < dim-1; ++n ) {
+        if (ns1->degrees[fps1ptr[n].v] != ns2->degrees[fps2ptr[n].v])
+            return maps; // return empty set of maps
+        int res1 = FPcmp(ns1,ns1,&fps1ptr[n],&fps1ptr[n+1]);
+        int res2 = FPcmp(ns2,ns2,&fps2ptr[n],&fps2ptr[n+1]);
         if (res1 != res2)
-            return *maps;  // return empty set of maps
+            return maps;  // return empty set of maps
         if (res1 < 0) {
             std::cout << "Error: not sorted (n == " << n << ", res1 == "<<res1<<")\n";
-            return *maps;
+            return maps;
         }
         if (res1 > 0) {
             delptr[delcnt] = n+1;
@@ -709,7 +806,7 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
         }
     }
 
-    delptr[delcnt] = g1.dim;
+    delptr[delcnt] = dim;
 
 
 #ifdef THREADED1
@@ -755,7 +852,7 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
             }
             maps->clear();
             for (int i = 0; i < newmaps.size(); ++i ) {
-                if (ispartialiso(g1,g2,newmaps[i])) {
+                if (ispartialiso(*g1,*g2,newmaps[i])) {
                     maps->push_back(newmaps[i]);
                 }
             }
@@ -763,7 +860,7 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
             // the case when permsidx >= MAXFACTORIAL
 
 
-#ifdef NOTTHREADED1
+#ifndef THREADED1
             for (int k = 0; k < maps->size(); ++k) {
                 std::vector<vertextype> targetset {};
                 for (int j = 0; j < permsidx; ++j) {
@@ -771,7 +868,7 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
                     //std::cout << targetset[targetset.size()-1] << "\n";;
                 }
                 if (permsidx > 0) {
-                    fastgetpermutations(targetset,g1,g2,fps1ptr,fps2ptr,delptr[l],(*maps)[k],&(newmaps));
+                    fastgetpermutations(targetset,*g1,*g2,fps1ptr,fps2ptr,delptr[l],(*maps)[k],&(newmaps));
 
                 }
             }
@@ -906,9 +1003,9 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
     }*/
 
     free(delptr);
-    freefps(fps1ptr,g1.dim);
+    freefps(fps1ptr,g1->dim);
     free(fps1ptr);
-    freefps(fps2ptr,g2.dim);
+    freefps(fps2ptr,g2->dim);
     free(fps2ptr);
 #ifdef THREADPOOL1
     free(pool);
@@ -916,14 +1013,14 @@ std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 ) {
     //std::vector<graphmorphism>* tmp = new std::vector<graphmorphism>;
     //tmp->clear();
 
-    return *maps;
+    return maps;
 }
 
-int edgecnt( graph g ) {
+int edgecnt( graphtype* g ) {
     int res = 0;
-    for (int n = 0; n < g.dim; ++n) {
-        for (int i = n+1; i < g.dim; ++i) {
-            if (g.adjacencymatrix[n*g.dim + i]) {
+    for (int n = 0; n < g->dim; ++n) {
+        for (int i = n+1; i < g->dim; ++i) {
+            if (g->adjacencymatrix[n*g->dim + i]) {
                 res++;
             }
         }
@@ -931,7 +1028,7 @@ int edgecnt( graph g ) {
     return res;
 }
 
-void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, int depth ) {
+void osfingerprintrecurse( std::ostream &os, neighbors* ns, FP* fps, int fpscnt, int depth ) {
     for (int i = 0; i < depth; ++i) {
         os << "   ";
     }
@@ -940,7 +1037,7 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
         for (int i = 0; i < depth+1; ++i) {
             os << "   ";
         }
-        os << "{v, deg v} == {" << fps[n].v << ", " << ns.degrees[fps[n].v] << "}\n";
+        os << "{v, deg v} == {" << fps[n].v << ", " << ns->degrees[fps[n].v] << "}\n";
         osfingerprintrecurse( os, ns, fps[n].ns, fps[n].nscnt,depth+1 );
         if (fps[n].nscnt == 0) {
             for (int i = 0; i < depth+1; ++i) {
@@ -969,7 +1066,7 @@ void osfingerprintrecurse( std::ostream &os, neighbors ns, FP* fps, int fpscnt, 
 }
 
 
-void osfingerprintrecurseminimal( std::ostream &os, neighbors ns, FP* fps, int fpscnt, std::vector<vertextype> path ) {
+void osfingerprintrecurseminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt, std::vector<vertextype> path ) {
     std::vector<vertextype> tmppath {};
     for (int n = 0; n < fpscnt; ++n) {
         tmppath.clear();
@@ -980,7 +1077,7 @@ void osfingerprintrecurseminimal( std::ostream &os, neighbors ns, FP* fps, int f
         osfingerprintrecurseminimal(os, ns, fps[n].ns, fps[n].nscnt,tmppath);
         if (fps[n].nscnt == 0) {
             for (int i = 0; i < tmppath.size(); ++i) {
-                os << ns.degrees[tmppath[i]] << " ";
+                os << ns->degrees[tmppath[i]] << " ";
             }
             os << "\n";
         }
@@ -989,44 +1086,51 @@ void osfingerprintrecurseminimal( std::ostream &os, neighbors ns, FP* fps, int f
 
 
 
-void osfingerprint( std::ostream &os, neighbors ns, FP* fps, int fpscnt ) {
+void osfingerprint( std::ostream &os, neighbors* ns, FP* fps, int fpscnt ) {
     osfingerprintrecurse( os, ns, fps, fpscnt, 0 );
     os << "\n";
 }
 
-void osfingerprintminimal( std::ostream &os, neighbors ns, FP* fps, int fpscnt ) {
+void osfingerprintminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt ) {
     std::vector<vertextype> nullpath {};
     osfingerprintrecurseminimal( os, ns, fps, fpscnt, nullpath );
 }
 
 
-void osadjacencymatrix( std::ostream &os, graph g ) {
-    for (int n = 0; n < g.dim; ++n ) {
-        for (int i = 0; i < g.dim; ++i) {
-            os << g.adjacencymatrix[n*g.dim + i] << " ";
+void osadjacencymatrix( std::ostream &os, graphtype* g ) {
+    for (int n = 0; n < g->dim; ++n ) {
+        for (int i = 0; i < g->dim; ++i) {
+            os << g->adjacencymatrix[n*g->dim + i] << " ";
         }
         os << "\n";
     }
 }
 
-void osneighbors( std::ostream &os, neighbors ns ) {
-    for (int n = 0; n < ns.g.dim; ++n ) {
-        os << "ns.degrees["<<n<<"] == "<<ns.degrees[n]<<": ";
-        for (int i = 0; i < ns.degrees[n]; ++i) {
-            os << ns.neighborslist[n*ns.g.dim + i] << ", " ;
+void osneighbors( std::ostream &os, neighborstype* ns ) {
+    for (int n = 0; n < ns->g->dim; ++n ) {
+        os << "ns.degrees["<<n<<"] == "<<ns->degrees[n]<<": ";
+        for (int i = 0; i < ns->degrees[n]; ++i) {
+            os << ns->neighborslist[n*ns->g->dim + i] << ", " ;
+        }
+        os << "\b\b\n";
+    }
+    for (int n = 0; n < ns->g->dim; ++n ) {
+        os << "ns.degrees["<<n<<"] == "<<ns->degrees[n]<<" (non-neighbors): ";
+        for (int i = 0; i < ns->g->dim - ns->degrees[n] - 1; ++i) {
+            os << ns->nonneighborslist[n*ns->g->dim + i] << ", " ;
         }
         os << "\b\b\n";
     }
 }
 
-void osedges( std::ostream &os, graph g) {
-    if (g.adjacencymatrix == nullptr) {
+void osedges( std::ostream &os, graphtype* g) {
+    if (g->adjacencymatrix == nullptr) {
         return;
     }
     bool found = false;
-    for (int i = 0; i < g.dim-1; ++i) {
-        for (int j = i+1; j < g.dim; ++j) {
-            if (g.adjacencymatrix[g.dim*i + j]) {
+    for (int i = 0; i < g->dim-1; ++i) {
+        for (int j = i+1; j < g->dim; ++j) {
+            if (g->adjacencymatrix[g->dim*i + j]) {
                 found = true;
                 os << "[" << i << "," << j << "], ";
             }
@@ -1039,11 +1143,11 @@ void osedges( std::ostream &os, graph g) {
 
 }
 
-void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps ) {
-    for (int n = 0; n < maps.size(); ++n) {
-        os << "Map number " << n+1 << " of " << maps.size() << ":\n";
+void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism>* maps ) {
+    for (int n = 0; n < maps->size(); ++n) {
+        os << "Map number " << n+1 << " of " << maps->size() << ":\n";
         for (int i = 0; i < maps[n].size(); ++i) {
-            os << maps[n][i].first << " maps to " << maps[n][i].second << "\n";
+            os << (*maps)[n][i].first << " maps to " << (*maps)[n][i].second << "\n";
         }
     }
 }

@@ -19,84 +19,72 @@
 
 int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int outof ) { // returns the count of how many pairs share a fingerprint
     int cnt = 0;
-    graph g5;
-    g5.dim = dim;
-    g5.adjacencymatrix = (bool*)malloc(g5.dim * g5.dim * sizeof(bool));
-
-    graph g6;
-    g6.dim = dim;
-    g6.adjacencymatrix = (bool*)malloc(g6.dim * g6.dim * sizeof(bool));
+    auto g5 = new graphtype(dim);
+    auto g6 = new graphtype(dim);
 
     for (int i = 0; i < outof; ++i) {
-        rg->randomgraph(&g5,edgecnt);
+        rg->randomgraph(g5,edgecnt);
         //osadjacencymatrix(std::cout,g5);
         //std::cout << "\n";
-        rg->randomgraph(&g6,edgecnt);
+        rg->randomgraph(g6,edgecnt);
         //osadjacencymatrix(std::cout,g6);
         //std::cout << "\n\n";
 
-        neighbors ns5;
-        ns5 = computeneighborslist(g5);
+        auto ns5 = new neighbors(g5);
         //osneighbors(std::cout,ns5);
 
-        neighbors ns6;
-        ns6 = computeneighborslist(g6);
-        //osneighbors(std::cout,ns6);
+        auto ns6 = new neighbors(g6);
+        //osneighbors(std::cout,ns5);
 
-        FP fps5[g5.dim];
-        for (vertextype n = 0; n < g5.dim; ++n) {
+        FP fps5[dim];
+        for (vertextype n = 0; n < dim; ++n) {
             fps5[n].v = n;
             fps5[n].ns = nullptr;
             fps5[n].nscnt = 0;
             fps5[n].parent = nullptr;
         }
 
-        takefingerprint(ns5,fps5,g5.dim);
+        takefingerprint(ns5,fps5,dim);
 
         //osfingerprint(std::cout,ns5,fps5,g5.dim);
 
-        FP fps6[g6.dim];
-        for (vertextype n = 0; n < g6.dim; ++n) {
+        FP fps6[g6->dim];
+        for (vertextype n = 0; n < dim; ++n) {
             fps6[n].v = n;
             fps6[n].ns = nullptr;
             fps6[n].nscnt = 0;
             fps6[n].parent = nullptr;
         }
 
-        takefingerprint(ns6,fps6,g6.dim);
+        takefingerprint(ns6,fps6,dim);
 
         FP fpstmp5;
         fpstmp5.parent = nullptr;
         fpstmp5.ns = fps5;
-        fpstmp5.nscnt = g5.dim;
+        fpstmp5.nscnt = dim;
 
         FP fpstmp6;
         fpstmp6.parent = nullptr;
         fpstmp6.ns = fps6;
-        fpstmp6.nscnt = g6.dim;
+        fpstmp6.nscnt = dim;
 
         //osfingerprint(std::cout,ns6,fps6,g6.dim);
-        if (FPcmp(ns5,ns6,fpstmp5,fpstmp6) == 0) {
+        if (FPcmp(ns5,ns6,&fpstmp5,&fpstmp6) == 0) {
             //std::cout << "Fingerprints MATCH\n";
             cnt++;
         } else {
             //std::cout << "Fingerprints DO NOT MATCH\n";
         }
-        freefps(fps5, g5.dim);
-        freefps(fps6, g6.dim);
-        free(ns5.neighborslist);
-        free(ns5.degrees);
-        free(ns6.neighborslist);
-        free(ns6.degrees);
+        freefps(fps5, dim);
+        freefps(fps6, dim);
+        delete ns5;
+        delete ns6;
     }
     //verboseio vio;
     //verbosedbio vdbio(getenv("DBSERVER"), getenv("DBUSR"), getenv("DBPWD"), getenv("DBSCHEMA"));
     //vio = vdbio;
     //vio.output("Random probability of fingerprints matching is " + std::to_string(cnt) + " out of " + std::to_string(outof) + " == " + std::to_string(float(cnt)/float(outof)) + "\n");
     // the above four lines are commented out until MySQL C++ Connector is up and working (i.e. in files verboseio.h/cpp)
-
-    free(g5.adjacencymatrix);
-    free(g6.adjacencymatrix);
     return cnt;
 
 }
@@ -123,7 +111,7 @@ std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const f
 
 
 
-std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
+std::vector<graphtype*> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
 /*    std::vector<graph> gv {};
     gv.resize(cnt);
 

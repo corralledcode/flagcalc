@@ -4,29 +4,115 @@
 
 #ifndef GRAPHS_H
 #define GRAPHS_H
+#include <iostream>
 #include <ostream>
 #include <vector>
 
 using vertextype = int;
+using vltype = std::string();
 
 
-struct graph {
-    vertextype dim;
+class graph {
+public:
+    int dim;
     bool* adjacencymatrix;
+    graph(int dim) {
+        this->dim = dim;
+        adjacencymatrix = (bool*)malloc(dim*dim*sizeof(bool));
+    }
+    ~graph() {
+        //free(adjacencymatrix);
+    }
 };
 
-struct neighbors {
-    graph g;
-    vertextype* neighborslist;
+template< typename T >
+class labelledgraph : public graph {
+public:
+    std::vector<T> vertexlabels;
+
+    labelledgraph( int dim ) : graph( dim ) {
+        //vertexlabels = (T*)malloc(dim*sizeof(T));
+    }
+
+    ~labelledgraph() {
+        //vertexlabels);
+        //free(vertexlabels);
+        graph::~graph();
+    }
+};
+
+using graphtype = graph;
+//using graphtype = labelledgraph<vltype>;
+
+class neighbors {
+public:
+    graphtype* g;
+    int dim;
+    int* neighborslist;
     int* degrees;
     int maxdegree;
+    int* nonneighborslist;
+    bool computeneighborslist() {
+        maxdegree = -1;
+        neighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
+        nonneighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
+        degrees = (int*)malloc(dim * sizeof(int) );
+        int nondegrees[dim];
+        for (int n = 0; n < dim; ++n) {
+            degrees[n] = 0;
+            for (int i = 0; i < dim; ++i) {
+                if (g->adjacencymatrix[n*dim + i]) {
+                    neighborslist[n * dim + degrees[n]] = i;
+                    degrees[n]++;
+                }
+            }
+            maxdegree = (degrees[n] > maxdegree ? degrees[n] : maxdegree );
+        }
+        for (int n = 0; n < dim; ++n) {
+            nondegrees[n] = 0;
+            for (int i = 0; i < dim; ++i) {
+                if (!g->adjacencymatrix[n*dim + i] && (n != i)) {
+                    nonneighborslist[n*dim + nondegrees[n]] = i;
+                    nondegrees[n]++;
+                }
+            }
+        }
+        for (int n = 0; n < dim; ++n) {
+            if (degrees[n] + nondegrees[n] != dim-1) {
+                std::cout << "BUG in computeneighborslist\n";
+                return false;
+            }
+        }
+
+        return true;
+    }
+    neighbors(graphtype* gin) {
+        g = gin;
+        if (g == nullptr) {
+            std::cout << "Can't create a neighbor object with a null graph\n";
+            dim = 0;
+            maxdegree=0;
+            return;
+        }
+        dim = g->dim;
+        maxdegree = 0;
+        computeneighborslist();
+    }
+    ~neighbors() {
+        free(neighborslist);
+        free(nonneighborslist);
+    }
+
 };
 
+using neighborstype = neighbors;
+
 struct FP {
-    vertextype v;
+    int v;
     FP* ns; //neighbors
     int nscnt;  // note differs from parent's neighbor count because we are only considering non repeating walks
     FP* parent = nullptr;
+    bool invert; // use non-neighbors if degree is more than half available
 };
 
 using graphmorphism = std::vector<std::pair<vertextype,vertextype>>;
@@ -34,40 +120,42 @@ using graphmorphism = std::vector<std::pair<vertextype,vertextype>>;
 int cmpwalk( neighbors ns, FP w1, FP w2 );
 
 
-int FPcmp( neighbors ns1, neighbors ns2, FP w1, FP w2 );
+int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 );
 
-void sortneighbors( neighbors ns, FP* fps, int fpscnt );
+void sortneighbors( neighbors* ns, FP* fps, int fpscnt );
 
-void takefingerprint( neighbors ns, FP* fps, int fpscnt );
+void takefingerprint( neighbors* ns, FP* fps, int fpscnt );
 
 void freefps( FP* fps, int fpscnt );
 
-neighbors computeneighborslist( graph g );
+/* superceded by class method of class neighbors
+neighbors computeneighborslist( graphtypeg );
+*/
 
 void sortneighborslist( neighbors* nsptr );
 
 int seqtoindex( vertextype* seq, const int idx, const int sz );
 
-bool isiso( graph g1, graph g2, graphmorphism map );
+bool isiso( graphtype g1, graphtype g2, graphmorphism map );
 
-std::vector<graphmorphism> enumisomorphisms( neighbors ns1, neighbors ns2 );
+std::vector<graphmorphism>* enumisomorphisms( neighbors* ns1, neighbors* ns2 );
 
-int edgecnt( graph g );
-
-
-//bool areisomorphic( graph g1, graph g2, neighbors ns1, neighbors ns2 );
-
-void osfingerprint( std::ostream &os, neighbors ns, FP* fps, int fpscnt );
-
-void osfingerprintminimal( std::ostream &os, neighbors ns, FP* fps, int fpscnt );
+int edgecnt( graphtype* g );
 
 
-void osadjacencymatrix( std::ostream &os, graph g );
+//bool areisomorphic( graphtype g1, graphtype g2, neighbors ns1, neighbors ns2 );
 
-void osneighbors( std::ostream &os, neighbors ns );
+void osfingerprint( std::ostream &os, neighbors* ns, FP* fps, int fpscnt );
 
-void osedges( std::ostream &os, graph g );
+void osfingerprintminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt );
 
-void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism> maps );
+
+void osadjacencymatrix( std::ostream &os, graphtype* g );
+
+void osneighbors( std::ostream &os, neighbors* ns );
+
+void osedges( std::ostream &os, graphtype* g );
+
+void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism>* maps );
 
 #endif //GRAPHS_H
