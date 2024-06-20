@@ -165,59 +165,30 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
 */
 
 
-
-    if (w1->invert != w2->invert) {
+/*    if (w1->invert != w2->invert) {
         return (w1->invert ? -1 : 1);
     }
+*/
+    int multiplier = (w1->invert ? -1 : 1);
+    //multiplier = 1;
 
-    if (!w1->invert) {
-        if (w1->nscnt > w2->nscnt) {
-            return -1;
-        } else {
-            if (w1->nscnt < w2->nscnt) {
-                return 1;
-            }
+    if (w1->nscnt > w2->nscnt) {
+        return (-1)*multiplier;
+    } else {
+        if (w1->nscnt < w2->nscnt) {
+            return multiplier;
         }
+    }
 
-        for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
-            if (w1->ns[n].invert != w2->ns[n].invert) {
-                return (w1->ns[n].invert ? -1 : 1);
-            }
-            if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
-                return 1;
-            } else {
-                if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
-                    return -1;
-                }
-            }
+    for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
+        if (w1->ns[n].invert != w2->ns[n].invert) {
+            return (w1->ns[n].invert ? -1 : 1);
         }
-    } else {  // if inverted then reverse the ordering
-
-        if (w1->nscnt > w2->nscnt) {
+        if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
             return 1;
         } else {
-            if (w1->nscnt < w2->nscnt) {
-                return -1;
-            }
-        }
-
-//        if (ns1->degrees == nullptr || ns2->degrees == nullptr) {
-//            std::cout << "ERROR\n";
-//        }
-//        if (w1 == nullptr || w2 == nullptr) {
-//            std::cout << "ERROR2\n";
-//        }
-
-        for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
-            if (w1->ns[n].invert != w2->ns[n].invert) {
-                return (w1->ns[n].invert ? -1 : 1);
-            }
-            if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
-                return 1;
-            } else {
-                if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
-                    return -1;
-                }
+            if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
+                return (-1);
             }
         }
     }
@@ -228,7 +199,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
         res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
         n++;
     }
-    return res;
+    return res * multiplier;
 }
 
 inline int partition2( std::vector<int> &arr, int start, int end, neighbors* ns, FP* fpslist ) {
