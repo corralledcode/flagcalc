@@ -775,43 +775,13 @@ public:
 
         std::vector<neighbors*> nslist {};
         nslist.resize(items.size());
-        /*
-        std::vector<graphtype*> glist {};
-        glist.resize(items.size());
-        std::vector<FP> fpslist {};
-        fpslist.resize(items.size());
         // code this to run takefingerprint only once if graph 1 = graph 2
-*/
-        for (int i = 0; i < items.size(); ++i) {
+
+        for (int i = 0; i < items.size(); ++i)
+        {
             auto gi = (graphitem*)(_ws->items[items[i]]);
-            //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
-            //gi->ositem(*_os,11741730);
-
-/*
-            FP* fpsptr = (FP*)malloc(gi->g->dim * sizeof(FP));
-            fpslist[i].ns = fpsptr;
-            fpslist[i].parent = nullptr;
-            fpslist[i].nscnt = gi->g->dim;
-            fpslist[i].invert = false;
-
-            for (vertextype n = 0; n < gi->g->dim; ++n) {
-                fpsptr[n].v = n;
-                fpsptr[n].ns = nullptr;
-                fpsptr[n].nscnt = 0;
-                fpsptr[n].parent = nullptr;
-                fpsptr[n].invert = false;
-            }
-            takefingerprint(gi->ns,fpslist[i].ns,gi->g->dim);
-*/            nslist[i] = gi->ns;
-/*            glist[i] = gi->g;
-            std::cout << gi->g->dim << "gdim " << fpslist[i].v << "\n";
-            std::string ts;
-            std::cin >> ts;
-            osfingerprint(std::cout,gi->ns,fpslist[i].ns,gi->g->dim);
-*/
+            nslist[i] = gi->ns;
         }
-        //osfingerprint(*os, gi1->ns, fps1, gi1->g.dim);
-
         if (computeautomorphisms || (items.size() == 1)) {
 
 
@@ -864,11 +834,35 @@ public:
 
         } else {
 
+            std::vector<std::future<std::vector<graphmorphism>*>> t {};
+            t.resize(items.size());
+            for (int m = 0; m < items.size()-1; ++m) {
+                t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m+1]);
+            }
+            std::vector<std::vector<graphmorphism>*> threadgm {};
+            threadgm.resize(items.size());
+            for (int m = 0; m < items.size()-1; ++m) {
+                //t[m].join();
+                //t[m].detach();
+                threadgm[m] = t[m].get();
+            }
+            for (int j=0; j < items.size()-1; ++j) {
+                auto wi = new enumisomorphismsitem;
+                wi->gm = threadgm[j];
+                wi->name = _ws->getuniquename(wi->classname);
+                _ws->items.push_back(wi);
+
+                //freefps(fpslist[j].ns,glist[j]->dim);
+                //delete fpslist[j].ns;
+            }
+
+
+/*
             auto wi = new enumisomorphismsitem;
             wi->gm = enumisomorphisms(nslist[0],nslist[1]);
             wi->name = _ws->getuniquename(wi->classname);
             _ws->items.push_back(wi);
-/*
+
             for (int i = 0; i < fpslist.size(); ++i) {
                 freefps(fpslist[i].ns,glist[i]->dim);
                 delete fpslist[i].ns;
