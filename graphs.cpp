@@ -426,7 +426,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
     int startidx = 0;
     for (int i = 0; i <= md; ++i) {
         FP fps2[sizeofdegree[i]];
-        std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
+        //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
         for (int j = 0; j < sizeofdegree[i]; ++j) {
             fps2[j] = sorted[startidx + j];
         }
@@ -440,7 +440,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
     int startidx2 = 0;
     for (int i = 0; i<=md; ++i) {
         FP fps2[sizeofinverteddegree[i]];
-        std::cout << "i, sizeofinverteddegree[i] == " << i << ", " << sizeofinverteddegree[i] << "\n";
+        //std::cout << "i, sizeofinverteddegree[i] == " << i << ", " << sizeofinverteddegree[i] << "\n";
         for (int k = 0; k < sizeofinverteddegree[i]; ++k) {
             fps2[k] = sortedinverted[(sizeofinverteddegree[i] - k-1) + startidx2 ];
         }
