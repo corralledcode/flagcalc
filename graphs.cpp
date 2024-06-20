@@ -96,6 +96,75 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
 */
     // ... and otherwise ...
 
+    int tmpnscnt1;
+    int tmpnscnt2;
+
+    if (w1->invert)
+        tmpnscnt1 = ns1->g->dim - w1->nscnt - 1;
+    else
+        tmpnscnt1 = w1->nscnt;
+    if (w2->invert)
+        tmpnscnt2 = ns2->g->dim - w2->nscnt - 1;
+    else
+        tmpnscnt2 = w2->nscnt;
+
+    if (tmpnscnt1 > tmpnscnt2) {
+        return -1;
+    } else {
+        if (tmpnscnt1 < tmpnscnt2) {
+            return 1;
+        }
+    }
+
+    if (!w1->invert)
+        if (ns1->degrees[w1->v] < ns2->degrees[w2->v])
+            return 1;
+        else
+            if (ns1->degrees[w1->v] > ns2->degrees[w2->v])
+                return -1;
+
+    if (w1->invert)
+        if (ns1->degrees[w1->v] < ns2->degrees[w2->v])
+            return 1;
+        else
+            if (ns1->degrees[w1->v] > ns2->degrees[w2->v])
+                return -1;
+
+    int n = 0;
+    int res = 0;
+    while ((res == 0) && (n < w1->nscnt)) {
+        res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
+        n++;
+    }
+    return res;
+
+    /*
+
+    for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
+        if (w1->ns[n].invert != w2->ns[n].invert) {
+            return (w1->ns[n].invert ? -1 : 1);
+        }
+        if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
+            return 1;
+        } else {
+            if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
+                return -1;
+            }
+        }
+    }
+
+
+    int n = 0;
+    int res = 0;
+    while ((res == 0) && (n < w1->nscnt)) {
+        res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
+        n++;
+    }
+    return res;
+*/
+
+/*
+
     if (w1->invert != w2->invert) {
         return (w1->invert ? -1 : 1);
     }
@@ -158,7 +227,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
         res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
         n++;
     }
-    return res;
+    return res;*/
 }
 
 inline int partition2( std::vector<int> &arr, int start, int end, neighbors* ns, FP* fpslist ) {
@@ -762,7 +831,10 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
 
     takefingerprint(ns1,fps1ptr,dim);
 
-    //osfingerprint(std::cout,ns1,fps1,g1.dim);
+    sortneighbors(ns1,fps1ptr,dim);
+
+
+    //osfingerprint(std::cout,ns1,fps1ptr,dim);
 
     FP* fps2ptr = (FP*)malloc(dim * sizeof(FP));
 
@@ -775,6 +847,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
     }
 
     takefingerprint(ns2,fps2ptr,dim);
+    sortneighbors(ns2,fps2ptr,dim);
 
     //osfingerprint(std::cout,ns2,fps2,g2.dim);
 
@@ -805,6 +878,9 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
             //std::cout << "inc'ed delcnt\n";
         }
     }
+    if (dim > 0)
+        if (ns1->degrees[fps1ptr[dim-1].v] != ns2->degrees[fps2ptr[dim-1].v])
+            return maps; // return empty set of maps
 
     delptr[delcnt] = dim;
 

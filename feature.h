@@ -657,6 +657,10 @@ public:
         }
 #endif
 
+        for (int m = 0; m < items.size(); ++m)
+        {
+            sortneighbors(wi->nslist[m],wi->fpslist[m]->ns,wi->fpslist[m]->nscnt);
+        }
         bool changed = true;
         bool overallres = true;
         bool overallresdont = true;
