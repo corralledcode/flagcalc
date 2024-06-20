@@ -95,7 +95,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
         return -1;
 */
     // ... and otherwise ...
-
+/*
     int tmpnscnt1;
     int tmpnscnt2;
 
@@ -115,6 +115,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
             return 1;
         }
     }
+
 
     if (!w1->invert)
         if (ns1->degrees[w1->v] < ns2->degrees[w2->v])
@@ -137,7 +138,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
         n++;
     }
     return res;
-
+*/
     /*
 
     for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
@@ -163,7 +164,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
     return res;
 */
 
-/*
+
 
     if (w1->invert != w2->invert) {
         return (w1->invert ? -1 : 1);
@@ -227,7 +228,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
         res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
         n++;
     }
-    return res;*/
+    return res;
 }
 
 inline int partition2( std::vector<int> &arr, int start, int end, neighbors* ns, FP* fpslist ) {
@@ -377,7 +378,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
                                 fps[vidx].ns[tmpn].v = nv;
                                 fps[vidx].ns[tmpn].ns = nullptr;
                                 fps[vidx].ns[tmpn].nscnt = 0;
-                                fps[vidx].ns[tmpn].invert = false; //ns->degrees[fps[vidx].v] >= halfdegree;
+                                fps[vidx].ns[tmpn].invert = ns->degrees[fps[vidx].v] >= halfdegree;
                                 ++tmpn;
                             }
                         }
@@ -396,7 +397,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
                                     fps[vidx].ns[tmpn].v = nv;
                                     fps[vidx].ns[tmpn].ns = nullptr;
                                     fps[vidx].ns[tmpn].nscnt = 0;
-                                    fps[vidx].ns[tmpn].invert = false; //ns->degrees[fps[vidx].v] >= halfdegree;
+                                    fps[vidx].ns[tmpn].invert = ns->degrees[fps[vidx].v] >= halfdegree;
                                     ++tmpn;  // tmp keeps a separate count from n in order to account for the omitted parentv
                                 }
                             }

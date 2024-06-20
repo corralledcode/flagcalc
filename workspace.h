@@ -185,6 +185,7 @@ public:
             //    g->vertexlabels[i] = vertexlabels[i];
         } else {
             this->g = new graphtype(0);
+            this->ns = new neighbors(this->g);
             return false;   // in case only one graph is given, default to computing automorphisms
         }
 

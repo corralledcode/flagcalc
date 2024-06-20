@@ -109,7 +109,7 @@ using neighborstype = neighbors;
 
 struct FP {
     int v;
-    FP* ns; //neighbors
+    FP* ns = nullptr; //neighbors
     int nscnt;  // note differs from parent's neighbor count because we are only considering non repeating walks
     FP* parent = nullptr;
     bool invert; // use non-neighbors if degree is more than half available

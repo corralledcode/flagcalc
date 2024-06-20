@@ -642,7 +642,7 @@ public:
 #endif
 
 #ifndef THREADPOOL5
-            takefingerprint(gi->ns,wi->fpslist[i].ns,gi->g.dim);
+            takefingerprint(gi->ns,wi->fpslist[i]->ns,gi->g->dim);
             //wi->nslist[i] = gi->ns;
             wi->glist[i] = gi->g;
             wi->gnames[i] = gi->name;
@@ -673,7 +673,7 @@ public:
         res.resize(items.size());
 
 #ifdef QUICKSORT
-        quickSort( wi->sorted,0,wi->sorted.size()-1, &(wi->nslist), &(wi->fpslist));
+        quickSort( wi->sorted,0,wi->sorted.size()-1, &wi->nslist, &wi->fpslist);
 
         for (int i = 0; i < items.size()-1; ++i) {
             res[i] = FPcmp(wi->nslist[wi->sorted[i]],wi->nslist[wi->sorted[i+1]],wi->fpslist[wi->sorted[i]],wi->fpslist[wi->sorted[i+1]]);
