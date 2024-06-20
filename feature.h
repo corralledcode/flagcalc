@@ -629,7 +629,7 @@ public:
                 fpsptr[n].ns = nullptr;
                 fpsptr[n].nscnt = 0;
                 fpsptr[n].parent = nullptr;
-                fpsptr[n].invert = wi->nslist[i]->degrees[n] >= gi->g->dim/2;
+                fpsptr[n].invert = wi->nslist[i]->degrees[n] >= (gi->g->dim+1)/2;
             }
 
 #ifdef THREADPOOL5
@@ -656,11 +656,11 @@ public:
             //threadgm[m] = t[m].get();
         }
 #endif
-
+/*
         for (int m = 0; m < items.size(); ++m)
         {
             sortneighbors(wi->nslist[m],wi->fpslist[m]->ns,wi->fpslist[m]->nscnt);
-        }
+        }*/
         bool changed = true;
         bool overallres = true;
         bool overallresdont = true;

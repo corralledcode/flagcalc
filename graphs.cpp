@@ -173,6 +173,14 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
     if (ns1->g->dim != ns2->g->dim)
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
 
+    /*
+    if (w1->nscnt == 0)
+        if (w2->nscnt > 0)
+            return (w1->invert ? -1 : 1);
+    if (w2->nscnt == 0)
+        if (w1->nscnt > 0)
+            return (w2->invert ? 1 : -1);
+*/
     int multiplier = (w1->invert ? -1 : 1);
     //multiplier = 1;
     if (w1->invert != w2->invert)
@@ -304,17 +312,17 @@ void sortneighbors( neighbors* ns, FP* fps, int fpscnt ) {
 void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
 
     if (fpscnt == 0 || ns == nullptr) {
-        fps->nscnt = 0;
-        fps->invert = false;
-        fps->ns = nullptr;
+
         return;
     }
 
     const int dim = ns->g->dim;
     FP sorted[dim];
-    int halfdegree = dim/2;
+    FP sortedinverted[dim];
+    int halfdegree = (dim+1)/2;
     bool invert = false;
     int idx = 0;
+    int invertedidx = 0;
 
     //std::cout << "fpscnt == " << fpscnt << ", ns.maxdegree == " << ns.maxdegree << "\n";
     int md = ns->maxdegree;
@@ -322,19 +330,22 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
         md = dim - ns->maxdegree;
     //md = dim-1;
     int sizeofdegree[md+1];
+    int sizeofinverteddegree[md+1];
     for (int d = 0; d <= md; ++d) {
         sizeofdegree[d] = 0;
+        sizeofinverteddegree[d] = 0;
         //std::cout << "d == " << d << " \n";
         for (int vidx = 0; vidx < fpscnt; ++vidx) {
-            invert = fps[vidx].invert && (d > 0); //(ns->degrees[fps[vidx].v] >= halfdegree);
+            invert = (ns->degrees[fps[vidx].v] >= halfdegree);
             fps[vidx].invert = invert;
             int deg = ( invert ? dim - ns->degrees[fps[vidx].v] -1  : ns->degrees[fps[vidx].v] );
             if (deg == d) {
-                ++sizeofdegree[d];
+
                 FP* parent = fps[vidx].parent;
                 if (parent != nullptr)
-                    if (!parent->invert && !invert) {
+                    if (parent->invert == invert) {
                         deg--;
+                        //std::cout << "Hello world\n";
                     }
                 bool dupe = false;
                 while (!dupe && (parent != nullptr)) {
@@ -389,7 +400,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
                                     ++tmpn;  // tmp keeps a separate count from n in order to account for the omitted parentv
                                 }
                             }
-                            takefingerprint( ns, fps[vidx].ns, tmpn );
+                            takefingerprint( ns, fps[vidx].ns, tmpn  );
                         } else {
                             fps[vidx].ns = nullptr;
                             fps[vidx].nscnt = 0;
@@ -398,8 +409,16 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
                     }
                 }
                 //++sizeofdegree[d];
-                sorted[idx] = fps[vidx];
-                ++idx;
+                if (!fps[vidx].invert) {
+                    sorted[idx] = fps[vidx];
+                    ++idx;
+                    ++sizeofdegree[d];
+                } else {
+                    std::cout << "fps[vidx].invert == " << fps[vidx].invert << "\n";
+                    sortedinverted[invertedidx] = fps[vidx];
+                    ++invertedidx;
+                    ++sizeofinverteddegree[d];
+                }
             }
         }
     }
@@ -407,7 +426,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
     int startidx = 0;
     for (int i = 0; i <= md; ++i) {
         FP fps2[sizeofdegree[i]];
-        //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
+        std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
         for (int j = 0; j < sizeofdegree[i]; ++j) {
             fps2[j] = sorted[startidx + j];
         }
@@ -416,7 +435,22 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
             sorted[startidx+j] = fps2[j];
         }
         startidx = startidx + sizeofdegree[i];
+
     }
+    int startidx2 = 0;
+    for (int i = 0; i<=md; ++i) {
+        FP fps2[sizeofinverteddegree[i]];
+        std::cout << "i, sizeofinverteddegree[i] == " << i << ", " << sizeofinverteddegree[i] << "\n";
+        for (int k = 0; k < sizeofinverteddegree[i]; ++k) {
+            fps2[k] = sortedinverted[(sizeofinverteddegree[i] - k-1) + startidx2 ];
+        }
+        sortneighbors( ns, fps2, sizeofinverteddegree[i] );
+        for (int j = 0; j < sizeofinverteddegree[i]; ++j) {
+            sortedinverted[startidx2+j] = fps2[j];
+        }
+        startidx2 = startidx2 + sizeofinverteddegree[i];
+    }
+
 
     // the following loop can be avoided it seems if we replace "parent" the pointer with a list of vertices already visited
     //std::cout << idx << " " << fpscnt << "\n";
@@ -425,6 +459,13 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
         for(int j = 0; j < fps[i].nscnt; ++j) {
             fps[i].ns[j].parent = &fps[i];
         }
+    }
+    for (int i = 0; i < invertedidx; ++i) {
+        fps[i+idx] = sortedinverted[invertedidx - i - 1];
+        for(int j = 0; j < fps[i+idx].nscnt; ++j) {
+            fps[i+idx].ns[j].parent = &fps[i+idx];
+        }
+
     }
 }
 
@@ -815,7 +856,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
         fps1ptr[n].ns = nullptr;
         fps1ptr[n].nscnt = 0;
         fps1ptr[n].parent = nullptr;
-        fps1ptr[n].invert = ns1->degrees[n] >= int(dim/2);
+        fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
     }
 
     takefingerprint(ns1,fps1ptr,dim);
@@ -832,7 +873,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
         fps2ptr[n].ns = nullptr;
         fps2ptr[n].nscnt = 0;
         fps2ptr[n].parent = nullptr;
-        fps2ptr[n].invert = ns2->degrees[n] >= int(dim/2);
+        fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
     }
 
     takefingerprint(ns2,fps2ptr,dim);
