@@ -169,9 +169,21 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
         return (w1->invert ? -1 : 1);
     }
 */
+
+    if (ns1->g->dim != ns2->g->dim)
+        return ns1->g->dim < ns2->g->dim ? 1 : -1;
+
     int multiplier = (w1->invert ? -1 : 1);
     //multiplier = 1;
+    if (w1->invert != w2->invert)
+        return multiplier;
 
+    /*
+    if (ns1->degrees[w1->v] > ns2->degrees[w2->v])
+        return -1;
+    if (ns1->degrees[w1->v] < ns2->degrees[w2->v])
+        return 1;
+*/
     if (w1->nscnt > w2->nscnt) {
         return (-1)*multiplier;
     } else {
@@ -179,6 +191,7 @@ int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without co
             return multiplier;
         }
     }
+
 
     for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
         if (w1->ns[n].invert != w2->ns[n].invert) {
@@ -290,8 +303,12 @@ void sortneighbors( neighbors* ns, FP* fps, int fpscnt ) {
 
 void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
 
-    if (fpscnt == 0 || ns == nullptr)
+    if (fpscnt == 0 || ns == nullptr) {
+        fps->nscnt = 0;
+        fps->invert = false;
+        fps->ns = nullptr;
         return;
+    }
 
     const int dim = ns->g->dim;
     FP sorted[dim];
@@ -309,7 +326,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
         sizeofdegree[d] = 0;
         //std::cout << "d == " << d << " \n";
         for (int vidx = 0; vidx < fpscnt; ++vidx) {
-            invert = (ns->degrees[fps[vidx].v] >= halfdegree);
+            invert = fps[vidx].invert && (d > 0); //(ns->degrees[fps[vidx].v] >= halfdegree);
             fps[vidx].invert = invert;
             int deg = ( invert ? dim - ns->degrees[fps[vidx].v] -1  : ns->degrees[fps[vidx].v] );
             if (deg == d) {
@@ -376,7 +393,7 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
                         } else {
                             fps[vidx].ns = nullptr;
                             fps[vidx].nscnt = 0;
-                            fps[vidx].invert = false;
+                            fps[vidx].invert = ns->degrees[fps[vidx].v] >= halfdegree;
                         }
                     }
                 }
@@ -781,8 +798,8 @@ bool threadrecurseisomorphisms2(const int l, const int permsidx, const graph g1,
 std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype* ns2 ) {
     if (ns1 == nullptr || ns2 == nullptr)
         return {};
-    graph* g1 = ns1->g;
-    graph* g2 = ns2->g;
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
     std::vector<graphmorphism>* maps = new std::vector<graphmorphism>;
     maps->clear();
     if (g1->dim != g2->dim || ns1->maxdegree != ns2->maxdegree)

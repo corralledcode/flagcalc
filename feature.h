@@ -612,7 +612,7 @@ public:
             //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
             //gi->ositem(*_os,11741730);
 
-            wi->fpslist[i] = (FP*)malloc(gi->g->dim * sizeof(FP));
+            wi->fpslist[i] = (FP*)malloc(sizeof(FP));
             FP* fpsptr = (FP*)malloc(gi->g->dim * sizeof(FP));
             wi->fpslist[i]->ns = fpsptr;
             wi->fpslist[i]->parent = nullptr;
@@ -629,7 +629,7 @@ public:
                 fpsptr[n].ns = nullptr;
                 fpsptr[n].nscnt = 0;
                 fpsptr[n].parent = nullptr;
-                fpsptr[n].invert = false; //wi->nslist[i]->degrees[n] >= gi->g->dim/2;
+                fpsptr[n].invert = wi->nslist[i]->degrees[n] >= gi->g->dim/2;
             }
 
 #ifdef THREADPOOL5

@@ -316,6 +316,7 @@ public:
     }
     void freemem() override {
 /* already freed by graphitem */
+        delete gm;
     }
 
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
