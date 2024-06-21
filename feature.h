@@ -864,7 +864,7 @@ public:
                         for (int n = 0; n < cf->res.size()-1; ++n) {
                             std::cout << sorted[n];
                             if (cf->res[cf->sorted[n]] != 0) {
-                                eqclass.push_back(n+2);
+                                eqclass.push_back(n+1);
                             }
                         }
 
