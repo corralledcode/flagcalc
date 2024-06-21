@@ -1237,20 +1237,47 @@ void osadjacencymatrix( std::ostream &os, graphtype* g ) {
 }
 
 void osneighbors( std::ostream &os, neighborstype* ns ) {
+    bool labels = ns->g->vertexlabels.size()==ns->g->dim;
+    int labelssize[ns->g->dim];
+    int maxlabelsize = 0;
+    if (labels) {
+        for (int n = 0; n < ns->g->dim; ++n) {
+            labelssize[n] = ns->g->vertexlabels[n].size();
+            maxlabelsize = maxlabelsize >= labelssize[n] ? maxlabelsize : labelssize[n];
+        }
+    }
     for (int n = 0; n < ns->g->dim; ++n ) {
-        os << "ns.degrees["<<n<<"] == "<<ns->degrees[n]<<": ";
+        os << "ns.degrees[";
+        if (labels) {
+            os << ns->g->vertexlabels[n];
+        }
+        else {
+            os << n;
+        }
+        if (labels) {
+            for (int i = 0; i < maxlabelsize - labelssize[n]; ++i )
+                os << " ";
+        }
+        os <<"] == "<<ns->degrees[n]<<": ";
         for (int i = 0; i < ns->degrees[n]; ++i) {
-            os << ns->neighborslist[n*ns->g->dim + i] << ", " ;
+            if (labels) {
+                os << ns->g->vertexlabels[ns->neighborslist[n*ns->g->dim + i]];
+            } else {
+                os << ns->neighborslist[n*ns->g->dim + i];
+            }
+            os << ", ";
         }
         os << "\b\b\n";
     }
+
+/*
     for (int n = 0; n < ns->g->dim; ++n ) {
         os << "ns.degrees["<<n<<"] == "<<ns->degrees[n]<<" (non-neighbors): ";
         for (int i = 0; i < ns->g->dim - ns->degrees[n] - 1; ++i) {
             os << ns->nonneighborslist[n*ns->g->dim + i] << ", " ;
         }
         os << "\b\b\n";
-    }
+    }*/
 }
 
 void osedges( std::ostream &os, graphtype* g) {
