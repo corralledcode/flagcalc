@@ -860,19 +860,16 @@ public:
                         std::vector<int> eqclass {};
                         if (cf->sorted.size() == 0)
                             return;
-                        eqclass.push_back(0);
-                        for (int n = 0; n < cf->res.size()-1; ++n) {
-                            std::cout << sorted[n];
-                            if (cf->res[cf->sorted[n]] != 0) {
-                                eqclass.push_back(n+1);
-                            }
-                        }
+                        eqclass.push_back(cf->sorted[0]);
+                        for (int n = 0; n < cf->sorted.size(); ++n)
+                            if (cf->res[n] != 0)
+                                eqclass.push_back(cf->sorted[n+1]);
 
 
                         std::vector<std::future<std::vector<graphmorphism>*>> t {};
                         t.resize(eqclass.size());
                         for (int m = 0; m < eqclass.size(); ++m) {
-                            t[m] = std::async(&enumisomorphisms,cf->nslist[cf->sorted[eqclass[m]]],cf->nslist[cf->sorted[eqclass[m]]]);
+                            t[m] = std::async(&enumisomorphisms,cf->nslist[eqclass[m]],cf->nslist[eqclass[m]]);
                         }
                         std::vector<std::vector<graphmorphism>*> threadgm {};
                         threadgm.resize(eqclass.size());
