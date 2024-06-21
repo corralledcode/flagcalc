@@ -3,7 +3,7 @@
 //
 
 // Use caution: one out of three must be asserted to be #defined:
-//define THREADPOOL1
+//#define THREADPOOL1
 //#define THREADED1
 #define NOTTHREADED1
 
@@ -524,11 +524,11 @@ int seqtoindex( vertextype* seq, const int idx, const int sz ) {
 }
 */
 
-bool ispartialisoonlynewest( graphtype g1, graphtype g2, graphmorphism map) {
+bool ispartialisoonlynewest( const graphtype* g1, const graphtype* g2, const graphmorphism* map) {
     bool match = true;
-    int i = map.size()-1;
-    for (int n = 0; match && (n < map.size()-1); ++n) {
-        match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
+    int i = map->size()-1;
+    for (int n = 0; match && (n < map->size()-1); ++n) {
+        match = match && (g1->adjacencymatrix[(*map)[n].first*g1->dim + (*map)[i].first] == g2->adjacencymatrix[(*map)[n].second*g2->dim + (*map)[i].second]);
     }
     return match;
 }
@@ -621,7 +621,7 @@ void fastgetpermutationscoretmp(int n, const std::vector<vertextype> targetset, 
 */
 
 
-bool fastgetpermutationscore( const std::vector<vertextype> targetset, const graphtype g1, const graphtype g2, const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* resptr) {
+bool fastgetpermutationscore( const std::vector<vertextype> targetset, const graphtype* g1, const graphtype* g2, const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* resptr) {
 /*
            if (targetset.size()>0) {
                 partialmap.push_back({fps1[idx].v,fps2[targetset[0]].v});
@@ -636,7 +636,7 @@ bool fastgetpermutationscore( const std::vector<vertextype> targetset, const gra
     if (targetset.size() <= 1) {
         partialmap.push_back( {fps1[idx].v,fps2[targetset[0]].v});
         resptr->push_back(partialmap);
-        if (ispartialisoonlynewest(g1,g2,partialmap)) {
+        if (ispartialisoonlynewest(g1,g2,&partialmap)) {
             return true;
         } else {
             resptr->resize(resptr->size()-1); // can't seem to get to work erase(partialmap->size()-1);
@@ -659,7 +659,7 @@ bool fastgetpermutationscore( const std::vector<vertextype> targetset, const gra
             if (i != n)
                 newtargetset.push_back(targetset[i]);
         }
-        if (ispartialisoonlynewest(g1,g2,tmppartial)) {
+        if (ispartialisoonlynewest(g1,g2,&tmppartial)) {
             if (fastgetpermutationscore(newtargetset,g1,g2,fps1,fps2,idx+1,tmppartial,resptr)) {
                 resptr->push_back(tmppartial);
             }
@@ -679,7 +679,7 @@ bool fastgetpermutationscore( const std::vector<vertextype> targetset, const gra
 }
 
 
-bool fastgetpermutations( const std::vector<vertextype> targetset, const graphtype g1, const graphtype g2,
+bool fastgetpermutations( const std::vector<vertextype> targetset, const graphtype* g1, const graphtype* g2,
     const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* results) {
 
     // implicit variable "cnt" == targetset.size
@@ -690,7 +690,7 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
     if (targetset.size() <= 1) {
         partialmap.push_back( {fps1[idx].v,fps2[targetset[0]].v});
         results->push_back(partialmap);
-        if (ispartialisoonlynewest(g1,g2,partialmap)) {
+        if (ispartialisoonlynewest(g1,g2,&partialmap)) {
             return true;
         } else {
             results->resize(results->size()-1); // can't seem to get to work erase(partialmap->size()-1);
@@ -713,7 +713,7 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
             if (i != n)
                 newtargetset.push_back(targetset[i]);
         }
-        if (ispartialisoonlynewest(g1,g2,tmppartial)) {
+        if (ispartialisoonlynewest(g1,g2,&tmppartial)) {
             if (fastgetpermutations(newtargetset,g1,g2,fps1,fps2,idx+1,tmppartial,results)) {
                 results->push_back(tmppartial);
             }
@@ -803,8 +803,8 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
 
 
 
-std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int permsidx, const graphtype g1, const graphtype g2, const int* del,
-    const FP* fps1, const FP* fps2, graphmorphism parentmap ) {
+std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int permsidx, const graphtype* g1, const graphtype* g2, const int* del,
+    const FP* fps1, const FP* fps2, graphmorphism* parentmap ) {
     //std::vector<graphmorphism> newmaps {};
     std::vector<graphmorphism> results {};
     std::vector<vertextype> targetset {};
@@ -813,7 +813,7 @@ std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int perm
         //std::cout << targetset[targetset.size()-1] << "\n";;
     }
     if (permsidx > 0) {
-        fastgetpermutations(targetset,g1,g2,fps1,fps2,del[l],parentmap,&(results));
+        fastgetpermutations(targetset,g1,g2,fps1,fps2,del[l],*parentmap,&results);
         return results;
         //fastgetpermutations(targetset,g1,g2,fps1,fps2,del[l],parentmap,&(newmaps));
 
@@ -966,7 +966,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
             // the case when permsidx >= MAXFACTORIAL
 
 
-#ifndef THREADED1
+#ifdef NOTTHREADED1
             for (int k = 0; k < maps->size(); ++k) {
                 std::vector<vertextype> targetset {};
                 for (int j = 0; j < permsidx; ++j) {
@@ -974,7 +974,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
                     //std::cout << targetset[targetset.size()-1] << "\n";;
                 }
                 if (permsidx > 0) {
-                    fastgetpermutations(targetset,*g1,*g2,fps1ptr,fps2ptr,delptr[l],(*maps)[k],&(newmaps));
+                    fastgetpermutations(targetset,g1,g2,fps1ptr,fps2ptr,delptr[l],(*maps)[k],&(newmaps));
 
                 }
             }
@@ -1006,10 +1006,9 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
             for (int k = 0; k < maps->size(); ++k) {
                 //int a = 4;
                 //threadpool[k] = pool.submit(std::bind(&threadholder::helloworld,this,a,tmpfps1,g1,&maps));
-                res[k].clear();
 
                 threadpool[k] = pool->submit(std::bind(&threadrecurseisomorphisms,l,
-                    permsidx,g1, g2, delptr,fps1ptr,fps2ptr, (*maps)[k]));
+                    permsidx,g1, g2, delptr,fps1ptr,fps2ptr, &((*maps)[k])));
 
                 //                bool threadrecurseisomorphisms(int l, int permsidx, graph g1, graph g2, int* del, FP* fps1, FP* fps2, graphmorphism parentmap,std::vector<graphmorphism>* res) {
 
@@ -1204,9 +1203,34 @@ void osfingerprintminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt 
 
 
 void osadjacencymatrix( std::ostream &os, graphtype* g ) {
+    int labelssize[g->dim];
+    int maxlabelsize = 0;
+    bool labels = g->vertexlabels.size() == g->dim;
+    if (labels) {
+        for (int n = 0; n < g->dim; ++n) {
+            labelssize[n] = g->vertexlabels[n].size();
+            maxlabelsize = maxlabelsize >= labelssize[n] ? maxlabelsize : labelssize[n];
+        }
+        os << " ";
+        for (int n = 0; n < maxlabelsize; ++n) {
+            os << " ";
+        }
+        for (int n = 0; n < g->dim; ++n) {
+            os << g->vertexlabels[n] << " ";
+        }
+        os << "\n";
+    }
     for (int n = 0; n < g->dim; ++n ) {
+        if (labels) {
+            os << g->vertexlabels[n] << " ";
+            for (int j = 0; j < maxlabelsize - labelssize[n]; ++j)
+                os << " ";
+        }
         for (int i = 0; i < g->dim; ++i) {
             os << g->adjacencymatrix[n*g->dim + i] << " ";
+            if (labels)
+                for (int j = 0; j < labelssize[i]-1; ++j)
+                    os << " ";
         }
         os << "\n";
     }

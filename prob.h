@@ -33,7 +33,7 @@ public:
     virtual std::string shortname() {return "";};
     std::string name;
 
-    virtual void randomgraph( graph* gptr, const float edgecnt ) {};
+    virtual void randomgraph( graphtype* gptr, const float edgecnt ) {};
     /* The rules for the above virtual function: it must not modify the object's variables
      * lest it create a contention when threaded. Use local variables instead,
      * e.g. such as _edgecnt; just use the local version of it. */

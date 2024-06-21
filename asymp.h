@@ -32,7 +32,7 @@ public:
     virtual bool checkcriterion( graph* g, neighbors* ns ) {return false;};
 };
 
-inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* cr, graph* g,
+inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* cr, graphtype* g,
     int n, const int outof, int sampled, bool** samplegraph )
 {
     int max = 0;

@@ -41,7 +41,7 @@ public:
     }
 };
 
-using graphtype = graph;
+using graphtype = labelledgraph<std::string>;
 //using graphtype = labelledgraph<vltype>;
 
 class neighbors {

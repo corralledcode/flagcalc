@@ -181,8 +181,13 @@ public:
             for (int i = 0; i <  dim; ++i)
                 for (int n = 0; n< dim; ++n)
                     this->g->adjacencymatrix[n*dim + i] = false;
-            //for (int i = 0; i < vertexlabels.size(); ++i)
-            //    g->vertexlabels[i] = vertexlabels[i];
+
+
+            g->vertexlabels.resize(vertexlabels.size());
+            for (int i = 0; i < vertexlabels.size(); ++i)
+                g->vertexlabels[i] = vertexlabels[i];
+
+
         } else {
             this->g = new graphtype(0);
             this->ns = new neighbors(this->g);
