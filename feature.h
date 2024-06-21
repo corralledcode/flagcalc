@@ -571,7 +571,7 @@ public:
         int numofitemstotake = 0;
 
         if (args.size() > 1) {
-            if (args[1] == "all")
+            if (args[1] == CMDLINE_ALL)
                 takeallgraphitems = true;
             else {
                 takeallgraphitems = false;
@@ -748,15 +748,24 @@ public:
         bool takeallgraphitems = false;
         bool computeautomorphisms = false;
         int numofitemstotake = 2;
+        bool fromfp = false;
 
         if (args.size() > 1) {
-            if (args[1] == "all") {
+            if (args[1] == CMDLINE_ALL) {
                 takeallgraphitems = true;
                 computeautomorphisms = true;
             } else {
-                takeallgraphitems = false;
-                numofitemstotake = 2;   // to do: code the regex of say "c=3" to mean go back three graphs on the workspace
-                // also code a list of indices in reverse chrono order
+                if (args[1] == CMDLINE_ENUMISOSSORTED) {
+                    fromfp = true;
+                    numofitemstotake = 0;
+                    takeallgraphitems = true;
+                    computeautomorphisms = false;
+                }
+                else {
+                    takeallgraphitems = false;
+                    numofitemstotake = 2;   // to do: code the regex of say "c=3" to mean go back three graphs on the workspace
+                    // also code a list of indices in reverse chrono order
+                }
             }
         }
 
@@ -812,6 +821,8 @@ public:
             }
             for (int j=0; j < items.size(); ++j) {
                 auto wi = new enumisomorphismsitem;
+                wi->g1 = nslist[j]->g;
+                wi->g2 = nslist[j]->g;
                 wi->gm = threadgm[j];
                 wi->name = _ws->getuniquename(wi->classname);
                 _ws->items.push_back(wi);
@@ -837,40 +848,66 @@ public:
 #endif
 
         } else {
+            std::vector<int> sorted;
+            std::vector<FP*> fpslist;
+            if (fromfp) {
+                for (auto wi : _ws->items) {
+                    if (wi->classname == "CMPFINGERPRINTS") {
+                        auto cf = (cmpfingerprintsitem*)(wi);
+                        nslist = cf->nslist;
+                        fpslist = cf->fpslist;
+                        sorted = cf->sorted;
+                        std::vector<int> eqclass {};
+                        if (cf->sorted.size() == 0)
+                            return;
+                        eqclass.push_back(0);
+                        for (int n = 0; n < cf->res.size()-1; ++n) {
+                            std::cout << sorted[n];
+                            if (cf->res[cf->sorted[n]] != 0) {
+                                eqclass.push_back(n+2);
+                            }
+                        }
 
-            std::vector<std::future<std::vector<graphmorphism>*>> t {};
-            t.resize(items.size());
-            for (int m = 0; m < items.size()-1; ++m) {
-                t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m+1]);
+
+                        std::vector<std::future<std::vector<graphmorphism>*>> t {};
+                        t.resize(eqclass.size());
+                        for (int m = 0; m < eqclass.size(); ++m) {
+                            t[m] = std::async(&enumisomorphisms,cf->nslist[cf->sorted[eqclass[m]]],cf->nslist[cf->sorted[eqclass[m]]]);
+                        }
+                        std::vector<std::vector<graphmorphism>*> threadgm {};
+                        threadgm.resize(eqclass.size());
+                        for (int m = 0; m < eqclass.size(); ++m) {
+                            //t[m].join();
+                            //t[m].detach();
+                            threadgm[m] = t[m].get();
+                        }
+                        for (int j=0; j < eqclass.size(); ++j) {
+                            auto wi = new enumisomorphismsitem;
+                            wi->gm = threadgm[j];
+                            wi->g1 = nslist[cf->sorted[eqclass[j]]]->g;
+                            wi->g2 = nslist[cf->sorted[eqclass[j]]]->g;
+                            wi->name = _ws->getuniquename(wi->classname);
+                            _ws->items.push_back(wi);
+
+                            //freefps(fpslist[j].ns,glist[j]->dim);
+                            //delete fpslist[j].ns;
+                        }
+                    }
+                }
+            } else {
+                sorted.resize(items.size());
+                for (int n = 0; n < sorted.size(); ++n) {
+                    sorted[n] = n;
+                }
+                if (items.size() == 2) {
+                    auto wi = new enumisomorphismsitem;
+                    wi->g1 = nslist[sorted[0]]->g;
+                    wi->g1 = nslist[sorted[1]]->g;
+                    wi->gm = enumisomorphisms(nslist[sorted[0]],nslist[sorted[1]]);
+                    wi->name = _ws->getuniquename(wi->classname);
+                    _ws->items.push_back(wi);
+                }
             }
-            std::vector<std::vector<graphmorphism>*> threadgm {};
-            threadgm.resize(items.size());
-            for (int m = 0; m < items.size()-1; ++m) {
-                //t[m].join();
-                //t[m].detach();
-                threadgm[m] = t[m].get();
-            }
-            for (int j=0; j < items.size()-1; ++j) {
-                auto wi = new enumisomorphismsitem;
-                wi->gm = threadgm[j];
-                wi->name = _ws->getuniquename(wi->classname);
-                _ws->items.push_back(wi);
-
-                //freefps(fpslist[j].ns,glist[j]->dim);
-                //delete fpslist[j].ns;
-            }
-
-
-/*
-            auto wi = new enumisomorphismsitem;
-            wi->gm = enumisomorphisms(nslist[0],nslist[1]);
-            wi->name = _ws->getuniquename(wi->classname);
-            _ws->items.push_back(wi);
-
-            for (int i = 0; i < fpslist.size(); ++i) {
-                freefps(fpslist[i].ns,glist[i]->dim);
-                delete fpslist[i].ns;
-            }*/
         }
     }
 

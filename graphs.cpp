@@ -698,8 +698,10 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
         }
     }
     graphmorphism tmppartial {};
+
     //std::vector<std::thread> t {};
     //t.resize(targetset.size());
+
     std::vector<std::vector<graphmorphism>> tmpres {};
     tmpres.resize(targetset.size());
     for (int n = 0; n < targetset.size(); ++n) {
@@ -741,7 +743,7 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
     if (targetset.size() <= 1) {
         partialmap.push_back( {fps1[idx].v,fps2[targetset[0]].v});
         results->push_back(partialmap);
-        if (ispartialisoonlynewest(g1,g2,partialmap)) {
+        if (ispartialisoonlynewest(g1,g2,&partialmap)) {
             return true;
         } else {
             results->resize(results->size()-1); // can't seem to get to work erase(partialmap->size()-1);
@@ -758,12 +760,23 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
         tmppartial = partialmap;
         tmppartial.push_back( {fps1[idx].v, fps2[targetset[n]].v});
 
+
+
+
+
+
+
+
+
+
+
+
         std::vector<vertextype> newtargetset {};
         for (int i = 0; i < targetset.size(); ++i) { // this for loop because erase doesn't seem to work
             if (i != n)
                 newtargetset.push_back(targetset[i]);
         }
-        tmpbool[n] = ispartialisoonlynewest(g1,g2,tmppartial);
+        tmpbool[n] = ispartialisoonlynewest(g1,g2,&tmppartial);
         if (tmpbool[n]) {
             t[n] = std::async(fastgetpermutationscore, newtargetset, g1,g2,&(*fps1),&(*fps2),idx,tmppartial, &(tmpres[n]));
         }
@@ -835,58 +848,21 @@ bool threadrecurseisomorphisms2(const int l, const int permsidx, const graph g1,
 }
 */
 
-
-std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype* ns2 ) {
+std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborstype* ns2, FP* fps1ptr, FP* fps2ptr ) {
     if (ns1 == nullptr || ns2 == nullptr)
         return {};
     graphtype* g1 = ns1->g;
     graphtype* g2 = ns2->g;
+    int dim = g1->dim;
     std::vector<graphmorphism>* maps = new std::vector<graphmorphism>;
     maps->clear();
-    if (g1->dim != g2->dim || ns1->maxdegree != ns2->maxdegree)
-        return maps;
 
-    // to do: save time in most cases by checking that ns1 matches ns2
-
-    int dim = g1->dim;
-
-    FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
-    for (int n = 0; n < dim; ++n) {
-        fps1ptr[n].v = n;
-        fps1ptr[n].ns = nullptr;
-        fps1ptr[n].nscnt = 0;
-        fps1ptr[n].parent = nullptr;
-        fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
-    }
-
-    takefingerprint(ns1,fps1ptr,dim);
-
-    //sortneighbors(ns1,fps1ptr,dim);
-
-
-    //osfingerprint(std::cout,ns1,fps1ptr,dim);
-
-    FP* fps2ptr = (FP*)malloc(dim * sizeof(FP));
-
-    for (int n = 0; n < dim; ++n) {
-        fps2ptr[n].v = n;
-        fps2ptr[n].ns = nullptr;
-        fps2ptr[n].nscnt = 0;
-        fps2ptr[n].parent = nullptr;
-        fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
-    }
-
-    takefingerprint(ns2,fps2ptr,dim);
-    //sortneighbors(ns2,fps2ptr,dim);
-
-    //osfingerprint(std::cout,ns2,fps2,g2.dim);
-
-    //vertextype del[ns1.maxdegree+2];
-    //vertextype del[g1.dim+2];
-
-    vertextype* delptr;
+        vertextype* delptr;
     delptr = (vertextype*)malloc((dim+2)*sizeof(vertextype));
 
+    if (dim != g2->dim) {
+        return maps;
+    }
 
     int delcnt = 0;
     delptr[delcnt] = 0;
@@ -1119,6 +1095,60 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
     //tmp->clear();
 
     return maps;
+
+
+}
+
+std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype* ns2 ) {
+    if (ns1 == nullptr || ns2 == nullptr)
+        return {};
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    std::vector<graphmorphism>* maps = new std::vector<graphmorphism>;
+    maps->clear();
+    if (g1->dim != g2->dim || ns1->maxdegree != ns2->maxdegree)
+        return maps;
+
+    // to do: save time in most cases by checking that ns1 matches ns2
+
+    int dim = g1->dim;
+
+    FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
+    for (int n = 0; n < dim; ++n) {
+        fps1ptr[n].v = n;
+        fps1ptr[n].ns = nullptr;
+        fps1ptr[n].nscnt = 0;
+        fps1ptr[n].parent = nullptr;
+        fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
+    }
+
+    takefingerprint(ns1,fps1ptr,dim);
+
+    //sortneighbors(ns1,fps1ptr,dim);
+
+
+    //osfingerprint(std::cout,ns1,fps1ptr,dim);
+
+    FP* fps2ptr = (FP*)malloc(dim * sizeof(FP));
+
+    for (int n = 0; n < dim; ++n) {
+        fps2ptr[n].v = n;
+        fps2ptr[n].ns = nullptr;
+        fps2ptr[n].nscnt = 0;
+        fps2ptr[n].parent = nullptr;
+        fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
+    }
+
+    takefingerprint(ns2,fps2ptr,dim);
+    //sortneighbors(ns2,fps2ptr,dim);
+
+    //osfingerprint(std::cout,ns2,fps2,g2.dim);
+
+    //vertextype del[ns1.maxdegree+2];
+    //vertextype del[g1.dim+2];
+
+    maps = enumisomorphismscore(ns1,ns2,fps1ptr,fps2ptr);
+    return maps;
 }
 
 int edgecnt( graphtype* g ) {
@@ -1227,7 +1257,13 @@ void osadjacencymatrix( std::ostream &os, graphtype* g ) {
                 os << " ";
         }
         for (int i = 0; i < g->dim; ++i) {
-            os << g->adjacencymatrix[n*g->dim + i] << " ";
+            char truechar = '1';
+            char falsechar = '0';
+            if (g->adjacencymatrix[n*g->dim + i])
+                os << truechar << " ";
+            else
+                os << falsechar << " ";
+            //os << g->adjacencymatrix[n*g->dim + i] << " ";
             if (labels)
                 for (int j = 0; j < labelssize[i]-1; ++j)
                     os << " ";
@@ -1281,15 +1317,29 @@ void osneighbors( std::ostream &os, neighborstype* ns ) {
 }
 
 void osedges( std::ostream &os, graphtype* g) {
-    if (g->adjacencymatrix == nullptr) {
-        return;
+    int labelssize[g->dim];
+    int maxlabelsize = 0;
+    bool labels = g->vertexlabels.size() == g->dim;
+    if (labels) {
+        for (int n = 0; n < g->dim; ++n) {
+            labelssize[n] = g->vertexlabels[n].size();
+            maxlabelsize = maxlabelsize >= labelssize[n] ? maxlabelsize : labelssize[n];
+        }
+        if (g->adjacencymatrix == nullptr) {
+            return;
+        }
     }
     bool found = false;
     for (int i = 0; i < g->dim-1; ++i) {
         for (int j = i+1; j < g->dim; ++j) {
             if (g->adjacencymatrix[g->dim*i + j]) {
                 found = true;
-                os << "[" << i << "," << j << "], ";
+                os << "[";
+                if (labels)
+                    os << g->vertexlabels[i]<<","<<g->vertexlabels[j];
+                else
+                    os << i << "," << j;
+                os << "], ";
             }
         }
         if (found) {
@@ -1297,14 +1347,46 @@ void osedges( std::ostream &os, graphtype* g) {
             found = false;
         }
     }
-
 }
 
-void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism>* maps ) {
+void osgraphmorphisms( std::ostream &os, graphtype* g1, graphtype* g2, std::vector<graphmorphism>* maps ) {
+    int labelssize1[g1->dim];
+    int maxlabelsize1 = 0;
+    bool labels1 = g1->vertexlabels.size() == g1->dim;
+    if (labels1) {
+        for (int n = 0; n < g1->dim; ++n) {
+            labelssize1[n] = g1->vertexlabels[n].size();
+            maxlabelsize1 = maxlabelsize1 >= labelssize1[n] ? maxlabelsize1 : labelssize1[n];
+        }
+        if (g1->adjacencymatrix == nullptr) {
+            return;
+        }
+    }
+    int labelssize2[g2->dim];
+    int maxlabelsize2 = 0;
+    bool labels2 = g2->vertexlabels.size() == g2->dim;
+    if (labels2) {
+        for (int n = 0; n < g2->dim; ++n) {
+            labelssize2[n] = g2->vertexlabels[n].size();
+            maxlabelsize2 = maxlabelsize2 >= labelssize2[n] ? maxlabelsize2 : labelssize2[n];
+        }
+        if (g2->adjacencymatrix == nullptr) {
+            return;
+        }
+    }
     for (int n = 0; n < maps->size(); ++n) {
         os << "Map number " << n+1 << " of " << maps->size() << ":\n";
-        for (int i = 0; i < maps[n].size(); ++i) {
-            os << (*maps)[n][i].first << " maps to " << (*maps)[n][i].second << "\n";
+        for (int i = 0; i < (*maps)[n].size(); ++i) {
+            if (labels1)
+                os << g1->vertexlabels[(*maps)[n][i].first];
+            else
+                os << (*maps)[n][i].first;
+            os << " maps to ";
+            if (labels2)
+                os << g2->vertexlabels[(*maps)[n][i].second];
+            else
+                os << (*maps)[n][i].second;
+            os << "\n";
         }
     }
 }

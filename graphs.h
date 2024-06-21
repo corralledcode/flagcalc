@@ -138,6 +138,8 @@ int seqtoindex( vertextype* seq, const int idx, const int sz );
 
 bool isiso( graphtype g1, graphtype g2, graphmorphism map );
 
+std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborstype* ns2, FP* fps1ptr, FP* fps2ptr );
+
 std::vector<graphmorphism>* enumisomorphisms( neighbors* ns1, neighbors* ns2 );
 
 int edgecnt( graphtype* g );
@@ -156,6 +158,6 @@ void osneighbors( std::ostream &os, neighbors* ns );
 
 void osedges( std::ostream &os, graphtype* g );
 
-void osgraphmorphisms( std::ostream &os, std::vector<graphmorphism>* maps );
+void osgraphmorphisms( std::ostream &os, graphtype* g1, graphtype* g2, std::vector<graphmorphism>* maps );
 
 #endif //GRAPHS_H

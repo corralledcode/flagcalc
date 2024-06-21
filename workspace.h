@@ -32,6 +32,10 @@
 #define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
 #define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
 
+#define VERBOSE_FORDB "db"
+
+#define CMDLINE_ALL "all"
+#define CMDLINE_ENUMISOSSORTED "sorted"
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
     std::string tmp2 = " " + s2 + " ";
@@ -133,7 +137,7 @@ public:
         } else {
             if (g != nullptr)
                 osadjacencymatrix(os,g);
-            //osedges(os,g);  // duplicates osneighbors
+            osedges(os,g);  // duplicates osneighbors
             if (ns != nullptr)
                 osneighbors(os,ns);
         }
@@ -314,6 +318,8 @@ public:
 
 class enumisomorphismsitem : public workitems {
 public:
+    graphtype* g1;
+    graphtype* g2;
     std::vector<graphmorphism>* gm;
     enumisomorphismsitem() : workitems() {
         classname = "GRAPHISOS";
@@ -329,7 +335,7 @@ public:
         os << "Total number of isomorphisms == " << gm->size() << "\n";
         if (verbositycmdlineincludes(verbositylevel, VERBOSE_DONTLISTISOS)) {
         } else {
-            osgraphmorphisms(os, gm);
+            osgraphmorphisms(os, g1,g2, gm);
         }
         return true;
     }
