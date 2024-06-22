@@ -120,7 +120,7 @@ using graphmorphism = std::vector<std::pair<vertextype,vertextype>>;
 int cmpwalk( neighbors ns, FP w1, FP w2 );
 
 
-int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 );
+int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 );
 
 void sortneighbors( neighbors* ns, FP* fps, int fpscnt );
 
@@ -138,7 +138,7 @@ int seqtoindex( vertextype* seq, const int idx, const int sz );
 
 bool isiso( graphtype g1, graphtype g2, graphmorphism map );
 
-std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborstype* ns2, FP* fps1ptr, FP* fps2ptr );
+std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, const neighborstype* ns2, const FP* fps1ptr, const FP* fps2ptr );
 
 std::vector<graphmorphism>* enumisomorphisms( neighbors* ns1, neighbors* ns2 );
 

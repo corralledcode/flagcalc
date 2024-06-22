@@ -870,15 +870,14 @@ public:
                         if (cf->sorted.size() == 0)
                             return;
                         eqclass.push_back(cf->sorted[0]);
-                        for (int n = 0; n < cf->sorted.size(); ++n)
+                        for (int n = 0; n < cf->sorted.size()-1; ++n)
                             if (cf->res[n] != 0)
                                 eqclass.push_back(cf->sorted[n+1]);
-
 
                         std::vector<std::future<std::vector<graphmorphism>*>> t {};
                         t.resize(eqclass.size());
                         for (int m = 0; m < eqclass.size(); ++m) {
-                            t[m] = std::async(&enumisomorphisms,cf->nslist[eqclass[m]],cf->nslist[eqclass[m]]);
+                            t[m] = std::async(&enumisomorphismscore,cf->nslist[eqclass[m]],cf->nslist[eqclass[m]],cf->fpslist[eqclass[m]]->ns,cf->fpslist[eqclass[m]]->ns);
                         }
                         std::vector<std::vector<graphmorphism>*> threadgm {};
                         threadgm.resize(eqclass.size());

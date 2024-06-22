@@ -87,7 +87,7 @@ int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == 
 }
 
 
-int FPcmp( neighbors* ns1, neighbors* ns2, FP* w1, FP* w2 ) { // acts without consideration of self or parents; looks only downwards
+int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) { // acts without consideration of self or parents; looks only downwards
 
     //std::cout << "FPcmp checking in: w1.v == " << w1.v << ", w2.v == " << w2.v << "\n";
 /* take out part that checks parents
@@ -858,7 +858,7 @@ bool threadrecurseisomorphisms2(const int l, const int permsidx, const graphtype
 }
 
 
-std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborstype* ns2, FP* fps1ptr, FP* fps2ptr ) {
+std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, const neighborstype* ns2, const FP* fps1ptr, const FP* fps2ptr ) {
     if (ns1 == nullptr || ns2 == nullptr)
         return {};
     graphtype* g1 = ns1->g;
@@ -1124,10 +1124,6 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
     }*/
 
     free(delptr);
-    freefps(fps1ptr,g1->dim);
-    free(fps1ptr);
-    freefps(fps2ptr,g2->dim);
-    free(fps2ptr);
 #ifdef THREADPOOL1
     free(pool);
 #endif
@@ -1188,6 +1184,12 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
     //vertextype del[g1.dim+2];
 
     maps = enumisomorphismscore(ns1,ns2,fps1ptr,fps2ptr);
+
+    freefps(fps1ptr,g1->dim);
+    free(fps1ptr);
+    freefps(fps2ptr,g2->dim);
+    free(fps2ptr);
+
     return maps;
 }
 
