@@ -749,6 +749,7 @@ public:
         bool computeautomorphisms = false;
         int numofitemstotake = 2;
         bool fromfp = false;
+        bool sortedverify = false;
 
         if (args.size() > 1) {
             if (args[1] == CMDLINE_ALL) {
@@ -762,9 +763,16 @@ public:
                     computeautomorphisms = false;
                 }
                 else {
-                    takeallgraphitems = false;
-                    numofitemstotake = 2;   // to do: code the regex of say "c=3" to mean go back three graphs on the workspace
-                    // also code a list of indices in reverse chrono order
+                    if (args[1] == CMDLIN_ENUMISOSORTEDVERIFY) {
+                        sortedverify = true;
+                        numofitemstotake = 0;
+                        takeallgraphitems = true;
+                        computeautomorphisms = false;
+                    } else {
+                        takeallgraphitems = false;
+                        numofitemstotake = 2;   // to do: code the regex of say "c=3" to mean go back three graphs on the workspace
+                        // also code a list of indices in reverse chrono order
+                    }
                 }
             }
         }
@@ -858,6 +866,7 @@ public:
                         fpslist = cf->fpslist;
                         sorted = cf->sorted;
                         std::vector<int> eqclass {};
+
                         if (cf->sorted.size() == 0)
                             return;
                         eqclass.push_back(cf->sorted[0]);
@@ -892,17 +901,57 @@ public:
                     }
                 }
             } else {
-                sorted.resize(items.size());
-                for (int n = 0; n < sorted.size(); ++n) {
-                    sorted[n] = n;
-                }
-                if (items.size() == 2) {
-                    auto wi = new enumisomorphismsitem;
-                    wi->g1 = nslist[sorted[0]]->g;
-                    wi->g1 = nslist[sorted[1]]->g;
-                    wi->gm = enumisomorphisms(nslist[sorted[0]],nslist[sorted[1]]);
-                    wi->name = _ws->getuniquename(wi->classname);
-                    _ws->items.push_back(wi);
+                if (sortedverify) {
+                    for (auto wi : _ws->items) {
+                        if (wi->classname == "CMPFINGERPRINTS") {
+                            auto cf = (cmpfingerprintsitem*)(wi);
+                            nslist = cf->nslist;
+                            fpslist = cf->fpslist;
+                            sorted = cf->sorted;
+
+                            std::vector<std::future<std::vector<graphmorphism>*>> t {};
+                            t.resize(cf->sorted.size()-1);
+                            for (int m = 0; m < cf->sorted.size()-1; ++m) {
+                                if (cf->res[m]==0) {
+                                    std::cout << "m " << m << "\n";
+                                    t[m] = std::async(&enumisomorphisms,cf->nslist[cf->sorted[m]],cf->nslist[cf->sorted[m+1]]);
+                                }
+                            }
+                            std::vector<std::vector<graphmorphism>*> threadgm {};
+                            threadgm.resize(cf->sorted.size()-1);
+                            for (int m = 0; m < cf->sorted.size()-1; ++m) {
+                                //t[m].join();
+                                //t[m].detach();
+                                if (cf->res[m]==0)
+                                    threadgm[m] = t[m].get();
+                            }
+                            for (int j=0; j < cf->sorted.size()-1; ++j) {
+                                if (cf->res[j]==0) {
+                                    auto wi = new enumisomorphismsitem;
+                                    wi->gm = threadgm[j];
+                                    wi->g1 = cf->nslist[cf->sorted[j]]->g;
+                                    wi->g2 = cf->nslist[cf->sorted[j+1]]->g;
+                                    wi->name = _ws->getuniquename(wi->classname);
+                                    _ws->items.push_back(wi);
+                                }
+                                //freefps(fpslist[j].ns,glist[j]->dim);
+                                //delete fpslist[j].ns;
+                            }
+                        }
+                    }
+                } else {
+                    sorted.resize(items.size());
+                    for (int n = 0; n < sorted.size(); ++n) {
+                        sorted[n] = n;
+                    }
+                    if (items.size() == 2) {
+                        auto wi = new enumisomorphismsitem;
+                        wi->g1 = nslist[sorted[0]]->g;
+                        wi->g1 = nslist[sorted[1]]->g;
+                        wi->gm = enumisomorphisms(nslist[sorted[0]],nslist[sorted[1]]);
+                        wi->name = _ws->getuniquename(wi->classname);
+                        _ws->items.push_back(wi);
+                    }
                 }
             }
         }
