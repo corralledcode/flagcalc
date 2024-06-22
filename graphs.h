@@ -136,7 +136,7 @@ void sortneighborslist( neighbors* nsptr );
 
 int seqtoindex( vertextype* seq, const int idx, const int sz );
 
-bool isiso( graphtype g1, graphtype g2, graphmorphism map );
+bool isiso( const graphtype* g1, const graphtype* g2, const graphmorphism* map );
 
 std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, const neighborstype* ns2, const FP* fps1ptr, const FP* fps2ptr );
 

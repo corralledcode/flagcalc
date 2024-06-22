@@ -656,11 +656,11 @@ public:
             //threadgm[m] = t[m].get();
         }
 #endif
-/*
+
         for (int m = 0; m < items.size(); ++m)
         {
             sortneighbors(wi->nslist[m],wi->fpslist[m]->ns,wi->fpslist[m]->nscnt);
-        }*/
+        }
         bool changed = true;
         bool overallres = true;
         bool overallresdont = true;
@@ -912,8 +912,8 @@ public:
                             t.resize(cf->sorted.size()-1);
                             for (int m = 0; m < cf->sorted.size()-1; ++m) {
                                 if (cf->res[m]==0) {
-                                    std::cout << "m " << m << "\n";
-                            t[m] = std::async(&enumisomorphismscore,cf->nslist[cf->sorted[m]],cf->nslist[cf->sorted[m+1]],cf->fpslist[cf->sorted[m]]->ns,cf->fpslist[cf->sorted[m+1]]->ns);
+                                    //std::cout << "m " << m << "\n";
+                                    t[m] = std::async(&enumisomorphismscore,cf->nslist[cf->sorted[m]],cf->nslist[cf->sorted[m+1]],cf->fpslist[cf->sorted[m]]->ns,cf->fpslist[cf->sorted[m+1]]->ns);
                                 }
                             }
                             std::vector<std::vector<graphmorphism>*> threadgm {};

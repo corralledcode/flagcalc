@@ -3,7 +3,7 @@
 //
 
 // Use caution: one out of three must be asserted to be #defined:
-// The working thread for 1 is THREADED1 (not THREADPOOL1)
+// The working thread for 1 is THREADED1 (not THREADPOOL1) but slower
 //#define THREADPOOL1
 //#define THREADED1
 #define NOTTHREADED1
@@ -536,24 +536,24 @@ bool ispartialisoonlynewest( const graphtype* g1, const graphtype* g2, const gra
 }
 
 
-bool ispartialiso( graphtype g1, graphtype g2, graphmorphism map) {
+bool ispartialiso( const graphtype* g1, const graphtype* g2, graphmorphism* map) {
     bool match = true;
-    for (int n = 0; match && (n < map.size()-1); ++n) {
-        for (int i = n+1; match && (i < map.size()); ++i) {
-            match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
+    for (int n = 0; match && (n < map->size()-1); ++n) {
+        for (int i = n+1; match && (i < map->size()); ++i) {
+            match = match && (g1->adjacencymatrix[(*map)[n].first*g1->dim + (*map)[i].first] == g2->adjacencymatrix[(*map)[n].second*g2->dim + (*map)[i].second]);
         }
     }
     return match;
 }
 
-bool isiso( graphtype g1, graphtype g2, graphmorphism map ) {
+bool isiso( const graphtype* g1, const graphtype* g2, const graphmorphism* map ) {
     bool match = true;
-    if (g1.dim != g2.dim) {
+    if (g1->dim != g2->dim) {
         return false;
     }
-    for (vertextype n = 0; (n < g1.dim-1) && match; ++n ) {
-        for (vertextype i = n+1; (i < g1.dim) && match; ++i ) {
-            match = match && (g1.adjacencymatrix[map[n].first*g1.dim + map[i].first] == g2.adjacencymatrix[map[n].second*g2.dim + map[i].second]);
+    for (vertextype n = 0; (n < g1->dim-1) && match; ++n ) {
+        for (vertextype i = n+1; (i < g1->dim) && match; ++i ) {
+            match = match && (g1->adjacencymatrix[(*map)[n].first*g1->dim + (*map)[i].first] == g2->adjacencymatrix[(*map)[n].second*g2->dim + (*map)[i].second]);
         }
     }
     return match;
@@ -669,6 +669,7 @@ bool fastgetpermutationscore( const std::vector<vertextype>* targetset, const gr
         }
 
     }
+
 
     /*
         for (int n = 0; n < targetset.size(); ++n) {
@@ -974,7 +975,7 @@ std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, cons
             }
             maps->clear();
             for (int i = 0; i < newmaps.size(); ++i ) {
-                if (ispartialiso(*g1,*g2,newmaps[i])) {
+                if (ispartialiso(g1,g2,&newmaps[i])) {
                     maps->push_back(newmaps[i]);
                 }
             }
