@@ -913,7 +913,7 @@ public:
                             for (int m = 0; m < cf->sorted.size()-1; ++m) {
                                 if (cf->res[m]==0) {
                                     std::cout << "m " << m << "\n";
-                                    t[m] = std::async(&enumisomorphisms,cf->nslist[cf->sorted[m]],cf->nslist[cf->sorted[m+1]]);
+                            t[m] = std::async(&enumisomorphismscore,cf->nslist[cf->sorted[m]],cf->nslist[cf->sorted[m+1]],cf->fpslist[cf->sorted[m]]->ns,cf->fpslist[cf->sorted[m+1]]->ns);
                                 }
                             }
                             std::vector<std::vector<graphmorphism>*> threadgm {};
