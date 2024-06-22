@@ -943,11 +943,13 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
     std::vector<std::vector<std::vector<int>>> perms {};
     graphmorphism basemap {};
     maps->push_back(basemap);
+    int fullmapsize = 0;
     for (int l = 0; l<delcnt; ++l) {
         std::vector<graphmorphism> newmaps {};
         //std::cout << "maps.size == " << maps.size() << "\n";
 
         int permsidx = delsizes[delsortedbysize[l]]; //delptr[delsortedbysize[l+1]]-delptr[delsortedbysize[l]];
+        fullmapsize += permsidx;
         //std::cout << "permsidx = " << permsidx << "\n";
         if (permsidx < MAXFACTORIAL) {
             if (permsidx > perms.size())
@@ -994,10 +996,10 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
             }
             maps->clear();
             for (int i = 0; i < newmaps.size(); ++i) {
-                int fullmapsize = 0;
-                for (int j =0; j < l; ++j)
-                    fullmapsize += delsizes[delsortedbysize[j]];
-                if (newmaps[i].size() == fullmapsize + permsidx)
+                //int fullmapsize = 0;
+                //for (int j =0; j < l; ++j)
+                //    fullmapsize += delsizes[delsortedbysize[j]];
+                if (newmaps[i].size() == fullmapsize)
                     maps->push_back(newmaps[i]);
                 //if (newmaps[i].size() == delptr[delsortedbysize[l]] + permsidx)
                 //    maps->push_back(newmaps[i]);
