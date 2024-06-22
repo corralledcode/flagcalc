@@ -28,6 +28,7 @@
 #define VERBOSE_FINGERPRINT "Fp"
 #define VERBOSE_SAMPLERANDOMMATCHING "srm"
 #define VERBOSE_FPMINIMAL "FpMin"
+#define VERBOSE_FPNONE "fpnone"
 
 #define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
 #define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
@@ -36,7 +37,7 @@
 
 #define CMDLINE_ALL "all"
 #define CMDLINE_ENUMISOSSORTED "sorted"
-#define CMDLIN_ENUMISOSORTEDVERIFY "sortedverify"
+#define CMDLINE_ENUMISOSSORTEDVERIFY "sortedverify"
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
     std::string tmp2 = " " + s2 + " ";
@@ -372,23 +373,27 @@ public:
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
-        if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
-            for (int n = 0; n < sorted.size(); ++n) {
-                os << "fingerprint of graph "<<gnames[sorted[n]]<<", ordered number " << n+1 << " out of " << sorted.size();
-                if (n < sorted.size()-1) {
-                    if (res[n] == 1) {
-                        os << " (<)";
-                    } else
-                        if (res[n] == -1) {
-                            os << "(>) (error) ";
+        if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+        {
+            if (!verbositycmdlineincludes(verbositylevel, VERBOSE_FPNONE)) {
+                for (int n = 0; n < sorted.size(); ++n) {
+                    os << "fingerprint of graph "<<gnames[sorted[n]]<<", ordered number " << n+1 << " out of " << sorted.size();
+                    if (n < sorted.size()-1) {
+                        if (res[n] == 1) {
+                            os << " (<)";
                         } else
-                            os << "(==)";
+                            if (res[n] == -1) {
+                                os << "(>) (error) ";
+                            } else
+                                os << "(==)";
+                    }
+                    os << ":\n";
+                    if (verbositycmdlineincludes(verbositylevel, VERBOSE_FPMINIMAL)) {
+                        osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]]->ns, fpslist[sorted[n]]->nscnt);
+                    } else
+                        osfingerprint(os,nslist[sorted[n]],fpslist[sorted[n]]->ns, fpslist[sorted[n]]->nscnt);
                 }
-                os << ":\n";
-                if (verbositycmdlineincludes(verbositylevel, VERBOSE_FPMINIMAL)) {
-                    osfingerprintminimal(os,nslist[sorted[n]],fpslist[sorted[n]]->ns, fpslist[sorted[n]]->nscnt);
-                } else
-                    osfingerprint(os,nslist[sorted[n]],fpslist[sorted[n]]->ns, fpslist[sorted[n]]->nscnt);
+
             }
         }
 

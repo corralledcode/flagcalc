@@ -734,10 +734,14 @@ public:
 
     void listoptions() override {
         feature::listoptions();
-        *_os << "\t" << "\"all\": \t\t computes automorphisms for ALL graphs found on the workspace\n";
-        *_os << "\t" << "\"c=<n>\": \t (not implemented yet) computes automorphisms for the last n graphs on the workspace\n";
-        *_os << "\t" << "\t\t\t (the default is to compute isomorphisms between the last two graphs found on the workspace\n";
-        *_os << "\t" << "\t\t\t or if only one is found, to compute its automorphisms)\n";
+        *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t computes automorphisms for ALL graphs found on the workspace\n";
+        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t computes automorphisms once for each fingerprint-equivalent class\n";
+        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTEDVERIFY << "\":  computes automorphisms once within each fingerprint-equivalence class\n";
+        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "\"c=<n>\": \t\t (not implemented yet) computes automorphisms for the last n graphs on the workspace\n";
+        *_os << "\t" << "\t\t\t\t (the default is to compute isomorphisms between the last two graphs found on the workspace\n";
+        *_os << "\t" << "\t\t\t\t or if only one is found, to compute its automorphisms)\n";
     }
 
 
@@ -763,7 +767,7 @@ public:
                     computeautomorphisms = false;
                 }
                 else {
-                    if (args[1] == CMDLIN_ENUMISOSORTEDVERIFY) {
+                    if (args[1] == CMDLINE_ENUMISOSSORTEDVERIFY) {
                         sortedverify = true;
                         numofitemstotake = 0;
                         takeallgraphitems = true;
