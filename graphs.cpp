@@ -1164,7 +1164,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
 
     takefingerprint(ns1,fps1ptr,dim);
 
-    //sortneighbors(ns1,fps1ptr,dim);
+    sortneighbors(ns1,fps1ptr,dim);
 
 
     //osfingerprint(std::cout,ns1,fps1ptr,dim);
@@ -1180,7 +1180,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
     }
 
     takefingerprint(ns2,fps2ptr,dim);
-    //sortneighbors(ns2,fps2ptr,dim);
+    sortneighbors(ns2,fps2ptr,dim);
 
     //osfingerprint(std::cout,ns2,fps2,g2.dim);
 
