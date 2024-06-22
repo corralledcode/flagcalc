@@ -1,0 +1,7 @@
+/* This should have 4!*4!*2 = 1152 automorphisms */
+
+a b c d e f g h i j k l
+END
+ab ac ad ae af
+gh gi gj gk gl
+END

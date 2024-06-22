@@ -1,3 +1,5 @@
+/* This randomly-produced graph has one automorphism */
+
 a b c d e f g h END
 ac af bd bf bg de df fh gh END
 

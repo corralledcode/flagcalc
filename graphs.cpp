@@ -8,9 +8,10 @@
 #define NOTTHREADED1
 
 // Use caution: one out of three must be asserted to be #defined:
+// The THREADED2 functionality is now working, in some cases faster and in some slower
 //#define THREADPOOL2
-//#define THREADED2
-#define NOTTHREADED2
+#define THREADED2
+//#define NOTTHREADED2
 
 #ifdef THREADED1
 #define THREADED
@@ -621,7 +622,7 @@ void fastgetpermutationscoretmp(int n, const std::vector<vertextype> targetset, 
 */
 
 
-bool fastgetpermutationscore( const std::vector<vertextype> targetset, const graphtype* g1, const graphtype* g2, const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* resptr) {
+bool fastgetpermutationscore( const std::vector<vertextype>* targetset, const graphtype* g1, const graphtype* g2, const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* resptr) {
 /*
            if (targetset.size()>0) {
                 partialmap.push_back({fps1[idx].v,fps2[targetset[0]].v});
@@ -633,8 +634,8 @@ bool fastgetpermutationscore( const std::vector<vertextype> targetset, const gra
     // implicit variable "cnt" == targetset.size
 
     std::vector<graphmorphism> res {};
-    if (targetset.size() <= 1) {
-        partialmap.push_back( {fps1[idx].v,fps2[targetset[0]].v});
+    if (targetset->size() <= 1) {
+        partialmap.push_back( {fps1[idx].v,fps2[(*targetset)[0]].v});
         resptr->push_back(partialmap);
         if (ispartialisoonlynewest(g1,g2,&partialmap)) {
             return true;
@@ -647,20 +648,20 @@ bool fastgetpermutationscore( const std::vector<vertextype> targetset, const gra
     //std::vector<std::thread> t {};
     //t.resize(targetset.size());
     std::vector<std::vector<graphmorphism>> tmpres {};
-    tmpres.resize(targetset.size());
-    for (int n = 0; n < targetset.size(); ++n) {
+    tmpres.resize(targetset->size());
+    for (int n = 0; n < targetset->size(); ++n) {
         tmppartial = partialmap;
-        tmppartial.push_back( {fps1[idx].v, fps2[targetset[n]].v});
+        tmppartial.push_back( {fps1[idx].v, fps2[(*targetset)[n]].v});
 
         //t[n] = std::thread(fastgetpermutationscore,n, targetset, g1,g2,&(*fps1),&(*fps2),idx,tmppartial, &(tmpres[n]));
         //t[n] = std::thread(fastgetpermutationscoretmp,n, targetset, g1, &(*fps1), tmppartial, results); //,targetset,g1,g2,fps1,fps2,idx, tmppartial, &(results[n]));
         std::vector<vertextype> newtargetset {};
-        for (int i = 0; i < targetset.size(); ++i) { // this for loop because erase doesn't seem to work
+        for (int i = 0; i < targetset->size(); ++i) { // this for loop because erase doesn't seem to work
             if (i != n)
-                newtargetset.push_back(targetset[i]);
+                newtargetset.push_back((*targetset)[i]);
         }
         if (ispartialisoonlynewest(g1,g2,&tmppartial)) {
-            if (fastgetpermutationscore(newtargetset,g1,g2,fps1,fps2,idx+1,tmppartial,resptr)) {
+            if (fastgetpermutationscore(&newtargetset,g1,g2,fps1,fps2,idx+1,tmppartial,resptr)) {
                 resptr->push_back(tmppartial);
             }
         }
@@ -679,16 +680,15 @@ bool fastgetpermutationscore( const std::vector<vertextype> targetset, const gra
 }
 
 
-bool fastgetpermutations( const std::vector<vertextype> targetset, const graphtype* g1, const graphtype* g2,
+bool fastgetpermutations( const std::vector<vertextype>* targetset, const graphtype* g1, const graphtype* g2,
     const FP* fps1, const FP* fps2, const int idx, graphmorphism partialmap, std::vector<graphmorphism>* results) {
-
     // implicit variable "cnt" == targetset.size
 
 #ifdef NOTTHREADED2
 
     std::vector<graphmorphism> res {};
-    if (targetset.size() <= 1) {
-        partialmap.push_back( {fps1[idx].v,fps2[targetset[0]].v});
+    if (targetset->size() <= 1) {
+        partialmap.push_back( {fps1[idx].v,fps2[(*targetset)[0]].v});
         results->push_back(partialmap);
         if (ispartialisoonlynewest(g1,g2,&partialmap)) {
             return true;
@@ -703,34 +703,34 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
     //t.resize(targetset.size());
 
     std::vector<std::vector<graphmorphism>> tmpres {};
-    tmpres.resize(targetset.size());
-    for (int n = 0; n < targetset.size(); ++n) {
+    tmpres.resize(targetset->size());
+    for (int n = 0; n < targetset->size(); ++n) {
         tmppartial = partialmap;
-        tmppartial.push_back( {fps1[idx].v, fps2[targetset[n]].v});
+        tmppartial.push_back( {fps1[idx].v, fps2[(*targetset)[n]].v});
 
         //t[n] = std::thread(fastgetpermutationscore,n, targetset, g1,g2,&(*fps1),&(*fps2),idx,tmppartial, &(tmpres[n]));
         //t[n] = std::thread(fastgetpermutationscoretmp,n, targetset, g1, &(*fps1), tmppartial, results); //,targetset,g1,g2,fps1,fps2,idx, tmppartial, &(results[n]));
         std::vector<vertextype> newtargetset {};
-        for (int i = 0; i < targetset.size(); ++i) { // this for loop because erase doesn't seem to work
+        for (int i = 0; i < targetset->size(); ++i) { // this for loop because erase doesn't seem to work
             if (i != n)
-                newtargetset.push_back(targetset[i]);
+                newtargetset.push_back((*targetset)[i]);
         }
         if (ispartialisoonlynewest(g1,g2,&tmppartial)) {
-            if (fastgetpermutations(newtargetset,g1,g2,fps1,fps2,idx+1,tmppartial,results)) {
+            if (fastgetpermutations(&newtargetset,g1,g2,fps1,fps2,idx+1,tmppartial,results)) {
                 results->push_back(tmppartial);
             }
         }
 
     }
 
-/*
-    for (int n = 0; n < targetset.size(); ++n) {
-        t[n].join();
-        for (int i = 0; i < results[i].size(); ++i) {
-            results->push_back(tmpres[n][i]);
+    /*
+        for (int n = 0; n < targetset.size(); ++n) {
+            t[n].join();
+            for (int i = 0; i < results[i].size(); ++i) {
+                results->push_back(tmpres[n][i]);
+            }
         }
-    }
-*/
+    */
 #endif
 
 #ifdef THREADED2
@@ -740,8 +740,8 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
 
 
     std::vector<graphmorphism> res {};
-    if (targetset.size() <= 1) {
-        partialmap.push_back( {fps1[idx].v,fps2[targetset[0]].v});
+    if (targetset->size() <= 1) {
+        partialmap.push_back( {fps1[idx].v,fps2[(*targetset)[0]].v});
         results->push_back(partialmap);
         if (ispartialisoonlynewest(g1,g2,&partialmap)) {
             return true;
@@ -750,44 +750,46 @@ bool fastgetpermutations( const std::vector<vertextype> targetset, const graphty
             return false;
         }
     }
-    graphmorphism tmppartial {};
+    std::vector<graphmorphism> tmppartialv {};
+    tmppartialv.resize(targetset->size());
     std::vector<std::future<bool>> t {};
-    t.resize(targetset.size());
-    bool tmpbool[targetset.size()];
+    t.resize(targetset->size());
+    bool tmpbool[targetset->size()];
+    std::vector<bool> boolres {};
+    boolres.resize(targetset->size());
     std::vector<std::vector<graphmorphism>> tmpres {};
-    tmpres.resize(targetset.size());
-    for (int n = 0; n < targetset.size(); ++n) {
-        tmppartial = partialmap;
-        tmppartial.push_back( {fps1[idx].v, fps2[targetset[n]].v});
+    tmpres.resize(targetset->size());
+    std::vector<std::vector<vertextype>> newtargetsetv {};
+    newtargetsetv.resize(targetset->size());
+    for (int n = 0; n < targetset->size(); ++n) {
+        tmppartialv[n] = partialmap;
+        tmppartialv[n].push_back( {fps1[idx].v, fps2[(*targetset)[n]].v});
 
-
-
-
-
-
-
-
-
-
-
-
-        std::vector<vertextype> newtargetset {};
-        for (int i = 0; i < targetset.size(); ++i) { // this for loop because erase doesn't seem to work
+        //std::vector<vertextype> newtargetset {};
+        for (int i = 0; i < targetset->size(); ++i) { // this for loop because erase doesn't seem to work
             if (i != n)
-                newtargetset.push_back(targetset[i]);
-        }
-        tmpbool[n] = ispartialisoonlynewest(g1,g2,&tmppartial);
-        if (tmpbool[n]) {
-            t[n] = std::async(fastgetpermutationscore, newtargetset, g1,g2,&(*fps1),&(*fps2),idx,tmppartial, &(tmpres[n]));
+                newtargetsetv[n].push_back((*targetset)[i]);
         }
     }
-    for (int n = 0; n < targetset.size(); ++n) {
-        if (t[n].get()) {
+    for (int n =0; n < targetset->size(); ++n) {
+        tmpbool[n] = ispartialisoonlynewest(g1,g2,&tmppartialv[n]);
+        if (tmpbool[n]) {
+            tmpres[n].clear();
+            t[n] = std::async(&fastgetpermutationscore, &newtargetsetv[n], g1,g2,fps1,fps2,idx+1,tmppartialv[n], &tmpres[n]);
+            //boolres[n] = fastgetpermutationscore(&newtargetsetv[n],g1,g2,fps1,fps2,idx+1,tmppartialv[n],&tmpres[n]);
+        }
+    }
+
+    for (int n = 0; n < targetset->size(); ++n) {
+        if (tmpbool[n]) {
+            boolres[n] = (t[n].get());
+        }
+    }
+    for (int n = 0; n < targetset->size();++n)
+        if (tmpbool[n] && boolres[n])
             for (int i = 0; i < tmpres[n].size(); ++i) {
                 results->push_back(tmpres[n][i]);
             }
-        }
-    }
 
     /*
         for (int n = 0; n < targetset.size(); ++n) {
@@ -820,13 +822,14 @@ std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int perm
     const FP* fps1, const FP* fps2, graphmorphism* parentmap ) {
     //std::vector<graphmorphism> newmaps {};
     std::vector<graphmorphism> results {};
+    //results = new std::vector<graphmorphism>;
     std::vector<vertextype> targetset {};
     for (int j = 0; j < permsidx; ++j) {
         targetset.push_back(del[l]+j);
         //std::cout << targetset[targetset.size()-1] << "\n";;
     }
     if (permsidx > 0) {
-        fastgetpermutations(targetset,g1,g2,fps1,fps2,del[l],*parentmap,&results);
+        fastgetpermutations(&targetset,g1,g2,fps1,fps2,del[l],*parentmap,&results);
         return results;
         //fastgetpermutations(targetset,g1,g2,fps1,fps2,del[l],parentmap,&(newmaps));
 
@@ -863,6 +866,7 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
     if (dim != g2->dim) {
         return maps;
     }
+
 
     int delcnt = 0;
     delptr[delcnt] = 0;
@@ -950,7 +954,7 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
                     //std::cout << targetset[targetset.size()-1] << "\n";;
                 }
                 if (permsidx > 0) {
-                    fastgetpermutations(targetset,g1,g2,fps1ptr,fps2ptr,delptr[l],(*maps)[k],&(newmaps));
+                    fastgetpermutations(&targetset,g1,g2,fps1ptr,fps2ptr,delptr[l],(*maps)[k],&(newmaps));
 
                 }
             }
