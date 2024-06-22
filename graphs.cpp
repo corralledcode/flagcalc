@@ -920,13 +920,13 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
     if (dim > 0)
         if (ns1->degrees[fps1ptr[dim-1].v] != ns2->degrees[fps2ptr[dim-1].v])
             return maps; // return empty set of maps
-    for (int n = 0; n <= delcnt; ++n) {
-        std::cout << "delsizes " << delsizes[n] <<  "\n";
-    }
+    //for (int n = 0; n <= delcnt; ++n) {
+    //    std::cout << "delsizes " << delsizes[n] <<  "\n";
+    //}
 
-    for (int n = 0; n < delcnt+1; ++n) {
-        std::cout << "n "<<n<<"delsortedbysize " << delsortedbysize[n] << " delptr[delsortedbysize[]]= " << delptr[delsortedbysize[n]]<< " "<<delsizes[delsortedbysize[n]] << "\n";
-    }
+    //for (int n = 0; n < delcnt+1; ++n) {
+    //    std::cout << "n "<<n<<"delsortedbysize " << delsortedbysize[n] << " delptr[delsortedbysize[]]= " << delptr[delsortedbysize[n]]<< " "<<delsizes[delsortedbysize[n]] << "\n";
+   // }
 
 
 #ifdef THREADED1
