@@ -1,4 +1,7 @@
-a b c d END
-ab bc cd da END
-a b c d END
-ab bc cd da END
+/* this graph should have 3!*8^3=512 automorphisms */
+a b c d
+e f g h
+i j k l END
+-abcda
+-efghe
+-ijkli END

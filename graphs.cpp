@@ -3,6 +3,7 @@
 //
 
 // Use caution: one out of three must be asserted to be #defined:
+// The working thread for 1 is THREADED1 (not THREADPOOL1)
 //#define THREADPOOL1
 //#define THREADED1
 #define NOTTHREADED1
@@ -636,24 +637,25 @@ bool fastgetpermutationscore( const std::vector<vertextype>* targetset, const gr
     std::vector<graphmorphism> res {};
     if (targetset->size() <= 1) {
         partialmap.push_back( {fps1[idx].v,fps2[(*targetset)[0]].v});
-        resptr->push_back(partialmap);
+        //resptr->push_back(partialmap);
         if (ispartialisoonlynewest(g1,g2,&partialmap)) {
+            resptr->push_back(partialmap);
             return true;
         } else {
-            resptr->resize(resptr->size()-1); // can't seem to get to work erase(partialmap->size()-1);
+            //resptr->resize(resptr->size()-1); // can't seem to get to work erase(partialmap->size()-1);
             return false;
         }
     }
     graphmorphism tmppartial {};
     //std::vector<std::thread> t {};
-    //t.resize(targetset.size());
+    //t.resize(targetset->size());
     std::vector<std::vector<graphmorphism>> tmpres {};
     tmpres.resize(targetset->size());
     for (int n = 0; n < targetset->size(); ++n) {
         tmppartial = partialmap;
         tmppartial.push_back( {fps1[idx].v, fps2[(*targetset)[n]].v});
 
-        //t[n] = std::thread(fastgetpermutationscore,n, targetset, g1,g2,&(*fps1),&(*fps2),idx,tmppartial, &(tmpres[n]));
+        //t[n] = std::thread(&fastgetpermutationscore, targetset, g1,g2,fps1,fps2,idx+1,tmppartial, &(tmpres[n]));
         //t[n] = std::thread(fastgetpermutationscoretmp,n, targetset, g1, &(*fps1), tmppartial, results); //,targetset,g1,g2,fps1,fps2,idx, tmppartial, &(results[n]));
         std::vector<vertextype> newtargetset {};
         for (int i = 0; i < targetset->size(); ++i) { // this for loop because erase doesn't seem to work
@@ -742,11 +744,12 @@ bool fastgetpermutations( const std::vector<vertextype>* targetset, const grapht
     std::vector<graphmorphism> res {};
     if (targetset->size() <= 1) {
         partialmap.push_back( {fps1[idx].v,fps2[(*targetset)[0]].v});
-        results->push_back(partialmap);
+        //results->push_back(partialmap);
         if (ispartialisoonlynewest(g1,g2,&partialmap)) {
+            results->push_back(partialmap);
             return true;
         } else {
-            results->resize(results->size()-1); // can't seem to get to work erase(partialmap->size()-1);
+            //results->resize(results->size()-1); // can't seem to get to work erase(partialmap->size()-1);
             return false;
         }
     }
@@ -766,6 +769,7 @@ bool fastgetpermutations( const std::vector<vertextype>* targetset, const grapht
         tmppartialv[n].push_back( {fps1[idx].v, fps2[(*targetset)[n]].v});
 
         //std::vector<vertextype> newtargetset {};
+        newtargetsetv[n].clear();
         for (int i = 0; i < targetset->size(); ++i) { // this for loop because erase doesn't seem to work
             if (i != n)
                 newtargetsetv[n].push_back((*targetset)[i]);
@@ -819,7 +823,7 @@ bool fastgetpermutations( const std::vector<vertextype>* targetset, const grapht
 
 
 std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int permsidx, const graphtype* g1, const graphtype* g2, const int* del,
-    const FP* fps1, const FP* fps2, graphmorphism* parentmap ) {
+    const FP* fps1, const FP* fps2, graphmorphism parentmap ) {
     //std::vector<graphmorphism> newmaps {};
     std::vector<graphmorphism> results {};
     //results = new std::vector<graphmorphism>;
@@ -829,7 +833,7 @@ std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int perm
         //std::cout << targetset[targetset.size()-1] << "\n";;
     }
     if (permsidx > 0) {
-        fastgetpermutations(&targetset,g1,g2,fps1,fps2,del[l],*parentmap,&results);
+        fastgetpermutations(&targetset,g1,g2,fps1,fps2,del[l],parentmap,&results);
         return results;
         //fastgetpermutations(targetset,g1,g2,fps1,fps2,del[l],parentmap,&(newmaps));
 
@@ -839,17 +843,20 @@ std::vector<graphmorphism> threadrecurseisomorphisms(const int l, const int perm
 }
 
 
-/*
-bool threadrecurseisomorphisms2(const int l, const int permsidx, const graph g1, const graph g2, const int* del, const FP* fps1, const FP* fps2, const std::vector<graphmorphism>* parentmaps, const int startidx, const int stopidx, std::vector<graphmorphism>* res) {
+
+bool threadrecurseisomorphisms2(const int l, const int permsidx, const graphtype* g1, const graphtype* g2, const int* del, const FP* fps1, const FP* fps2, const std::vector<graphmorphism>* parentmaps, const int startidx, const int stopidx, std::vector<graphmorphism>* res) {
     for (int k = startidx; k < stopidx; ++k) {
-        threadrecurseisomorphisms(l,permsidx,g1,g2,del,fps1,fps2,(*parentmaps)[k],res);
+        std::vector<graphmorphism> gm {};
+        gm = threadrecurseisomorphisms(l,permsidx,g1,g2,del,fps1,fps2,(*parentmaps)[k]);
+        for (int n = 0; n < gm.size();++n)
+            res->push_back(gm[n]);
         //for (int i = 0; i < tmpnewmaps.size(); ++i) {
         //    res->push_back(tmpnewmaps[i]);
         //}
     }
     return true;
 }
-*/
+
 
 std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborstype* ns2, FP* fps1ptr, FP* fps2ptr ) {
     if (ns1 == nullptr || ns2 == nullptr)
@@ -860,7 +867,7 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
     std::vector<graphmorphism>* maps = new std::vector<graphmorphism>;
     maps->clear();
 
-        vertextype* delptr;
+    vertextype* delptr;
     delptr = (vertextype*)malloc((dim+2)*sizeof(vertextype));
 
     if (dim != g2->dim) {
@@ -870,6 +877,11 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
 
     int delcnt = 0;
     delptr[delcnt] = 0;
+    int delsizes[dim+2];
+    int delsortedbysize[dim+2];
+    for (int n = 0; n < dim+2; ++n)
+        delsizes[n] = 0;
+    delsizes[0] = 1;
     ++delcnt;
     for( vertextype n = 0; n < dim-1; ++n ) {
         if (ns1->degrees[fps1ptr[n].v] != ns2->degrees[fps2ptr[n].v])
@@ -887,12 +899,34 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
             ++delcnt;
             //std::cout << "inc'ed delcnt\n";
         }
+        delsizes[delcnt-1]++;
     }
+    for (int n = 0; n <= delcnt; ++n) {
+        delsortedbysize[n] = n;
+    }
+    delsizes[delcnt]--;
+
+    struct {
+        int* delsizes;
+        bool operator()(int a, int b) const { return delsizes[a]<delsizes[b]; }
+    }
+    customLess;
+
+    customLess.delsizes = delsizes;
+    delptr[delcnt] = dim;
+
+    std::sort(&delsortedbysize[0],&delsortedbysize[delcnt],customLess);
+
     if (dim > 0)
         if (ns1->degrees[fps1ptr[dim-1].v] != ns2->degrees[fps2ptr[dim-1].v])
             return maps; // return empty set of maps
+    for (int n = 0; n <= delcnt; ++n) {
+        std::cout << "delsizes " << delsizes[n] <<  "\n";
+    }
 
-    delptr[delcnt] = dim;
+    for (int n = 0; n < delcnt+1; ++n) {
+        std::cout << "n "<<n<<"delsortedbysize " << delsortedbysize[n] << " delptr[delsortedbysize[]]= " << delptr[delsortedbysize[n]]<< " "<<delsizes[delsortedbysize[n]] << "\n";
+    }
 
 
 #ifdef THREADED1
@@ -913,8 +947,8 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
         std::vector<graphmorphism> newmaps {};
         //std::cout << "maps.size == " << maps.size() << "\n";
 
-        int permsidx = delptr[l+1]-delptr[l];
-
+        int permsidx = delsizes[delsortedbysize[l]]; //delptr[delsortedbysize[l+1]]-delptr[delsortedbysize[l]];
+        //std::cout << "permsidx = " << permsidx << "\n";
         if (permsidx < MAXFACTORIAL) {
             if (permsidx > perms.size())
                 perms.resize(permsidx+1);
@@ -930,7 +964,7 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
                     for (int j = 0; j < perm[i].size(); ++j) {
                         std::pair<vertextype,vertextype> newpair;
                         //std::cout << "i,j, perm[i][j] == "<<i<<", "<<j<<", "<< perm[i][j]<<"\n";
-                        newpair = {fps1ptr[delptr[l]+j].v,fps2ptr[delptr[l]+perm[i][j]].v};
+                        newpair = {fps1ptr[delptr[delsortedbysize[l]]+j].v,fps2ptr[delptr[delsortedbysize[l]]+perm[i][j]].v};
                         newmap.push_back(newpair);
                     }
                     newmaps.push_back(newmap);
@@ -950,18 +984,23 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
             for (int k = 0; k < maps->size(); ++k) {
                 std::vector<vertextype> targetset {};
                 for (int j = 0; j < permsidx; ++j) {
-                    targetset.push_back(delptr[l]+j);
+                    targetset.push_back(delptr[delsortedbysize[l]]+j);
                     //std::cout << targetset[targetset.size()-1] << "\n";;
                 }
                 if (permsidx > 0) {
-                    fastgetpermutations(&targetset,g1,g2,fps1ptr,fps2ptr,delptr[l],(*maps)[k],&(newmaps));
+                    fastgetpermutations(&targetset,g1,g2,fps1ptr,fps2ptr,delptr[delsortedbysize[l]],(*maps)[k],&(newmaps));
 
                 }
             }
             maps->clear();
             for (int i = 0; i < newmaps.size(); ++i) {
-                if (newmaps[i].size() == delptr[l] + permsidx)
+                int fullmapsize = 0;
+                for (int j =0; j < l; ++j)
+                    fullmapsize += delsizes[delsortedbysize[j]];
+                if (newmaps[i].size() == fullmapsize + permsidx)
                     maps->push_back(newmaps[i]);
+                //if (newmaps[i].size() == delptr[delsortedbysize[l]] + permsidx)
+                //    maps->push_back(newmaps[i]);
             }
 
 #endif
@@ -1025,7 +1064,7 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
 
 // below is non-pooled standard threaded, working but not using the concurrent processes as of yet...
 
-            float section = float(maps.size()) / float(thread_count);
+            float section = float(maps->size()) / float(thread_count);
             //std::cout << "maps.size() " <<maps.size()<< ", section size: " << section << ", thread_count: " << thread_count << "\n";
 
             //std::vector<std::future<bool>> t {};
@@ -1034,32 +1073,27 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
             t.resize(thread_count);
             std::vector<graphmorphism> tmpmaps {};
             std::vector<std::vector<graphmorphism>> res {};
-            if (maps.size() > 10000*thread_count) {
-                res.resize(thread_count);
-                for (int m = 0; m < thread_count; ++m) {
-                    const int startidx = int(m*section);
-                    int stopidx = int((m+1.0)*section);
-                    std::cout << "start, stop " << startidx << " " << stopidx<< "\n";
-                    t[m] = std::async(&threadrecurseisomorphisms2, l,permsidx,g1,g2,delptr,fps1ptr,fps2ptr,&maps, startidx, stopidx,&(res[m]));
-                    //t[m] = std::async(&threadrecurseisomorphisms2, l,permsidx,g1,g2,delptr,fps1ptr,fps2ptr,&maps, startidx, stopidx,&(res[m]));
-                }
-                //std::vector<std::vector<graphmorphism>> gm {};
-                //gm.resize(thread_count);
-                for (int m = 0; m < thread_count; ++m) {
-                    bool returned {};
-                    const int startidx = int(m*section);
-                    const int stopidx = int((m+1.0)*section);
-                    //t[m].join();
-                    //t[m].detach();
-                    returned = t[m].get(); // "get" waits for the thread to return
-                }
-            } else {
-                res.resize(1);
-                threadrecurseisomorphisms2(l,permsidx,g1,g2,delptr,fps1ptr,fps2ptr,&maps,0,maps.size(),&(res[0]));
+            res.resize(thread_count);
+            for (int m = 0; m < thread_count; ++m) {
+                const int startidx = int(m*section);
+                int stopidx = int((m+1.0)*section);
+                //std::cout << "start, stop " << startidx << " " << stopidx<< "\n";
+                t[m] = std::async(&threadrecurseisomorphisms2, l,permsidx,g1,g2,delptr,fps1ptr,fps2ptr,maps, startidx, stopidx,&(res[m]));
+                //t[m] = std::async(&threadrecurseisomorphisms2, l,permsidx,g1,g2,delptr,fps1ptr,fps2ptr,&maps, startidx, stopidx,&(res[m]));
+            }
+            //std::vector<std::vector<graphmorphism>> gm {};
+            //gm.resize(thread_count);
+            for (int m = 0; m < thread_count; ++m) {
+                bool returned {};
+                const int startidx = int(m*section);
+                const int stopidx = int((m+1.0)*section);
+                //t[m].join();
+                //t[m].detach();
+                returned = t[m].get(); // "get" waits for the thread to return
             }
             for (int n = 0; n < res.size(); ++n) {
                 for (int i = 0; i < res[n].size(); ++i) {
-                    if (res[n][i].size() == (del[l] + permsidx)) {
+                    if (res[n][i].size() == (delptr[l] + permsidx)) {
                         newmaps.push_back(res[n][i]);
                         //graphmorphism gm {};
                         //for (int i = 0; i < returned[n].size();++i) {
@@ -1069,9 +1103,9 @@ std::vector<graphmorphism>* enumisomorphismscore( neighborstype* ns1, neighborst
                     }
                 }
             }
-            maps.clear();
+            maps->clear();
             for (int n = 0; n < newmaps.size();++n) {
-                maps.push_back(newmaps[n]);
+                maps->push_back(newmaps[n]);
             }
             //osgraphmorphisms(std::cout,maps);
 
