@@ -1,0 +1,6 @@
+/* These random graph has 2*3! = 12 isomorphisms */
+
+a b c d e f g h END
+ad bd bf fh END
+a b c d e f g h END
+bd cd ce eg END

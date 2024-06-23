@@ -1166,19 +1166,24 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
 
     //osfingerprint(std::cout,ns1,fps1ptr,dim);
 
-    FP* fps2ptr = (FP*)malloc(dim * sizeof(FP));
+    FP* fps2ptr;
 
-    for (int n = 0; n < dim; ++n) {
-        fps2ptr[n].v = n;
-        fps2ptr[n].ns = nullptr;
-        fps2ptr[n].nscnt = 0;
-        fps2ptr[n].parent = nullptr;
-        fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
+    if (g1 == g2)
+        fps2ptr = fps1ptr;
+    else {
+        fps2ptr = (FP*)malloc(dim * sizeof(FP));
+
+        for (int n = 0; n < dim; ++n) {
+            fps2ptr[n].v = n;
+            fps2ptr[n].ns = nullptr;
+            fps2ptr[n].nscnt = 0;
+            fps2ptr[n].parent = nullptr;
+            fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
+        }
+
+        takefingerprint(ns2,fps2ptr,dim);
+        sortneighbors(ns2,fps2ptr,dim);
     }
-
-    takefingerprint(ns2,fps2ptr,dim);
-    sortneighbors(ns2,fps2ptr,dim);
-
     //osfingerprint(std::cout,ns2,fps2,g2.dim);
 
     //vertextype del[ns1.maxdegree+2];
@@ -1188,8 +1193,10 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
 
     freefps(fps1ptr,g1->dim);
     free(fps1ptr);
-    freefps(fps2ptr,g2->dim);
-    free(fps2ptr);
+    if (fps2ptr != fps1ptr) {
+        freefps(fps2ptr,g2->dim);
+        free(fps2ptr);
+    }
 
     return maps;
 }

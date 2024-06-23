@@ -763,14 +763,14 @@ public:
                 if (args[1] == CMDLINE_ENUMISOSSORTED) {
                     fromfp = true;
                     numofitemstotake = 0;
-                    takeallgraphitems = true;
+                    //takeallgraphitems = true;
                     computeautomorphisms = false;
                 }
                 else {
                     if (args[1] == CMDLINE_ENUMISOSSORTEDVERIFY) {
                         sortedverify = true;
                         numofitemstotake = 0;
-                        takeallgraphitems = true;
+                        //takeallgraphitems = true;
                         computeautomorphisms = false;
                     } else {
                         takeallgraphitems = false;
@@ -793,10 +793,11 @@ public:
             }
         }
 
-        if (items.size() == 0) {
-            std::cout << "No graphs available to enum isomorphisms\n";
-            return;
-        }
+        if (!fromfp && !sortedverify)
+            if (items.size() == 0) {
+                std::cout << "No graphs available to enum isomorphisms\n";
+                return;
+            }
 
         std::vector<neighbors*> nslist {};
         nslist.resize(items.size());
@@ -895,7 +896,7 @@ public:
                             wi->gm = threadgm[j];
                             wi->g1 = nslist[cf->sorted[eqclass[j]]]->g;
                             wi->g2 = nslist[cf->sorted[eqclass[j]]]->g;
-                            wi->name = _ws->getuniquename(wi->classname);
+                            wi->name = _ws->getuniquename(wi->classname) + " " + cf->gnames[cf->sorted[j]];
                             _ws->items.push_back(wi);
 
                             //freefps(fpslist[j].ns,glist[j]->dim);
@@ -934,7 +935,7 @@ public:
                                     wi->gm = threadgm[j];
                                     wi->g1 = cf->nslist[cf->sorted[j]]->g;
                                     wi->g2 = cf->nslist[cf->sorted[j+1]]->g;
-                                    wi->name = _ws->getuniquename(wi->classname);
+                                    wi->name = _ws->getuniquename(wi->classname) + " " + cf->gnames[cf->sorted[j]]+" " + cf->gnames[cf->sorted[j+1]];
                                     _ws->items.push_back(wi);
                                 }
                                 //freefps(fpslist[j].ns,glist[j]->dim);
