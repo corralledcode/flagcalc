@@ -34,8 +34,8 @@
 #endif
 
 // Choose one of the two following; they affect the FPs sorting in the code below "sortneighbors"
-//#define QUICKSORT2
-#define NAIVESORT2
+#define QUICKSORT2
+//#define NAIVESORT2
 
 
 #include "graphs.h"
@@ -264,6 +264,45 @@ inline void quickSort2( std::vector<int> &arr, int start, int end,neighbors* ns,
     quickSort2(arr, p+1, end,ns,fpslist);
 }
 
+inline int partition3( int start, int end, neighbors* ns, FP* fpslist ) {
+    int pivot = start;
+    int count = 0;
+    for (int i = start+1;i <= end; i++) {
+        if (FPcmp(ns,ns,&fpslist[i],&fpslist[pivot]) >= 0) {
+            count++;
+        }
+    }
+
+    int pivotIndex = start + count;
+    std::swap(fpslist[pivotIndex],fpslist[start]);
+
+    int i = start;
+    int j = end;
+    while (i < pivotIndex && j > pivotIndex) {
+        while (FPcmp(ns,ns,&fpslist[i],&fpslist[pivot]) >= 0) {
+            i++;
+        }
+        while (FPcmp(ns,ns,&fpslist[j],&fpslist[pivot]) < 0) {
+            j--;
+        }
+        if (i < pivotIndex && j > pivotIndex) {
+            std::swap(fpslist[i++],fpslist[j--]);
+        }
+    }
+    return pivotIndex;
+}
+
+inline void quickSort3( int start, int end,neighbors* ns, FP* fpslist ) {
+
+    if (start >= end)
+        return;
+
+    int p = partition3(start,end,ns,fpslist);
+
+    quickSort3( start, p-1,ns,fpslist);
+    quickSort3(p+1, end,ns,fpslist);
+}
+
 
 void sortneighbors( neighbors* ns, FP* fps, int fpscnt ) {
 
@@ -305,6 +344,7 @@ void sortneighbors( neighbors* ns, FP* fps, int fpscnt ) {
         fps[i] = tmpfp[i];
     }
 
+    // NOTE the code marked "ABSOLUTELY ESSENTIAL" below (it reassigns "parent" to point correctly after the sort)
 
 #endif
 
@@ -429,42 +469,6 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
     int startidx = 0;
     int startidxinverted = 0;
 
-/*
-
-    FP newsorted[dim];
-    for (int i = 0; i <= md; ++i) {
-        FP fps2[sizeofdegree[i] + sizeofinverteddegree[i]];
-        //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
-        for (int j = 0; j < sizeofdegree[i]; ++j) {
-            fps2[j] = sorted[startidx + j];
-        }
-        for (int j = 0; j < sizeofinverteddegree[i]; ++j) {
-            fps2[j+sizeofdegree[i]] = sortedinverted[startidxinverted + j];
-        }
-        sortneighbors( ns, fps2, sizeofdegree[i] + sizeofinverteddegree[i] );
-        for (int j = 0; j < sizeofdegree[i] + sizeofinverteddegree[i]; ++j) {
-            newsorted[startidx + startidxinverted +j] = fps2[j];
-        }
-        startidx = startidx + sizeofdegree[i];
-        startidxinverted = startidxinverted + sizeofinverteddegree[i];
-    }
-
-    for (int i=0; i < idx + invertedidx; ++i) {  // idx == fpscnt -- nooe
-        fps[i] = newsorted[i];
-        for(int j = 0; j < fps[i].nscnt; ++j) {
-            fps[i].ns[j].parent = &fps[i];
-        }
-    }
-
-    for (int i = 0; i < invertedidx; ++i) {
-        fps[i+idx] = sortedinverted[i];
-        for(int j = 0; j < fps[i+idx].nscnt; ++j) {
-            fps[i+idx].ns[j].parent = &fps[i+idx];
-        }
-
-    }*/
-
-
     for (int i = 0; i <= md; ++i) {
         FP fps2[sizeofdegree[i]];
         //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
@@ -493,8 +497,9 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
     }
 
 
-    // the following loop can be avoided it seems if we replace "parent" the pointer with a list of vertices already visited
-    //std::cout << idx << " " << fpscnt << "\n";
+
+    // ABSOLUTELY ESSENTIAL CODE NOT TO FORGET WHEN CALLING SORTNEIGHBORS IN ANY OTHER CONTEXT:
+
     for (int i=0; i < idx; ++i) {  // idx == fpscnt -- nooe
         fps[i] = sorted[i];
         for(int j = 0; j < fps[i].nscnt; ++j) {

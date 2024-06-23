@@ -101,6 +101,28 @@ public:
     ~userguidefeature() {feature::~feature();}
 };
 
+
+class clearworkspacefeature : public feature {
+public:
+    std::string cmdlineoption() {return "c";};
+    std::string cmdlineoptionlong() { return "clear";};
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "  " << "(no options)" << " \t\t clears the workspace\n";
+    }
+    virtual void execute(std::vector<std::string> args) {
+        feature::execute(args);
+        for (int n = 0; n < _ws->items.size(); ++n) {
+            _ws->items[n]->freemem();  // figure out if this is a memory leak
+            delete _ws->items[n];
+        }
+        _ws->items.clear();
+
+    };
+    clearworkspacefeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
+    ~clearworkspacefeature() {feature::~feature();}
+};
+
 class abstractrandomgraphsfeature : public feature {
 protected:
     std::vector<abstractrandomgraph*> rgs {};
@@ -133,6 +155,7 @@ public:
     }
 
 };
+
 
 class samplerandomgraphsfeature : public abstractrandomgraphsfeature {
 public:
@@ -214,7 +237,7 @@ public:
         *_os << "\t" << "<dim>: \t\t\t\t dimension of the graph\n";
         *_os << "\t" << "<edgecount>: \t\t edge count, where probability is <edgecount>/maxedges, maxedges = (dim-choose-2)\n";
         *_os << "\t" << "<count>: \t\t\t how many random graphs to output to the workspace\n";
-        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r0,...,r4:\n";
+        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r1,...,r5:\n";
         for (int n = 0; n < rgs.size(); ++n) {
             *_os << "\t\t\"" << rgs[n]->shortname() << "\": " << rgs[n]->name << "\n";
         }
@@ -310,6 +333,21 @@ public:
         //int s = _ws->items.size();
 
         //_ws->items.resize(s + cnt);
+
+        std::vector<std::string> vertexlabels {};
+        char ch = 'a';
+        int idx = 1;
+        for (int i = 0; i < dim; ++i) {
+            if (idx == 1)
+                vertexlabels.push_back( std::string{ ch++ });
+            else
+                vertexlabels.push_back(std::string{ch++} + std::to_string(idx));
+            if (ch == 'z') {
+                idx++;
+                ch = 'a';
+            }
+        }
+
         for (int i = 0; i < cnt; ++i) {
 
             //starray.push_back(std::chrono::high_resolution_clock::now());
@@ -319,7 +357,7 @@ public:
             wi->ns = new neighbors(gv[i]);
             wi->g = gv[i];
             wi->name = _ws->getuniquename(wi->classname);
-
+            gv[i]->vertexlabels = vertexlabels;
             _ws->items.push_back( wi );
         }
 /*        for (int i = 0; i < cnt; ++i) {
@@ -469,7 +507,7 @@ public:
 
     void listoptions() override {
         feature::listoptions();
-        *_os << "\t" << "<filename>: \t\t input filename, or \"std::cin\"; <filename> can be repeated any number of times\n";
+        *_os << "\t" << "<filename>: \t input filename, or \"std::cin\"; <filename> can be repeated any number of times\n";
     }
 
 
