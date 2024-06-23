@@ -425,7 +425,46 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
         }
     }
 
+
     int startidx = 0;
+    int startidxinverted = 0;
+
+/*
+
+    FP newsorted[dim];
+    for (int i = 0; i <= md; ++i) {
+        FP fps2[sizeofdegree[i] + sizeofinverteddegree[i]];
+        //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
+        for (int j = 0; j < sizeofdegree[i]; ++j) {
+            fps2[j] = sorted[startidx + j];
+        }
+        for (int j = 0; j < sizeofinverteddegree[i]; ++j) {
+            fps2[j+sizeofdegree[i]] = sortedinverted[startidxinverted + j];
+        }
+        sortneighbors( ns, fps2, sizeofdegree[i] + sizeofinverteddegree[i] );
+        for (int j = 0; j < sizeofdegree[i] + sizeofinverteddegree[i]; ++j) {
+            newsorted[startidx + startidxinverted +j] = fps2[j];
+        }
+        startidx = startidx + sizeofdegree[i];
+        startidxinverted = startidxinverted + sizeofinverteddegree[i];
+    }
+
+    for (int i=0; i < idx + invertedidx; ++i) {  // idx == fpscnt -- nooe
+        fps[i] = newsorted[i];
+        for(int j = 0; j < fps[i].nscnt; ++j) {
+            fps[i].ns[j].parent = &fps[i];
+        }
+    }
+
+    for (int i = 0; i < invertedidx; ++i) {
+        fps[i+idx] = sortedinverted[i];
+        for(int j = 0; j < fps[i+idx].nscnt; ++j) {
+            fps[i+idx].ns[j].parent = &fps[i+idx];
+        }
+
+    }*/
+
+
     for (int i = 0; i <= md; ++i) {
         FP fps2[sizeofdegree[i]];
         //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
@@ -444,11 +483,11 @@ void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
         FP fps2[sizeofinverteddegree[i]];
         //std::cout << "i, sizeofinverteddegree[i] == " << i << ", " << sizeofinverteddegree[i] << "\n";
         for (int k = 0; k < sizeofinverteddegree[i]; ++k) {
-            fps2[k] = sortedinverted[(sizeofinverteddegree[i] - k-1) + startidx2 ];
+            fps2[k] = sortedinverted[startidx2 + k];
         }
         sortneighbors( ns, fps2, sizeofinverteddegree[i] );
         for (int j = 0; j < sizeofinverteddegree[i]; ++j) {
-            sortedinverted[startidx2+j] = fps2[j];
+            sortedinverted[startidx2+j] = fps2[sizeofinverteddegree[i] - j - 1];
         }
         startidx2 = startidx2 + sizeofinverteddegree[i];
     }
@@ -1161,7 +1200,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
 
     takefingerprint(ns1,fps1ptr,dim);
 
-    sortneighbors(ns1,fps1ptr,dim);
+    //sortneighbors(ns1,fps1ptr,dim);
 
 
     //osfingerprint(std::cout,ns1,fps1ptr,dim);
@@ -1182,7 +1221,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
         }
 
         takefingerprint(ns2,fps2ptr,dim);
-        sortneighbors(ns2,fps2ptr,dim);
+        //sortneighbors(ns2,fps2ptr,dim);
     }
     //osfingerprint(std::cout,ns2,fps2,g2.dim);
 
