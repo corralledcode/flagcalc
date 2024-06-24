@@ -124,7 +124,7 @@ int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w
 
 void sortneighbors( neighbors* ns, FP* fps, int fpscnt );
 
-void takefingerprint( neighbors* ns, FP* fps, int fpscnt );
+void takefingerprint( const neighbors* ns, FP* fps, int fpscnt );
 
 void freefps( FP* fps, int fpscnt );
 
@@ -143,6 +143,21 @@ std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, cons
 std::vector<graphmorphism>* enumisomorphisms( neighbors* ns1, neighbors* ns2 );
 
 int edgecnt( graphtype* g );
+
+
+
+
+bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, const FP* fp2);
+
+bool existsiso( const neighbors* ns1, const neighbors* ns2);
+
+int nchoosek( const int n, const int k);
+
+void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res);
+
+bool embeds( const neighbors* ns1, const neighbors* ns2 );
+
+
 
 
 //bool areisomorphic( graphtype g1, graphtype g2, neighbors ns1, neighbors ns2 );

@@ -64,23 +64,44 @@ public:
         //
     }
     void execute(std::vector<std::string> args) override {
-/*
-        std::ifstream ifs;
-        std::istream* is = &std::cin;
-        std::ostream* os = _os;
-        graphitem* gi1 = new graphitem();
-        gi1->isitem(*is);
-        trianglefreecriterion tf;
-        std::cout << "Triangle free returns " << tf.checkcriterion(gi1->g,gi1->ns) << "\n";
-*/
+        /*
+                std::ifstream ifs;
+                std::istream* is = &std::cin;
+                std::ostream* os = _os;
+                graphitem* gi1 = new graphitem();
+                gi1->isitem(*is);
+                trianglefreecriterion tf;
+                std::cout << "Triangle free returns " << tf.checkcriterion(gi1->g,gi1->ns) << "\n";
+        */
 
+        /*
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
         for (int i = 0; i < res.size(); ++i) {
             std::cout << res[i].first << " === " << res[i].second << "\n";
+        }*/
+
+        int dim1 = 3;
+        int dim2 = 10;
+        int numberofsubsets = nchoosek(dim2,dim1);
+        //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
+
+        for (int n = 0; n < numberofsubsets*dim1; n+=dim1) {
+            std::cout << "n " << n <<", ";
+
+            for (int i = 0; i < dim1; ++i ) {
+                std::cout << subsets[n+i] << ", ";
+            }
+            std::cout << "\n";
         }
+        //free(subsets);
+
+
     }
 
 };
+
 
 class userguidefeature : public feature {
 public:
@@ -1001,7 +1022,224 @@ public:
 
 };
 
+template<typename T>
+class abstractcheckcriterionfeature : public feature {
+protected:
+    std::vector<abstractcriterion<T>*> crs {};
 
+public:
+    virtual void listoptions() override {
+        feature::listoptions();
+    }
+    abstractcheckcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+
+        // add any new criterion types to the list here...
+        auto triangleflag = new graphtype(3);
+        triangleflag->adjacencymatrix[0] = 0;
+        triangleflag->adjacencymatrix[1] = 1;
+        triangleflag->adjacencymatrix[2] = 1;
+        triangleflag->adjacencymatrix[3] = 1;
+        triangleflag->adjacencymatrix[4] = 0;
+        triangleflag->adjacencymatrix[5] = 1;
+        triangleflag->adjacencymatrix[6] = 1;
+        triangleflag->adjacencymatrix[7] = 1;
+        triangleflag->adjacencymatrix[8] = 0;
+            //    ({0,1,1,1,0,1,1,1,0})
+        auto trianglens = new neighbors(triangleflag);
+        auto cr1 = new trianglefreecriterion();
+        auto cr2 = new embedscriterion(trianglens);
+        crs.push_back(cr1);
+        crs.push_back(cr2);
+        // ...
+    }
+
+    ~abstractcheckcriterionfeature() {
+        feature::~feature();
+        for (int i = 0; i < crs.size();++i) {
+            delete crs[i];
+        }
+    }
+
+
+};
+
+class checkcriterionfeature : public abstractcheckcriterionfeature<bool> {
+public:
+    abstractcriterion<bool>* c;
+    std::string cmdlineoption() override { return "a"; }
+    std::string cmdlineoptionlong() { return "checkcriteria"; }
+    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
+        c = crs[0];
+    }
+
+    void listoptions() override {
+        abstractcheckcriterionfeature::listoptions();
+        *_os << "\t" << "<criteria>: \t the named criteria to be used\n";
+        *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks criteria for ALL graphs found on the workspace\n";
+        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks criteria for each fingerprint-equivalent class\n";
+        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
+        for (int n = 0; n < crs.size(); ++n) {
+            *_os << "\t\t\"" << crs[n]->shortname() << "\": " << crs[n]->name << "\n";
+        }
+    }
+
+    void execute(std::vector<std::string> args) override {
+
+
+        std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
+
+
+        bool takeallgraphitems = false;
+        bool fromfp = false;
+        bool sortedverify = false;
+
+        for (int i = 1; i < args.size(); ++i) {
+            if (args[i] == CMDLINE_ALL) {
+                takeallgraphitems = true;
+            } else {
+                if (args[i] == CMDLINE_ENUMISOSSORTED) {
+                    fromfp = true;
+                }
+            }
+            for (int n = 0; n < crs.size(); ++n) {
+                if (args[i] == crs[n]->shortname())
+                    c = crs[n];
+            }
+        }
+
+        int idx = _ws->items.size();
+        while (idx > 0 && takeallgraphitems) {
+            idx--;
+            if (_ws->items[idx]->classname == "GRAPH")  {
+                items.push_back(idx);
+
+            } else {
+                //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+            }
+        }
+
+        if (!fromfp)
+            if (items.size() == 0) {
+                std::cout << "No graphs available to apply criterion\n";
+                return;
+            } else {
+                std::vector<neighbors*> nslist {};
+                nslist.resize(items.size());
+                std::vector<graphtype*> glist {};
+                glist.resize(items.size());
+                std::vector<std::string> gnames {};
+                gnames.resize(items.size());
+
+                for (int i = 0; i < items.size(); ++i)
+                {
+                    auto gi = (graphitem*)(_ws->items[items[i]]);
+                    nslist[i] = gi->ns;
+                    glist[i] = gi->g;
+                    gnames[i] = gi->name;
+                }
+
+#ifdef THREADPOOL4
+
+
+                //unsigned const thread_count = std::thread::hardware_concurrency();
+                //unsigned const thread_count = 1;
+
+                std::vector<std::future<bool>> t {};
+                t.resize(items.size());
+                for (int m = 0; m < items.size(); ++m) {
+                    t[m] = std::async(&abstractcriterion<bool>::checkcriterion,c,glist[m],nslist[m]);
+                }
+                std::vector<bool> threadbool {};
+                threadbool.resize(items.size());
+                for (int m = 0; m < items.size(); ++m) {
+                    //t[m].join();
+                    //t[m].detach();
+                    threadbool[m] = t[m].get();
+                }
+
+                auto wi = new checkcriterionitem<bool>;
+                wi->res.resize(items.size());
+                wi->fpslist = {};
+                wi->glist.resize(items.size());
+                wi->sorted.resize(items.size());
+                wi->gnames.resize(items.size());
+                wi->nslist.resize(items.size());
+                for (int j=0; j < items.size(); ++j) {
+                    wi->res[j] = threadbool[j];
+                    wi->glist[j] = glist[j];
+                    wi->gnames[j] = gnames[j];
+                    wi->sorted[j] = j;
+                    wi->nslist[j] = nslist[j];
+                }
+                wi->name = _ws->getuniquename(wi->classname);
+                _ws->items.push_back(wi);
+
+        #endif
+
+        #ifdef NOTTHREADED4
+
+                for (int j = 0; j < items.size(); ++j) {
+                    auto wi = new enumisomorphismsitem;
+                    wi->gm = enumisomorphisms(nslist[j],nslist[j]);
+                    wi->name = _ws->getuniquename(wi->classname);
+                    _ws->items.push_back(wi);
+
+                    freefps(fpslist[j].ns,glist[j].dim);
+                    free(fpslist[j].ns);
+                }
+
+        #endif
+
+        } else { // if fromfp
+            for (auto wi : _ws->items) {
+                if (wi->classname == "CMPFINGERPRINTS") {
+                    auto cf = (cmpfingerprintsitem*)(wi);
+                    std::vector<int> eqclass {};
+
+                    if (cf->sorted.size() == 0)
+                        return;
+                    eqclass.push_back(cf->sorted[0]);
+                    for (int n = 0; n < cf->sorted.size()-1; ++n)
+                        if (cf->res[n] != 0)
+                            eqclass.push_back(cf->sorted[n+1]);
+
+                    std::vector<std::future<bool>> t {};
+                    t.resize(eqclass.size());
+                    for (int m = 0; m < eqclass.size(); ++m) {
+                        t[m] = std::async(&abstractcriterion<bool>::checkcriterion,c,cf->glist[eqclass[m]],cf->nslist[eqclass[m]]);
+                    }
+                    std::vector<bool> threadbool {};
+                    threadbool.resize(eqclass.size());
+                    for (int m = 0; m < eqclass.size(); ++m) {
+                        //t[m].join();
+                        //t[m].detach();
+                        threadbool[m] = t[m].get();
+                    }
+                    auto wi = new checkcriterionitem<bool>;
+                    wi->res.resize(eqclass.size());
+                    wi->fpslist.resize(eqclass.size());
+                    wi->glist.resize(eqclass.size());
+                    wi->sorted.resize(eqclass.size());
+                    wi->gnames.resize(eqclass.size());
+                    wi->nslist.resize(eqclass.size());
+                    for (int j=0; j < eqclass.size(); ++j) {
+                        wi->res[j] = threadbool[j];
+                        wi->glist[j] = cf->glist[eqclass[j]];
+                        wi->gnames[j] = cf->gnames[eqclass[j]];
+                        wi->fpslist[j] = cf->fpslist[eqclass[j]];
+                        wi->sorted[j] = eqclass[j];
+                        wi->nslist[j] = cf->nslist[eqclass[j]];
+                    }
+                    wi->name = _ws->getuniquename(wi->classname);
+                    _ws->items.push_back(wi);
+
+                }
+            }
+        }
+    }
+
+};
 
 
 

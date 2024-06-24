@@ -22,17 +22,21 @@
 #include "prob.h"
 #include "workspace.h"
 
-class measure {
+class abstractmeasure {
 public:
-    virtual int takemeasure( graph g, neighbors ns ) {return 0;};
+    virtual int takemeasure( const graphtype* g, const neighbors* ns ) {return 0;};
 };
 
-class criterion {
+template<typename T>
+class abstractcriterion {
 public:
-    virtual bool checkcriterion( graph* g, neighbors* ns ) {return false;};
+    std::string name = "_abstractcriterion internal use";
+    virtual std::string shortname() {return "_ac";}
+
+    virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {return {};};
 };
 
-inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* cr, graphtype* g,
+inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcriterion<bool>* cr, graphtype* g,
     int n, const int outof, int sampled, bool** samplegraph )
 {
     int max = 0;
@@ -41,9 +45,9 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* 
     {
         sampled++;
         rg->randomgraph(g,n);
-        auto ns = new neighbors(g);
+        //auto ns = new neighbors(g);
         //ns->computeneighborslist(g); ns isn't used by criterion...
-        if (cr->checkcriterion(g,ns)) {
+        if (cr->checkcriterion(g,nullptr)) {
             //float tmp = ms->takemeasure(g,ns);
             //max = (tmp > max ? tmp : max);
             max = n;
@@ -65,12 +69,8 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, criterion* 
 
 
 class asymp {
-protected:
-
-
-
 public:
-    virtual float computeasymptotic( criterion* cr, measure* ms, const int outof, const int dim, std::ostream& os, workspace* ws ) {
+    virtual float computeasymptotic( abstractcriterion<bool>* cr, abstractmeasure* ms, const int outof, const int dim, std::ostream& os, workspace* ws ) {
         int max = 0;
         int sampled = 0;
         int n = 1;
@@ -179,9 +179,13 @@ public:
 };
 
 
-class trianglefreecriterion : public criterion {
+class trianglefreecriterion : public abstractcriterion<bool> {
 public:
-    bool checkcriterion(graph* g, neighbors* ns) override {
+    std::string shortname() override {return "cr1";}
+    trianglefreecriterion() : abstractcriterion() {
+        name = "triangle-free criterion";
+    }
+    bool checkcriterion( const graphtype* g, const neighbors* ns) override {
         int dim = g->dim;
         for (int n = 0; n < dim-2; ++n) {
             for (int i = n+1; i < dim-1; ++i) {
@@ -202,13 +206,32 @@ public:
     }
 };
 
-class edgecountmeasure : public measure {
+
+class embedscriterion : public abstractcriterion<bool> {
 public:
-    int takemeasure( graph g, neighbors ns ) override {
+    graphtype* flagg;
+    neighbors* flagns;
+    std::string shortname() override {return "cr2";}
+    embedscriterion(neighbors* flagns) : abstractcriterion() {
+        name = "embeds flag criterion";
+        this->flagg = flagns->g;
+        this->flagns = flagns;
+    }
+    bool checkcriterion( const graphtype* g, const neighbors* ns) override {
+        return (embeds(flagns, ns));
+    }
+};
+
+
+
+
+class edgecountmeasure : public abstractmeasure {
+public:
+    int takemeasure( const graphtype* g, const neighbors* ns ) override {
         int edgecnt = 0;
-        for (int n = 0; n < g.dim-1; ++n) {
-            for (int i = n+1; i < g.dim; ++i) {
-                if (g.adjacencymatrix[n*g.dim + i]) {
+        for (int n = 0; n < g->dim-1; ++n) {
+            for (int i = n+1; i < g->dim; ++i) {
+                if (g->adjacencymatrix[n*g->dim + i]) {
                     edgecnt++;
                 }
             }

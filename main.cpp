@@ -14,7 +14,6 @@
 int main(int argc, char* argv[]) {
     workspace* ws = new workspace();
 
-    auto cw = new clearworkspacefeature(&std::cin, &std::cout,ws);
     auto ug = new userguidefeature(&std::cin, &std::cout,ws);
     auto rg = new readgraphsfeature(&std::cin, &std::cout,ws);
     auto ei = new enumisomorphismsfeature(&std::cin, &std::cout,ws);
@@ -25,9 +24,10 @@ int main(int argc, char* argv[]) {
     auto vb = new verbosityfeature(&std::cin,&std::cout, ws);
     auto _sb = new _sandboxfeature(&std::cin,&std::cout, ws);
     auto pr = new randomgraphsfeature(&std::cin,&std::cout, ws);
+    auto cw = new clearworkspacefeature(&std::cin, &std::cout,ws);
+    auto cc = new checkcriterionfeature(&std::cin, &std::cout,ws);
 
     std::vector<feature*> featureslist {};
-    featureslist.push_back(cw);
     featureslist.push_back(ug);
     featureslist.push_back(rg);
     featureslist.push_back(ei);
@@ -38,6 +38,8 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(vb);
     featureslist.push_back(_sb);
     featureslist.push_back(pr);
+    featureslist.push_back(cw);
+    featureslist.push_back(cc);
 
     ug->featureslist = featureslist;
 

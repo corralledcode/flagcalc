@@ -34,8 +34,8 @@
 #endif
 
 // Choose one of the two following; they affect the FPs sorting in the code below "sortneighbors"
-//#define QUICKSORT2
-#define NAIVESORT2
+#define QUICKSORT2
+//#define NAIVESORT2
 
 
 #include "graphs.h"
@@ -225,7 +225,7 @@ int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w
     return res * multiplier;
 }
 
-inline int partition2( std::vector<int> &arr, int start, int end, neighbors* ns, FP* fpslist ) {
+inline int partition2( std::vector<int> &arr, int start, int end, const neighbors* ns, FP* fpslist ) {
     int pivot = arr[start];
     int count = 0;
     for (int i = start+1;i <= end; i++) {
@@ -253,7 +253,7 @@ inline int partition2( std::vector<int> &arr, int start, int end, neighbors* ns,
     return pivotIndex;
 }
 
-inline void quickSort2( std::vector<int> &arr, int start, int end,neighbors* ns, FP* fpslist ) {
+inline void quickSort2( std::vector<int> &arr, int start, int end,const neighbors* ns, FP* fpslist ) {
 
     if (start >= end)
         return;
@@ -264,6 +264,7 @@ inline void quickSort2( std::vector<int> &arr, int start, int end,neighbors* ns,
     quickSort2(arr, p+1, end,ns,fpslist);
 }
 
+/*
 inline int partition3( int start, int end, neighbors* ns, FP* fpslist ) {
     int pivot = start;
     int count = 0;
@@ -302,9 +303,9 @@ inline void quickSort3( int start, int end,neighbors* ns, FP* fpslist ) {
     quickSort3( start, p-1,ns,fpslist);
     quickSort3(p+1, end,ns,fpslist);
 }
+*/
 
-
-void sortneighbors( neighbors* ns, FP* fps, int fpscnt ) {
+void sortneighbors( const neighbors* ns, FP* fps, int fpscnt ) {
 
 
 #ifdef NAIVESORT2
@@ -351,7 +352,7 @@ void sortneighbors( neighbors* ns, FP* fps, int fpscnt ) {
 }
 
 
-void takefingerprint( neighbors* ns, FP* fps, int fpscnt ) {
+void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
 
     if (fpscnt == 0 || ns == nullptr) {
 
@@ -859,7 +860,85 @@ bool fastgetpermutations( const std::vector<vertextype>* targetset, const grapht
 
 #ifdef THREADPOOL2
 
+    //unsigned const thread_count = std::thread::hardware_concurrency();
+    //unsigned const thread_count = 1;
+
+    thread_pool* pool = new thread_pool; //if not using the pool feature, uncommenting this leads to a stray thread
+
+
+
+    std::vector<graphmorphism> res {};
+    if (targetset->size() <= 1) {
+        partialmap.push_back( {fps1[idx].v,fps2[(*targetset)[0]].v});
+        //results->push_back(partialmap);
+        if (ispartialisoonlynewest(g1,g2,&partialmap)) {
+            results->push_back(partialmap);
+            return true;
+        } else {
+            //results->resize(results->size()-1); // can't seem to get to work erase(partialmap->size()-1);
+            return false;
+        }
+    }
+    std::vector<graphmorphism> tmppartialv {};
+    tmppartialv.resize(targetset->size());
+    std::vector<std::future<bool>> t {};
+    t.resize(targetset->size());
+    bool tmpbool[targetset->size()];
+    std::vector<bool> boolres {};
+    boolres.resize(targetset->size());
+    std::vector<std::vector<graphmorphism>> tmpres {};
+    tmpres.resize(targetset->size());
+    std::vector<std::vector<vertextype>> newtargetsetv {};
+    newtargetsetv.resize(targetset->size());
+    for (int n = 0; n < targetset->size(); ++n) {
+        tmppartialv[n] = partialmap;
+        tmppartialv[n].push_back( {fps1[idx].v, fps2[(*targetset)[n]].v});
+
+        //std::vector<vertextype> newtargetset {};
+        newtargetsetv[n].clear();
+        for (int i = 0; i < targetset->size(); ++i) { // this for loop because erase doesn't seem to work
+            if (i != n)
+                newtargetsetv[n].push_back((*targetset)[i]);
+        }
+    }
+    for (int n =0; n < targetset->size(); ++n) {
+        tmpbool[n] = ispartialisoonlynewest(g1,g2,&tmppartialv[n]);
+        if (tmpbool[n]) {
+            tmpres[n].clear();
+            t[n] = std::async(&fastgetpermutationscore, &newtargetsetv[n], g1,g2,fps1,fps2,idx+1,tmppartialv[n], &tmpres[n]);
+            //boolres[n] = fastgetpermutationscore(&newtargetsetv[n],g1,g2,fps1,fps2,idx+1,tmppartialv[n],&tmpres[n]);
+        }
+    }
+
+    for (int n = 0; n < targetset->size(); ++n) {
+        if (tmpbool[n]) {
+            boolres[n] = (t[n].get());
+        }
+    }
+    for (int n = 0; n < targetset->size();++n)
+        if (tmpbool[n] && boolres[n])
+            for (int i = 0; i < tmpres[n].size(); ++i) {
+                results->push_back(tmpres[n][i]);
+            }
+
+    /*
+        for (int n = 0; n < targetset.size(); ++n) {
+            t[n].join();
+            for (int i = 0; i < results[i].size(); ++i) {
+                results->push_back(tmpres[n][i]);
+            }
+        }
+    */
+
+
+
+
+
+
+
 #endif
+
+
     return true;
 }
 
@@ -1046,6 +1125,8 @@ std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, cons
                 //    fullmapsize += delsizes[delsortedbysize[j]];
                 if (newmaps[i].size() == fullmapsize)
                     maps->push_back(newmaps[i]);
+
+
                 //if (newmaps[i].size() == delptr[delsortedbysize[l]] + permsidx)
                 //    maps->push_back(newmaps[i]);
             }
@@ -1254,6 +1335,144 @@ int edgecnt( graphtype* g ) {
             }
         }
     }
+    return res;
+}
+
+
+bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, const FP* fp2) {
+    return (FPcmp(ns1,ns2,fp1,fp2) == 0 ? true : false );
+
+}
+
+
+bool existsiso( const neighbors* ns1, const neighbors* ns2) {
+    if (ns1 == nullptr || ns2 == nullptr)
+        return {};
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    if (g1->dim != g2->dim || ns1->maxdegree != ns2->maxdegree)
+        return false;
+
+    // to do: save time in most cases by checking that ns1 matches ns2
+
+    int dim = g1->dim;
+
+    FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
+    for (int n = 0; n < dim; ++n) {
+        fps1ptr[n].v = n;
+        fps1ptr[n].ns = nullptr;
+        fps1ptr[n].nscnt = 0;
+        fps1ptr[n].parent = nullptr;
+        fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
+    }
+
+    takefingerprint(ns1,fps1ptr,dim);
+
+    //sortneighbors(ns1,fps1ptr,dim);
+
+
+    //osfingerprint(std::cout,ns1,fps1ptr,dim);
+
+    FP* fps2ptr;
+
+    if (g1 == g2)
+        fps2ptr = fps1ptr;
+    else {
+        fps2ptr = (FP*)malloc(dim * sizeof(FP));
+
+        for (int n = 0; n < dim; ++n) {
+            fps2ptr[n].v = n;
+            fps2ptr[n].ns = nullptr;
+            fps2ptr[n].nscnt = 0;
+            fps2ptr[n].parent = nullptr;
+            fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
+        }
+
+        takefingerprint(ns2,fps2ptr,dim);
+        //sortneighbors(ns2,fps2ptr,dim);
+    }
+    //osfingerprint(std::cout,ns2,fps2,g2.dim);
+
+    //vertextype del[ns1.maxdegree+2];
+    //vertextype del[g1.dim+2];
+
+    bool res = existsisocore(ns1,ns2,fps1ptr,fps2ptr);
+    freefps(fps1ptr,g1->dim);
+    free(fps1ptr);
+    if (fps2ptr != fps1ptr) {
+        freefps(fps2ptr,g2->dim);
+        free(fps2ptr);
+    }
+
+    return res;
+
+}
+
+int nchoosek( const int n, const int k) {
+    if (k == 0)
+        return 1;
+    return (n* nchoosek(n-1,k-1))/k;
+}
+
+void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res) {
+    if (start > stop)
+        return;
+    if (sizestart >= sizeend) {
+        for (int i = 0; i < sizeend; ++i)
+            res->push_back(seq[i]);
+        return;
+    }
+    // pseudo code:
+    //      for each n in [start,stop-1]
+    //          call enumsizedsubsets on (s + n), sizestart+1,sizeend, n+1,stop;
+    //          call enumsizedsubsets on s, sizestart,sizeend, n+1, stop
+
+    int newseq[sizestart+1];
+    for (int i = 0; i < sizestart; ++i) {
+        newseq[i] = seq[i];
+    }
+    newseq[sizestart] = start;
+    enumsizedsubsets(sizestart+1,sizeend,newseq,start+1,stop,res);
+    enumsizedsubsets(sizestart,sizeend,seq,start+1,stop,res);
+
+}
+
+
+
+bool embeds( const neighbors* ns1, const neighbors* ns2 ) {
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = g1->dim;
+    int dim2 = g2->dim;
+    if (dim2 <= dim1)
+        return false;
+    int numberofsubsets = nchoosek(dim2,dim1);
+    //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
+    std::vector<int> subsets {};
+    enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
+    if (numberofsubsets*dim1 != subsets.size()) {
+        std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
+        return false;
+    }
+    bool res = false;
+    for (int n = 0; !res && (n < numberofsubsets); ++n) {
+        graphtype gtemp(dim1);
+        for (int i = 0; i < dim1; ++i) {
+            vertextype g2vertex1 = subsets[dim1*n + i];
+            for (int j = 0; j < dim1; ++j) {
+                vertextype g2vertex2 = subsets[dim1*n + j];
+                gtemp.adjacencymatrix[i*dim1+j] = g2->adjacencymatrix[g2vertex1*dim2 + g2vertex2];
+            }
+        }
+
+        // note this code obviously might be much faster
+        // when instead simply checking iso for the identity map
+        // (that is, allowing the subsets above to be a larger set
+        // that contains rearrangements of things already in the set)
+        auto nstemp = new neighbors(&gtemp);
+        res = res || existsiso( ns1, nstemp );
+    }
+    //free(subsets);
     return res;
 }
 

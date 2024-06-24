@@ -29,6 +29,7 @@
 #define VERBOSE_SAMPLERANDOMMATCHING "srm"
 #define VERBOSE_FPMINIMAL "FpMin"
 #define VERBOSE_FPNONE "fpnone"
+#define VERBOSE_APPLYCRITERION "crit"
 
 #define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
 #define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
@@ -427,6 +428,62 @@ public:
         return true;
     }
 };
+
+
+template<typename T>
+class checkcriterionitem : public workitems {
+public:
+    std::vector<graphtype*> glist;
+    std::vector<neighborstype*> nslist;
+    std::vector<FP*> fpslist;
+    std::vector<std::string> gnames;
+    std::vector<T> res;
+    std::vector<int> sorted {};
+    checkcriterionitem() : workitems() {
+        classname = "APPLYCRITERION";
+        verbositylevel = VERBOSE_APPLYCRITERION;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+/*        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n]->nscnt > 0) {
+                freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                free(fpslist[n]->ns);
+            }
+        }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        std::vector<std::pair<T,int>> count = {};
+        if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+            os << "Criterion results of graphs:\n";
+        for (int n = 0; n < sorted.size(); ++n) {
+            if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
+                os << gnames[n]<<", number " << n+1 << " out of " << sorted.size();
+                os << ": " << res[n] << "\n";
+            }
+            bool found = false;
+            for (int i = 0; !found && (i < count.size()); ++i)
+                if (count[i].first == res[n]) {
+                    ++(count[i].second);
+                    found = true;
+                }
+            if (!found)
+                count.push_back({res[n],1});
+        }
+
+        for (int i = 0; i < count.size(); ++i)
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << sorted.size() << "\n";
+        return true;
+    }
+};
+
+
+
+
 
 class timedrunitem : public workitems {
 public:
