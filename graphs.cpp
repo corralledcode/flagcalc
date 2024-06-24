@@ -1444,7 +1444,7 @@ bool embeds( const neighbors* ns1, const neighbors* ns2 ) {
     graphtype* g2 = ns2->g;
     int dim1 = g1->dim;
     int dim2 = g2->dim;
-    if (dim2 <= dim1)
+    if (dim2 < dim1)
         return false;
     int numberofsubsets = nchoosek(dim2,dim1);
     //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
