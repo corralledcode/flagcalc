@@ -1,0 +1,27 @@
+a b c d e f g h END
+ad 
+bf bh 
+cf 
+df 
+ef 
+END
+a b c d e f g h END
+ad ae 
+df 
+END
+a b c d e f g h END
+ad ae af 
+bd be bh 
+ce 
+END
+a b c d e f g h END
+ab ae 
+bc bd bf 
+cf cg 
+ef 
+END
+a b c d e f g h END
+bf 
+cd 
+fg fh 
+END

@@ -119,7 +119,7 @@ public:
         }
     };
     userguidefeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
-    ~userguidefeature() {feature::~feature();}
+
 };
 
 
@@ -141,7 +141,7 @@ public:
 
     };
     clearworkspacefeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
-    ~clearworkspacefeature() {feature::~feature();}
+
 };
 
 class abstractrandomgraphsfeature : public feature {
@@ -169,7 +169,7 @@ public:
     }
 
     ~abstractrandomgraphsfeature() {
-        feature::~feature();
+
         for (int i = 0; i < rgs.size();++i) {
             delete rgs[i];
         }
@@ -421,7 +421,6 @@ public:
     }
 
     ~verbosityfeature() {
-        feature::~feature();
         if (verbositylevel == "") {  // if hasn't been run yet
             std::vector<std::string> args {};
             args.push_back(cmdlineoption());
@@ -516,6 +515,94 @@ public:
     }
 
 };
+
+
+class writegraphsfeature: public feature {
+public:
+    std::string ofname {};
+    std::string cmdlineoption() {
+        return "g";
+    }
+    std::string cmdlineoptionlong() {
+        return "writegraphs";
+    }
+
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "<filename>: \t writes machine-readable graphs to output filename \n";
+        *_os << "\t\t\t\t\t or \"std::cout\"\n";
+        *_os << "\t" << "\"o=<filename>\":" << "\t same as just a filename\n";
+        *_os << "\t" << "\"append\":" << "\t\t Appends to an existing file (default)\n";
+        *_os << "\t" << "\"overwrite\":" << "\t Overwrites if file exists already\n";
+    }
+
+
+    writegraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
+
+    void execute(std::vector<std::string> args) override {
+        std::ofstream ofs;
+        bool ofsrequiresclose = false;
+        bool append = true;
+        bool overwrite = false;
+        std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
+        for (int n = 0; n < cmdlineoptions.size(); ++n) {
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == "append") {
+                append = true;
+                overwrite = false;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == "overwrite") {
+                append = false;
+                overwrite = true;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "o") {
+                ofname = cmdlineoptions[n].second;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default") {
+                ofname = cmdlineoptions[n].second;
+                continue;
+            }
+        }
+        if (ofname != "") {
+            if (ofname != "std::cout") {
+                std::ifstream infile(ofname);
+                if (infile.good() && !(append || overwrite)) {
+                    std::cout << "Graph machine-readable output file " << ofname << " already exists; use option \"append\" to append it or option \"overwrite\" to overwrite.\n";
+                    return;
+                }
+                if (append)
+                    ofs.open(ofname,  std::ios::app);
+                if (!append && overwrite)
+                    ofs.open(ofname, std::ios::trunc);
+                if (!ofs) {
+                    std::cout << "Couldn't open file for writing \n";
+                    return;
+                }
+                _os = &ofs;
+                ofsrequiresclose = true;
+            } else {
+                _os = &std::cout;
+            }
+        } else
+            _os = &std::cout;
+
+        for (auto wi : _ws->items) {
+            if (wi->classname == "GRAPH") {
+                auto gi = (graphitem*)wi;
+                osmachinereadablegraph(*_os,gi->g);
+            }
+        }
+
+        if (ofsrequiresclose)
+            ofs.close();
+
+    }
+
+};
+
+
 
 class readgraphsfeature : public feature {
 public:
@@ -1041,7 +1128,7 @@ public:
     }
 
     ~abstractcheckcriterionfeature() {
-        feature::~feature();
+
         for (int i = 0; i < crs.size();++i) {
             delete crs[i];
         }

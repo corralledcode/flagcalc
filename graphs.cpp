@@ -1704,3 +1704,36 @@ void osgraphmorphisms( std::ostream &os, graphtype* g1, graphtype* g2, std::vect
     }
 }
 
+void osmachinereadablegraph(std::ostream &os, graphtype* g) {
+    if (g->vertexlabels.size() != g->dim) {
+        char ch = 'a';
+        int idx = 1;
+        for (int i = 0; i < g->dim; ++i) {
+            if (idx == 1)
+                g->vertexlabels.push_back( std::string{ ch++ });
+            else
+                g->vertexlabels.push_back(std::string{ch++} + std::to_string(idx));
+            if (ch == 'z') {
+                idx++;
+                ch = 'a';
+            }
+        }
+    }
+    for (auto l : g->vertexlabels) {
+        os << l << " ";
+    }
+    os << "END\n";
+    for (int i = 0; i < g->dim-1; ++i) {
+        bool emptyline = true;
+        for (int j = i+1; j < g->dim; ++j) {
+            if (g->adjacencymatrix[i*g->dim + j]) {
+                os << g->vertexlabels[i] << g->vertexlabels[j] << " ";
+                emptyline = false;
+            }
+        }
+        if (!emptyline)
+            os << "\n";
+    }
+    os << "END\n";
+};
+

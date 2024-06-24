@@ -175,4 +175,8 @@ void osedges( std::ostream &os, graphtype* g );
 
 void osgraphmorphisms( std::ostream &os, graphtype* g1, graphtype* g2, std::vector<graphmorphism>* maps );
 
+void osmachinereadablegraph(std::ostream &os, graphtype* g);
+
+
+
 #endif //GRAPHS_H
