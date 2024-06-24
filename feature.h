@@ -1034,22 +1034,9 @@ public:
     abstractcheckcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
 
         // add any new criterion types to the list here...
-        auto triangleflag = new graphtype(3);
-        triangleflag->adjacencymatrix[0] = 0;
-        triangleflag->adjacencymatrix[1] = 1;
-        triangleflag->adjacencymatrix[2] = 1;
-        triangleflag->adjacencymatrix[3] = 1;
-        triangleflag->adjacencymatrix[4] = 0;
-        triangleflag->adjacencymatrix[5] = 1;
-        triangleflag->adjacencymatrix[6] = 1;
-        triangleflag->adjacencymatrix[7] = 1;
-        triangleflag->adjacencymatrix[8] = 0;
-            //    ({0,1,1,1,0,1,1,1,0})
-        auto trianglens = new neighbors(triangleflag);
+
         auto cr1 = new trianglefreecriterion();
-        auto cr2 = new embedscriterion(trianglens);
         crs.push_back(cr1);
-        crs.push_back(cr2);
         // ...
     }
 
@@ -1065,16 +1052,15 @@ public:
 
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool> {
 public:
-    abstractcriterion<bool>* c;
+    std::vector<abstractcriterion<bool>*> cs;
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
-        c = crs[0];
+        cs.clear();
     }
 
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
-        *_os << "\t" << "<criteria>: \t the named criteria to be used\n";
         *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks criteria for ALL graphs found on the workspace\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks criteria for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
@@ -1104,8 +1090,10 @@ public:
             }
             for (int n = 0; n < crs.size(); ++n) {
                 if (args[i] == crs[n]->shortname())
-                    c = crs[n];
+                    cs.push_back(crs[n]);
             }
+            if (cs.size()==0)
+                cs.push_back(crs[0]);
         }
 
         int idx = _ws->items.size();
@@ -1145,35 +1133,37 @@ public:
                 //unsigned const thread_count = std::thread::hardware_concurrency();
                 //unsigned const thread_count = 1;
 
-                std::vector<std::future<bool>> t {};
-                t.resize(items.size());
-                for (int m = 0; m < items.size(); ++m) {
-                    t[m] = std::async(&abstractcriterion<bool>::checkcriterion,c,glist[m],nslist[m]);
-                }
-                std::vector<bool> threadbool {};
-                threadbool.resize(items.size());
-                for (int m = 0; m < items.size(); ++m) {
-                    //t[m].join();
-                    //t[m].detach();
-                    threadbool[m] = t[m].get();
-                }
+                for (int k = 0; k < cs.size(); ++k) {
+                    std::vector<std::future<bool>> t {};
+                    t.resize(items.size());
+                    for (int m = 0; m < items.size(); ++m) {
+                        t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[m],nslist[m]);
+                    }
+                    std::vector<bool> threadbool {};
+                    threadbool.resize(items.size());
+                    for (int m = 0; m < items.size(); ++m) {
+                        //t[m].join();
+                        //t[m].detach();
+                        threadbool[m] = t[m].get();
+                    }
 
-                auto wi = new checkcriterionitem<bool>;
-                wi->res.resize(items.size());
-                wi->fpslist = {};
-                wi->glist.resize(items.size());
-                wi->sorted.resize(items.size());
-                wi->gnames.resize(items.size());
-                wi->nslist.resize(items.size());
-                for (int j=0; j < items.size(); ++j) {
-                    wi->res[j] = threadbool[j];
-                    wi->glist[j] = glist[j];
-                    wi->gnames[j] = gnames[j];
-                    wi->sorted[j] = j;
-                    wi->nslist[j] = nslist[j];
+                    auto wi = new checkcriterionitem<bool>;
+                    wi->res.resize(items.size());
+                    wi->fpslist = {};
+                    wi->glist.resize(items.size());
+                    wi->sorted.resize(items.size());
+                    wi->gnames.resize(items.size());
+                    wi->nslist.resize(items.size());
+                    for (int j=0; j < items.size(); ++j) {
+                        wi->res[j] = threadbool[j];
+                        wi->glist[j] = glist[j];
+                        wi->gnames[j] = gnames[j];
+                        wi->sorted[j] = j;
+                        wi->nslist[j] = nslist[j];
+                    }
+                    wi->name = _ws->getuniquename(wi->classname);
+                    _ws->items.push_back(wi);
                 }
-                wi->name = _ws->getuniquename(wi->classname);
-                _ws->items.push_back(wi);
 
         #endif
 
@@ -1204,35 +1194,37 @@ public:
                         if (cf->res[n] != 0)
                             eqclass.push_back(cf->sorted[n+1]);
 
-                    std::vector<std::future<bool>> t {};
-                    t.resize(eqclass.size());
-                    for (int m = 0; m < eqclass.size(); ++m) {
-                        t[m] = std::async(&abstractcriterion<bool>::checkcriterion,c,cf->glist[eqclass[m]],cf->nslist[eqclass[m]]);
+                    for (int k = 0; k < cs.size(); ++k) {
+                        std::vector<std::future<bool>> t {};
+                        t.resize(eqclass.size());
+                        for (int m = 0; m < eqclass.size(); ++m) {
+                            t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],cf->glist[eqclass[m]],cf->nslist[eqclass[m]]);
+                        }
+                        std::vector<bool> threadbool {};
+                        threadbool.resize(eqclass.size());
+                        for (int m = 0; m < eqclass.size(); ++m) {
+                            //t[m].join();
+                            //t[m].detach();
+                            threadbool[m] = t[m].get();
+                        }
+                        auto wi = new checkcriterionitem<bool>;
+                        wi->res.resize(eqclass.size());
+                        wi->fpslist.resize(eqclass.size());
+                        wi->glist.resize(eqclass.size());
+                        wi->sorted.resize(eqclass.size());
+                        wi->gnames.resize(eqclass.size());
+                        wi->nslist.resize(eqclass.size());
+                        for (int j=0; j < eqclass.size(); ++j) {
+                            wi->res[j] = threadbool[j];
+                            wi->glist[j] = cf->glist[eqclass[j]];
+                            wi->gnames[j] = cf->gnames[eqclass[j]];
+                            wi->fpslist[j] = cf->fpslist[eqclass[j]];
+                            wi->sorted[j] = eqclass[j];
+                            wi->nslist[j] = cf->nslist[eqclass[j]];
+                        }
+                        wi->name = _ws->getuniquename(wi->classname);
+                        _ws->items.push_back(wi);
                     }
-                    std::vector<bool> threadbool {};
-                    threadbool.resize(eqclass.size());
-                    for (int m = 0; m < eqclass.size(); ++m) {
-                        //t[m].join();
-                        //t[m].detach();
-                        threadbool[m] = t[m].get();
-                    }
-                    auto wi = new checkcriterionitem<bool>;
-                    wi->res.resize(eqclass.size());
-                    wi->fpslist.resize(eqclass.size());
-                    wi->glist.resize(eqclass.size());
-                    wi->sorted.resize(eqclass.size());
-                    wi->gnames.resize(eqclass.size());
-                    wi->nslist.resize(eqclass.size());
-                    for (int j=0; j < eqclass.size(); ++j) {
-                        wi->res[j] = threadbool[j];
-                        wi->glist[j] = cf->glist[eqclass[j]];
-                        wi->gnames[j] = cf->gnames[eqclass[j]];
-                        wi->fpslist[j] = cf->fpslist[eqclass[j]];
-                        wi->sorted[j] = eqclass[j];
-                        wi->nslist[j] = cf->nslist[eqclass[j]];
-                    }
-                    wi->name = _ws->getuniquename(wi->classname);
-                    _ws->items.push_back(wi);
 
                 }
             }
@@ -1241,6 +1233,64 @@ public:
 
 };
 
+
+class checkembedcriteriafeature : public checkcriterionfeature {
+protected:
+public:
+    std::string cmdlineoption() override { return "e"; }
+    std::string cmdlineoptionlong() { return "checkembedscriteria"; }
+    checkembedcriteriafeature( std::istream* is, std::ostream* os, workspace* ws ) : checkcriterionfeature( is, os, ws) {}
+    ~checkembedcriteriafeature() {
+        for (int i = 0; i < cs.size(); ++i)
+            delete cs[i];
+    }
+
+    void listoptions() override {
+        abstractcheckcriterionfeature::listoptions();
+        *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks embeds for ALL graphs found on the workspace\n";
+        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks embeds for each fingerprint-equivalent class\n";
+        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "f=<filename>:\t reads graphs from <filename> and uses them as the embeddings sought\n";
+    }
+
+
+    void execute(std::vector<std::string> args) {
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+
+        for (int i = 0; i < parsedargs.size(); ++i) {
+            if (parsedargs[i].first == "f") {
+
+                std::ifstream ifs;
+                std::istream* is = &std::cin;
+                std::ostream* os = _os;
+                std::string filename = parsedargs[i].second;
+                if (filename == "std::cin" || filename == "") {
+                    std::cout << "Using std::cin for input\n"; // recode so this is possible
+                } else {
+                    *_os << "Opening file " << filename << "\n";
+                    ifs.open(filename);
+                    if (!ifs) {
+                        std::cout << "Couldn't open file for reading \n";
+                        return;
+                    }
+                    is = &ifs;
+                }
+
+                graphitem* gi = new graphitem();
+                while (gi->isitem(*is)) {
+                    gi->name = _ws->getuniquename(gi->classname) + "FLAG";
+                    _ws->items.push_back(gi);
+                    cs.push_back(new embedscriterion(gi->ns));
+                    gi = new graphitem();
+                }
+                delete gi;
+
+            }
+        }
+        checkcriterionfeature::execute(args);
+    }
+
+};
 
 
 

@@ -223,8 +223,6 @@ public:
 };
 
 
-
-
 class edgecountmeasure : public abstractmeasure {
 public:
     int takemeasure( const graphtype* g, const neighbors* ns ) override {

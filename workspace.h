@@ -476,7 +476,7 @@ public:
         }
 
         for (int i = 0; i < count.size(); ++i)
-            os << "result == " << count[i].first << ": " << count[i].second << " out of " << sorted.size() << "\n";
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << sorted.size() << ", " << (float)count[i].second / (float)sorted.size() << "\n";
         return true;
     }
 };
