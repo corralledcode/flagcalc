@@ -1,27 +1,94 @@
+/* #name=GRAPH4
+ * #FP=1
+ * #_abstractcriterion=1
+ * #_abstractcriterion=0
+ * #_abstractcriterion=0
+ */
 a b c d e f g h END
-ad 
-bf bh 
-cf 
-df 
-ef 
+ab ad ae 
+bc bf 
+cd cg 
+dh 
+ef eh 
+fg 
+gh 
 END
-a b c d e f g h END
-ad ae 
-df 
+
+/* #name=GRAPH2
+ * #FP=0
+ * #_abstractcriterion=0
+ * #_abstractcriterion=0
+ * #_abstractcriterion=0
+ */
+a b c d e f g h i END
+ab ad 
+bc bd 
+cd 
+ef eg eh 
+fg 
+gh 
 END
-a b c d e f g h END
-ad ae af 
-bd be bh 
-ce 
-END
-a b c d e f g h END
-ab ae 
-bc bd bf 
-cf cg 
-ef 
-END
-a b c d e f g h END
-bf 
+
+/* #name=GRAPH3
+ * #FP=1
+ */
+a b c d e f g h i END
+ac ad 
+bc bd 
 cd 
 fg fh 
+gh gi 
+hi 
+END
+
+/* #name=GRAPH0
+ * #FP=0
+ * #_abstractcriterion=1
+ * #_abstractcriterion=0
+ * #_abstractcriterion=0
+ */
+a b c d e f g h i j k l END
+ag ah ai aj ak al 
+bg bh bi bj bk bl 
+cg ch ci cj ck cl 
+dg dh di dj dk dl 
+eg eh ei ej ek el 
+fg fh fi fj fk fl 
+END
+
+/* #name=GRAPH1
+ * #FP=0
+ */
+a b c d e f g h i j k l END
+ag ah ai aj ak al 
+bg bh bi bj bk bl 
+cg ch ci cj ck cl 
+dg dh di dj dk dl 
+eg eh ei ej ek el 
+fg fh fi fj fk fl 
+END
+
+/* #name=GRAPH8FLAG
+ */
+a b c d END
+ab ad 
+bc 
+cd 
+END
+
+/* #name=GRAPH9FLAG
+ */
+a b c d e END
+ab ae 
+bc 
+cd 
+de 
+END
+
+/* #name=GRAPH10FLAG
+ */
+a b c d END
+ab ac ad 
+bc bd 
+cd 
 END

@@ -10,9 +10,11 @@
 #include <fstream>
 
 #include "asymp.h"
+#include "graphoutcome.h"
 #include "graphs.h"
 #include "prob.h"
 #include "workspace.h"
+#include "mantel.h"
 
 //default is to enumisomorphisms
 #define DEFAULTCMDLINESWITCH "i"
@@ -588,10 +590,14 @@ public:
         } else
             _os = &std::cout;
 
+        bool first = true;
         for (auto wi : _ws->items) {
             if (wi->classname == "GRAPH") {
                 auto gi = (graphitem*)wi;
-                osmachinereadablegraph(*_os,gi->g);
+                if (!first)
+                    *_os << "\n";
+                gi->osmachinereadablegraph(*_os);
+                first = false;
             }
         }
 
@@ -753,6 +759,7 @@ public:
         wi->fpslist.resize(items.size());
         wi->glist.resize(items.size());
         wi->gnames.resize(items.size());
+
         for (int i = 0; i < items.size(); ++i) {
             auto gi = (graphitem*)(_ws->items[items[i]]);
             //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
@@ -862,7 +869,26 @@ public:
         wi->overallmatchcount = overallmatchcount;
         wi->res = res;
         wi->name = _ws->getuniquename(wi->classname);
+
+        for (auto i = 0; i < items.size(); ++i) {
+            if (_ws->items[items[wi->sorted[i]]]->classname != "GRAPH") {
+                std::cout << "Error in cmpfingerprintsfeature";
+                return;
+            }
+            auto egi = (graphitem*)_ws->items[items[wi->sorted[i]]];
+            egi->intitems.push_back(new fpoutcome(wi->fpslist[i],egi,wi->res[i]));
+        }
+        std::vector<workitems*> tmpws {};
+        tmpws.resize(_ws->items.size());
+        for (auto i=0; i < items.size();++i) {
+            tmpws[items[i]] = _ws->items[items[wi->sorted[i]]];
+        }
+        for (auto i =0; i < items.size(); ++i) {
+            _ws->items[items[items.size() - i - 1]] = tmpws[items[i]];
+        }
+
         _ws->items.push_back(wi);
+
 
     }
 };
@@ -870,7 +896,6 @@ public:
 
 class enumisomorphismsfeature: public feature {
 public:
-    bool useworkspaceg2 = false;
     std::string cmdlineoption() { return "i"; }
     std::string cmdlineoptionlong() { return "enumisomorphisms"; }
     enumisomorphismsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
@@ -898,7 +923,7 @@ public:
         bool takeallgraphitems = false;
         bool computeautomorphisms = false;
         int numofitemstotake = 2;
-        bool fromfp = false;
+        bool sortedbool = false;
         bool sortedverify = false;
 
         if (args.size() > 1) {
@@ -907,16 +932,16 @@ public:
                 computeautomorphisms = true;
             } else {
                 if (args[1] == CMDLINE_ENUMISOSSORTED) {
-                    fromfp = true;
+                    sortedbool = true;
                     numofitemstotake = 0;
-                    //takeallgraphitems = true;
-                    computeautomorphisms = false;
+                    takeallgraphitems = true;
+                    computeautomorphisms = true;
                 }
                 else {
                     if (args[1] == CMDLINE_ENUMISOSSORTEDVERIFY) {
                         sortedverify = true;
                         numofitemstotake = 0;
-                        //takeallgraphitems = true;
+                        takeallgraphitems = true;
                         computeautomorphisms = false;
                     } else {
                         takeallgraphitems = false;
@@ -939,7 +964,7 @@ public:
             }
         }
 
-        if (!fromfp && !sortedverify)
+        if (!sortedbool && !sortedverify)
             if (items.size() == 0) {
                 std::cout << "No graphs available to enum isomorphisms\n";
                 return;
@@ -963,31 +988,58 @@ public:
 #ifdef THREADPOOL4
 
 
-            unsigned const thread_count = std::thread::hardware_concurrency();
+            //unsigned const thread_count = std::thread::hardware_concurrency();
             //unsigned const thread_count = 1;
 
+            std::vector<int> eqclass {};
+            if (sortedbool) {
+                if (items.size()==0) {
+                    std::cout << "No graphs to enumerate isomorphisms over\n";
+                    return;
+                }
+                //eqclass.push_back(0);
+
+                for (int m = 1; m < items.size(); ++m) {
+                    auto gi = (graphitem*)_ws->items[items[m]];
+                    for (int r = 0; r < gi->intitems.size(); ++r) {
+                        if (gi->intitems[r]->name() == "FP") {
+                            auto fpo = (fpoutcome*)gi->intitems[r];
+                            if (fpo->value == 1)
+                                eqclass.push_back(m-1);
+                        }
+                    }
+                }
+                eqclass.push_back(items.size()-1);
+            } else {
+                for (int m = 0; m < items.size(); ++m) {
+                    eqclass.push_back(m);
+                }
+            }
+
             std::vector<std::future<std::vector<graphmorphism>*>> t {};
-            t.resize(items.size());
-            for (int m = 0; m < items.size(); ++m) {
-                t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m]);
+            t.resize(eqclass.size());
+            for (int m = 0; m < eqclass.size(); ++m) {
+                    t[m] = std::async(&enumisomorphisms,nslist[eqclass[m]],nslist[eqclass[m]]);
             }
             std::vector<std::vector<graphmorphism>*> threadgm {};
-            threadgm.resize(items.size());
-            for (int m = 0; m < items.size(); ++m) {
+            threadgm.resize(eqclass.size());
+            for (int m = 0; m < eqclass.size(); ++m) {
                 //t[m].join();
                 //t[m].detach();
                 threadgm[m] = t[m].get();
             }
-            for (int j=0; j < items.size(); ++j) {
+            for (int j=0; j < eqclass.size(); ++j) {
                 auto wi = new enumisomorphismsitem;
-                wi->g1 = nslist[j]->g;
-                wi->g2 = nslist[j]->g;
+                wi->g1 = nslist[eqclass[j]]->g;
+                wi->g2 = nslist[eqclass[j]]->g;
                 wi->gm = threadgm[j];
                 wi->name = _ws->getuniquename(wi->classname);
                 _ws->items.push_back(wi);
 
                 //freefps(fpslist[j].ns,glist[j]->dim);
                 //delete fpslist[j].ns;
+                auto gi = (graphitem*)_ws->items[items[eqclass[j]]];
+                gi->intitems.push_back(new automorphismsoutcome(gi,wi->gm->size()));
             }
 
 #endif
@@ -1007,101 +1059,75 @@ public:
 #endif
 
         } else {
-            std::vector<int> sorted;
-            std::vector<FP*> fpslist;
-            if (fromfp) {
-                for (auto wi : _ws->items) {
-                    if (wi->classname == "CMPFINGERPRINTS") {
-                        auto cf = (cmpfingerprintsitem*)(wi);
-                        nslist = cf->nslist;
-                        fpslist = cf->fpslist;
-                        sorted = cf->sorted;
-                        std::vector<int> eqclass {};
+            if (sortedverify) {
+                std::vector<int> eqclass {};
+                if (items.size()==0) {
+                    std::cout << "No graphs to enumerate isomorphisms over\n";
+                    return;
+                }
+                //eqclass.push_back(0);
 
-                        if (cf->sorted.size() == 0)
-                            return;
-                        eqclass.push_back(cf->sorted[0]);
-                        for (int n = 0; n < cf->sorted.size()-1; ++n)
-                            if (cf->res[n] != 0)
-                                eqclass.push_back(cf->sorted[n+1]);
-
-                        std::vector<std::future<std::vector<graphmorphism>*>> t {};
-                        t.resize(eqclass.size());
-                        for (int m = 0; m < eqclass.size(); ++m) {
-                            t[m] = std::async(&enumisomorphismscore,cf->nslist[eqclass[m]],cf->nslist[eqclass[m]],cf->fpslist[eqclass[m]]->ns,cf->fpslist[eqclass[m]]->ns);
-                        }
-                        std::vector<std::vector<graphmorphism>*> threadgm {};
-                        threadgm.resize(eqclass.size());
-                        for (int m = 0; m < eqclass.size(); ++m) {
-                            //t[m].join();
-                            //t[m].detach();
-                            threadgm[m] = t[m].get();
-                        }
-                        for (int j=0; j < eqclass.size(); ++j) {
-                            auto wi = new enumisomorphismsitem;
-                            wi->gm = threadgm[j];
-                            wi->g1 = nslist[cf->sorted[eqclass[j]]]->g;
-                            wi->g2 = nslist[cf->sorted[eqclass[j]]]->g;
-                            wi->name = _ws->getuniquename(wi->classname) + " " + cf->gnames[cf->sorted[j]];
-                            _ws->items.push_back(wi);
-
-                            //freefps(fpslist[j].ns,glist[j]->dim);
-                            //delete fpslist[j].ns;
+                for (int m = 1; m < items.size(); ++m) {
+                    auto gi = (graphitem*)_ws->items[items[m]];
+                    for (int r = 0; r < gi->intitems.size(); ++r) {
+                        if (gi->intitems[r]->name() == "FP") {
+                            auto fpo = (fpoutcome*)gi->intitems[r];
+                            if (fpo->value == 1)
+                                eqclass.push_back(m-1);
                         }
                     }
                 }
-            } else {
-                if (sortedverify) {
-                    for (auto wi : _ws->items) {
-                        if (wi->classname == "CMPFINGERPRINTS") {
-                            auto cf = (cmpfingerprintsitem*)(wi);
-                            nslist = cf->nslist;
-                            fpslist = cf->fpslist;
-                            sorted = cf->sorted;
+                eqclass.push_back(items.size()-1);
 
-                            std::vector<std::future<std::vector<graphmorphism>*>> t {};
-                            t.resize(cf->sorted.size()-1);
-                            for (int m = 0; m < cf->sorted.size()-1; ++m) {
-                                if (cf->res[m]==0) {
-                                    //std::cout << "m " << m << "\n";
-                                    t[m] = std::async(&enumisomorphismscore,cf->nslist[cf->sorted[m]],cf->nslist[cf->sorted[m+1]],cf->fpslist[cf->sorted[m]]->ns,cf->fpslist[cf->sorted[m+1]]->ns);
-                                }
-                            }
-                            std::vector<std::vector<graphmorphism>*> threadgm {};
-                            threadgm.resize(cf->sorted.size()-1);
-                            for (int m = 0; m < cf->sorted.size()-1; ++m) {
-                                //t[m].join();
-                                //t[m].detach();
-                                if (cf->res[m]==0)
-                                    threadgm[m] = t[m].get();
-                            }
-                            for (int j=0; j < cf->sorted.size()-1; ++j) {
-                                if (cf->res[j]==0) {
-                                    auto wi = new enumisomorphismsitem;
-                                    wi->gm = threadgm[j];
-                                    wi->g1 = cf->nslist[cf->sorted[j]]->g;
-                                    wi->g2 = cf->nslist[cf->sorted[j+1]]->g;
-                                    wi->name = _ws->getuniquename(wi->classname) + " " + cf->gnames[cf->sorted[j]]+" " + cf->gnames[cf->sorted[j+1]];
-                                    _ws->items.push_back(wi);
-                                }
-                                //freefps(fpslist[j].ns,glist[j]->dim);
-                                //delete fpslist[j].ns;
-                            }
-                        }
-                    }
-                } else {
-                    sorted.resize(items.size());
-                    for (int n = 0; n < sorted.size(); ++n) {
-                        sorted[n] = n;
-                    }
-                    if (items.size() == 2) {
+                std::vector<std::future<std::vector<graphmorphism>*>> t {};
+                t.resize(items.size());
+                int eqclassidx = 0;
+                for (int m = 0; m < items.size(); ++m) {
+                    if (m != eqclass[eqclassidx]) {
+                        t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m+1]);
+                    } else
+                        eqclassidx++;
+                }
+                std::vector<std::vector<graphmorphism>*> threadgm {};
+                threadgm.resize(items.size());
+                eqclassidx = 0;
+                for (int m = 0; m < items.size(); ++m) {
+                    //t[m].join();
+                    //t[m].detach();
+                    if (m != eqclass[eqclassidx])
+                        threadgm[m] = t[m].get();
+                    else
+                        eqclassidx++;
+                }
+                eqclassidx = 0;
+                for (int j=0; j < items.size(); ++j) {
+                    if (j != eqclass[eqclassidx]) {
                         auto wi = new enumisomorphismsitem;
-                        wi->g1 = nslist[sorted[0]]->g;
-                        wi->g1 = nslist[sorted[1]]->g;
-                        wi->gm = enumisomorphisms(nslist[sorted[0]],nslist[sorted[1]]);
+                        wi->g1 = nslist[j]->g;
+                        wi->g2 = nslist[j+1]->g;
+                        wi->gm = threadgm[j];
                         wi->name = _ws->getuniquename(wi->classname);
                         _ws->items.push_back(wi);
-                    }
+
+                        //freefps(fpslist[j].ns,glist[j]->dim);
+                        //delete fpslist[j].ns;
+                        auto gi1 = (graphitem*)_ws->items[items[j]];
+                        auto gi2 = (graphitem*)_ws->items[items[j+1]];
+                        gi1->intitems.push_back(new isomorphismsoutcome(gi2,gi1,wi->gm->size()));
+                        gi2->intitems.push_back(new isomorphismsoutcome(gi1,gi2,wi->gm->size()));
+                    } else
+                        eqclassidx++;
+                }
+            } else {
+                if (items.size() == 2) {
+                    auto wi = new enumisomorphismsitem;
+                    wi->g1 = nslist[0]->g;
+                    wi->g1 = nslist[1]->g;
+                    wi->gm = enumisomorphisms(nslist[0],nslist[1]);
+                    wi->name = _ws->getuniquename(wi->classname);
+                    auto gi = (graphitem*)_ws->items[items[0]];
+                    gi->intitems.push_back(new automorphismsoutcome(gi,wi->gm->size()));
+                    _ws->items.push_back(wi);
                 }
             }
         }
@@ -1158,21 +1184,22 @@ public:
     }
 
     void execute(std::vector<std::string> args) override {
-
-
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
 
         bool takeallgraphitems = false;
-        bool fromfp = false;
+        int numofitemstotake = 1;
+        bool sortedbool = false;
         bool sortedverify = false;
+
 
         for (int i = 1; i < args.size(); ++i) {
             if (args[i] == CMDLINE_ALL) {
                 takeallgraphitems = true;
             } else {
                 if (args[i] == CMDLINE_ENUMISOSSORTED) {
-                    fromfp = true;
+                    sortedbool = true;
+                    takeallgraphitems = true;
                 }
             }
             for (int n = 0; n < crs.size(); ++n) {
@@ -1184,140 +1211,126 @@ public:
         }
 
         int idx = _ws->items.size();
-        while (idx > 0 && takeallgraphitems) {
+        while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
             idx--;
             if (_ws->items[idx]->classname == "GRAPH")  {
                 items.push_back(idx);
+                --numofitemstotake;
 
             } else {
                 //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
             }
         }
 
-        if (!fromfp)
+        if (!sortedbool && !sortedverify)
             if (items.size() == 0) {
-                std::cout << "No graphs available to apply criterion\n";
+                std::cout << "No graphs available to check criterion\n";
                 return;
-            } else {
-                std::vector<neighbors*> nslist {};
-                nslist.resize(items.size());
-                std::vector<graphtype*> glist {};
-                glist.resize(items.size());
-                std::vector<std::string> gnames {};
-                gnames.resize(items.size());
+            }
 
-                for (int i = 0; i < items.size(); ++i)
-                {
-                    auto gi = (graphitem*)(_ws->items[items[i]]);
-                    nslist[i] = gi->ns;
-                    glist[i] = gi->g;
-                    gnames[i] = gi->name;
-                }
+        std::vector<neighbors*> nslist {};
+        nslist.resize(items.size());
+        std::vector<graphtype*> glist {};
+        glist.resize(items.size());
+        // code this to run takefingerprint only once if graph 1 = graph 2
+
+        for (int i = 0; i < items.size(); ++i)
+        {
+            auto gi = (graphitem*)(_ws->items[items[i]]);
+            nslist[i] = gi->ns;
+            glist[i] = gi->g;
+        }
+        if (items.size() >= 1) {
+
+
+
+
 
 #ifdef THREADPOOL4
 
 
-                //unsigned const thread_count = std::thread::hardware_concurrency();
-                //unsigned const thread_count = 1;
+            //unsigned const thread_count = std::thread::hardware_concurrency();
+            //unsigned const thread_count = 1;
 
-                for (int k = 0; k < cs.size(); ++k) {
-                    std::vector<std::future<bool>> t {};
-                    t.resize(items.size());
-                    for (int m = 0; m < items.size(); ++m) {
-                        t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[m],nslist[m]);
-                    }
-                    std::vector<bool> threadbool {};
-                    threadbool.resize(items.size());
-                    for (int m = 0; m < items.size(); ++m) {
-                        //t[m].join();
-                        //t[m].detach();
-                        threadbool[m] = t[m].get();
-                    }
-
-                    auto wi = new checkcriterionitem<bool>;
-                    wi->res.resize(items.size());
-                    wi->fpslist = {};
-                    wi->glist.resize(items.size());
-                    wi->sorted.resize(items.size());
-                    wi->gnames.resize(items.size());
-                    wi->nslist.resize(items.size());
-                    for (int j=0; j < items.size(); ++j) {
-                        wi->res[j] = threadbool[j];
-                        wi->glist[j] = glist[j];
-                        wi->gnames[j] = gnames[j];
-                        wi->sorted[j] = j;
-                        wi->nslist[j] = nslist[j];
-                    }
-                    wi->name = _ws->getuniquename(wi->classname);
-                    _ws->items.push_back(wi);
+            std::vector<int> eqclass {};
+            if (sortedbool) {
+                if (items.size()==0) {
+                    std::cout << "No graphs to check criterion over\n";
+                    return;
                 }
+                //eqclass.push_back(0);
 
-        #endif
-
-        #ifdef NOTTHREADED4
-
-                for (int j = 0; j < items.size(); ++j) {
-                    auto wi = new enumisomorphismsitem;
-                    wi->gm = enumisomorphisms(nslist[j],nslist[j]);
-                    wi->name = _ws->getuniquename(wi->classname);
-                    _ws->items.push_back(wi);
-
-                    freefps(fpslist[j].ns,glist[j].dim);
-                    free(fpslist[j].ns);
-                }
-
-        #endif
-
-        } else { // if fromfp
-            for (auto wi : _ws->items) {
-                if (wi->classname == "CMPFINGERPRINTS") {
-                    auto cf = (cmpfingerprintsitem*)(wi);
-                    std::vector<int> eqclass {};
-
-                    if (cf->sorted.size() == 0)
-                        return;
-                    eqclass.push_back(cf->sorted[0]);
-                    for (int n = 0; n < cf->sorted.size()-1; ++n)
-                        if (cf->res[n] != 0)
-                            eqclass.push_back(cf->sorted[n+1]);
-
-                    for (int k = 0; k < cs.size(); ++k) {
-                        std::vector<std::future<bool>> t {};
-                        t.resize(eqclass.size());
-                        for (int m = 0; m < eqclass.size(); ++m) {
-                            t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],cf->glist[eqclass[m]],cf->nslist[eqclass[m]]);
+                for (int m = 1; m < items.size(); ++m) {
+                    auto gi = (graphitem*)_ws->items[items[m]];
+                    for (int r = 0; r < gi->intitems.size(); ++r) {
+                        if (gi->intitems[r]->name() == "FP") {
+                            auto fpo = (fpoutcome*)gi->intitems[r];
+                            if (fpo->value == 1)
+                                eqclass.push_back(m-1);
                         }
-                        std::vector<bool> threadbool {};
-                        threadbool.resize(eqclass.size());
-                        for (int m = 0; m < eqclass.size(); ++m) {
-                            //t[m].join();
-                            //t[m].detach();
-                            threadbool[m] = t[m].get();
-                        }
-                        auto wi = new checkcriterionitem<bool>;
-                        wi->res.resize(eqclass.size());
-                        wi->fpslist.resize(eqclass.size());
-                        wi->glist.resize(eqclass.size());
-                        wi->sorted.resize(eqclass.size());
-                        wi->gnames.resize(eqclass.size());
-                        wi->nslist.resize(eqclass.size());
-                        for (int j=0; j < eqclass.size(); ++j) {
-                            wi->res[j] = threadbool[j];
-                            wi->glist[j] = cf->glist[eqclass[j]];
-                            wi->gnames[j] = cf->gnames[eqclass[j]];
-                            wi->fpslist[j] = cf->fpslist[eqclass[j]];
-                            wi->sorted[j] = eqclass[j];
-                            wi->nslist[j] = cf->nslist[eqclass[j]];
-                        }
-                        wi->name = _ws->getuniquename(wi->classname);
-                        _ws->items.push_back(wi);
                     }
-
+                }
+                eqclass.push_back(items.size()-1);
+            } else {
+                for (int m = 0; m < items.size(); ++m) {
+                    eqclass.push_back(m);
                 }
             }
+
+            for (int k = 0; k < cs.size(); ++k) {
+                std::vector<std::future<bool>> t {};
+                t.resize(eqclass.size());
+                for (int m = 0; m < eqclass.size(); ++m) {
+                    t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
+                }
+                std::vector<bool> threadbool {};
+                threadbool.resize(eqclass.size());
+                for (int m = 0; m < eqclass.size(); ++m) {
+                    //t[m].join();
+                    //t[m].detach();
+                    threadbool[m] = t[m].get();
+                }
+                auto wi = new checkcriterionitem<bool>;
+
+                wi->res.resize(eqclass.size());
+                wi->fpslist = {};
+                wi->glist.resize(eqclass.size());
+                wi->sorted.resize(eqclass.size());
+                wi->gnames.resize(eqclass.size());
+                wi->nslist.resize(eqclass.size());
+                for (int j=0; j < eqclass.size(); ++j) {
+                    wi->res[j] = threadbool[j];
+                    wi->glist[j] = glist[j];
+                    wi->sorted[j] = j;
+                    wi->nslist[j] = nslist[j];
+                    auto gi = (graphitem*)_ws->items[items[eqclass[j]]];
+                    gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[j]));
+                    wi->gnames[j] = gi->name;
+                }
+                wi->name = _ws->getuniquename(wi->classname);
+                _ws->items.push_back(wi);
+
+            }
+
+
+#endif
+
+#ifdef NOTTHREADED4
+
+            for (int j = 0; j < items.size(); ++j) {
+                auto wi = new enumisomorphismsitem;
+                wi->gm = enumisomorphisms(nslist[j],nslist[j]);
+                wi->name = _ws->getuniquename(wi->classname);
+                _ws->items.push_back(wi);
+
+                freefps(fpslist[j].ns,glist[j].dim);
+                free(fpslist[j].ns);
+            }
+
+#endif
+
         }
     }
-
 };
 
 
@@ -1433,7 +1446,7 @@ public:
         mantelstheoremfeature* ms = new mantelstheoremfeature(_is,_os,_ws);
         ms->execute(args);
         enumisomorphismsfeature* ei = new enumisomorphismsfeature(_is,_os,_ws);
-        ei->useworkspaceg2 = true;
+        //ei->useworkspaceg2 = true;
         ei->execute(args); // or send it a smaller subset of args
         delete ms;
         delete ei;

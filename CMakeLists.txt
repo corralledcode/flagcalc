@@ -25,4 +25,7 @@ add_executable(flagcalc main.cpp
         workspace.cpp
         workspace.h
         thread_pool.cpp
-        thread_safe_queue.cpp)
+        thread_safe_queue.cpp
+        graphoutcome.cpp
+        graphoutcome.h
+        mantel.h)

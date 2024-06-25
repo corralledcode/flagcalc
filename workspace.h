@@ -116,15 +116,15 @@ public:
     }
 };
 
-class graphitem : public workitems {
+class abstractgraphitem : public workitems {
 public:
     graphtype* g;
     neighbors* ns;
-    graphitem() : workitems() {
+    abstractgraphitem() : workitems() {
         g = nullptr;
         ns = nullptr;
         verbositylevel = VERBOSE_LISTGRAPHS;
-        classname = "GRAPH";
+        classname = "ABSTRACTGRAPH";
     }
     void freemem() override {
         workitems::freemem();
@@ -147,36 +147,12 @@ public:
         return true;
     }
 
-
-
-
-    bool isitem( std::istream& is) {
-        //auto p = paused();
-        //pause();
-        //if (!idata || !edata)
-        //    throw std::exception();
-        int s = 0;
-
-        std::vector<std::string> eres{};
-        std::string tmp = "";
-        std::string tmp2 = "";
-        while ((is >> tmp) && (tmp != "END") && (tmp != "###")) {
-            if (tmp == "/*") {
-                bool res = bool(is >> tmp);
-                while (res && (tmp != "*/"))
-                    res = bool(is >> tmp);
-                continue;
-            }
-            eres.push_back(tmp);
-            tmp2 += tmp + " ";
-            tmp = "";
-            s++;
-        }
+    bool isiteminternal( std::string tmp1a, std::string tmp2a, std::string tmp1b, std::string tmp2b ) {
         std::vector<std::string> vertexlabels {}; // ultimately store this in workitem to use for readouts
-        if (tmp2.size() > 0) {
+        if (tmp2a.size() > 0) {
             std::regex pat{"([\\w]+)"};
 
-            for (std::sregex_iterator p(tmp2.begin(), tmp2.end(), pat); p != std::sregex_iterator{}; ++p) {
+            for (std::sregex_iterator p(tmp2a.begin(), tmp2a.end(), pat); p != std::sregex_iterator{}; ++p) {
                 std::string tmp3;
                 tmp3 = (*p)[1];
                 vertexlabels.push_back(tmp3);
@@ -201,33 +177,13 @@ public:
             return false;   // in case only one graph is given, default to computing automorphisms
         }
 
-        //for (int n = 0; n < vertexlabels.size(); ++n) {
-        //    std::cout << vertexlabels[n] << ", ";
-        //}
-        //std::cout << "\b\b\n";
-        s = 0;
 
-        tmp = "";
-        tmp2 = "";
 
-        eres.clear();
-        while ((is >> tmp) && (tmp != "END") && (tmp != "###")) {
-            if (tmp == "/*") {
-                bool res = bool(is >> tmp);
-                while (res && (tmp != "*/"))
-                    res = bool(is >> tmp);
-                continue;
-            }
-            eres.push_back(tmp);
-            tmp2 += tmp + " ";
-            tmp = "";
-            s++;
-        }
         std::vector<std::string> edgecommands {};
-        if (tmp2.size() > 0) {
+        if (tmp2b.size() > 0) {
             std::regex pat{"([[:punct:]]*[\\w]+)"};
 
-            for (std::sregex_iterator p(tmp2.begin(), tmp2.end(), pat); p != std::sregex_iterator{}; ++p) {
+            for (std::sregex_iterator p(tmp2b.begin(), tmp2b.end(), pat); p != std::sregex_iterator{}; ++p) {
                 std::string tmp3;
                 tmp3 = (*p)[1];
                 edgecommands.push_back(tmp3);
@@ -316,7 +272,53 @@ public:
         return (g->dim > 0);   // for now no support for trivial empty graphs
     }
 
+
+    bool isitem( std::istream& is) {
+        //auto p = paused();
+        //pause();
+        //if (!idata || !edata)
+        //    throw std::exception();
+        int s = 0;
+
+        std::vector<std::string> eresa{}; // not used
+        std::string tmp1a = "";
+        std::string tmp2a = "";
+        while ((is >> tmp1a) && (tmp1a != "END") && (tmp1a != "###")) {
+            if (tmp1a == "/*") {
+                bool res = bool(is >> tmp1a);
+                while (res && (tmp1a != "*/"))
+                    res = bool(is >> tmp1a);
+                continue;
+            }
+            eresa.push_back(tmp1a);
+            tmp2a += tmp1a + " ";
+            tmp1a = "";
+            s++;
+        }
+        s = 0;
+
+        std::string tmp1b = "";
+        std::string tmp2b = "";
+
+        std::vector<std::string> eresb {}; // not used
+        while ((is >> tmp1b) && (tmp1b != "END") && (tmp1b != "###")) {
+            if (tmp1b == "/*") {
+                bool res = bool(is >> tmp1b);
+                while (res && (tmp1b != "*/"))
+                    res = bool(is >> tmp1b);
+                continue;
+            }
+            eresb.push_back(tmp1b);
+            tmp2b += tmp1b + " ";
+            tmp1b = "";
+            s++;
+        }
+        return isiteminternal(tmp1a,tmp2a, tmp1b, tmp2b);
+    }
+
 };
+
+
 
 
 class enumisomorphismsitem : public workitems {
