@@ -409,8 +409,8 @@ public:
     void listoptions() override {
         feature::listoptions();
         *_os << "\t" << "<filename>: \t\t output filename, or \"std::cout\"\n";
-        *_os << "\t" << "o=<filename>: \t\t output filename, or \"std::cout\"\n";
-        *_os << "\t" << "i=<filename>: \t\t input filename (use to prepackage verbosity commands)\n";
+        *_os << "\t" << "\"o=<filename>\": \t\t output filename, or \"std::cout\"\n";
+        *_os << "\t" << "\"i=<filename>\": \t\t input filename (use to prepackage verbosity commands)\n";
         *_os << "\t" << "<verbosityname>: \t any levels can be listed, delimited by spaces;\n";
         *_os << "\t\t\t\t\t\t in addition to what's optionally in the input file\n";
         // eventually do a loop which calls on each verbosity option to identify itself
@@ -540,6 +540,7 @@ public:
         *_os << "\t" << "\"o=<filename>\":" << "\t same as just a filename\n";
         *_os << "\t" << "\"append\":" << "\t\t Appends to an existing file (default)\n";
         *_os << "\t" << "\"overwrite\":" << "\t Overwrites if file exists already\n";
+        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\":" << "\t\t Outputs one graph per fingerprint-equivalence class\n";
     }
 
 
@@ -1475,7 +1476,8 @@ public:
         *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks embeds for ALL graphs found on the workspace\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks embeds for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
-        *_os << "\t" << "f=<filename>:\t reads graphs from <filename> and uses them as the embeddings sought\n";
+        *_os << "\t" << "\"i=<filename>\":\t reads graphs from <filename> and uses them as the embeddings sought\n";
+        *_os << "\t" << "\"f=<filename>\":\t identical to 'i=<filename>' above\n";
     }
 
 
