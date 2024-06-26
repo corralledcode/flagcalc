@@ -1102,27 +1102,27 @@ public:
 
                 std::vector<std::future<std::vector<graphmorphism>*>> t {};
                 t.resize(items.size());
-                int eqclassidx = 0;
-                for (int m = 0; m < items.size(); ++m) {
-                    if (m != eqclass[eqclassidx]) {
+                int eqclassidx = 1;
+                for (int m = 0; m < items.size()-1; ++m) {
+                    if ((m+1) != eqclass[eqclassidx]) {
                         t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m+1]);
                     } else
                         eqclassidx++;
                 }
                 std::vector<std::vector<graphmorphism>*> threadgm {};
                 threadgm.resize(items.size());
-                eqclassidx = 0;
-                for (int m = 0; m < items.size(); ++m) {
+                eqclassidx = 1;
+                for (int m = 0; m < items.size()-1; ++m) {
                     //t[m].join();
                     //t[m].detach();
-                    if (m != eqclass[eqclassidx])
+                    if ((m +1) != eqclass[eqclassidx])
                         threadgm[m] = t[m].get();
                     else
                         eqclassidx++;
                 }
-                eqclassidx = 0;
-                for (int j=0; j < items.size(); ++j) {
-                    if (j != eqclass[eqclassidx]) {
+                eqclassidx = 1;
+                for (int j=0; j < items.size()-1; ++j) {
+                    if ((j+1) != eqclass[eqclassidx]) {
                         auto wi = new enumisomorphismsitem;
                         wi->g1 = nslist[j]->g;
                         wi->g2 = nslist[j+1]->g;
