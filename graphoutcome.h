@@ -35,9 +35,9 @@ public:
             if (tmp1a == "/*") {
                 bool res = bool(is >> tmp1a);
                 while (res && (tmp1a != "*/")) {
-                    if (tmp1a.find("#name=") != std::string::npos) {
+                    if (tmp1a.substr(0,6) == "#name=") {
                         std::string tmpname = tmp1a.substr(6,tmp1a.length()-6);
-                        std::cout << tmpname << "\n";
+                        //std::cout << tmpname << "\n";
                         if (tmpname != "")
                             name = tmpname;
                     }
