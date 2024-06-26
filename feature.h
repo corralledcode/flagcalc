@@ -584,7 +584,10 @@ public:
                     return;
                 }
                 if (append)
+                {
                     ofs.open(ofname,  std::ios::app);
+                    ofs << "\nBEGIN APPEND\n\n";
+                }
                 if (!append && overwrite)
                     ofs.open(ofname, std::ios::trunc);
                 if (!ofs) {
@@ -627,8 +630,8 @@ public:
                         auto fpo = (fpoutcome*)gi->intitems[r];
                         if (fpo->value == 1) {
                             eqclass.push_back(m+1);
-                            found = true;
                         }
+                        found = true;
                     }
                 }
             }
@@ -642,7 +645,7 @@ public:
         for (int i = 0; i < eqclass.size(); ++i) {
             if (!first)
                 *_os << "\n";
-            auto gi = (graphitem*)_ws->items[eqclass[i]];
+            auto gi = (graphitem*)_ws->items[items[eqclass[i]]];
             gi->osmachinereadablegraph(*_os);
             first = false;
         }
@@ -933,7 +936,7 @@ public:
                 return;
             }
             auto egi = (graphitem*)_ws->items[items[wi->sorted[i]]];
-            egi->intitems.push_back(new fpoutcome(wi->fpslist[i],egi,wi->res[i]));
+            egi->intitems.push_back(new fpoutcome(wi->fpslist[wi->sorted[i]]->ns,egi,wi->res[i]));
         }
         std::vector<workitems*> tmpws {};
         tmpws.resize(_ws->items.size());
@@ -1056,6 +1059,7 @@ public:
             //unsigned const thread_count = 1;
 
             std::vector<int> eqclass {};
+            std::vector<const FP*> fpslist {};
             if (sortedbool) {
                 if (items.size()==0) {
                     std::cout << "No graphs to enumerate isomorphisms over\n";
@@ -1063,19 +1067,23 @@ public:
                 }
 
                 eqclass.push_back(0);
-                for (int m = 0; m < items.size()-1; ++m) {
+                for (int m = 0; m < items.size(); ++m) {
                     auto gi = (graphitem*)_ws->items[items[m]];
                     bool found = false;
                     for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
                         if (gi->intitems[r]->name() == "FP") {
                             auto fpo = (fpoutcome*)gi->intitems[r];
-                            if (fpo->value == 1) {
+                            if (eqclass[eqclass.size()-1] == m)
+                                fpslist.push_back(fpo->fp);
+                            if ((fpo->value == 1) && (m < items.size()-1))
+                            {
                                 eqclass.push_back(m+1);
-                                found = true;
                             }
+                            found = true;
                         }
                     }
                 }
+
             } else {
                 for (int m = 0; m < items.size(); ++m) {
                     eqclass.push_back(m);
@@ -1085,6 +1093,9 @@ public:
             std::vector<std::future<std::vector<graphmorphism>*>> t {};
             t.resize(eqclass.size());
             for (int m = 0; m < eqclass.size(); ++m) {
+                if (fpslist.size() == eqclass.size())
+                    t[m] = std::async(&enumisomorphismscore,nslist[eqclass[m]],nslist[eqclass[m]],fpslist[m],fpslist[m]);
+                else
                     t[m] = std::async(&enumisomorphisms,nslist[eqclass[m]],nslist[eqclass[m]]);
             }
             std::vector<std::vector<graphmorphism>*> threadgm {};
@@ -1127,6 +1138,8 @@ public:
         } else {
             if (sortedverify) {
                 std::vector<int> eqclass {};
+                std::vector<const FP*> fpslist {};
+                fpslist.resize(items.size());
                 if (items.size()==0) {
                     std::cout << "No graphs to enumerate isomorphisms over\n";
                     return;
@@ -1141,9 +1154,19 @@ public:
                             auto fpo = (fpoutcome*)gi->intitems[r];
                             if (fpo->value == 1) {
                                 eqclass.push_back(m+1);
-                                found = true;
                             }
+                            fpslist[m] = fpo->fp;
+                            found = true;
                         }
+                    }
+                }
+                auto gi = (graphitem*)_ws->items[items[items.size()-1]];
+                bool found = false;
+                for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
+                    if (gi->intitems[r]->name() == "FP") {
+                        auto fpo = (fpoutcome*)gi->intitems[r];
+                        fpslist[items.size()-1] = fpo->fp;
+                        found = true;
                     }
                 }
 
@@ -1152,7 +1175,7 @@ public:
                 int eqclassidx = 1;
                 for (int m = 0; m < items.size()-1; ++m) {
                     if ((m+1) != eqclass[eqclassidx]) {
-                        t[m] = std::async(&enumisomorphisms,nslist[m],nslist[m+1]);
+                        t[m] = std::async(&enumisomorphismscore,nslist[m],nslist[m+1],fpslist[m],fpslist[m+1]);
                     } else
                         eqclassidx++;
                 }
@@ -1443,6 +1466,8 @@ public:
     void execute(std::vector<std::string> args) {
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
+        std::vector<graphitem*> flaggraphitems {};
+
         for (int i = 0; i < parsedargs.size(); ++i) {
             if (parsedargs[i].first == "f") {
 
@@ -1462,10 +1487,12 @@ public:
                     is = &ifs;
                 }
 
+
                 graphitem* gi = new graphitem();
                 while (gi->isitem(*is)) {
                     gi->name = _ws->getuniquename(gi->classname) + "FLAG";
-                    _ws->items.push_back(gi);
+                    flaggraphitems.push_back(gi);
+                    //_ws->items.push_back(gi);
                     cs.push_back(new embedscriterion(gi->ns));
                     gi = new graphitem();
                 }
@@ -1474,6 +1501,9 @@ public:
             }
         }
         checkcriterionfeature::execute(args);
+
+        for (auto gi : flaggraphitems)
+            _ws->items.push_back(gi);
     }
 
 };
