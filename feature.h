@@ -1085,17 +1085,20 @@ public:
                 }
                 //eqclass.push_back(0);
 
-                for (int m = 1; m < items.size(); ++m) {
+                eqclass.push_back(0);
+                for (int m = 0; m < items.size()-1; ++m) {
                     auto gi = (graphitem*)_ws->items[items[m]];
-                    for (int r = 0; r < gi->intitems.size(); ++r) {
+                    bool found = false;
+                    for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
                         if (gi->intitems[r]->name() == "FP") {
                             auto fpo = (fpoutcome*)gi->intitems[r];
-                            if (fpo->value == 1)
-                                eqclass.push_back(m-1);
+                            if (fpo->value == 1) {
+                                eqclass.push_back(m+1);
+                                found = true;
+                            }
                         }
                     }
                 }
-                eqclass.push_back(items.size()-1);
 
                 std::vector<std::future<std::vector<graphmorphism>*>> t {};
                 t.resize(items.size());
