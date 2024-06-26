@@ -586,7 +586,8 @@ public:
                 if (append)
                 {
                     ofs.open(ofname,  std::ios::app);
-                    ofs << "\nBEGIN APPEND\n\n";
+                    std::time_t result = std::time(nullptr);
+                    ofs << "\nAPPEND BEGINS: " << std::asctime(std::localtime(&result)) << "\n";
                 }
                 if (!append && overwrite)
                     ofs.open(ofname, std::ios::trunc);
@@ -614,6 +615,7 @@ public:
         }
 
 
+        int sortedcnt = 0;
         std::vector<int> eqclass {};
         if (sortedbool) {
             if (items.size()==0) {
@@ -632,6 +634,7 @@ public:
                             eqclass.push_back(m+1);
                         }
                         found = true;
+                        sortedcnt++;
                     }
                 }
             }
@@ -646,6 +649,15 @@ public:
             if (!first)
                 *_os << "\n";
             auto gi = (graphitem*)_ws->items[items[eqclass[i]]];
+            if (sortedbool)
+            {
+                int eqclasssize;
+                if (i == eqclass.size()-1)
+                    eqclasssize = sortedcnt -eqclass[i];
+                else
+                    eqclasssize = eqclass[i+1]-eqclass[i];
+                gi->intitems.push_back(new genericgraphoutcome<int>("eqclasssize","Equivalence class size",gi,eqclasssize));
+            }
             gi->osmachinereadablegraph(*_os);
             first = false;
         }
@@ -1469,7 +1481,7 @@ public:
         std::vector<graphitem*> flaggraphitems {};
 
         for (int i = 0; i < parsedargs.size(); ++i) {
-            if (parsedargs[i].first == "f") {
+            if (parsedargs[i].first == "f" || parsedargs[i].first == "i") {
 
                 std::ifstream ifs;
                 std::istream* is = &std::cin;

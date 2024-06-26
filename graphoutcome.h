@@ -91,6 +91,20 @@ public:
     virtual ~graphoutcome() {}
 };
 
+template<typename T>
+class genericgraphoutcome: public graphoutcome<T> {
+protected:
+    const std::string _name;
+    const std::string _longname;
+public:
+    genericgraphoutcome(const std::string namein, const std::string longnamein, const graphitem* giin, const int newvalue)
+        : graphoutcome<T>(giin,newvalue),_name{namein},_longname{longnamein} {}
+    std::string name() override {return _name;}
+    std::string longname() override {return _longname;}
+
+
+};
+
 class commentoutcome : public graphoutcome<std::string> {
 public:
     std::string name() override {return "Comment";}
