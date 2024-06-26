@@ -1,0 +1,15 @@
+/* #name=GRAPH3
+ * #FP=1
+ */
+a b c d e END
+ab ae
+be
+END
+/* #name=GRAPH1
+ * #FP=0
+ * #automorphisms=8
+ */
+a b c d e END
+ae
+cd
+END

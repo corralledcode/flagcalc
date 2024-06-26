@@ -34,8 +34,15 @@ public:
         while ((is >> tmp1a) && (tmp1a != "END") && (tmp1a != "###")) {
             if (tmp1a == "/*") {
                 bool res = bool(is >> tmp1a);
-                while (res && (tmp1a != "*/"))
+                while (res && (tmp1a != "*/")) {
+                    if (tmp1a.find("#name=") != std::string::npos) {
+                        std::string tmpname = tmp1a.substr(6,tmp1a.length()-6);
+                        std::cout << tmpname << "\n";
+                        if (tmpname != "")
+                            name = tmpname;
+                    }
                     res = bool(is >> tmp1a);
+                }
                 continue;
             }
             eresa.push_back(tmp1a);
@@ -61,7 +68,7 @@ public:
             tmp1b = "";
             s++;
         }
-        return isiteminternal(tmp1a,tmp2a, tmp1b, tmp2b);
+        return isiteminternal(tmp1a,tmp2a, tmp1b, tmp2b );
     }
 
     void osmachinereadablegraph(std::ostream &os);
@@ -118,8 +125,8 @@ class abstractcriterionoutcome : public graphoutcome<T> {
 public:
     const abstractcriterion<T>* cr;
     abstractcriterionoutcome(const abstractcriterion<T>* crin, const graphitem* giin, T newvalue) : graphoutcome<T>(giin,newvalue),cr{crin} {}
-    std::string name() override {return "_abstractcriterion";}
-    std::string longname() override {return "_abstractcriterionlongname";}
+    std::string name() override {return cr->name; /*"_abstractcriterion"*/}
+    std::string longname() override {return cr->name; /*"_abstractcriterionlongname";*/}
 };
 
 

@@ -650,7 +650,9 @@ public:
 
             graphitem* gi = new graphitem();
             while (gi->isitem(*is)) {
-                gi->name = _ws->getuniquename(gi->classname);
+                if (gi->name == "") {
+                    gi->name = _ws->getuniquename(gi->classname);
+                }
                 _ws->items.push_back(gi);
                 gi = new graphitem();
             }
@@ -732,18 +734,25 @@ public:
             }
         }
 
-        int idx = _ws->items.size();
-        while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
-            idx--;
-            if (_ws->items[idx]->classname == "GRAPH")  {
-                items.push_back(idx);
-                --numofitemstotake;
+        if (!takeallgraphitems) {
+            int idx = _ws->items.size();
+            while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
+                idx--;
+                if (_ws->items[idx]->classname == "GRAPH")  {
+                    items.push_back(idx);
+                    --numofitemstotake;
 
-            } else {
-                //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                } else {
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                }
+            }
+        } else {
+            for (int n = 0; n < _ws->items.size(); ++n) {
+                if (_ws->items[n]->classname == "GRAPH") {
+                    items.push_back(n);
+                }
             }
         }
-
 #ifdef THREADPOOL5
 
 
@@ -884,7 +893,7 @@ public:
             tmpws[items[i]] = _ws->items[items[wi->sorted[i]]];
         }
         for (auto i =0; i < items.size(); ++i) {
-            _ws->items[items[items.size() - i - 1]] = tmpws[items[i]];
+            _ws->items[items[i]] = tmpws[items[i]];
         }
 
         _ws->items.push_back(wi);
@@ -952,18 +961,25 @@ public:
             }
         }
 
-        int idx = _ws->items.size();
-        while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
-            idx--;
-            if (_ws->items[idx]->classname == "GRAPH")  {
-                items.push_back(idx);
-                --numofitemstotake;
+        if (!takeallgraphitems) {
+            int idx = _ws->items.size();
+            while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
+                idx--;
+                if (_ws->items[idx]->classname == "GRAPH")  {
+                    items.push_back(idx);
+                    --numofitemstotake;
 
-            } else {
-                //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                } else {
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                }
+            }
+        } else {
+            for (int n = 0; n < _ws->items.size(); ++n) {
+                if (_ws->items[n]->classname == "GRAPH") {
+                    items.push_back(n);
+                }
             }
         }
-
         if (!sortedbool && !sortedverify)
             if (items.size() == 0) {
                 std::cout << "No graphs available to enum isomorphisms\n";
@@ -997,19 +1013,21 @@ public:
                     std::cout << "No graphs to enumerate isomorphisms over\n";
                     return;
                 }
-                //eqclass.push_back(0);
 
-                for (int m = 1; m < items.size(); ++m) {
+                eqclass.push_back(0);
+                for (int m = 0; m < items.size()-1; ++m) {
                     auto gi = (graphitem*)_ws->items[items[m]];
-                    for (int r = 0; r < gi->intitems.size(); ++r) {
+                    bool found = false;
+                    for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
                         if (gi->intitems[r]->name() == "FP") {
                             auto fpo = (fpoutcome*)gi->intitems[r];
-                            if (fpo->value == 1)
-                                eqclass.push_back(m-1);
+                            if (fpo->value == 1) {
+                                eqclass.push_back(m+1);
+                                found = true;
+                            }
                         }
                     }
                 }
-                eqclass.push_back(items.size()-1);
             } else {
                 for (int m = 0; m < items.size(); ++m) {
                     eqclass.push_back(m);
@@ -1139,7 +1157,6 @@ template<typename T>
 class abstractcheckcriterionfeature : public feature {
 protected:
     std::vector<abstractcriterion<T>*> crs {};
-
 public:
     virtual void listoptions() override {
         feature::listoptions();
@@ -1210,15 +1227,23 @@ public:
                 cs.push_back(crs[0]);
         }
 
-        int idx = _ws->items.size();
-        while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
-            idx--;
-            if (_ws->items[idx]->classname == "GRAPH")  {
-                items.push_back(idx);
-                --numofitemstotake;
+        if (!takeallgraphitems) {
+            int idx = _ws->items.size();
+            while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
+                idx--;
+                if (_ws->items[idx]->classname == "GRAPH")  {
+                    items.push_back(idx);
+                    --numofitemstotake;
 
-            } else {
-                //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                } else {
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                }
+            }
+        } else {
+            for (int n = 0; n < _ws->items.size(); ++n) {
+                if (_ws->items[n]->classname == "GRAPH") {
+                    items.push_back(n);
+                }
             }
         }
 
@@ -1252,6 +1277,11 @@ public:
             //unsigned const thread_count = std::thread::hardware_concurrency();
             //unsigned const thread_count = 1;
 
+
+
+
+
+
             std::vector<int> eqclass {};
             if (sortedbool) {
                 if (items.size()==0) {
@@ -1260,22 +1290,28 @@ public:
                 }
                 //eqclass.push_back(0);
 
-                for (int m = 1; m < items.size(); ++m) {
+
+
+                eqclass.push_back(0);
+                for (int m = 0; m < items.size()-1; ++m) {
                     auto gi = (graphitem*)_ws->items[items[m]];
-                    for (int r = 0; r < gi->intitems.size(); ++r) {
+                    bool found = false;
+                    for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
                         if (gi->intitems[r]->name() == "FP") {
                             auto fpo = (fpoutcome*)gi->intitems[r];
-                            if (fpo->value == 1)
-                                eqclass.push_back(m-1);
+                            if (fpo->value == 1) {
+                                eqclass.push_back(m+1);
+                                found = true;
+                            }
                         }
                     }
                 }
-                eqclass.push_back(items.size()-1);
             } else {
                 for (int m = 0; m < items.size(); ++m) {
                     eqclass.push_back(m);
                 }
             }
+
 
             for (int k = 0; k < cs.size(); ++k) {
                 std::vector<std::future<bool>> t {};
