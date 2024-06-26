@@ -484,6 +484,10 @@ public:
                 if (!ofs) {
                     std::cout << "Couldn't open file for writing \n";
                     return;
+                } else
+                {
+                    std::time_t result = std::time(nullptr);
+                    ofs << "\nAPPEND BEGINS: " << std::asctime(std::localtime(&result)) << "\n";
                 }
                 _os = &ofs;
                 ofsrequiresclose = true;
