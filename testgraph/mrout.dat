@@ -1,195 +1,53 @@
-/* #name=GRAPH6
+/* #name=GRAPH0
  * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- * #embeds flag criterion=1
+ * #automorphisms=48
  */
-a b c d e f g h i j k l END
-ab ae ak 
-be bg bk bl 
-cf ck cl 
-df dh di dk 
-eh ek 
-fl 
-ik 
-kl 
-END
-
-/* #name=GRAPH2
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-ad ah al 
-bf bg bk 
-ce ci 
-df dg 
-fh fj 
-gi gj 
-hj hk 
-jk 
-kl 
-END
-
-/* #name=GRAPH1
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-ag aj 
-be bf bg bi bj 
-cg ch ci cj ck 
-dg dh dk dl 
-fg fj 
-hk 
-jl 
-END
-
-/* #name=GRAPH8
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-ab ae ak 
-bc bg bi bk 
-ce cf ch ci cj 
-dj dk 
-eg eh ej ek el 
+a b c d e f g h END
+ab ad ae 
+bc bf 
+cd cg 
+dh 
+ef eh 
 fg 
-gi 
-jk 
+gh 
 END
 
 /* #name=GRAPH3
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-ac ad aj ak al 
-bd be bj 
-cd ce cf cg 
-de di 
-ef eg eh ek el 
-gj 
-hj hk 
-END
-
-/* #name=GRAPH0
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-ad ae af ah ai aj 
-bd bg bk bl 
-ch ci cj ck 
-dg dh dj 
-fg fk 
-gk gl 
-END
-
-/* #name=GRAPH9
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-ae ai aj ak 
-be bh bk 
-cd cg ci cj cl 
-de 
-eh 
-fj 
-gh gj gl 
-ik il 
-END
-
-/* #name=GRAPH5
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-af al 
-bd bf bi 
-ce cf ch ci cj ck 
-dg di dj dk 
-eg ei 
-fg 
-gh gj 
-hj hl 
-il 
-END
-
-/* #name=GRAPH4
- * #FP=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=0
- */
-a b c d e f g h i j k l END
-ae ag aj ak al 
-be bg bh 
-cd cg ck 
-df dj 
-ei ek 
-fi 
-gi 
-hj hl 
-ij il 
-END
-
-/* #name=GRAPH7
  * #FP=0
- * #embeds flag criterion=1
- * #embeds flag criterion=1
- * #embeds flag criterion=1
+ * #automorphisms=32
  */
-a b c d e f g h i j k l END
-ab ae ai ak al 
-be bh bk 
-cd ce ch cl 
-de dg dh dk dl 
-ek el 
-fj fl 
-gh gk 
-ik il 
-jk jl 
-kl 
-END
-
-/* #name=GRAPH13FLAG
- */
-a b c d END
+a b c d e f g h i END
 ab ad 
-bc 
-cd 
-END
-
-/* #name=GRAPH14FLAG
- */
-a b c d e END
-ab ae 
-bc 
-cd 
-de 
-END
-
-/* #name=GRAPH15FLAG
- */
-a b c d END
-ab ac ad 
 bc bd 
 cd 
+ef eg eh 
+fg 
+gh 
+END
+
+/* #name=GRAPH8
+ * #FP=0
+ * #automorphisms=2
+ */
+a b c d e f g h i j k END
+ab 
+bc bg 
+cd 
+de 
+fg 
+gh 
+hi 
+END
+
+/* #name=GRAPH2
+ * #FP=0
+ * #automorphisms=1036800
+ */
+a b c d e f g h i j k l END
+ag ah ai aj ak al 
+bg bh bi bj bk bl 
+cg ch ci cj ck cl 
+dg dh di dj dk dl 
+eg eh ei ej ek el 
+fg fh fi fj fk fl 
 END

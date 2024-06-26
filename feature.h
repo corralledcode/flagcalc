@@ -546,6 +546,7 @@ public:
         bool ofsrequiresclose = false;
         bool append = true;
         bool overwrite = false;
+        bool sortedbool = false;
         std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
             if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == "append") {
@@ -560,6 +561,14 @@ public:
             }
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_ENUMISOSSORTED) {
+                sortedbool = true;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_ALL) {
+                sortedbool = false;
                 continue;
             }
             if (cmdlineoptions[n].first == "default") {
@@ -591,15 +600,54 @@ public:
             _os = &std::cout;
 
         bool first = true;
-        for (auto wi : _ws->items) {
+
+        std::vector<int> items {};
+        for (int i = 0; i < _ws->items.size(); ++i) {
+            auto wi = _ws->items[i];
             if (wi->classname == "GRAPH") {
                 auto gi = (graphitem*)wi;
-                if (!first)
-                    *_os << "\n";
-                gi->osmachinereadablegraph(*_os);
-                first = false;
+                items.push_back(i);
             }
         }
+
+
+        std::vector<int> eqclass {};
+        if (sortedbool) {
+            if (items.size()==0) {
+                std::cout << "No graphs to enumerate isomorphisms over\n";
+                return;
+            }
+
+            eqclass.push_back(0);
+            for (int m = 0; m < items.size()-1; ++m) {
+                auto gi = (graphitem*)_ws->items[items[m]];
+                bool found = false;
+                for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
+                    if (gi->intitems[r]->name() == "FP") {
+                        auto fpo = (fpoutcome*)gi->intitems[r];
+                        if (fpo->value == 1) {
+                            eqclass.push_back(m+1);
+                            found = true;
+                        }
+                    }
+                }
+            }
+        } else {
+            for (int m = 0; m < items.size(); ++m) {
+                eqclass.push_back(m);
+            }
+        }
+
+
+        for (int i = 0; i < eqclass.size(); ++i) {
+            if (!first)
+                *_os << "\n";
+            auto gi = (graphitem*)_ws->items[eqclass[i]];
+            gi->osmachinereadablegraph(*_os);
+            first = false;
+        }
+
+
 
         if (ofsrequiresclose)
             ofs.close();
@@ -1083,7 +1131,6 @@ public:
                     std::cout << "No graphs to enumerate isomorphisms over\n";
                     return;
                 }
-                //eqclass.push_back(0);
 
                 eqclass.push_back(0);
                 for (int m = 0; m < items.size()-1; ++m) {
