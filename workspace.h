@@ -366,12 +366,12 @@ public:
 
         // graph items are already freed by graphitem freemem
 
-/*        for (int n = 0; n < fpslist.size(); ++n) {
+        for (int n = 0; n < fpslist.size(); ++n) {
             if (fpslist[n]->nscnt > 0) {
                 freefps(fpslist[n]->ns,fpslist[n]->nscnt);
                 free(fpslist[n]->ns);
             }
-        }*/ // no: the format has changed to a vector of pointers
+        } // no: the format has changed to a vector of pointers
 
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {

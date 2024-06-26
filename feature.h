@@ -1477,7 +1477,7 @@ public:
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks embeds for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
         *_os << "\t" << "\"i=<filename>\":\t reads graphs from <filename> and uses them as the embeddings sought\n";
-        *_os << "\t" << "\"f=<filename>\":\t identical to 'i=<filename>' above\n";
+        //*_os << "\t" << "\"f=<filename>\":\t identical to 'i=<filename>' above\n";
     }
 
 
