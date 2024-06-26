@@ -591,7 +591,7 @@ public:
                 {
                     ofs.open(ofname,  std::ios::app);
                     std::time_t result = std::time(nullptr);
-                    ofs << "\nAPPEND BEGINS: " << std::asctime(std::localtime(&result)) << "\n";
+                    ofs << "\n/* APPEND BEGINS: " << std::asctime(std::localtime(&result)) << " */\n";
                 }
                 if (!append && overwrite)
                     ofs.open(ofname, std::ios::trunc);
