@@ -24,16 +24,22 @@
 
 class abstractmeasure {
 public:
-    virtual int takemeasure( const graphtype* g, const neighbors* ns ) {return 0;};
+    virtual int takemeasure( const graphtype* g, const neighbors* ns ) {return 0;}
 };
 
 template<typename T>
 class abstractcriterion {
+protected:
+    virtual T internalcheckcriterion( const graphtype* g, const neighbors* ns ) {}
 public:
+    const bool negated;
     std::string name = "_abstractcriterion internal use";
     virtual std::string shortname() {return "_ac";}
 
-    virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {return {};};
+    T checkcriterion( const graphtype* g, const neighbors* ns ) {
+        return negated != internalcheckcriterion(g,ns);
+    }
+    abstractcriterion( bool negatedin, std::string namein ) :negated{negatedin}, name{namein} {}
 };
 
 inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcriterion<bool>* cr, graphtype* g,
@@ -71,12 +77,8 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcri
 
 
 class trianglefreecriterion : public abstractcriterion<bool> {
-public:
-    std::string shortname() override {return "cr1";}
-    trianglefreecriterion() : abstractcriterion() {
-        name = "triangle-free criterion";
-    }
-    bool checkcriterion( const graphtype* g, const neighbors* ns) override {
+protected:
+    bool internalcheckcriterion( const graphtype* g, const neighbors* ns) override {
         int dim = g->dim;
         for (int n = 0; n < dim-2; ++n) {
             for (int i = n+1; i < dim-1; ++i) {
@@ -95,22 +97,26 @@ public:
         //std::cout << "\n";
         return true;
     }
+
+
+public:
+    std::string shortname() override {return negated ? "cr2" : "cr1";}
+    trianglefreecriterion(bool negatedin) : abstractcriterion(negatedin,negatedin ? "triangle-free criterion (not)" : "triangle-free criterion") {}
 };
 
 
 class embedscriterion : public abstractcriterion<bool> {
+protected:
+    bool internalcheckcriterion( const graphtype* g, const neighbors* ns) override {
+        return (embeds(flagns, fp, ns));
+    }
+
 public:
     graphtype* flagg;
     neighbors* flagns;
+    FP* fp;
     std::string shortname() override {return "cr2";}
-    embedscriterion(neighbors* flagns) : abstractcriterion() {
-        name = "embeds flag criterion";
-        this->flagg = flagns->g;
-        this->flagns = flagns;
-    }
-    bool checkcriterion( const graphtype* g, const neighbors* ns) override {
-        return (embeds(flagns, ns));
-    }
+    embedscriterion(neighbors* flagnsin,FP* fpin,bool negatedin) : abstractcriterion(negatedin, negatedin ? "embeds flag criterion (not)" : "embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
 };
 
 

@@ -1345,7 +1345,7 @@ bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, c
 }
 
 
-bool existsiso( const neighbors* ns1, const neighbors* ns2) {
+bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
     if (ns1 == nullptr || ns2 == nullptr)
         return {};
     graphtype* g1 = ns1->g;
@@ -1357,21 +1357,26 @@ bool existsiso( const neighbors* ns1, const neighbors* ns2) {
 
     int dim = g1->dim;
 
-    FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
-    for (int n = 0; n < dim; ++n) {
-        fps1ptr[n].v = n;
-        fps1ptr[n].ns = nullptr;
-        fps1ptr[n].nscnt = 0;
-        fps1ptr[n].parent = nullptr;
-        fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
+    bool responsibletofree = false;
+
+    if (fps1ptr == nullptr) {
+        responsibletofree = true;
+        FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
+        for (int n = 0; n < dim; ++n) {
+            fps1ptr[n].v = n;
+            fps1ptr[n].ns = nullptr;
+            fps1ptr[n].nscnt = 0;
+            fps1ptr[n].parent = nullptr;
+            fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
+        }
+
+        takefingerprint(ns1,fps1ptr,dim);
+
+        //sortneighbors(ns1,fps1ptr,dim);
+
+
+        //osfingerprint(std::cout,ns1,fps1ptr,dim);
     }
-
-    takefingerprint(ns1,fps1ptr,dim);
-
-    //sortneighbors(ns1,fps1ptr,dim);
-
-
-    //osfingerprint(std::cout,ns1,fps1ptr,dim);
 
     FP* fps2ptr;
 
@@ -1397,8 +1402,11 @@ bool existsiso( const neighbors* ns1, const neighbors* ns2) {
     //vertextype del[g1.dim+2];
 
     bool res = existsisocore(ns1,ns2,fps1ptr,fps2ptr);
-    freefps(fps1ptr,g1->dim);
-    free(fps1ptr);
+
+    if (responsibletofree) {
+        freefps(fps1ptr,g1->dim);
+        free(fps1ptr);
+    }
     if (fps2ptr != fps1ptr) {
         freefps(fps2ptr,g2->dim);
         free(fps2ptr);
@@ -1439,7 +1447,7 @@ void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop,
 
 
 
-bool embeds( const neighbors* ns1, const neighbors* ns2 ) {
+bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2 ) {
     graphtype* g1 = ns1->g;
     graphtype* g2 = ns2->g;
     int dim1 = g1->dim;
@@ -1470,7 +1478,7 @@ bool embeds( const neighbors* ns1, const neighbors* ns2 ) {
         // (that is, allowing the subsets above to be a larger set
         // that contains rearrangements of things already in the set)
         auto nstemp = new neighbors(&gtemp);
-        res = res || existsiso( ns1, nstemp );
+        res = res || existsiso( ns1, fp, nstemp );
     }
     //free(subsets);
     return res;

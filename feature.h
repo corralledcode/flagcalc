@@ -1255,8 +1255,10 @@ public:
 
         // add any new criterion types to the list here...
 
-        auto cr1 = new trianglefreecriterion();
+        auto cr1 = new trianglefreecriterion(false);
+        auto cr2 = new trianglefreecriterion(true);
         crs.push_back(cr1);
+        crs.push_back(cr2);
         // ...
     }
 
@@ -1477,6 +1479,7 @@ public:
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks embeds for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
         *_os << "\t" << "\"i=<filename>\":\t reads graphs from <filename> and uses them as the embeddings sought\n";
+        *_os << "\t" << "\"not=<number>\":\t negates graph number <number> amongst the graphs read in\n";
         //*_os << "\t" << "\"f=<filename>\":\t identical to 'i=<filename>' above\n";
     }
 
@@ -1486,7 +1489,12 @@ public:
 
         std::vector<graphitem*> flaggraphitems {};
 
+        std::vector<int> neg {};
+        std::vector<FP*> fps {};
+        std::vector<neighbors*> nss {};
         for (int i = 0; i < parsedargs.size(); ++i) {
+            if (parsedargs[i].first == "not")
+                neg.push_back(stoi(parsedargs[i].second));
             if (parsedargs[i].first == "f" || parsedargs[i].first == "i") {
 
                 std::ifstream ifs;
@@ -1511,13 +1519,32 @@ public:
                     gi->name = _ws->getuniquename(gi->classname) + "FLAG";
                     flaggraphitems.push_back(gi);
                     //_ws->items.push_back(gi);
-                    cs.push_back(new embedscriterion(gi->ns));
+                    int dim = gi->ns->g->dim;
+                    FP* fp = (FP*)malloc(dim*sizeof(FP));
+                    for (int j = 0; j < dim; ++j) {
+                        fp[j].v=j;
+                        fp[j].ns = nullptr;
+                        fp[j].nscnt = dim;
+                        fp[j].parent = nullptr;
+                        fp[j].invert = gi->ns->degrees[j] >= (dim+1)/2;
+                    }
+                    takefingerprint(gi->ns,fp,dim);
+
+                    fps.push_back(fp);
+                    nss.push_back(gi->ns);
                     gi = new graphitem();
                 }
                 delete gi;
-
             }
         }
+        for (int i = 0; i < fps.size(); ++i) {
+            bool b {false};
+            for (int j = 0; !b && (j < neg.size()); ++j) {
+                b = b || (neg[j] == i);
+            }
+            cs.push_back(new embedscriterion(nss[i],fps[i],b));
+        }
+
         checkcriterionfeature::execute(args);
 
         for (auto gi : flaggraphitems)
@@ -1553,7 +1580,7 @@ public:
         }
 
         asymp* as = new asymp();
-        trianglefreecriterion* cr = new trianglefreecriterion();
+        trianglefreecriterion* cr = new trianglefreecriterion(true);
         edgecountmeasure* ms = new edgecountmeasure();;
         float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os, _ws);
 

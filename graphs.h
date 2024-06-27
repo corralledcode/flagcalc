@@ -149,13 +149,13 @@ int edgecnt( graphtype* g );
 
 bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, const FP* fp2);
 
-bool existsiso( const neighbors* ns1, const neighbors* ns2);
+bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2);
 
 int nchoosek( const int n, const int k);
 
 void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res);
 
-bool embeds( const neighbors* ns1, const neighbors* ns2 );
+bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2 );
 
 
 
