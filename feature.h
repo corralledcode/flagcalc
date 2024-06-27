@@ -1491,6 +1491,7 @@ public:
 
         std::vector<int> neg {};
         std::vector<FP*> fps {};
+        std::vector<int> dims {};
         std::vector<neighbors*> nss {};
         for (int i = 0; i < parsedargs.size(); ++i) {
             if (parsedargs[i].first == "not")
@@ -1532,6 +1533,7 @@ public:
 
                     fps.push_back(fp);
                     nss.push_back(gi->ns);
+                    dims.push_back(dim);
                     gi = new graphitem();
                 }
                 delete gi;
@@ -1546,6 +1548,11 @@ public:
         }
 
         checkcriterionfeature::execute(args);
+
+        for (int i = 0; i < fps.size(); ++i) {
+            freefps(fps[i],dims[i]);
+            free(fps[i]);
+        }
 
         for (auto gi : flaggraphitems)
             _ws->items.push_back(gi);
