@@ -32,10 +32,17 @@ template<typename T>
 class abstractcriterion {
 protected:
 public:
+    std::vector<graphtype*>* gptrs {};
+    std::vector<neighbors*>* nsptrs {};
+    T res {};
     std::string name = "_abstractcriterion internal use";
     virtual std::string shortname() {return "_ac";}
 
     virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {}
+    virtual T checkcriterionidxed( const int idx )
+    {
+        checkcriterion((*gptrs)[idx],(*nsptrs)[idx]);
+    }
     abstractcriterion( std::string namein ) :name{namein} {}
 };
 
@@ -340,44 +347,45 @@ inline logicalsentence parsesentence( std::string sentence ) {
 
 class sentenceofcriteria : public abstractcriterion<bool> {
 protected:
-    std::vector<abstractcriterion<bool>*> cs;
+    //std::vector<abstractcriterion<bool>*> cs;
     logicalsentence ls;
-
+    std::vector<bool*> variables {};
+    const int sz;
 
 public:
+    std::string shortname() override {return "crSENTENCE";}
 
-
-    bool checkcriterion( const graphtype *g, const neighbors *ns) override {
+    bool checkcriterionidxed( const int idx ) override {
         std::vector<bool> res {};
-        res.resize(cs.size());
-        for (auto n = 0; n < cs.size(); ++n)
-            res[n] = cs[n]->checkcriterion(g,ns);
-        return evalsentence(ls,res);
+        res.resize(variables.size());
+        for (int i = 0; i < variables.size(); ++i )
+            res[i] = variables[i][idx];
+        return evalsentence(ls,res);  // check for speed cost
     }
 
-    sentenceofcriteria( std::vector<abstractcriterion<bool>*> csin, std::string stringin )
-        : abstractcriterion<bool>("logical sentence of several criteria"), cs {csin}, ls{parsesentence(stringin)} {}
+    sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence, std::string stringin )
+        : abstractcriterion<bool>(stringin == "" ? "logical sentence of several criteria" : stringin),
+            variables{variablesin}, ls{parsesentence(sentence)}, sz{szin} {}
 
-    ~sentenceofcriteria() {
-        for (auto c : cs)
-            delete c;
-    }
 };
 
 class andcriteria : public sentenceofcriteria {
 public:
     std::string shortname() override {return "crAND";}
 
-    andcriteria( std::vector<abstractcriterion<bool>*> csin )
-        : sentenceofcriteria(csin, "logical AND of several criteria") {
+    andcriteria( std::vector<bool*> variablesin, const int szin )
+            : sentenceofcriteria(variablesin,szin,"","logical AND of several criteria")
+    {
         std::string s {};
-        if (!csin.empty()) {
+
+        if (variables.size() > 0) {
             s = "0";
-            for (int i = 1; i < csin.size(); ++i) {
+            for (int i = 1; i < variables.size(); ++i) {
                 s += " AND " + std::to_string(i);
             }
             ls = parsesentence(s);
-        }
+        } else
+            ls = {};
     }
 
 };
@@ -386,16 +394,54 @@ class orcriteria : public sentenceofcriteria {
 public:
     std::string shortname() override {return "crOR";}
 
-    orcriteria( std::vector<abstractcriterion<bool>*> csin )
-        : sentenceofcriteria(csin, "logical OR of several criteria") {
+    orcriteria( std::vector<bool*> variablesin, const int szin )
+            : sentenceofcriteria(variablesin,szin,"","logical OR of several criteria")
+    {
         std::string s {};
-        if (!csin.empty()) {
+
+        if (variables.size() > 0) {
             s = "0";
-            for (int i = 1; i < csin.size(); ++i) {
+            for (int i = 1; i < variables.size(); ++i) {
                 s += " OR " + std::to_string(i);
             }
             ls = parsesentence(s);
+        } else
+            ls = {};
+    }
+
+};
+
+class notcriteria : public abstractcriterion<bool> {
+protected:
+    const int sz;
+    std::vector<bool*> variables {};
+public:
+    std::string shortname() override {return "crNOT";}
+    std::vector<bool> neg {};
+    std::vector<bool*> res {};
+    notcriteria(std::vector<bool*> variablesin, const int szin, std::vector<bool> negin)
+        : abstractcriterion<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, sz{szin}
+    {
+        res.resize(variables.size());
+        for (int i = 0; i < variables.size(); ++i)
+            res[i] = (bool*)malloc(sz*sizeof(bool));
+    }
+
+    ~notcriteria()
+    {
+        for (int i = 0; i < res.size(); ++i)
+        {
+            free(res[i]);
         }
+    }
+
+    bool checkcriterionidxed(const int idx) override
+    {
+        for (int i = 0; i < res.size(); ++i)
+        {
+            res[i][idx] = variables[i][idx] != neg[i];
+        }
+        // technically the return value should be a vector
     }
 
 };

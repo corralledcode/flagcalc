@@ -76,11 +76,11 @@ public:
                 std::cout << "Triangle free returns " << tf.checkcriterion(gi1->g,gi1->ns) << "\n";
         */
 
-        /*
+
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
         for (int i = 0; i < res.size(); ++i) {
             std::cout << res[i].first << " === " << res[i].second << "\n";
-        }*/
+        }
 
         /*
         int dim1 = 3;
@@ -102,9 +102,10 @@ public:
 */
 
         std::string sentence = "(NOT (0 AND (2 OR 5)) AND (NOT 3 AND 4))";
-        std::vector<bool> variables = {true,false,true,false,true,false};
+        std::vector<bool> variables = {true,true,true,false,true,false};
+        sentence = res[0].second;
         logicalsentence ls = parsesentence(sentence);
-        std::cout << "Result: " << evalsentence(ls,variables) << "\n";
+        std::cout << "Result: " << sentence<< " evals to " << evalsentence(ls,variables) << "\n";
 
     }
 
@@ -1290,8 +1291,7 @@ public:
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool> {
 public:
     std::vector<abstractcriterion<bool>*> cs {};
-    sentenceofcriteria* lcs {};
-    std::string sentence = "";
+    std::vector<std::string> sentences {};
 
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
@@ -1312,6 +1312,7 @@ public:
         *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks criteria for ALL graphs found on the workspace\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks criteria for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "\"not=<n>\": \t\t applies the logical NOT to the criteria numbered n, prior to AND or OR\n";
         *_os << "\t" << "\"m=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
         *_os << "\t" << "\"m=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
         *_os << "\t" << "\"s=<filename>\": \t\t applies the logical sentence in <filename> to the criteria\n";
@@ -1321,7 +1322,8 @@ public:
         }
     }
 
-    void execute(std::vector<std::string> args) override {
+    void execute(std::vector<std::string> args) override
+    {
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
 
@@ -1331,6 +1333,9 @@ public:
         bool sortedverify = false;
         bool andmode = false;
         bool ormode = false;
+        std::vector<std::pair<int,bool>> neg {};
+
+        sentences.clear();
 
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
@@ -1345,6 +1350,10 @@ public:
                 takeallgraphitems = true;
                 continue;
             }
+            if (parsedargs[i].first == "not" && is_number(parsedargs[i].second)) {
+                neg.push_back({stoi(parsedargs[i].second),true});
+                continue;
+            }
             if ((parsedargs[i].first == "default" || parsedargs[i].first == "m") && parsedargs[i].second == "AND") {
                 andmode = true;
                 continue;
@@ -1353,18 +1362,28 @@ public:
                 ormode = true;
                 continue;
             }
-            if (parsedargs[i].first == "s") {
+            if (parsedargs[i].first == "s")
+            {
+                sentences.push_back(parsedargs[i].second);
+                continue;
+            }
+            if (parsedargs[i].first == "is") {
                 std::string ifname = parsedargs[i].second;
                 std::cout << "Opening file " << ifname << "\n";
                 std::ifstream infile(ifname);
                 if (infile.good()) {
                     std::ifstream ifs;
                     ifs.open(ifname, std::fstream::in );
-                    sentence = "";
+                    std::string sentence = "";
+                    std::string tmp {};
                     while (!ifs.eof()) {
-                        std::string tmp {};
                         ifs >> tmp;
-                        sentence += " " + tmp + " ";
+                        while (!ifs.eof() && tmp != "END")
+                        {
+                            sentence += " " + tmp + " ";
+                            ifs >> tmp;
+                        }
+                        sentences.push_back(sentence);
                     }
                     ifs.close();
                 } else {
@@ -1381,27 +1400,6 @@ public:
                 }
             }
         }
-        if (cs.empty())
-            cs.push_back(crs[0]);
-
-
-        if ((sentence == "") && (!cs.empty()) && andmode) {
-            lcs = new andcriteria(cs);
-        }
-        //std::cout << "sentence: " << sentence << "\n";
-
-        if ((sentence == "") && (!cs.empty()) && !andmode && ormode) {
-            lcs = new orcriteria(cs);
-        }
-        //std::cout << "sentence: " << sentence << "\n";
-
-        if (sentence != "") {
-            lcs = new sentenceofcriteria(cs,sentence);
-        }
-        if (lcs != nullptr) {
-            cs.clear();
-            cs.push_back(lcs);
-        } // default behavior is to list outcomes for all criteria in cs
 
         if (!takeallgraphitems) {
             int idx = _ws->items.size();
@@ -1441,87 +1439,148 @@ public:
             nslist[i] = gi->ns;
             glist[i] = gi->g;
         }
-        if (items.size() >= 1) {
 
+        std::vector<bool*> res {};
 
+        if (items.size() >= 1)
+        {
+            if (cs.empty() && !sentences.empty())
+                cs.push_back(crs[0]);
 
+            res.resize(cs.size());
+            for (int i = 0; i < cs.size(); ++i)
+                res[i] = (bool*)malloc(items.size()*sizeof(bool));
 
+            std::vector<bool> negv {};
+            negv.resize(cs.size());
+            for (int i = 0; i < negv.size(); ++i)
+            {
+                negv[i] == false;
+            }
+            for (auto p : neg)
+            {
+                if (p.first < negv.size())
+                    negv[p.first] = p.second;
+            }
+            if (!neg.empty())
+            {
+                auto nc = new notcriteria(res,items.size(),negv);
+                cs.push_back(nc);
+
+                if (sentences.empty() && !cs.empty() && andmode) {
+                    cs.push_back(new andcriteria(nc->res,items.size()));
+                }
+
+                if (sentences.empty() && !cs.empty() && ormode) {
+                    cs.push_back(new orcriteria(nc->res,items.size()));
+                }
+
+                for (auto s: sentences)
+                    cs.push_back(new sentenceofcriteria(nc->res,items.size(),s,"Logical sentence " +s));
+                // inside the quotes in the line above put a more descriptive name
+            } else
+            {
+
+                if (sentences.empty() && !cs.empty() && andmode) {
+                    cs.push_back(new andcriteria(res,items.size()));
+                }
+
+                if (sentences.empty() && !cs.empty() && ormode) {
+                    cs.push_back(new orcriteria(res,items.size()));
+                }
+
+                for (auto s: sentences)
+                    cs.push_back(new sentenceofcriteria(res,items.size(),s,"Logical sentence " +s));
+                // inside the quotes in the line above put a more descriptive name
+                
+            }
+        }
 
 #ifdef THREADPOOL4
 
 
-            //unsigned const thread_count = std::thread::hardware_concurrency();
-            //unsigned const thread_count = 1;
+        //unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
 
 
 
 
 
 
-            std::vector<int> eqclass {};
-            if (sortedbool) {
-                if (items.size()==0) {
-                    std::cout << "No graphs to check criterion over\n";
-                    return;
-                }
-                //eqclass.push_back(0);
+        std::vector<int> eqclass {};
+        if (sortedbool) {
+            if (items.size()==0) {
+                std::cout << "No graphs to check criterion over\n";
+                return;
+            }
 
 
 
-                eqclass.push_back(0);
-                for (int m = 0; m < items.size()-1; ++m) {
-                    auto gi = (graphitem*)_ws->items[items[m]];
-                    bool found = false;
-                    for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
-                        if (gi->intitems[r]->name() == "FP") {
-                            auto fpo = (fpoutcome*)gi->intitems[r];
-                            if (fpo->value == 1) {
-                                eqclass.push_back(m+1);
-                                found = true;
-                            }
+            eqclass.push_back(0);
+            for (int m = 0; m < items.size()-1; ++m) {
+                auto gi = (graphitem*)_ws->items[items[m]];
+                bool found = false;
+                for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
+                    if (gi->intitems[r]->name() == "FP") {
+                        auto fpo = (fpoutcome*)gi->intitems[r];
+                        if (fpo->value == 1) {
+                            eqclass.push_back(m+1);
+                            found = true;
                         }
                     }
                 }
-            } else {
-                for (int m = 0; m < items.size(); ++m) {
-                    eqclass.push_back(m);
+            }
+        } else {
+            for (int m = 0; m < items.size(); ++m) {
+                eqclass.push_back(m);
+            }
+        }
+
+
+        for (int k = 0; k < cs.size(); ++k) {
+            std::vector<std::future<bool>> t {};
+            t.resize(eqclass.size());
+            cs[k]->gptrs = &glist;
+            cs[k]->nsptrs = &nslist;
+            for (int m = 0; m < eqclass.size(); ++m) {
+                t[m] = std::async(&abstractcriterion<bool>::checkcriterionidxed,cs[k],eqclass[m]);
+                //t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
+            }
+            std::vector<bool> threadbool {};
+            threadbool.resize(eqclass.size());
+            for (int m = 0; m < eqclass.size(); ++m) {
+                //t[m].join();
+                //t[m].detach();
+                threadbool[m] = t[m].get();
+            }
+            auto wi = new checkcriterionitem<bool>();
+
+            wi->name = wi->name + cs[k]->shortname();
+            wi->res.resize(eqclass.size());
+            wi->fpslist = {};
+            wi->glist.resize(eqclass.size());
+            wi->sorted.resize(eqclass.size());
+            wi->gnames.resize(eqclass.size());
+            wi->nslist.resize(eqclass.size());
+            for (int m=0; m < eqclass.size(); ++m) {
+                wi->res[m] = threadbool[m];
+                wi->glist[m] = glist[m];
+                wi->sorted[m] = m;
+                wi->nslist[m] = nslist[m];
+                auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[m]));
+                wi->gnames[m] = gi->name;
+                if (k < res.size())
+                {
+                    // recall all the sentence-level criteria were added after malloc
+                    res[k][eqclass[m]] = wi->res[m];
                 }
             }
-
-
-            for (int k = 0; k < cs.size(); ++k) {
-                std::vector<std::future<bool>> t {};
-                t.resize(eqclass.size());
-                for (int m = 0; m < eqclass.size(); ++m) {
-                    t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
-                }
-                std::vector<bool> threadbool {};
-                threadbool.resize(eqclass.size());
-                for (int m = 0; m < eqclass.size(); ++m) {
-                    //t[m].join();
-                    //t[m].detach();
-                    threadbool[m] = t[m].get();
-                }
-                auto wi = new checkcriterionitem<bool>;
-
-                wi->res.resize(eqclass.size());
-                wi->fpslist = {};
-                wi->glist.resize(eqclass.size());
-                wi->sorted.resize(eqclass.size());
-                wi->gnames.resize(eqclass.size());
-                wi->nslist.resize(eqclass.size());
-                for (int j=0; j < eqclass.size(); ++j) {
-                    wi->res[j] = threadbool[j];
-                    wi->glist[j] = glist[j];
-                    wi->sorted[j] = j;
-                    wi->nslist[j] = nslist[j];
-                    auto gi = (graphitem*)_ws->items[items[eqclass[j]]];
-                    gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[j]));
-                    wi->gnames[j] = gi->name;
-                }
-                wi->name = _ws->getuniquename(wi->classname);
-                _ws->items.push_back(wi);
-            }
+            wi->name = _ws->getuniquename(wi->classname);
+            _ws->items.push_back(wi);
+        }
+        for (int j = 0; j < res.size(); ++j)
+            free(res[j]);
 
 
 #endif
@@ -1540,7 +1599,6 @@ public:
 
 #endif
 
-        }
     }
 };
 

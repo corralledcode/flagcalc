@@ -11,6 +11,7 @@
 #include <regex>
 //#include <bits/regex.h>
 
+#include "asymp.h"
 #include "graphs.h"
 
 #define VERBOSE_CMPFINGERPRINTLEVEL "cmp"
@@ -50,7 +51,7 @@ inline std::vector<std::pair<std::string,std::string>>  cmdlineparseiterationtwo
     std::vector<std::pair<std::string,std::string>> res {};
     for (int i = 1; i < args.size(); ++i) {
 
-        std::regex r("([[:alnum:]]+)=((\\w|[[:punct:]])*)"); // entire match will be 2 numbers
+        std::regex r("([[:alnum:]]+)=((\\w|[[:punct:]]|\\s)*)"); // entire match will be 2 numbers
 
         std::smatch m;
         std::regex_search(args[i], m, r);
@@ -441,6 +442,7 @@ public:
     std::vector<std::string> gnames;
     std::vector<T> res;
     std::vector<int> sorted {};
+    // abstractcriterion<T> ac; compiler does not like this
     checkcriterionitem() : workitems() {
         classname = "APPLYCRITERION";
         verbositylevel = VERBOSE_APPLYCRITERION;
