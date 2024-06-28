@@ -109,9 +109,10 @@ public:
         std::vector<int> subsets {};
         enumsizedsubsets(0,n,nullptr,0,dim,&subsets);
 
-        bool found = true;
+        bool found = false;
         int j = 0;
-        while (found && j < subsets.size()) {
+        while (!found && j < (subsets.size()/n)) {
+            found = true;
             for (auto i = 0; found && (i < n-1); ++i) {
                 for (auto k = i+1; found && (k < n); ++k)
                     found = found && g->adjacencymatrix[dim*subsets[j*n + i] + subsets[j*n + k]];
@@ -122,7 +123,7 @@ public:
     }
 
 
-    std::string shortname() override {return "cr3";}
+    std::string shortname() override {return "k" + std::to_string(n);}
     kncriterion( const int nin) : abstractcriterion("embeds K_" + std::to_string(nin) + " criterion"), n{nin} {}
 };
 

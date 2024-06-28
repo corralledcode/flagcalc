@@ -1262,7 +1262,16 @@ public:
         // add any new criterion types to the list here...
 
         auto cr1 = new trianglefreecriterion();
+        auto k4 = new kncriterion(4);
+        auto k5 = new kncriterion(5);
+        auto k6 = new kncriterion(6);
+        auto k7 = new kncriterion(7);
         crs.push_back(cr1);
+        crs.push_back(k4);
+        crs.push_back(k5);
+        crs.push_back(k6);
+        crs.push_back(k7);
+
         // ...
     }
 
@@ -1287,9 +1296,14 @@ public:
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
 
     ~checkcriterionfeature() {
-        for (int i = 0; i < cs.size(); ++i) {
-            delete cs[i];
-        }
+      /*  for (int i = 0; i < cs.size(); ++i) {
+            bool found = false;
+            for (int j = 0; !found && j < crs.size(); ++i) {
+                found |= crs[j] == cs[i];
+            }
+            if (!found)
+                delete cs[i];
+        }*/
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
@@ -1356,8 +1370,10 @@ public:
                 continue;
             }
             for (int n = 0; n < crs.size(); ++n) {
-                if (args[i] == crs[n]->shortname())
+                if (parsedargs[i].first == "default" && parsedargs[i].second == crs[n]->shortname()) {
                     cs.push_back(crs[n]);
+                    std::cout << "crs push back\n";
+                }
             }
             if (cs.size()==0)
                 cs.push_back(crs[0]);
