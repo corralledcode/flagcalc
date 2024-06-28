@@ -34,8 +34,8 @@
 #endif
 
 // Choose one of the two following; they affect the FPs sorting in the code below "sortneighbors"
-#define QUICKSORT2
-//#define NAIVESORT2
+//#define QUICKSORT2
+#define NAIVESORT2
 
 
 #include "graphs.h"
