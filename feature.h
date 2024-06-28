@@ -1266,11 +1266,13 @@ public:
         auto k5 = new kncriterion(5);
         auto k6 = new kncriterion(6);
         auto k7 = new kncriterion(7);
+        auto k8 = new kncriterion(8);
         crs.push_back(cr1);
         crs.push_back(k4);
         crs.push_back(k5);
         crs.push_back(k6);
         crs.push_back(k7);
+        crs.push_back(k8);
 
         // ...
     }
