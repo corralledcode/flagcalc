@@ -82,6 +82,7 @@ public:
             std::cout << res[i].first << " === " << res[i].second << "\n";
         }*/
 
+        /*
         int dim1 = 3;
         int dim2 = 10;
         int numberofsubsets = nchoosek(dim2,dim1);
@@ -98,7 +99,12 @@ public:
             std::cout << "\n";
         }
         //free(subsets);
+*/
 
+        std::string sentence = "(NOT (0 AND (2 OR 5)) AND (NOT 3 AND 4))";
+        std::vector<bool> variables = {true,false,true,false,true,false};
+        logicalsentence ls = parsesentence(sentence);
+        std::cout << "Result: " << evalsentence(ls,variables) << "\n";
 
     }
 
@@ -984,9 +990,9 @@ public:
         feature::listoptions();
         *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t computes automorphisms for ALL graphs found on the workspace\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t computes automorphisms once for each fingerprint-equivalent class\n";
-        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
-        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTEDVERIFY << "\":  computes automorphisms once within each fingerprint-equivalence class\n";
-        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f all\"\n";
+        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTEDVERIFY << "\":  computes automorphisms within each fingerprint-equivalence class\n";
+        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f all\"\n";
         *_os << "\t" << "\"c=<n>\": \t\t (not implemented yet) computes automorphisms for the last n graphs on the workspace\n";
         *_os << "\t" << "\t\t\t\t (the default is to compute isomorphisms between the last two graphs found on the workspace\n";
         *_os << "\t" << "\t\t\t\t or if only one is found, to compute its automorphisms)\n";
@@ -1255,10 +1261,8 @@ public:
 
         // add any new criterion types to the list here...
 
-        auto cr1 = new trianglefreecriterion(false);
-        auto cr2 = new trianglefreecriterion(true);
+        auto cr1 = new trianglefreecriterion();
         crs.push_back(cr1);
-        crs.push_back(cr2);
         // ...
     }
 
@@ -1274,18 +1278,27 @@ public:
 
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool> {
 public:
-    std::vector<abstractcriterion<bool>*> cs;
+    std::vector<abstractcriterion<bool>*> cs {};
+    sentenceofcriteria* lcs {};
+    std::string sentence = "";
+
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
-    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
-        cs.clear();
-    }
+    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
 
+    ~checkcriterionfeature() {
+        for (int i = 0; i < cs.size(); ++i) {
+            delete cs[i];
+        }
+    }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
         *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks criteria for ALL graphs found on the workspace\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks criteria for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "\"m=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
+        *_os << "\t" << "\"m=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
+        *_os << "\t" << "\"s=<filename>\": \t\t applies the logical sentence in <filename> to the criteria\n";
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
             *_os << "\t\t\"" << crs[n]->shortname() << "\": " << crs[n]->name << "\n";
@@ -1300,16 +1313,47 @@ public:
         int numofitemstotake = 1;
         bool sortedbool = false;
         bool sortedverify = false;
+        bool andmode = false;
+        bool ormode = false;
 
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
-        for (int i = 1; i < args.size(); ++i) {
-            if (args[i] == CMDLINE_ALL) {
+        for (int i = 1; i < parsedargs.size(); ++i) {
+            if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
                 takeallgraphitems = true;
-            } else {
-                if (args[i] == CMDLINE_ENUMISOSSORTED) {
-                    sortedbool = true;
-                    takeallgraphitems = true;
+                continue;
+            }
+            if (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_ENUMISOSSORTED) {
+                sortedbool = true;
+                takeallgraphitems = true;
+                continue;
+            }
+            if ((parsedargs[i].first == "default" || parsedargs[i].first == "m") && parsedargs[i].second == "AND") {
+                andmode = true;
+                continue;
+            }
+            if ((parsedargs[i].first == "default" || parsedargs[i].first == "m") && parsedargs[i].second == "OR") {
+                ormode = true;
+                continue;
+            }
+            if (parsedargs[i].first == "s") {
+                std::string ifname = parsedargs[i].second;
+                std::cout << "Opening file " << ifname << "\n";
+                std::ifstream infile(ifname);
+                if (infile.good()) {
+                    std::ifstream ifs;
+                    ifs.open(ifname, std::fstream::in );
+                    sentence = "";
+                    while (!ifs.eof()) {
+                        std::string tmp {};
+                        ifs >> tmp;
+                        sentence += " " + tmp + " ";
+                    }
+                    ifs.close();
+                } else {
+                    std::cout << "Couldn't open file for reading " << ifname << "\n";
                 }
+                continue;
             }
             for (int n = 0; n < crs.size(); ++n) {
                 if (args[i] == crs[n]->shortname())
@@ -1317,7 +1361,35 @@ public:
             }
             if (cs.size()==0)
                 cs.push_back(crs[0]);
+
+            if (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_ALL) {
+                takeallgraphitems = true;
+                continue;
+            }
+            if (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_ENUMISOSSORTED) {
+                sortedbool = true;
+                takeallgraphitems = true;
+                continue;
+            }
         }
+
+        if ((sentence == "") && (!cs.empty()) && andmode) {
+            lcs = new andcriteria(cs);
+        }
+        //std::cout << "sentence: " << sentence << "\n";
+
+        if ((sentence == "") && (!cs.empty()) && !andmode && ormode) {
+            lcs = new orcriteria(cs);
+        }
+        //std::cout << "sentence: " << sentence << "\n";
+
+        if (sentence != "") {
+            lcs = new sentenceofcriteria(cs,sentence);
+        }
+        if (lcs != nullptr) {
+            cs.clear();
+            cs.push_back(lcs);
+        } // default behavior is to list outcomes for all criteria in cs
 
         if (!takeallgraphitems) {
             int idx = _ws->items.size();
@@ -1437,7 +1509,6 @@ public:
                 }
                 wi->name = _ws->getuniquename(wi->classname);
                 _ws->items.push_back(wi);
-
             }
 
 
@@ -1468,10 +1539,6 @@ public:
     std::string cmdlineoption() override { return "e"; }
     std::string cmdlineoptionlong() { return "checkembedscriteria"; }
     checkembedcriteriafeature( std::istream* is, std::ostream* os, workspace* ws ) : checkcriterionfeature( is, os, ws) {}
-    ~checkembedcriteriafeature() {
-        for (int i = 0; i < cs.size(); ++i)
-            delete cs[i];
-    }
 
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
@@ -1479,23 +1546,21 @@ public:
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks embeds for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
         *_os << "\t" << "\"i=<filename>\":\t reads graphs from <filename> and uses them as the embeddings sought\n";
-        *_os << "\t" << "\"not=<number>\":\t negates graph number <number> amongst the graphs read in\n";
+        *_os << "\t" << "\"m=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
+        *_os << "\t" << "\"m=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
         //*_os << "\t" << "\"f=<filename>\":\t identical to 'i=<filename>' above\n";
     }
 
 
-    void execute(std::vector<std::string> args) {
+    void execute(std::vector<std::string> args) override {
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
         std::vector<graphitem*> flaggraphitems {};
 
-        std::vector<int> neg {};
         std::vector<FP*> fps {};
         std::vector<int> dims {};
         std::vector<neighbors*> nss {};
         for (int i = 0; i < parsedargs.size(); ++i) {
-            if (parsedargs[i].first == "not")
-                neg.push_back(stoi(parsedargs[i].second));
             if (parsedargs[i].first == "f" || parsedargs[i].first == "i") {
 
                 std::ifstream ifs;
@@ -1540,11 +1605,7 @@ public:
             }
         }
         for (int i = 0; i < fps.size(); ++i) {
-            bool b {false};
-            for (int j = 0; !b && (j < neg.size()); ++j) {
-                b = b || (neg[j] == i);
-            }
-            cs.push_back(new embedscriterion(nss[i],fps[i],b));
+            cs.push_back(new embedscriterion(nss[i],fps[i]));
         }
 
         checkcriterionfeature::execute(args);
@@ -1587,7 +1648,7 @@ public:
         }
 
         asymp* as = new asymp();
-        trianglefreecriterion* cr = new trianglefreecriterion(true);
+        trianglefreecriterion* cr = new trianglefreecriterion();
         edgecountmeasure* ms = new edgecountmeasure();;
         float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os, _ws);
 

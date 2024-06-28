@@ -1,6 +1,15 @@
+/* 0 */
 a b c d END
 -abcda END
+
+/* 1 */
 a b c d e END
 -abcdea END
+
+/* 2 */
 a b c d END
 abcd END
+
+/* 3 */
+a b c END
+-abc END

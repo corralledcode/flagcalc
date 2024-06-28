@@ -1,6 +1,9 @@
-/* #name=GRAPH0
+/* #name=GRAPH2
  * #FP=1
- * #automorphisms=48
+ * #eqclasssize=1
+ * #embeds flag criterion (not)=0
+ * #embeds flag criterion=0
+ * #embeds flag criterion=0
  */
 a b c d e f g h END
 ab ad ae 
@@ -12,9 +15,12 @@ fg
 gh 
 END
 
-/* #name=GRAPH3
+/* #name=GRAPH5
  * #FP=0
- * #automorphisms=32
+ * #eqclasssize=2
+ * #embeds flag criterion (not)=1
+ * #embeds flag criterion=0
+ * #embeds flag criterion=0
  */
 a b c d e f g h i END
 ab ad 
@@ -25,9 +31,12 @@ fg
 gh 
 END
 
-/* #name=GRAPH8
+/* #name=GRAPH4
  * #FP=0
- * #automorphisms=2
+ * #eqclasssize=2
+ * #embeds flag criterion (not)=1
+ * #embeds flag criterion=0
+ * #embeds flag criterion=0
  */
 a b c d e f g h i j k END
 ab 
@@ -39,9 +48,12 @@ gh
 hi 
 END
 
-/* #name=GRAPH2
+/* #name=GRAPH1
  * #FP=0
- * #automorphisms=1036800
+ * #eqclasssize=2
+ * #embeds flag criterion (not)=0
+ * #embeds flag criterion=0
+ * #embeds flag criterion=0
  */
 a b c d e f g h i j k l END
 ag ah ai aj ak al 
