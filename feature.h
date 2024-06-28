@@ -1378,12 +1378,16 @@ public:
                     std::string tmp {};
                     while (!ifs.eof()) {
                         ifs >> tmp;
+                        bool changed = false;
                         while (!ifs.eof() && tmp != "END")
                         {
                             sentence += " " + tmp + " ";
                             ifs >> tmp;
+                            changed = true;
                         }
-                        sentences.push_back(sentence);
+                        if (changed)
+                            sentences.push_back(sentence);
+                        sentence = "";
                     }
                     ifs.close();
                 } else {
@@ -1555,7 +1559,7 @@ public:
             }
             auto wi = new checkcriterionitem<bool>();
 
-            wi->name = wi->name + cs[k]->shortname();
+            wi->classname = wi->classname + cs[k]->shortname();
             wi->res.resize(eqclass.size());
             wi->fpslist = {};
             wi->glist.resize(eqclass.size());
