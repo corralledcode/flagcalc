@@ -1334,12 +1334,13 @@ public:
 
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
-        for (int i = 1; i < parsedargs.size(); ++i) {
+        for (int i = 0; i < parsedargs.size(); ++i)
+        {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
                 takeallgraphitems = true;
                 continue;
             }
-            if (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_ENUMISOSSORTED) {
+            if ((parsedargs[i].first == "default") && (parsedargs[i].second == CMDLINE_ENUMISOSSORTED)) {
                 sortedbool = true;
                 takeallgraphitems = true;
                 continue;
@@ -1371,25 +1372,18 @@ public:
                 }
                 continue;
             }
-            for (int n = 0; n < crs.size(); ++n) {
-                if (parsedargs[i].first == "default" && parsedargs[i].second == crs[n]->shortname()) {
+            bool found = false;
+            for (int n = 0; !found && (n < crs.size()); ++n) {
+                if ((parsedargs[i].first == "default") && (parsedargs[i].second == crs[n]->shortname())) {
                     cs.push_back(crs[n]);
-                    std::cout << "crs push back\n";
+                    found = true;
+                    //std::cout << "crs push back\n";
                 }
             }
-            if (cs.size()==0)
-                cs.push_back(crs[0]);
-
-            if (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_ALL) {
-                takeallgraphitems = true;
-                continue;
-            }
-            if (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_ENUMISOSSORTED) {
-                sortedbool = true;
-                takeallgraphitems = true;
-                continue;
-            }
         }
+        if (cs.empty())
+            cs.push_back(crs[0]);
+
 
         if ((sentence == "") && (!cs.empty()) && andmode) {
             lcs = new andcriteria(cs);
