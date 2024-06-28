@@ -442,6 +442,7 @@ public:
             res[i][idx] = variables[i][idx] != neg[i];
         }
         // technically the return value should be a vector
+        return true;
     }
 
 };
