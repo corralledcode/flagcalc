@@ -41,7 +41,7 @@ public:
     virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {}
     virtual T checkcriterionidxed( const int idx )
     {
-        checkcriterion((*gptrs)[idx],(*nsptrs)[idx]);
+        return checkcriterion((*gptrs)[idx],(*nsptrs)[idx]);
     }
     abstractcriterion( std::string namein ) :name{namein} {}
 };
