@@ -1298,14 +1298,14 @@ public:
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
 
     ~checkcriterionfeature() {
-      /*  for (int i = 0; i < cs.size(); ++i) {
-            bool found = false;
-            for (int j = 0; !found && j < crs.size(); ++i) {
-                found |= crs[j] == cs[i];
-            }
-            if (!found)
+       for (int i = 0; i < cs.size(); ++i) {
+           bool found = false;
+           for (int j = 0; !found && j < crs.size(); ++j) {
+               found |= crs[j] == cs[i];
+           }
+           if (!found)
                 delete cs[i];
-        }*/
+        }
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
