@@ -182,7 +182,10 @@ public:
 
         std::vector<std::string> edgecommands {};
         if (tmp2b.size() > 0) {
-            std::regex pat{"([[:punct:]]*[\\w]+)"};
+            //std::regex pat{"([[:punct:]]*[\\w]+)|(\\w+\\+\\w+)"};
+
+            //std::regex pat{"([[:punct:]]*[\\w]+)"};
+            std::regex pat{"([[:punct:]|\\w]+)"};
 
             for (std::sregex_iterator p(tmp2b.begin(), tmp2b.end(), pat); p != std::sregex_iterator{}; ++p) {
                 std::string tmp3;
@@ -202,30 +205,40 @@ public:
                 bool cmdomit = false;
                 bool cmdcomplete = true;
                 bool cmdline = false;
+                bool radial = false;
+                std::string radialstr1 {};
+                std::string radialstr2 {};
                 if (edgecommands[n].size() > 0) {
-                    if (edgecommands[n][0] == '*')
-                        cmdcomplete=true;
                     if (edgecommands[n][0] == '!') {
                         cmdomit = true;
                         if (edgecommands[n].size()>1) {
-                            if (edgecommands[n][1] == '-') {
-                                cmdline = true;
-                                cmdcomplete = false;
-                            }
+                            edgecommands[n] = edgecommands[n].substr(1,edgecommands[n].size()-1);
                         }
                     }
+                    if (edgecommands[n][0] == '*')
+                        cmdcomplete=true;
                     if (edgecommands[n][0] == '-') {
                         cmdline = true;
                         cmdcomplete = false;
                     }
                 }
-                for (std::sregex_iterator p(edgecommands[n].begin(),edgecommands[n].end(),pat); p != std::sregex_iterator{};++p)
-                    v.push_back((*p)[1]);
-                if (!cmdline)
+                int pluspos = edgecommands[n].find("+");
+                //std::cout << "edgecommands[n] " << edgecommands[n] << " , " << pluspos << "\n";
+                if (pluspos != std::string::npos) {
+                    if (cmdline)
+                        break;
+                    cmdcomplete = false;
+                    radial = true;
+                    radialstr1 = edgecommands[n].substr(0,pluspos);
+                    radialstr2 = edgecommands[n].substr(pluspos+1,edgecommands[n].size()-pluspos-1);
+                    //std::cout << "radialstr1,2 " << radialstr1 << ", " << radialstr2 << "\n";
+                    std::string radialstrcombined = radialstr1 + radialstr2;
+                    for (std::sregex_iterator p(radialstrcombined.begin(),radialstrcombined.end(),pat); p != std::sregex_iterator{};++p)
+                        v.push_back((*p)[1]);
+
                     std::sort(v.begin(), v.end());
-                int sz = v.size();
-                //std::cout<< "v.size == " << v.size() << "\n";
-                if (cmdcomplete) {
+                    int sz = v.size();
+                    //std::cout<< "v.size == " << v.size() << "\n";
                     // connect all pairs within the sequence of vertices
                     for (int m = 0; m < sz; ++m) {
                         for (int n = m+1; n < sz; ++n) {
@@ -246,21 +259,80 @@ public:
                             }
                         }
                     }
-                }
-                if (cmdline) {
-                    for (int m = 0; m < (sz-1); ++m) {
-                        int i = 0;
-                        while( i < vertexlabels.size() && vertexlabels[i] != v[m])
-                            ++i;
-                        int j = 0;
-                        while( j < vertexlabels.size() && vertexlabels[j] != v[m+1])
-                            ++j;
-                        if (j < vertexlabels.size() && i < vertexlabels.size()) {
-                            if (vertexlabels[i] == v[m] && vertexlabels[j] == v[m+1]) {
-                                if (i != j) {
-                                    g->adjacencymatrix[i*g->dim + j] = !cmdomit;
-                                    g->adjacencymatrix[j*g->dim + i] = !cmdomit;
-                                    //std::cout << "v[m]: " << v[m] << " v[m+1]: " << v[m+1] << "\n";
+
+                    v.clear(); // now exclude all pairs within the second sequence of vertices amongst itself
+                    for (std::sregex_iterator p(radialstr2.begin(),radialstr2.end(),pat); p != std::sregex_iterator{};++p)
+                        v.push_back((*p)[1]);
+                    cmdomit = !cmdomit;
+                    sz = v.size();
+                    std::sort(v.begin(), v.end());
+                    //std::cout<< "v.size == " << v.size() << "\n";
+                    // connect all pairs within the sequence of vertices
+                    for (int m = 0; m < sz; ++m) {
+                        for (int n = m+1; n < sz; ++n) {
+                            int i = 0;
+                            while( i < vertexlabels.size() && vertexlabels[i] != v[m])
+                                ++i;
+                            int j = 0;
+                            while( j < vertexlabels.size() && vertexlabels[j] != v[n])
+                                ++j;
+                            if (j < vertexlabels.size() && i < vertexlabels.size()) {
+                                if (vertexlabels[j] == v[n] && vertexlabels[i] == v[m]) {
+                                    if (j != i) {
+                                        g->adjacencymatrix[i*g->dim + j] = !cmdomit;
+                                        g->adjacencymatrix[j*g->dim + i] = !cmdomit;
+                                        //std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
+                } else {
+                    for (std::sregex_iterator p(edgecommands[n].begin(),edgecommands[n].end(),pat); p != std::sregex_iterator{};++p)
+                        v.push_back((*p)[1]);
+                    if (!cmdline)
+                        std::sort(v.begin(), v.end());
+                    int sz = v.size();
+                    //std::cout<< "v.size == " << v.size() << "\n";
+                    if (cmdcomplete) {
+                        // connect all pairs within the sequence of vertices
+                        for (int m = 0; m < sz; ++m) {
+                            for (int n = m+1; n < sz; ++n) {
+                                int i = 0;
+                                while( i < vertexlabels.size() && vertexlabels[i] != v[m])
+                                    ++i;
+                                int j = 0;
+                                while( j < vertexlabels.size() && vertexlabels[j] != v[n])
+                                    ++j;
+                                if (j < vertexlabels.size() && i < vertexlabels.size()) {
+                                    if (vertexlabels[j] == v[n] && vertexlabels[i] == v[m]) {
+                                        if (j != i) {
+                                            g->adjacencymatrix[i*g->dim + j] = !cmdomit;
+                                            g->adjacencymatrix[j*g->dim + i] = !cmdomit;
+                                            //std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (cmdline) {
+                        for (int m = 0; m < (sz-1); ++m) {
+                            int i = 0;
+                            while( i < vertexlabels.size() && vertexlabels[i] != v[m])
+                                ++i;
+                            int j = 0;
+                            while( j < vertexlabels.size() && vertexlabels[j] != v[m+1])
+                                ++j;
+                            if (j < vertexlabels.size() && i < vertexlabels.size()) {
+                                if (vertexlabels[i] == v[m] && vertexlabels[j] == v[m+1]) {
+                                    if (i != j) {
+                                        g->adjacencymatrix[i*g->dim + j] = !cmdomit;
+                                        g->adjacencymatrix[j*g->dim + i] = !cmdomit;
+                                        //std::cout << "v[m]: " << v[m] << " v[m+1]: " << v[m+1] << "\n";
+                                    }
                                 }
                             }
                         }

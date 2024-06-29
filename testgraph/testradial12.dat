@@ -1,0 +1,13 @@
+/* Automorphisms 10!*2 = 7257600 */
+
+a b c d e f g h i j k l END
+ab+cdefghijkl
+
+/*
+!abc
+*def
+ijkli
+
+!-ijkli
+*/
+END
