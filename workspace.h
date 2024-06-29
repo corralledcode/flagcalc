@@ -88,7 +88,7 @@ public:
     virtual bool isitem( std::istream& is ) {return true;}
     virtual void freemem() {}
     workitems() {
-        classname = "Unnamed class";
+        classname = "_Unnamed class";
     }
 };
 

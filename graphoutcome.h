@@ -16,7 +16,7 @@ class graphitem : public abstractgraphitem {
 public:
     std::vector<graphoutcome<int>*> intitems {};
     std::vector<graphoutcome<bool>*> boolitems {};
-
+    std::vector<graphoutcome<float>*> floatitems {};
 
     graphitem() : abstractgraphitem() {
         classname = "GRAPH";
@@ -78,6 +78,9 @@ public:
         }
         for (auto bo : boolitems) {
             delete bo;
+        }
+        for (auto fo : floatitems) {
+            delete fo;
         }
     }
 
@@ -141,17 +144,28 @@ public:
     isomorphismsoutcome(const graphitem* gi2in, const graphitem* giin, const int newvalue) : graphoutcome<int>(giin,newvalue), gi2{gi2in} {}
 };
 
-template<typename T>
-class abstractcriterionoutcome : public graphoutcome<T> {
+template<typename Tc>
+class abstractcriterionoutcome : public graphoutcome<Tc> {
 public:
-    const abstractcriterion<T>* cr;
-    abstractcriterionoutcome(const abstractcriterion<T>* crin, const graphitem* giin, T newvalue) : graphoutcome<T>(giin,newvalue),cr{crin} {}
-    std::string name() override {return cr->name; /*"_abstractcriterion"*/}
-    std::string longname() override {return cr->name; /*"_abstractcriterionlongname";*/}
+    abstractcriterion<Tc>* cr;
+    abstractcriterionoutcome(abstractcriterion<Tc>* crin, const graphitem* giin, Tc newcvalue)
+        : graphoutcome<Tc>(giin,newcvalue),cr{crin} {}
+    std::string name() override {return cr->shortname(); /*"_abstractcriterion";*/}
+    std::string longname() override {return cr->name;}
+};
+
+template<typename Tm>
+class abstractmeasureoutcome : public graphoutcome<Tm> {
+public:
+    abstractmeasure<Tm>* ms;
+    abstractmeasureoutcome(abstractmeasure<Tm>* msin, const graphitem* giin, Tm newmvalue)
+        : graphoutcome<Tm>(giin,newmvalue),ms{msin} {}
+    std::string name() override {return ms->shortname(); /*"_abstractcriterion"*/}
+    std::string longname() override {return ms->name;}
 };
 
 
-
+/*
 class embedscriterionoutcome : public abstractcriterionoutcome<bool> {
 public:
     const graphitem* flaggi;
@@ -170,11 +184,11 @@ public:
         return "embeds " + flagname() + " criterion";
     }
 };
-
+*/
 
 
 inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
-    if (intitems.size() > 0 || boolitems.size() > 0 || name != "") {
+    if (!intitems.empty() || !boolitems.empty() || !floatitems.empty() || name != "") {
         os << "/* #name=" << name << "\n";
         for (int i = 0; i < intitems.size(); ++i) {
             os << " * ";
@@ -183,6 +197,10 @@ inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
         for (int i = 0; i < boolitems.size(); ++i) {
             os << " * ";
             boolitems[i]->osdata(os);
+        }
+        for (int i = 0; i < floatitems.size(); ++i) {
+            os << " * ";
+            floatitems[i]->osdata(os);
         }
         os << " */\n";
     }

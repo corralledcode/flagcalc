@@ -1328,7 +1328,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
 
 int edgecnt( const graphtype* g ) {
     int res = 0;
-    for (int n = 0; n < g->dim; ++n) {
+    for (int n = 0; n < g->dim-1; ++n) {
         for (int i = n+1; i < g->dim; ++i) {
             if (g->adjacencymatrix[n*g->dim + i]) {
                 res++;

@@ -1651,6 +1651,14 @@ public:
                 (*ms[l]->res)[i] = -1;
         }
 
+        std::vector<std::vector<bool>> done {};
+        done.resize(eqclass.size());
+        for (int k = 0; k < done.size(); ++k) {
+            done[k].resize(ms.size());
+            for (int i = 0; i < done[k].size(); ++i) {
+                done[k][i] = false;
+            }
+        }
         for (int k = 0; k < cs.size(); ++k) {
 
             std::vector<std::future<bool>> t {};
@@ -1668,6 +1676,8 @@ public:
                 //t[m].detach();
                 threadbool[m] = t[m].get();
             }
+
+
             for (int l = 0; l < ms.size(); ++l) {
                 auto wi = new checkcriterionitem<bool,float>(*cs[k],*ms[l]);
 
@@ -1683,22 +1693,32 @@ public:
                     wi->sorted[m] = m;
                     wi->nslist[m] = nslist[m];
                     auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                    gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[m]));
+                    if (l == 0) { // hokey way of saying "do it once", as if outside the nested loops
+                        gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[m]));
+                    }
                     wi->gnames[m] = gi->name;
                     if (k < res.size())
                     {
                         // recall all the sentence-level criteria were added after malloc
                         res[k][eqclass[m]] = wi->res[m];
                     }
-// to complete                    gi->floatitems.push_back( new abstractmeasureoutcome<float>)
                     wi->meas.resize(items.size());
-                    if (wi->res[m])
+                    if (wi->res[m]) {
                         wi->meas[m] = ms[l]->takemeasureidxed(eqclass[m]);
+                        if (!(done[m][l])) {
+                            gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[l],gi,wi->meas[m]));
+                            done[m][l] = true;
+                        }
+                    }
                 }
                 wi->name = _ws->getuniquename(wi->classname);
                 _ws->items.push_back(wi);
             }
         }
+
+
+
+
         for (int j = 0; j < res.size(); ++j)
             free(res[j]);
 
@@ -1733,98 +1753,6 @@ public:
 };
 
 
-/*
-
-class checkembedcriteriafeature : public checkcriterionfeature {
-protected:
-public:
-    std::string cmdlineoption() override { return "e"; }
-    std::string cmdlineoptionlong() { return "checkembedscriteria"; }
-    checkembedcriteriafeature( std::istream* is, std::ostream* os, workspace* ws ) : checkcriterionfeature( is, os, ws) {}
-
-    void listoptions() override {
-        abstractcheckcriterionfeature::listoptions();
-        *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks embeds for ALL graphs found on the workspace\n";
-        *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks embeds for each fingerprint-equivalent class\n";
-        *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
-        *_os << "\t" << "\"i=<filename>\":\t reads graphs from <filename> and uses them as the embeddings sought\n";
-        *_os << "\t" << "\"m=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
-        *_os << "\t" << "\"m=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
-        //*_os << "\t" << "\"f=<filename>\":\t identical to 'i=<filename>' above\n";
-    }
-
-
-    void execute(std::vector<std::string> args) override {
-        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
-
-        std::vector<graphitem*> flaggraphitems {};
-
-        std::vector<FP*> fps {};
-        std::vector<int> dims {};
-        std::vector<neighbors*> nss {};
-        for (int i = 0; i < parsedargs.size(); ++i) {
-            if (parsedargs[i].first == "f" || parsedargs[i].first == "i") {
-
-                std::ifstream ifs;
-                std::istream* is = &std::cin;
-                std::ostream* os = _os;
-                std::string filename = parsedargs[i].second;
-                if (filename == "std::cin" || filename == "") {
-                    std::cout << "Using std::cin for input\n"; // recode so this is possible
-                } else {
-                    *_os << "Opening file " << filename << "\n";
-                    ifs.open(filename);
-                    if (!ifs) {
-                        std::cout << "Couldn't open file for reading \n";
-                        return;
-                    }
-                    is = &ifs;
-                }
-
-
-                graphitem* gi = new graphitem();
-                while (gi->isitem(*is)) {
-                    gi->name = _ws->getuniquename(gi->classname) + "FLAG";
-                    flaggraphitems.push_back(gi);
-                    //_ws->items.push_back(gi);
-                    int dim = gi->ns->g->dim;
-                    FP* fp = (FP*)malloc(dim*sizeof(FP));
-                    for (int j = 0; j < dim; ++j) {
-                        fp[j].v=j;
-                        fp[j].ns = nullptr;
-                        fp[j].nscnt = dim;
-                        fp[j].parent = nullptr;
-                        fp[j].invert = gi->ns->degrees[j] >= (dim+1)/2;
-                    }
-                    takefingerprint(gi->ns,fp,dim);
-
-                    fps.push_back(fp);
-                    nss.push_back(gi->ns);
-                    dims.push_back(dim);
-                    gi = new graphitem();
-                }
-                delete gi;
-            }
-        }
-        for (int i = 0; i < fps.size(); ++i) {
-            cs.push_back(new embedscriterion(nss[i],fps[i]));
-        }
-
-        checkcriterionfeature::execute(args);
-
-        for (int i = 0; i < fps.size(); ++i) {
-            freefps(fps[i],dims[i]);
-            free(fps[i]);
-        }
-
-        for (auto gi : flaggraphitems)
-            _ws->items.push_back(gi);
-    }
-
-};
-
-
-*/
 
 class mantelstheoremfeature : public feature {
 public:
