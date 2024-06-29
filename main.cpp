@@ -26,7 +26,7 @@ int main(int argc, char* argv[]) {
     auto pr = new randomgraphsfeature(&std::cin,&std::cout, ws);
     auto cw = new clearworkspacefeature(&std::cin, &std::cout,ws);
     auto cc = new checkcriterionfeature(&std::cin, &std::cout,ws);
-    auto ce = new checkembedcriteriafeature(&std::cin, &std::cout,ws);
+    //auto ce = new checkembedcriteriafeature(&std::cin, &std::cout,ws);
     auto wg = new writegraphsfeature(&std::cin, &std::cout,ws);
 
     std::vector<feature*> featureslist {};
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(pr);
     featureslist.push_back(cw);
     featureslist.push_back(cc);
-    featureslist.push_back(ce);
+    //featureslist.push_back(ce);
     featureslist.push_back(wg);
 
     ug->featureslist = featureslist;

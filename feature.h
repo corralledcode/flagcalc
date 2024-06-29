@@ -1313,9 +1313,9 @@ public:
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks criteria for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
         *_os << "\t" << "\"not=<n>\": \t\t applies the logical NOT to the criteria numbered n, prior to AND or OR\n";
-        *_os << "\t" << "\"m=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
-        *_os << "\t" << "\"m=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
-        *_os << "\t" << "\"s=<filename>\": \t\t applies the logical sentence in <filename> to the criteria\n";
+        *_os << "\t" << "\"l=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
+        *_os << "\t" << "\"l=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
+        *_os << "\t" << "\"is=<filename>\": \t\t applies the logical sentence in <filename> to the criteria\n";
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
             *_os << "\t\t\"" << crs[n]->shortname() << "\": " << crs[n]->name << "\n";
@@ -1339,6 +1339,13 @@ public:
 
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
+        std::vector<graphitem*> flaggraphitems {};
+
+        std::vector<FP*> fps {};
+        std::vector<int> dims {};
+        std::vector<neighbors*> nss {};
+
+
         for (int i = 0; i < parsedargs.size(); ++i)
         {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
@@ -1354,11 +1361,11 @@ public:
                 neg.push_back({stoi(parsedargs[i].second),true});
                 continue;
             }
-            if ((parsedargs[i].first == "default" || parsedargs[i].first == "m") && parsedargs[i].second == "AND") {
+            if ((parsedargs[i].first == "default" || parsedargs[i].first == "l") && parsedargs[i].second == "AND") {
                 andmode = true;
                 continue;
             }
-            if ((parsedargs[i].first == "default" || parsedargs[i].first == "m") && parsedargs[i].second == "OR") {
+            if ((parsedargs[i].first == "default" || parsedargs[i].first == "l") && parsedargs[i].second == "OR") {
                 ormode = true;
                 continue;
             }
@@ -1379,7 +1386,7 @@ public:
                     while (!ifs.eof()) {
                         ifs >> tmp;
                         bool changed = false;
-                        while (!ifs.eof() && tmp != "END")
+                        while (!ifs.eof() && tmp != "END" && tmp != "###")
                         {
                             sentence += " " + tmp + " ";
                             ifs >> tmp;
@@ -1403,6 +1410,49 @@ public:
                     //std::cout << "crs push back\n";
                 }
             }
+            if (parsedargs[i].first == "f" || parsedargs[i].first == "if") {
+
+                std::ifstream ifs;
+                std::istream* is = &std::cin;
+                std::ostream* os = _os;
+                std::string filename = parsedargs[i].second;
+                if (filename == "std::cin" || filename == "") {
+                    std::cout << "Using std::cin for input\n"; // recode so this is possible
+                } else {
+                    *_os << "Opening file " << filename << "\n";
+                    ifs.open(filename);
+                    if (!ifs) {
+                        std::cout << "Couldn't open file for reading \n";
+                        return;
+                    }
+                    is = &ifs;
+                }
+
+
+                graphitem* gi = new graphitem();
+                while (gi->isitem(*is)) {
+                    gi->name = _ws->getuniquename(gi->classname) + "FLAG";
+                    flaggraphitems.push_back(gi);
+                    //_ws->items.push_back(gi);
+                    int dim = gi->ns->g->dim;
+                    FP* fp = (FP*)malloc(dim*sizeof(FP));
+                    for (int j = 0; j < dim; ++j) {
+                        fp[j].v=j;
+                        fp[j].ns = nullptr;
+                        fp[j].nscnt = dim;
+                        fp[j].parent = nullptr;
+                        fp[j].invert = gi->ns->degrees[j] >= (dim+1)/2;
+                    }
+                    takefingerprint(gi->ns,fp,dim);
+
+                    fps.push_back(fp);
+                    nss.push_back(gi->ns);
+                    dims.push_back(dim);
+                    gi = new graphitem();
+                }
+                delete gi;
+            }
+
         }
 
         if (!takeallgraphitems) {
@@ -1448,8 +1498,12 @@ public:
 
         if (items.size() >= 1)
         {
-            if (cs.empty() && !sentences.empty())
+            if (cs.empty() && !sentences.empty() && fps.empty())
                 cs.push_back(crs[0]);
+
+            for (int i = 0; i < fps.size(); ++i) {
+                cs.push_back(new embedscriterion(nss[i],fps[i]));
+            }
 
             res.resize(cs.size());
             for (int i = 0; i < cs.size(); ++i)
@@ -1588,6 +1642,16 @@ public:
 
 
 #endif
+
+        for (int i = 0; i < fps.size(); ++i) {
+            freefps(fps[i],dims[i]);
+            free(fps[i]);
+        }
+
+        for (auto gi : flaggraphitems)
+            _ws->items.push_back(gi);
+
+
 
 #ifdef NOTTHREADED4
 
