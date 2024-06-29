@@ -135,9 +135,13 @@ public:
         }
     }
     ~girthmeasure() {
-        for (int i = 1; i < cyclefps.size(); ++i ) {
+        for (int i = 0; i < cyclefps.size(); ++i ) {
             freefps(cyclefps[i],i);
             free (cyclefps[i]);
+        }
+        for (int i = 0; i < cyclegraphs.size(); ++i) {
+            delete cyclegraphs[i];
+            delete cycleneighbors[i];
         }
     }
     float takemeasure( const graphtype* g, const neighbors* ns ) {

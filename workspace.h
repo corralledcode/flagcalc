@@ -558,10 +558,14 @@ public:
             os << "result == " << count[i].first << ": " << count[i].second << " out of " << sorted.size() << ", " << (float)count[i].second / (float)sorted.size() << "\n";
 
         Tm sum = 0;
+        int cnt = 0;
         for (int i = 0; i < sorted.size(); ++i ) {
-            sum += meas[i];
+            if (res[i]) {
+                sum += meas[i];
+                cnt++;
+            }
         }
-        os << "Average of measure " << am.name << ": " << (float)sum/(float)sorted.size() << "\n";
+        os << "Average of measure " << am.name << ": " << (float)sum/(float)cnt << "\n";
 
         return true;
     }
