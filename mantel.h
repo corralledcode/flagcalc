@@ -10,7 +10,7 @@
 
 class asymp {
 public:
-    virtual float computeasymptotic( abstractcriterion<bool>* cr, abstractmeasure* ms, const int outof, const int dim, std::ostream& os, workspace* ws ) {
+    virtual float computeasymptotic( abstractcriterion<bool>* cr, abstractmeasure<float>* ms, const int outof, const int dim, std::ostream& os, workspace* ws ) {
         int max = 0;
         int sampled = 0;
         int n = 1;

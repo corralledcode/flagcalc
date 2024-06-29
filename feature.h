@@ -1250,10 +1250,11 @@ public:
 
 };
 
-template<typename T>
+template<typename Tc,typename Tm>
 class abstractcheckcriterionfeature : public feature {
 protected:
-    std::vector<abstractcriterion<T>*> crs {};
+    std::vector<abstractcriterion<Tc>*> crs {};
+    std::vector<abstractmeasure<Tm>*> mss {};
 public:
     virtual void listoptions() override {
         feature::listoptions();
@@ -1276,6 +1277,25 @@ public:
         crs.push_back(k8);
 
         // ...
+
+        // add any new measure types to the list here...
+
+        auto ms1 = new boolmeasure();
+        auto ms2 = new dimmeasure();
+        auto ms3 = new edgecntmeasure();
+        auto ms4 = new avgdegreemeasure();
+        auto ms5 = new mindegreemeasure();
+        auto ms6 = new maxdegreemeasure();
+        auto ms7 = new girthmeasure();
+        mss.push_back(ms1);
+        mss.push_back(ms2);
+        mss.push_back(ms3);
+        mss.push_back(ms4);
+        mss.push_back(ms5);
+        mss.push_back(ms6);
+        mss.push_back(ms7);
+
+        // ,,,
     }
 
     ~abstractcheckcriterionfeature() {
@@ -1283,14 +1303,18 @@ public:
         for (int i = 0; i < crs.size();++i) {
             delete crs[i];
         }
+        for (int i = 0; i < mss.size(); ++i) {
+            delete mss[i];
+        }
     }
 
 
 };
 
-class checkcriterionfeature : public abstractcheckcriterionfeature<bool> {
+class checkcriterionfeature : public abstractcheckcriterionfeature<bool,float> {
 public:
     std::vector<abstractcriterion<bool>*> cs {};
+    std::vector<abstractmeasure<float>*> ms {};
     std::vector<std::string> sentences {};
 
     std::string cmdlineoption() override { return "a"; }
@@ -1306,6 +1330,8 @@ public:
            if (!found)
                 delete cs[i];
         }
+
+        // no need as of yet to do the same for ms
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
@@ -1319,6 +1345,10 @@ public:
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
             *_os << "\t\t\"" << crs[n]->shortname() << "\": " << crs[n]->name << "\n";
+        }
+        *_os << "\t" << "m=<measure>:\t which measure to use, standard options are:\n";
+        for (int n = 0; n < mss.size(); ++n) {
+            *_os << "\t\t\"" << mss[n]->shortname() << "\": " << mss[n]->name << "\n";
         }
     }
 
@@ -1410,6 +1440,20 @@ public:
                     //std::cout << "crs push back\n";
                 }
             }
+            if (found)
+                continue;
+
+            found = false;
+            for (int n = 0; !found && (n < mss.size()); ++n) {
+                if (((parsedargs[i].first == "default") || parsedargs[i].first == "m") && (parsedargs[i].second == mss[n]->shortname())) {
+                    ms.push_back(mss[n]);
+                    found = true;
+                    //std::cout << "mss push back\n";
+                }
+            }
+            if (found)
+                continue;
+
             if (parsedargs[i].first == "f" || parsedargs[i].first == "if") {
 
                 std::ifstream ifs;
@@ -1594,8 +1638,21 @@ public:
             }
         }
 
+        if (ms.empty()) {
+            ms.push_back(mss[0]);
+            //std::cout << ms[0]->name << "\n";
+        }
+        for (int l = 0; l < ms.size(); ++l) {
+            ms[l]->gptrs = &glist;
+            ms[l]->nsptrs = &nslist;
+            ms[l]->res = new std::vector<float>;
+            ms[l]->res->resize(items.size());
+            for (int i = 0; i < ms[l]->res->size(); ++i)
+                (*ms[l]->res)[i] = -1;
+        }
 
         for (int k = 0; k < cs.size(); ++k) {
+
             std::vector<std::future<bool>> t {};
             t.resize(eqclass.size());
             cs[k]->gptrs = &glist;
@@ -1611,31 +1668,36 @@ public:
                 //t[m].detach();
                 threadbool[m] = t[m].get();
             }
-            auto wi = new checkcriterionitem<bool>();
+            for (int l = 0; l < ms.size(); ++l) {
+                auto wi = new checkcriterionitem<bool,float>(*cs[k],*ms[l]);
 
-            wi->classname = wi->classname + cs[k]->shortname();
-            wi->res.resize(eqclass.size());
-            wi->fpslist = {};
-            wi->glist.resize(eqclass.size());
-            wi->sorted.resize(eqclass.size());
-            wi->gnames.resize(eqclass.size());
-            wi->nslist.resize(eqclass.size());
-            for (int m=0; m < eqclass.size(); ++m) {
-                wi->res[m] = threadbool[m];
-                wi->glist[m] = glist[m];
-                wi->sorted[m] = m;
-                wi->nslist[m] = nslist[m];
-                auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[m]));
-                wi->gnames[m] = gi->name;
-                if (k < res.size())
-                {
-                    // recall all the sentence-level criteria were added after malloc
-                    res[k][eqclass[m]] = wi->res[m];
+                wi->res.resize(eqclass.size());
+                wi->fpslist = {};
+                wi->glist.resize(eqclass.size());
+                wi->sorted.resize(eqclass.size());
+                wi->gnames.resize(eqclass.size());
+                wi->nslist.resize(eqclass.size());
+                for (int m=0; m < eqclass.size(); ++m) {
+                    wi->res[m] = threadbool[m];
+                    wi->glist[m] = glist[m];
+                    wi->sorted[m] = m;
+                    wi->nslist[m] = nslist[m];
+                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                    gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[m]));
+                    wi->gnames[m] = gi->name;
+                    if (k < res.size())
+                    {
+                        // recall all the sentence-level criteria were added after malloc
+                        res[k][eqclass[m]] = wi->res[m];
+                    }
+// to complete                    gi->floatitems.push_back( new abstractmeasureoutcome<float>)
+                    wi->meas.resize(items.size());
+                    if (wi->res[m])
+                        wi->meas[m] = ms[l]->takemeasureidxed(eqclass[m]);
                 }
+                wi->name = _ws->getuniquename(wi->classname);
+                _ws->items.push_back(wi);
             }
-            wi->name = _ws->getuniquename(wi->classname);
-            _ws->items.push_back(wi);
         }
         for (int j = 0; j < res.size(); ++j)
             free(res[j]);
@@ -1670,6 +1732,8 @@ public:
     }
 };
 
+
+/*
 
 class checkembedcriteriafeature : public checkcriterionfeature {
 protected:
@@ -1760,7 +1824,7 @@ public:
 };
 
 
-
+*/
 
 class mantelstheoremfeature : public feature {
 public:
@@ -1787,7 +1851,7 @@ public:
 
         asymp* as = new asymp();
         trianglefreecriterion* cr = new trianglefreecriterion();
-        edgecountmeasure* ms = new edgecountmeasure();;
+        edgecntmeasure* ms = new edgecntmeasure();;
         float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os, _ws);
 
         auto mi = new mantelstheoremitem();

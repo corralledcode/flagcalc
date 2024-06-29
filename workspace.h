@@ -13,6 +13,7 @@
 
 #include "asymp.h"
 #include "graphs.h"
+#include "measure.cpp"
 
 #define VERBOSE_CMPFINGERPRINTLEVEL "cmp"
 #define VERBOSE_ENUMISOMORPHISMSLEVEL "enum"
@@ -505,17 +506,19 @@ public:
 };
 
 
-template<typename T>
+template<typename Tc, typename Tm>
 class checkcriterionitem : public workitems {
 public:
     std::vector<graphtype*> glist;
     std::vector<neighborstype*> nslist;
     std::vector<FP*> fpslist;
     std::vector<std::string> gnames;
-    std::vector<T> res;
+    std::vector<Tc> res;
+    std::vector<Tm> meas;
+    abstractmeasure<Tm> am;
+    abstractcriterion<Tc> ac;
     std::vector<int> sorted {};
-    // abstractcriterion<T> ac; compiler does not like this
-    checkcriterionitem() : workitems() {
+    checkcriterionitem(abstractcriterion<Tc> acin, abstractmeasure<Tm> amin ) : workitems(), ac{acin}, am{amin} {
         classname = "APPLYCRITERION";
         verbositylevel = VERBOSE_APPLYCRITERION;
     }
@@ -533,9 +536,9 @@ public:
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
-        std::vector<std::pair<T,int>> count = {};
+        std::vector<std::pair<Tc,int>> count = {};
         if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
-            os << "Criterion results of graphs:\n";
+            os << "Criterion "<< ac.name << " results of graphs:\n";
         for (int n = 0; n < sorted.size(); ++n) {
             if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
                 os << gnames[n]<<", number " << n+1 << " out of " << sorted.size();
@@ -553,10 +556,16 @@ public:
 
         for (int i = 0; i < count.size(); ++i)
             os << "result == " << count[i].first << ": " << count[i].second << " out of " << sorted.size() << ", " << (float)count[i].second / (float)sorted.size() << "\n";
+
+        Tm sum = 0;
+        for (int i = 0; i < sorted.size(); ++i ) {
+            sum += meas[i];
+        }
+        os << "Average of measure " << am.name << ": " << (float)sum/(float)sorted.size() << "\n";
+
         return true;
     }
 };
-
 
 
 

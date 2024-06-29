@@ -28,4 +28,6 @@ add_executable(flagcalc main.cpp
         thread_safe_queue.cpp
         graphoutcome.cpp
         graphoutcome.h
-        mantel.h)
+        mantel.h
+        measure.cpp
+        measure.h)

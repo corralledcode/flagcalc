@@ -1326,7 +1326,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
     return maps;
 }
 
-int edgecnt( graphtype* g ) {
+int edgecnt( const graphtype* g ) {
     int res = 0;
     for (int n = 0; n < g->dim; ++n) {
         for (int i = n+1; i < g->dim; ++i) {
@@ -1744,4 +1744,25 @@ void osmachinereadablegraph(std::ostream &os, graphtype* g) {
     }
     os << "END\n";
 };
+
+void zerograph(graphtype* g) {
+    for (int i = 0; i < g->dim; ++i)
+        for (int j = 0; j < g->dim; ++j)
+            g->adjacencymatrix[i*g->dim + j] = 0;
+}
+
+graphtype cyclegraph( const int dim ) {
+    graphtype res(dim);
+    zerograph(&res);
+    for (int i = 0; i < dim-1; ++i) {
+        res.adjacencymatrix[i*dim + (i + 1)] = true;
+        res.adjacencymatrix[(i+1)*dim + i] = true;
+    }
+    if (dim > 2) {
+        res.adjacencymatrix[0 + dim - 1] = true;
+        res.adjacencymatrix[(dim-1)*dim + 0] = true;
+    }
+    return res;
+}
+
 

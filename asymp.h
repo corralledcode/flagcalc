@@ -15,18 +15,18 @@
 #endif
 
 
+#include <algorithm>
 #include <future>
 #include <signal.h>
 #include <thread>
 
 #include "graphs.h"
 #include "prob.h"
-#include "workspace.h"
+//#include "workspace.h"
 
-class abstractmeasure {
-public:
-    virtual int takemeasure( const graphtype* g, const neighbors* ns ) {return 0;}
-};
+
+
+
 
 template<typename T>
 class abstractcriterion {
@@ -34,8 +34,8 @@ protected:
 public:
     std::vector<graphtype*>* gptrs {};
     std::vector<neighbors*>* nsptrs {};
-    T res {};
-    std::string name = "_abstractcriterion internal use";
+    //T res {};
+    std::string name = "_abstractcriterion";
     virtual std::string shortname() {return "_ac";}
 
     virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {}
@@ -148,22 +148,6 @@ public:
     embedscriterion(neighbors* flagnsin,FP* fpin) : abstractcriterion("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool checkcriterion( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns));
-    }
-};
-
-
-class edgecountmeasure : public abstractmeasure {
-public:
-    int takemeasure( const graphtype* g, const neighbors* ns ) override {
-        int edgecnt = 0;
-        for (int n = 0; n < g->dim-1; ++n) {
-            for (int i = n+1; i < g->dim; ++i) {
-                if (g->adjacencymatrix[n*g->dim + i]) {
-                    edgecnt++;
-                }
-            }
-        }
-        return edgecnt;
     }
 };
 
