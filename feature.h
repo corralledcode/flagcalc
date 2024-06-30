@@ -1546,7 +1546,7 @@ public:
 
         if (items.size() >= 1)
         {
-            if (cs.empty() && !sentences.empty() && fps.empty())
+            if (cs.empty() && sentences.empty() && fps.empty())
                 cs.push_back(crs[0]);
 
             for (int i = 0; i < fps.size(); ++i) {
