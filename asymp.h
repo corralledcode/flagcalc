@@ -22,11 +22,11 @@
 
 #include "graphs.h"
 #include "prob.h"
+//#include "measure.cpp"
 //#include "workspace.h"
 
 
-
-
+class girthmeasure;
 
 template<typename T>
 class abstractcriterion {
@@ -48,6 +48,24 @@ public:
     }
     abstractcriterion( std::string namein ) :name{namein} {}
 };
+
+
+class truecriterion : public abstractcriterion<bool>{
+protected:
+public:
+    std::string name = "truecriterion";
+
+    virtual std::string shortname() {return "c1";}
+
+    bool checkcriterion(const graphtype *g, const neighbors *ns) override {
+        return true;
+    }
+    bool checkcriterionidxed( const int idx ) override {
+        return true;
+    }
+    truecriterion() : abstractcriterion<bool>("always true") {}
+};
+
 
 template<typename T>
 class abstractmemorycriterion : public abstractcriterion<T>{

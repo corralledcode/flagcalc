@@ -4,7 +4,7 @@
 
 
 #include "graphs.h"
-
+#include "asymp.h"
 // how many cycles to compute in advance, e.g. in girthmeasure
 #define GRAPH_PRECOMPUTECYCLESCNT 20
 
@@ -186,20 +186,45 @@ public:
 
 };
 
-
-/* superceded code
-class edgecountmeasure : public abstractmeasure {
+class measurenonzerocriterion : public abstractmemorycriterion<bool> {
 public:
-    float takemeasure( const graphtype* g, const neighbors* ns ) override {
-        int edgecnt = 0;
-        for (int n = 0; n < g->dim-1; ++n) {
-            for (int i = n+1; i < g->dim; ++i) {
-                if (g->adjacencymatrix[n*g->dim + i]) {
-                    edgecnt++;
-                }
-            }
-        }
-        return edgecnt;
+    std::string name = "_measurenonzerocriterion";
+    abstractmeasure<float>* am;
+
+    virtual std::string shortname() {return "_mnzc";}
+
+    bool checkcriterion(const graphtype *g, const neighbors *ns) override {
+        return am->takemeasure(g,ns) != 0;
+    }
+    measurenonzerocriterion(abstractmeasure<float>* amin)
+        : abstractmemorycriterion<bool>(amin->name + " measure non zero"), am{amin} {}
+};
+
+class measurezerocriterion : public abstractmemorycriterion<bool> {
+public:
+    std::string name = "_measurezerocriterion";
+    abstractmeasure<float>* am;
+
+    virtual std::string shortname() {return "_mzc";}
+
+    bool checkcriterion(const graphtype *g, const neighbors *ns) override {
+        return am->takemeasure(g,ns) == 0;
+    }
+    measurezerocriterion(abstractmeasure<float>* amin)
+        : abstractmemorycriterion<bool>(amin->name + " measure zero"), am{amin} {}
+};
+
+class treecriterion : public measurezerocriterion{
+protected:
+public:
+    std::string name = "treecriterion";
+
+    virtual std::string shortname() {return "tc";}
+
+    treecriterion() : measurezerocriterion(new girthmeasure()) {}
+    ~treecriterion() {
+        delete am;
     }
 };
-*/
+
+

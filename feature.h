@@ -194,7 +194,7 @@ public:
         return "R";
     }
     std::string cmdlineoptionlong() {
-        return "samplerandomgraphs";
+        return "samplerandomgraphsforpairwiseequiv";
     }
     void listoptions() override {
         abstractrandomgraphsfeature::listoptions();
@@ -1263,18 +1263,22 @@ public:
 
         // add any new criterion types to the list here...
 
+        auto c1 = new truecriterion();
         auto cr1 = new trianglefreecriterion();
         auto k4 = new kncriterion(4);
         auto k5 = new kncriterion(5);
         auto k6 = new kncriterion(6);
         auto k7 = new kncriterion(7);
         auto k8 = new kncriterion(8);
+        auto tc = new treecriterion();
+        crs.push_back(c1);
         crs.push_back(cr1);
         crs.push_back(k4);
         crs.push_back(k5);
         crs.push_back(k6);
         crs.push_back(k7);
         crs.push_back(k8);
+        crs.push_back(tc);
 
         // ...
 
