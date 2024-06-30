@@ -481,9 +481,18 @@ public:
             res[i][idx] = variables[i][idx] != neg[i];
         }
         // technically the return value should be a vector
-        if (!res.empty())
-            return res[0][idx];
-        else
+        if (!res.empty()) {
+            bool found = false;
+            int i = 0;
+            while(!found && (i < neg.size())) {
+                found = neg[i] == true;
+                ++i;
+            }
+            if (found && (i > 0))
+                return res[i-1][idx];
+            else
+                return res[0][idx];
+        } else
             return true;
     }
 
