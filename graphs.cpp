@@ -1751,6 +1751,8 @@ void zerograph(graphtype* g) {
             g->adjacencymatrix[i*g->dim + j] = 0;
 }
 
+
+
 graphtype cyclegraph( const int dim ) {
     graphtype res(dim);
     zerograph(&res);

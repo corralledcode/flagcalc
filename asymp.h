@@ -32,19 +32,52 @@ template<typename T>
 class abstractcriterion {
 protected:
 public:
+    int sz = 0;
     std::vector<graphtype*>* gptrs {};
     std::vector<neighbors*>* nsptrs {};
-    //T res {};
     std::string name = "_abstractcriterion";
     virtual std::string shortname() {return "_ac";}
 
-    virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {}
+    virtual void setsize(const int szin) {
+        sz = szin;
+    }
+    virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {return 0;}
     virtual T checkcriterionidxed( const int idx )
     {
         return checkcriterion((*gptrs)[idx],(*nsptrs)[idx]);
     }
     abstractcriterion( std::string namein ) :name{namein} {}
 };
+
+template<typename T>
+class abstractmemorycriterion : public abstractcriterion<T>{
+protected:
+public:
+    std::vector<T> res {};
+    std::vector<bool> computed;
+    std::string name = "_abstractmemorycriterion";
+
+    void setsize(const int szin) override {
+        abstractcriterion<T>::setsize(szin);
+        res.resize(this->sz);
+        computed.resize(this->sz);
+        for (int n = 0; n < computed.size(); ++n)
+            computed[n] = false;
+    }
+
+    virtual std::string shortname() {return "_amc";}
+
+    T checkcriterionidxed( const int idx ) override
+    {
+        if (!computed[idx]) {
+            computed[idx] = true;
+            res[idx] = abstractcriterion<T>::checkcriterionidxed(idx);
+        }
+        return res[idx];
+    }
+    abstractmemorycriterion( std::string namein ) : abstractcriterion<T>(namein) {}
+};
+
 
 inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcriterion<bool>* cr, graphtype* g,
     int n, const int outof, int sampled, bool** samplegraph )
@@ -80,7 +113,7 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcri
 
 
 
-class trianglefreecriterion : public abstractcriterion<bool> {
+class trianglefreecriterion : public abstractmemorycriterion<bool> {
 public:
     bool checkcriterion( const graphtype* g, const neighbors* ns) override {
         int dim = g->dim;
@@ -104,10 +137,10 @@ public:
 
 
     std::string shortname() override {return "cr1";}
-    trianglefreecriterion() : abstractcriterion("triangle-free criterion") {}
+    trianglefreecriterion() : abstractmemorycriterion("triangle-free criterion") {}
 };
 
-class kncriterion : public abstractcriterion<bool> {
+class kncriterion : public abstractmemorycriterion<bool> {
 public:
     const int n;
     bool checkcriterion( const graphtype* g, const neighbors* ns) override {
@@ -131,13 +164,13 @@ public:
 
 
     std::string shortname() override {return "k" + std::to_string(n);}
-    kncriterion( const int nin) : abstractcriterion("embeds K_" + std::to_string(nin) + " criterion"), n{nin} {}
+    kncriterion( const int nin) : abstractmemorycriterion("embeds K_" + std::to_string(nin) + " criterion"), n{nin} {}
 };
 
 
 
 
-class embedscriterion : public abstractcriterion<bool> {
+class embedscriterion : public abstractmemorycriterion<bool> {
 protected:
 
 public:
@@ -145,7 +178,7 @@ public:
     neighbors* flagns;
     FP* fp;
     std::string shortname() override {return "cr3";}
-    embedscriterion(neighbors* flagnsin,FP* fpin) : abstractcriterion("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+    embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorycriterion("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool checkcriterion( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns));
     }
@@ -329,9 +362,9 @@ inline logicalsentence parsesentence( std::string sentence ) {
     }
 }
 
-class sentenceofcriteria : public abstractcriterion<bool> {
+class sentenceofcriteria : public abstractmemorycriterion<bool> {
 protected:
-    //std::vector<abstractcriterion<bool>*> cs;
+    //std::vector<abstractmemorycriterion<bool>*> cs;
     logicalsentence ls;
     std::vector<bool*> variables {};
     const int sz;
@@ -340,15 +373,19 @@ public:
     std::string shortname() override {return "crSENTENCE";}
 
     bool checkcriterionidxed( const int idx ) override {
-        std::vector<bool> res {};
-        res.resize(variables.size());
-        for (int i = 0; i < variables.size(); ++i )
-            res[i] = variables[i][idx];
-        return evalsentence(ls,res);  // check for speed cost
+        if (!computed[idx]) {
+            std::vector<bool> tmpres {};
+            tmpres.resize(variables.size());
+            for (int i = 0; i < variables.size(); ++i )
+                tmpres[i] = variables[i][idx];
+            res[idx] = evalsentence(ls,tmpres);  // check for speed cost
+            computed[idx] = true;
+        }
+        return abstractmemorycriterion::checkcriterionidxed(idx);
     }
 
     sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence, std::string stringin )
-        : abstractcriterion<bool>(stringin == "" ? "logical sentence of several criteria" : stringin),
+        : abstractmemorycriterion<bool>(stringin == "" ? "logical sentence of several criteria" : stringin),
             variables{variablesin}, ls{parsesentence(sentence)}, sz{szin} {}
 
 };
@@ -395,7 +432,7 @@ public:
 
 };
 
-class notcriteria : public abstractcriterion<bool> {
+class notcriteria : public abstractmemorycriterion<bool> {
 protected:
     const int sz;
     std::vector<bool*> variables {};
@@ -404,7 +441,7 @@ public:
     std::vector<bool> neg {};
     std::vector<bool*> res {};
     notcriteria(std::vector<bool*> variablesin, const int szin, std::vector<bool> negin)
-        : abstractcriterion<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, sz{szin}
+        : abstractmemorycriterion<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, sz{szin}
     {
         res.resize(variables.size());
         for (int i = 0; i < variables.size(); ++i)
@@ -426,7 +463,10 @@ public:
             res[i][idx] = variables[i][idx] != neg[i];
         }
         // technically the return value should be a vector
-        return true;
+        if (!res.empty())
+            return res[0][idx];
+        else
+            return true;
     }
 
 };

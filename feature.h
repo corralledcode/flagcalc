@@ -1559,10 +1559,10 @@ public:
             {
                 negv[i] == false;
             }
-            for (auto p : neg)
+            for (int i = 0; i < neg.size(); ++i)
             {
-                if (p.first < negv.size())
-                    negv[p.first] = p.second;
+                if (neg[i].first < negv.size())
+                    negv[neg[i].first] = neg[i].second;
             }
             if (!neg.empty())
             {
@@ -1663,6 +1663,7 @@ public:
 
             std::vector<std::future<bool>> t {};
             t.resize(eqclass.size());
+            cs[k]->setsize(items.size());
             cs[k]->gptrs = &glist;
             cs[k]->nsptrs = &nslist;
             for (int m = 0; m < eqclass.size(); ++m) {
