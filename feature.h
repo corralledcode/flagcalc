@@ -77,12 +77,16 @@ public:
         */
 
 
-        /*
+
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
         for (int i = 0; i < res.size(); ++i) {
             std::cout << res[i].first << " === " << res[i].second << "\n";
+            std::vector<std::string> arg = cmdlineparseiterationthree(res[i].second);
+            for (int j = 0; j < arg.size(); ++i)
+                std::cout << "\t" << arg[j] << "\n";
+            std::cout << "\n";
         }
-        */
+
 
         /*
         int dim1 = 3;

@@ -328,9 +328,9 @@ inline logicalsentence parsesentenceinternal (std::vector<std::string> component
 
 
 
-    for (auto t : components)
-        std::cout << t << ", ";
-    std::cout << "\n";
+    //for (auto t : components)
+    //    std::cout << t << ", ";
+    //std::cout << "\n";
 
 
 
