@@ -74,6 +74,18 @@ inline std::vector<std::pair<std::string,std::string>>  cmdlineparseiterationtwo
 
 }
 
+inline std::vector<std::string> cmdlineparseiterationthree( const std::string arg ) {
+    std::vector<std::string> res {};
+    std::regex r("(([[:alnum:]]+),)*)");
+
+    std::smatch m;
+    std::regex_search(arg,m,r);
+
+    for (int i = 0; i < m.size(); ++i) {
+        res.push_back(m[i] );
+    }
+    return res;
+}
 
 
 class workitems {

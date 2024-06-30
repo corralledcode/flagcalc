@@ -77,10 +77,12 @@ public:
         */
 
 
+        /*
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
         for (int i = 0; i < res.size(); ++i) {
             std::cout << res[i].first << " === " << res[i].second << "\n";
         }
+        */
 
         /*
         int dim1 = 3;
@@ -101,9 +103,9 @@ public:
         //free(subsets);
 */
 
-        std::string sentence = "(NOT (0 AND (2 OR 5)) AND (NOT 3 AND 4))";
+        std::string sentence = "((NOT (3 AND (2 OR 5))) AND ((NOT -4) AND 4))";
         std::vector<bool> variables = {true,true,true,false,true,false};
-        sentence = res[0].second;
+        //sentence = res[0].second;
         logicalsentence ls = parsesentence(sentence);
         std::cout << "Result: " << sentence<< " evals to " << evalsentence(ls,variables) << "\n";
 

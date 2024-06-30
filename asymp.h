@@ -216,10 +216,13 @@ inline bool evalsentence( logicalsentence ls, std::vector<bool> literals ) {
     bool res;
 
     if (ls.ls.size()==0) {
-        if (ls.item >= 0) {
+        if (ls.item >= 0 && ls.item < literals.size()) {
             res = literals[ls.item];
         } else {
-            return true;
+            if (ls.item < 0 && (literals.size() + ls.item >= 0))
+                res = literals[literals.size() + ls.item];
+            else
+                return true;
         }
     }
 
@@ -247,7 +250,7 @@ inline logicalsentence lscombine( const logicalsentence ls1, const logicalsenten
     res.ls.push_back(ls2);
     res.lc = lc;
     res.negated = false;
-    res.item = -1;
+    res.item = 0;
     return res;
 }
 
@@ -283,14 +286,17 @@ inline std::vector<std::string> parsecomponents( std::string str ) {
     if (partial != "") {
         components.push_back(partial);
     }
-    //for (auto c : components)
-    //    std::cout << "c == " << c << ", ";
-    //std::cout << "\n";
+/*
+    for (auto c : components)
+        std::cout << "c == " << c << ", ";
+    std::cout << "\n"; */
     return components;
 }
 
 inline bool is_number(const std::string& s)
 {
+    if (!s.empty() && s[0] == '-')
+        return (is_number(s.substr(1,s.size()-1)));
     return !s.empty() && std::find_if(s.begin(),
         s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
@@ -302,15 +308,16 @@ inline logicalsentence parsesentenceinternal (std::vector<std::string> component
     if (components.size() < 1) {
         std::cout << "Error in parsesentenceinternal\n";
         ls.ls.clear();
-        ls.item = -1;
+        ls.item = 0;
         return ls;
     }
-    if (components.size() == 1 && is_number(components[0])) {
+    if ((components.size() == 1) && is_number(components[0])) {
         ls.ls.clear();
         ls.item = stoi(components[0]);
         ls.negated = false;
         return ls;
     }
+
 
     if (components.size() > 0 && components[0] == "NOT") {
         right.erase(right.begin(), right.begin()+1);
@@ -320,15 +327,13 @@ inline logicalsentence parsesentenceinternal (std::vector<std::string> component
     }
 
 
-    if (components.size() >= 2) {
-        if (components[0] == "(" && components[components.size()-1] == ")") {
-            std::vector<std::string>::const_iterator first = components.begin()+1;
-            std::vector<std::string>::const_iterator last = components.begin()+components.size()-1;
-            std::vector<std::string> tempcomponents(first,last);
-            components = tempcomponents;
-        }
 
-    }
+    for (auto t : components)
+        std::cout << t << ", ";
+    std::cout << "\n";
+
+
+
 
     right = components;
     left.clear();
@@ -351,20 +356,30 @@ inline logicalsentence parsesentenceinternal (std::vector<std::string> component
         }
         if (components[j] == "(") {
             ++nesting;
-            //return parsesentenceinternal( right, nesting );
         }
         if (components[j] == ")") {
             --nesting;
-            //return parsesentenceinternal( left, nesting );
         }
         left.push_back(components[j]);
         ++j;
     }
 
+    if (components.size() >= 3) {
+        if (components[0] == "(" && components[components.size()-1] == ")") {
+            std::vector<std::string>::const_iterator first = components.begin()+1;
+            std::vector<std::string>::const_iterator last = components.begin()+components.size()-1;
+            std::vector<std::string> tempcomponents(first,last);
+            components = tempcomponents;
+            return parsesentenceinternal(components,nesting);
+        }
+
+    }
+
+
 
     std::cout << "Ill-formed overall sentence\n";
     ls.ls.clear();
-    ls.item = -1;
+    ls.item = 0;
     ls.negated = false;
     return ls;
 }
@@ -375,7 +390,7 @@ inline logicalsentence parsesentence( std::string sentence ) {
     else {
         logicalsentence ls;
         ls.ls.clear();
-        ls.item = -1;
+        ls.item = 0;
         return ls;
     }
 }
