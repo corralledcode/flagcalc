@@ -142,7 +142,7 @@ std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, cons
 
 std::vector<graphmorphism>* enumisomorphisms( neighbors* ns1, neighbors* ns2 );
 
-int edgecnt( graphtype* g );
+int edgecnt( const graphtype* g );
 
 
 
@@ -177,6 +177,8 @@ void osgraphmorphisms( std::ostream &os, graphtype* g1, graphtype* g2, std::vect
 
 void osmachinereadablegraph(std::ostream &os, graphtype* g);
 
+void zerograph(graphtype* g);
 
+graphtype cyclegraph( const int dim );
 
 #endif //GRAPHS_H
