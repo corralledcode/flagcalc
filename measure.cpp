@@ -178,8 +178,8 @@ public:
                 return n-1;
         }
         if (!embedsbool) {
-            std::cout << "Error in girthmeasure: no cycles embed\n";
-            return -1;
+            //std::cout << "Error in girthmeasure: no cycles embed\n";
+            return 0;
         }
 
     }
