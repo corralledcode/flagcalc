@@ -25,11 +25,12 @@
 //#include "measure.cpp"
 //#include "workspace.h"
 
+#define KNMAXCLIQUESIZE 12
 
 class girthmeasure;
 
 template<typename T>
-class abstractcriterion {
+class abstractmeasure {
 protected:
 public:
     int sz = 0;
@@ -41,42 +42,26 @@ public:
     virtual void setsize(const int szin) {
         sz = szin;
     }
-    virtual T checkcriterion( const graphtype* g, const neighbors* ns ) {return 0;}
-    virtual T checkcriterionidxed( const int idx )
-    {
-        return checkcriterion((*gptrs)[idx],(*nsptrs)[idx]);
+    virtual T takemeasure( const graphtype* g, const neighbors* ns ) {return 0;}
+    virtual T takemeasureidxed(const int idx ) {
+        return takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
     }
-    abstractcriterion( std::string namein ) :name{namein} {}
+    abstractmeasure( std::string namein ) :name{namein} {}
 };
 
 
-class truecriterion : public abstractcriterion<bool>{
-protected:
-public:
-    std::string name = "truecriterion";
-
-    virtual std::string shortname() {return "c1";}
-
-    bool checkcriterion(const graphtype *g, const neighbors *ns) override {
-        return true;
-    }
-    bool checkcriterionidxed( const int idx ) override {
-        return true;
-    }
-    truecriterion() : abstractcriterion<bool>("always true") {}
-};
 
 
 template<typename T>
-class abstractmemorycriterion : public abstractcriterion<T>{
+class abstractmemorymeasure : public abstractmeasure<T>{
 protected:
 public:
     std::vector<T> res {};
     std::vector<bool> computed;
-    std::string name = "_abstractmemorycriterion";
+    //std::string name = "_abstractmemorymeasure";
 
     void setsize(const int szin) override {
-        abstractcriterion<T>::setsize(szin);
+        abstractmeasure<T>::setsize(szin);
         res.resize(this->sz);
         computed.resize(this->sz);
         for (int n = 0; n < computed.size(); ++n)
@@ -85,19 +70,36 @@ public:
 
     virtual std::string shortname() {return "_amc";}
 
-    T checkcriterionidxed( const int idx ) override
+    T takemeasureidxed( const int idx ) override
     {
         if (!computed[idx]) {
             computed[idx] = true;
-            res[idx] = abstractcriterion<T>::checkcriterionidxed(idx);
+            res[idx] = abstractmeasure<T>::takemeasureidxed(idx);
         }
         return res[idx];
     }
-    abstractmemorycriterion( std::string namein ) : abstractcriterion<T>(namein) {}
+    abstractmemorymeasure( std::string namein ) : abstractmeasure<T>(namein) {}
 };
 
 
-inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcriterion<bool>* cr, graphtype* g,
+
+class truecriterion : public abstractmeasure<bool>{
+protected:
+public:
+    std::string name = "truecriterion";
+
+    virtual std::string shortname() {return "c1";}
+
+    bool takemeasure(const graphtype *g, const neighbors *ns) override {
+        return true;
+    }
+    bool takemeasureidxed( const int idx ) override {
+        return true;
+    }
+    truecriterion() : abstractmeasure<bool>("always true") {}
+};
+
+inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractmeasure<bool>* cr, graphtype* g,
     int n, const int outof, int sampled, bool** samplegraph )
 {
     int max = 0;
@@ -108,7 +110,7 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcri
         rg->randomgraph(g,n);
         //auto ns = new neighbors(g);
         //ns->computeneighborslist(g); ns isn't used by criterion...
-        if (cr->checkcriterion(g,nullptr)) {
+        if (cr->takemeasure(g,nullptr)) {
             //float tmp = ms->takemeasure(g,ns);
             //max = (tmp > max ? tmp : max);
             max = n;
@@ -131,9 +133,9 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractcri
 
 
 
-class trianglefreecriterion : public abstractmemorycriterion<bool> {
+class trianglefreecriterion : public abstractmemorymeasure<bool> {
 public:
-    bool checkcriterion( const graphtype* g, const neighbors* ns) override {
+    bool takemeasure( const graphtype* g, const neighbors* ns) override {
         int dim = g->dim;
         for (int n = 0; n < dim-2; ++n) {
             for (int i = n+1; i < dim-1; ++i) {
@@ -155,13 +157,13 @@ public:
 
 
     std::string shortname() override {return "cr1";}
-    trianglefreecriterion() : abstractmemorycriterion("triangle-free criterion") {}
+    trianglefreecriterion() : abstractmemorymeasure("triangle-free criterion") {}
 };
 
-class kncriterion : public abstractmemorycriterion<bool> {
+class kncriterion : public abstractmemorymeasure<bool> {
 public:
     const int n;
-    bool checkcriterion( const graphtype* g, const neighbors* ns) override {
+    bool takemeasure( const graphtype* g, const neighbors* ns) override {
         int dim = g->dim;
 
         std::vector<int> subsets {};
@@ -182,13 +184,65 @@ public:
 
 
     std::string shortname() override {return "k" + std::to_string(n);}
-    kncriterion( const int nin) : abstractmemorycriterion("embeds K_" + std::to_string(nin) + " criterion"), n{nin} {}
+    kncriterion( const int nin) : abstractmemorymeasure("embeds K_" + std::to_string(nin) + " criterion"), n{nin} {}
 };
 
 
+template<typename T>
+class abstractmemoryparameterizedmeasure : public abstractmemorymeasure<T> {
+public:
+    std::vector<std::string> p;
+    virtual void setparams( std::vector<std::string> pin ) {
+        p = pin;
+    }
+    abstractmemoryparameterizedmeasure( std::string namein ) : abstractmemorymeasure<T>(namein) {}
+};
 
 
-class embedscriterion : public abstractmemorycriterion<bool> {
+inline bool is_number(const std::string& s)
+{
+    if (!s.empty() && s[0] == '-')
+        return (is_number(s.substr(1,s.size()-1)));
+    return !s.empty() && std::find_if(s.begin(),
+        s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
+
+class knparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool> {
+protected:
+    std::vector<kncriterion*> kns {};
+public:
+    std::string shortname() override {return "kn";}
+    void populatekns() {
+        kns.resize(KNMAXCLIQUESIZE);
+        for (int i = 1; i < KNMAXCLIQUESIZE; ++i) {
+            auto kn = new kncriterion(i);
+            kns[i] = kn;
+        }
+    }
+    bool takemeasure( const graphtype* g, const neighbors* ns ) override {
+
+
+        if (p.size() == 1 && is_number(p[0])) {
+            int sz = stoi(p[0]);
+            if (sz <= KNMAXCLIQUESIZE)
+                return kns[stoi(p[0])]->takemeasure(g,ns);
+            else {
+                std::cout<< "Increase KNMAXCLIQUESIZE compiler define (current value " + std::to_string(KNMAXCLIQUESIZE) + ")";
+                return false;
+            }
+        }
+        // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
+    }
+    knparameterizedcriterion() : abstractmemoryparameterizedmeasure<bool>("Parameterized K_n criterion") {
+        populatekns();
+    }
+    ~knparameterizedcriterion() {
+        for (auto kn : kns)
+            delete kn;
+    }
+};
+
+class embedscriterion : public abstractmemorymeasure<bool> {
 protected:
 
 public:
@@ -196,8 +250,8 @@ public:
     neighbors* flagns;
     FP* fp;
     std::string shortname() override {return "cr3";}
-    embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorycriterion("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
-    bool checkcriterion( const graphtype* g, const neighbors* ns) override {
+    embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+    bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns));
     }
 };
@@ -293,13 +347,6 @@ inline std::vector<std::string> parsecomponents( std::string str ) {
     return components;
 }
 
-inline bool is_number(const std::string& s)
-{
-    if (!s.empty() && s[0] == '-')
-        return (is_number(s.substr(1,s.size()-1)));
-    return !s.empty() && std::find_if(s.begin(),
-        s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
-}
 
 inline logicalsentence parsesentenceinternal (std::vector<std::string> components, int nesting ) {
     std::vector<std::string> left {};
@@ -395,9 +442,9 @@ inline logicalsentence parsesentence( std::string sentence ) {
     }
 }
 
-class sentenceofcriteria : public abstractmemorycriterion<bool> {
+class sentenceofcriteria : public abstractmemorymeasure<bool> {
 protected:
-    //std::vector<abstractmemorycriterion<bool>*> cs;
+    //std::vector<abstractmemorymeasure<bool>*> cs;
     logicalsentence ls;
     std::vector<bool*> variables {};
     const int sz;
@@ -405,7 +452,7 @@ protected:
 public:
     std::string shortname() override {return "crSENTENCE";}
 
-    bool checkcriterionidxed( const int idx ) override {
+    bool takemeasureidxed( const int idx ) override {
         if (!computed[idx]) {
             std::vector<bool> tmpres {};
             tmpres.resize(variables.size());
@@ -414,11 +461,11 @@ public:
             res[idx] = evalsentence(ls,tmpres);  // check for speed cost
             computed[idx] = true;
         }
-        return abstractmemorycriterion::checkcriterionidxed(idx);
+        return abstractmemorymeasure::takemeasureidxed(idx);
     }
 
     sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence, std::string stringin )
-        : abstractmemorycriterion<bool>(stringin == "" ? "logical sentence of several criteria" : stringin),
+        : abstractmemorymeasure<bool>(stringin == "" ? "logical sentence of several criteria" : stringin),
             variables{variablesin}, ls{parsesentence(sentence)}, sz{szin} {}
 
 };
@@ -465,7 +512,7 @@ public:
 
 };
 
-class notcriteria : public abstractmemorycriterion<bool> {
+class notcriteria : public abstractmemorymeasure<bool> {
 protected:
     const int sz;
     std::vector<bool*> variables {};
@@ -474,7 +521,7 @@ public:
     std::vector<bool> neg {};
     std::vector<bool*> res {};
     notcriteria(std::vector<bool*> variablesin, const int szin, std::vector<bool> negin)
-        : abstractmemorycriterion<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, sz{szin}
+        : abstractmemorymeasure<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, sz{szin}
     {
         res.resize(variables.size());
         for (int i = 0; i < variables.size(); ++i)
@@ -489,7 +536,7 @@ public:
         }
     }
 
-    bool checkcriterionidxed(const int idx) override
+    bool takemeasureidxed(const int idx) override
     {
         for (int i = 0; i < res.size(); ++i)
         {

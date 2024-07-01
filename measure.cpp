@@ -9,27 +9,6 @@
 #define GRAPH_PRECOMPUTECYCLESCNT 20
 
 
-template<typename T>
-class abstractmeasure {
-public:
-    std::vector<graphtype*>* gptrs {};
-    std::vector<neighbors*>* nsptrs {};
-    std::vector<T>* res {};
-    std::string name = "_abstractmeasure";
-    virtual std::string shortname() {return "_am";}
-
-    virtual T takemeasure( const graphtype* g, const neighbors* ns ) {return {};}
-    virtual T takemeasureidxed( const int idx ) {
-        if ((*res)[idx] == -1) {
-            (*res)[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return (*res)[idx];
-    }
-    abstractmeasure( std::string namein ) :name{namein} {}
-    ~abstractmeasure() {
-        //delete res; // crashes...
-    }
-};
 
 class boolmeasure : public abstractmeasure<float> {
 public:
@@ -41,6 +20,8 @@ public:
 
     boolmeasure() : abstractmeasure<float>( "Graph's pass/fail of criterion") {}
 };
+
+
 
 class dimmeasure : public abstractmeasure<float> {
 public:
@@ -186,32 +167,61 @@ public:
 
 };
 
-class measurenonzerocriterion : public abstractmemorycriterion<bool> {
+
+class maxcliquemeasure : public abstractmeasure<float> {
+public:
+    virtual std::string shortname() {return "cm";}
+
+    maxcliquemeasure() : abstractmeasure<float>("Graph's largest clique") {}
+    float takemeasure( const graphtype* g, const neighbors* ns ) {
+        std::vector<kncriterion*> kns {};
+        for (int n = 2; n <= ns->dim; ++n) {
+            auto kn = new kncriterion(n);
+            kns.push_back(kn);
+            if (!(kn->takemeasure(g,ns))) {
+                for (auto kn : kns)
+                    delete kn;
+                kns.clear();
+                return n-1;
+            }
+        }
+        for (auto kn : kns)
+            delete kn;
+        kns.clear();
+        return ns->dim;
+    }
+};
+
+
+
+
+
+class measurenonzerocriterion : public abstractmemorymeasure<bool> {
 public:
     std::string name = "_measurenonzerocriterion";
     abstractmeasure<float>* am;
 
     virtual std::string shortname() {return "_mnzc";}
 
-    bool checkcriterion(const graphtype *g, const neighbors *ns) override {
+    bool takemeasure(const graphtype *g, const neighbors *ns) override {
         return am->takemeasure(g,ns) != 0;
     }
     measurenonzerocriterion(abstractmeasure<float>* amin)
-        : abstractmemorycriterion<bool>(amin->name + " measure non zero"), am{amin} {}
+        : abstractmemorymeasure<bool>(amin->name + " measure non zero"), am{amin} {}
 };
 
-class measurezerocriterion : public abstractmemorycriterion<bool> {
+class measurezerocriterion : public abstractmemorymeasure<bool> {
 public:
     std::string name = "_measurezerocriterion";
     abstractmeasure<float>* am;
 
     virtual std::string shortname() {return "_mzc";}
 
-    bool checkcriterion(const graphtype *g, const neighbors *ns) override {
+    bool takemeasure(const graphtype *g, const neighbors *ns) override {
         return am->takemeasure(g,ns) == 0;
     }
     measurezerocriterion(abstractmeasure<float>* amin)
-        : abstractmemorycriterion<bool>(amin->name + " measure zero"), am{amin} {}
+        : abstractmemorymeasure<bool>(amin->name + " measure zero"), am{amin} {}
 };
 
 class treecriterion : public measurezerocriterion{

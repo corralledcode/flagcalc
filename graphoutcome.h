@@ -144,15 +144,16 @@ public:
     isomorphismsoutcome(const graphitem* gi2in, const graphitem* giin, const int newvalue) : graphoutcome<int>(giin,newvalue), gi2{gi2in} {}
 };
 
+/*
 template<typename Tc>
 class abstractcriterionoutcome : public graphoutcome<Tc> {
 public:
     abstractcriterion<Tc>* cr;
     abstractcriterionoutcome(abstractcriterion<Tc>* crin, const graphitem* giin, Tc newcvalue)
         : graphoutcome<Tc>(giin,newcvalue),cr{crin} {}
-    std::string name() override {return cr->shortname(); /*"_abstractcriterion";*/}
+    std::string name() override {return cr->shortname(); // "_abstractcriterion";
     std::string longname() override {return cr->name;}
-};
+};*/
 
 template<typename Tm>
 class abstractmeasureoutcome : public graphoutcome<Tm> {

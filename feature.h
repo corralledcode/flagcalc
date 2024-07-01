@@ -1264,7 +1264,7 @@ public:
 template<typename Tc,typename Tm>
 class abstractcheckcriterionfeature : public feature {
 protected:
-    std::vector<abstractcriterion<Tc>*> crs {};
+    std::vector<abstractmeasure<Tc>*> crs {};
     std::vector<abstractmeasure<Tm>*> mss {};
 public:
     virtual void listoptions() override {
@@ -1276,19 +1276,11 @@ public:
 
         auto c1 = new truecriterion();
         auto cr1 = new trianglefreecriterion();
-        auto k4 = new kncriterion(4);
-        auto k5 = new kncriterion(5);
-        auto k6 = new kncriterion(6);
-        auto k7 = new kncriterion(7);
-        auto k8 = new kncriterion(8);
+        auto kn = new knparameterizedcriterion();
         auto tc = new treecriterion();
         crs.push_back(c1);
         crs.push_back(cr1);
-        crs.push_back(k4);
-        crs.push_back(k5);
-        crs.push_back(k6);
-        crs.push_back(k7);
-        crs.push_back(k8);
+        crs.push_back(kn);
         crs.push_back(tc);
 
         // ...
@@ -1302,6 +1294,7 @@ public:
         auto ms5 = new mindegreemeasure();
         auto ms6 = new maxdegreemeasure();
         auto ms7 = new girthmeasure();
+        auto mc = new maxcliquemeasure();
         mss.push_back(ms1);
         mss.push_back(ms2);
         mss.push_back(ms3);
@@ -1309,6 +1302,7 @@ public:
         mss.push_back(ms5);
         mss.push_back(ms6);
         mss.push_back(ms7);
+        mss.push_back(mc);
 
         // ,,,
     }
@@ -1328,7 +1322,7 @@ public:
 
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool,float> {
 public:
-    std::vector<abstractcriterion<bool>*> cs {};
+    std::vector<abstractmeasure<bool>*> cs {};
     std::vector<std::vector<std::string>> csargs {};
     std::vector<abstractmeasure<float>*> ms {};
     std::vector<std::vector<std::string>> msargs {};
@@ -1451,13 +1445,6 @@ public:
             }
 
             bool found = false;
-/*            for (int n = 0; !found && (n < crs.size()); ++n) {
-                if ((parsedargs[i].first == "default") && (parsedargs[i].second == crs[n]->shortname())) {
-                    cs.push_back(crs[n]);
-                    found = true;
-                    //std::cout << "crs push back\n";
-                }
-            }*/
 
             if (parsedargs[i].first == "c" || parsedargs[i].first == "default") {
                 std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2 = cmdlineparseiterationthree(parsedargs[i].second);
@@ -1465,7 +1452,12 @@ public:
                     for (int m = 0; !found && (m < parsedargs2.size()); ++m) {
                         if (parsedargs2[m].first == crs[n]->shortname()) {
                             cs.push_back(crs[n]);
-                            csargs.push_back(parsedargs2[m].second);
+                            if (!parsedargs2[m].second.empty())
+                            //try {
+                                ((abstractmemoryparameterizedmeasure<bool>*)crs[n])->setparams(parsedargs2[m].second);
+                            //} catch () {
+                            //    std::cout << "Error passing parameters to a non-parameterized criterion\n";
+                            //}
                             found = true;
 
                         }
@@ -1737,10 +1729,11 @@ public:
         for (int l = 0; l < ms.size(); ++l) {
             ms[l]->gptrs = &glist;
             ms[l]->nsptrs = &nslist;
-            ms[l]->res = new std::vector<float>;
-            ms[l]->res->resize(items.size());
-            for (int i = 0; i < ms[l]->res->size(); ++i)
-                (*ms[l]->res)[i] = -1;
+            ms[l]->setsize(items.size());
+            //ms[l]->res = new std::vector<float>;
+            //ms[l]->res->resize(items.size());
+            //for (int i = 0; i < ms[l]->res->size(); ++i)
+            //    (*ms[l]->res)[i] = -1;
         }
 
 
@@ -1760,7 +1753,7 @@ public:
             cs[k]->gptrs = &glist;
             cs[k]->nsptrs = &nslist;
             for (int m = 0; m < eqclass.size(); ++m) {
-                t[m] = std::async(&abstractcriterion<bool>::checkcriterionidxed,cs[k],eqclass[m]);
+                t[m] = std::async(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]);
                 //t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
             }
             std::vector<bool> threadbool {};
@@ -1773,7 +1766,7 @@ public:
 
 
             for (int l = 0; l < crmspairs[k].size(); ++l) {
-                auto wi = new checkcriterionitem<bool,float>(*cs[k],*ms[crmspairs[k][l]]);
+                auto wi = new checkcriterionmeasureitem<bool,float>(*cs[k],*ms[crmspairs[k][l]]);
 
                 wi->res.resize(eqclass.size());
                 wi->fpslist = {};
@@ -1788,7 +1781,7 @@ public:
                     wi->nslist[m] = nslist[m];
                     auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                     if (l == 0) { // hokey way of saying "do it once", as if outside the nested loops
-                        gi->boolitems.push_back(new abstractcriterionoutcome<bool>(cs[k],gi,wi->res[m]));
+                        gi->boolitems.push_back(new abstractmeasureoutcome<bool>(cs[k],gi,wi->res[m]));
                     }
                     wi->gnames[m] = gi->name;
                     if (k < res.size())

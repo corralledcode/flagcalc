@@ -537,7 +537,7 @@ public:
 
 
 template<typename Tc, typename Tm>
-class checkcriterionitem : public workitems {
+class checkcriterionmeasureitem : public workitems {
 public:
     std::vector<graphtype*> glist;
     std::vector<neighborstype*> nslist;
@@ -546,9 +546,9 @@ public:
     std::vector<Tc> res;
     std::vector<Tm> meas;
     abstractmeasure<Tm> am;
-    abstractcriterion<Tc> ac;
+    abstractmeasure<Tc> ac;
     std::vector<int> sorted {};
-    checkcriterionitem(abstractcriterion<Tc> acin, abstractmeasure<Tm> amin ) : workitems(), ac{acin}, am{amin} {
+    checkcriterionmeasureitem(abstractmeasure<Tc> acin, abstractmeasure<Tm> amin ) : workitems(), ac{acin}, am{amin} {
         classname = "APPLYCRITERION";
         verbositylevel = VERBOSE_APPLYCRITERION;
     }

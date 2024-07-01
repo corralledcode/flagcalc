@@ -10,7 +10,7 @@
 
 class asymp {
 public:
-    virtual float computeasymptotic( abstractcriterion<bool>* cr, abstractmeasure<float>* ms, const int outof, const int dim, std::ostream& os, workspace* ws ) {
+    virtual float computeasymptotic( abstractmeasure<bool>* cr, abstractmeasure<float>* ms, const int outof, const int dim, std::ostream& os, workspace* ws ) {
         int max = 0;
         int sampled = 0;
         int n = 1;
@@ -76,7 +76,7 @@ public:
                 rg->randomgraph(g,n);
                 //auto ns = new neighbors(g);
                 //ns = computeneighborslist(g); ns isn't used by criterion...
-                if (cr->checkcriterion(g,nullptr)) {
+                if (cr->takemeasure(g,nullptr)) {
                     //float tmp = ms->takemeasure(g,ns);
                     //max = (tmp > max ? tmp : max);
                     max = n;
