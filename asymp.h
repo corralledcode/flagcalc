@@ -42,13 +42,12 @@ public:
     virtual void setsize(const int szin) {
         sz = szin;
     }
-    virtual T takemeasure( const graphtype* g, const neighbors* ns ) {return 0;}
+    virtual T takemeasure( const graphtype* g, const neighbors* ns ) {return {};}
     virtual T takemeasureidxed(const int idx ) {
         return takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
     }
     abstractmeasure( std::string namein ) :name{namein} {}
 };
-
 
 
 
@@ -191,10 +190,12 @@ public:
 template<typename T>
 class abstractmemoryparameterizedmeasure : public abstractmemorymeasure<T> {
 public:
-    std::vector<std::string> p;
-    virtual void setparams( std::vector<std::string> pin ) {
-        p = pin;
+    std::vector<std::string> ps {};
+
+    virtual void setparams( const std::vector<std::string> pin ) {
+        ps = pin;
     }
+
     abstractmemoryparameterizedmeasure( std::string namein ) : abstractmemorymeasure<T>(namein) {}
 };
 
@@ -221,11 +222,10 @@ public:
     }
     bool takemeasure( const graphtype* g, const neighbors* ns ) override {
 
-
-        if (p.size() == 1 && is_number(p[0])) {
-            int sz = stoi(p[0]);
+        if (ps.size() == 1 && is_number(ps[0])) {
+            int sz = stoi(ps[0]);
             if (sz <= KNMAXCLIQUESIZE)
-                return kns[stoi(p[0])]->takemeasure(g,ns);
+                return kns[stoi(ps[0])]->takemeasure(g,ns);
             else {
                 std::cout<< "Increase KNMAXCLIQUESIZE compiler define (current value " + std::to_string(KNMAXCLIQUESIZE) + ")";
                 return false;
@@ -559,5 +559,10 @@ public:
     }
 
 };
+
+template<typename T,typename M> abstractmeasure<M>* factory(void) {
+    return new T;
+}
+
 
 #endif //ASYMP_H

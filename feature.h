@@ -1265,7 +1265,9 @@ template<typename Tc,typename Tm>
 class abstractcheckcriterionfeature : public feature {
 protected:
     std::vector<abstractmeasure<Tc>*> crs {};
+    std::vector<abstractmeasure<Tc>*(*)()> crsfactory;
     std::vector<abstractmeasure<Tm>*> mss {};
+    std::vector<abstractmeasure<Tm>*(*)()> mssfactory {};
 public:
     virtual void listoptions() override {
         feature::listoptions();
@@ -1274,37 +1276,51 @@ public:
 
         // add any new criterion types to the list here...
 
-        auto c1 = new truecriterion();
-        auto cr1 = new trianglefreecriterion();
-        auto kn = new knparameterizedcriterion();
-        auto tc = new treecriterion();
-        crs.push_back(c1);
-        crs.push_back(cr1);
-        crs.push_back(kn);
-        crs.push_back(tc);
+        auto (*c1)() = factory<truecriterion,bool>;
+        auto (*cr1)() = factory<trianglefreecriterion,bool>;
+        auto (*tc)() = factory<treecriterion,bool>;
+        auto (*kn)() = factory<knparameterizedcriterion,bool>;
+
+        crsfactory.push_back(*c1);
+        crsfactory.push_back(*cr1);
+        crsfactory.push_back(*tc);
+        crsfactory.push_back(*kn);
 
         // ...
 
+
+
+        for (int n = 0; n < crsfactory.size(); ++n) {
+            crs.push_back((*crsfactory[n])());
+        }
+
+
         // add any new measure types to the list here...
 
-        auto ms1 = new boolmeasure();
-        auto ms2 = new dimmeasure();
-        auto ms3 = new edgecntmeasure();
-        auto ms4 = new avgdegreemeasure();
-        auto ms5 = new mindegreemeasure();
-        auto ms6 = new maxdegreemeasure();
-        auto ms7 = new girthmeasure();
-        auto mc = new maxcliquemeasure();
-        mss.push_back(ms1);
-        mss.push_back(ms2);
-        mss.push_back(ms3);
-        mss.push_back(ms4);
-        mss.push_back(ms5);
-        mss.push_back(ms6);
-        mss.push_back(ms7);
-        mss.push_back(mc);
+        auto (*ms1)() = factory<boolmeasure,float>;
+        auto (*ms2)() = factory<dimmeasure,float>;
+        auto (*ms3)() = factory<edgecntmeasure,float>;
+        auto (*ms4)() = factory<avgdegreemeasure,float>;
+        auto (*ms5)() = factory<mindegreemeasure,float>;
+        auto (*ms6)() = factory<maxdegreemeasure,float>;
+        auto (*ms7)() = factory<girthmeasure,float>;
+        auto (*mc)() = factory<maxcliquemeasure,float>;
+
+        mssfactory.push_back(*ms1);
+        mssfactory.push_back(*ms2);
+        mssfactory.push_back(*ms3);
+        mssfactory.push_back(*ms4);
+        mssfactory.push_back(*ms5);
+        mssfactory.push_back(*ms6);
+        mssfactory.push_back(*ms7);
+        mssfactory.push_back(*mc);
 
         // ,,,
+
+        for (int n = 0; n < mssfactory.size(); ++n) {
+            mss.push_back((*mssfactory[n])());
+        }
+
     }
 
     ~abstractcheckcriterionfeature() {
@@ -1323,9 +1339,7 @@ public:
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool,float> {
 public:
     std::vector<abstractmeasure<bool>*> cs {};
-    std::vector<std::vector<std::string>> csargs {};
     std::vector<abstractmeasure<float>*> ms {};
-    std::vector<std::vector<std::string>> msargs {};
     std::vector<std::pair<int,std::string>> mscombinations {};
     std::vector<std::string> sentences {};
 
@@ -1343,7 +1357,14 @@ public:
                 delete cs[i];
         }
 
-        // no need as of yet to do the same for ms
+        for (int i = 0; i < ms.size(); ++i) {
+            bool found = false;
+            for (int j = 0; !found && j < mss.size(); ++j) {
+                found |= mss[j] == ms[i];
+            }
+            if (!found)
+                delete ms[i];
+        }
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
@@ -1451,13 +1472,18 @@ public:
                 for (int n = 0; !found && (n < crs.size()); ++n) {
                     for (int m = 0; !found && (m < parsedargs2.size()); ++m) {
                         if (parsedargs2[m].first == crs[n]->shortname()) {
-                            cs.push_back(crs[n]);
-                            if (!parsedargs2[m].second.empty())
-                            //try {
-                                ((abstractmemoryparameterizedmeasure<bool>*)crs[n])->setparams(parsedargs2[m].second);
-                            //} catch () {
-                            //    std::cout << "Error passing parameters to a non-parameterized criterion\n";
-                            //}
+                            auto newcs = (*crsfactory[n])();
+                            cs.push_back(newcs);
+                            if (!parsedargs2[m].second.empty()) {
+                                //try {
+                                //std::cout << typeid(cs[cs.size()-1]).name() << " typeid \n";
+                                //if (typeid(cs[cs.size()-1]).name() == "abstractmemoryparameterizedmeasure") {
+                                auto ampm = (abstractmemoryparameterizedmeasure<bool>*)cs[cs.size()-1];
+                                ampm->setparams(parsedargs2[m].second);
+                                //} catch () {
+                                //    std::cout << "Error passing parameters to a non-parameterized criterion\n";
+                                //}
+                            }
                             found = true;
 
                         }
@@ -1476,8 +1502,13 @@ public:
                 for (int n = 0; !found && (n < mss.size()); ++n) {
                     for (int m = 0; !found && (m < parsedargs2.size()); ++m) {
                         if (parsedargs2[m].first == mss[n]->shortname()) {
-                            ms.push_back(mss[n]);
-                            msargs.push_back(parsedargs2[m].second);
+                            auto newms = (*mssfactory[n])();
+                            ms.push_back(newms);
+                            if (!parsedargs2[m].second.empty()) {
+                                auto ampm = (abstractmemoryparameterizedmeasure<float>*)ms[ms.size()-1];
+                                ampm->setparams(parsedargs2[m].second);
+                            }
+                            //msargs.push_back(parsedargs2[m].second);
                             for (int k = 0; k < parsedargs2.size();++k) {
                                 if (parsedargs2[k].first == "all" || is_number(parsedargs2[k].first)) {
                                     mscombinations.push_back( {ms.size()-1,parsedargs2[k].first});
@@ -1746,7 +1777,6 @@ public:
             }
         }
         for (int k = 0; k < cs.size(); ++k) {
-
             std::vector<std::future<bool>> t {};
             t.resize(eqclass.size());
             cs[k]->setsize(items.size());
@@ -1763,7 +1793,6 @@ public:
                 //t[m].detach();
                 threadbool[m] = t[m].get();
             }
-
 
             for (int l = 0; l < crmspairs[k].size(); ++l) {
                 auto wi = new checkcriterionmeasureitem<bool,float>(*cs[k],*ms[crmspairs[k][l]]);
