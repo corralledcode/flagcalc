@@ -74,18 +74,36 @@ inline std::vector<std::pair<std::string,std::string>>  cmdlineparseiterationtwo
 
 }
 
-inline std::vector<std::string> cmdlineparseiterationthree( const std::string arg ) {
-    std::vector<std::string> res {};
-    std::regex r("(([[:alnum:]]+),)*)");
 
-    std::smatch m;
-    std::regex_search(arg,m,r);
+inline std::vector<std::pair<std::string,std::vector<std::string>>> cmdlineparseiterationthree( const std::string arg ) {
+    std::vector<std::string> res;
+    std::vector<std::pair<std::string,std::vector<std::string>>> overallres {};
+    std::regex r( "(-|\\w|\\(|\\)|,)+(;|\\s|:)?");
 
-    for (int i = 0; i < m.size(); ++i) {
-        res.push_back(m[i] );
+    for (std::sregex_iterator p(arg.begin(),arg.end(),r); p!=std::sregex_iterator{}; ++p) {
+        std::regex r2( "(-|\\w)*");
+        std::smatch m2;
+        std::string tmp2 = (*p)[0];
+        std::regex_search(tmp2,m2,r2);
+        std::string s2 = "default";
+        if (m2.size() > 0)
+            s2 = m2[0];
+
+        //std::regex r3( "\\((\\w)+,(\\w)+\\)");
+        std::regex r3( "\\(([^\\)]+)\\)" );
+
+        std::vector<std::string> parameters {};
+
+        for (std::sregex_iterator p3( tmp2.begin(), tmp2.end(),r3); p3 != std::sregex_iterator{}; ++p3) {
+            parameters.push_back((*p3)[1]);
+        }
+
+        overallres.push_back({s2,parameters});
     }
-    return res;
+
+    return overallres;
 }
+
 
 
 class workitems {
@@ -549,7 +567,7 @@ public:
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
         std::vector<std::pair<Tc,int>> count = {};
-        if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+        //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
             os << "Criterion "<< ac.name << " results of graphs:\n";
         for (int n = 0; n < sorted.size(); ++n) {
             if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {

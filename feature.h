@@ -81,9 +81,14 @@ public:
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
         for (int i = 0; i < res.size(); ++i) {
             std::cout << res[i].first << " === " << res[i].second << "\n";
-            std::vector<std::string> arg = cmdlineparseiterationthree(res[i].second);
-            for (int j = 0; j < arg.size(); ++i)
-                std::cout << "\t" << arg[j] << "\n";
+            std::vector<std::pair<std::string,std::vector<std::string>>> arg = cmdlineparseiterationthree(res[i].second);
+            for (int j = 0; j < arg.size(); ++j) {
+                std::cout << "\t" << arg[j].first << " : ";
+                for (auto s : arg[j].second) {
+                    std::cout << s << ", " ;
+                }
+                std::cout << "\b\b\n";
+            }
             std::cout << "\n";
         }
 
@@ -1324,7 +1329,10 @@ public:
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool,float> {
 public:
     std::vector<abstractcriterion<bool>*> cs {};
+    std::vector<std::vector<std::string>> csargs {};
     std::vector<abstractmeasure<float>*> ms {};
+    std::vector<std::vector<std::string>> msargs {};
+    std::vector<std::pair<int,std::string>> mscombinations {};
     std::vector<std::string> sentences {};
 
     std::string cmdlineoption() override { return "a"; }
@@ -1385,7 +1393,6 @@ public:
         std::vector<int> dims {};
         std::vector<neighbors*> nss {};
 
-
         for (int i = 0; i < parsedargs.size(); ++i)
         {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
@@ -1397,7 +1404,7 @@ public:
                 takeallgraphitems = true;
                 continue;
             }
-            if (parsedargs[i].first == "not" && is_number(parsedargs[i].second)) {
+            if ((parsedargs[i].first == "not" || parsedargs[i].first == "NOT") && is_number(parsedargs[i].second)) {
                 neg.push_back({stoi(parsedargs[i].second),true});
                 continue;
             }
@@ -1442,23 +1449,51 @@ public:
                 }
                 continue;
             }
+
             bool found = false;
-            for (int n = 0; !found && (n < crs.size()); ++n) {
+/*            for (int n = 0; !found && (n < crs.size()); ++n) {
                 if ((parsedargs[i].first == "default") && (parsedargs[i].second == crs[n]->shortname())) {
                     cs.push_back(crs[n]);
                     found = true;
                     //std::cout << "crs push back\n";
                 }
+            }*/
+
+            if (parsedargs[i].first == "c" || parsedargs[i].first == "default") {
+                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2 = cmdlineparseiterationthree(parsedargs[i].second);
+                for (int n = 0; !found && (n < crs.size()); ++n) {
+                    for (int m = 0; !found && (m < parsedargs2.size()); ++m) {
+                        if (parsedargs2[m].first == crs[n]->shortname()) {
+                            cs.push_back(crs[n]);
+                            csargs.push_back(parsedargs2[m].second);
+                            found = true;
+
+                        }
+                    }
+                }
             }
+
+
+
             if (found)
                 continue;
 
             found = false;
-            for (int n = 0; !found && (n < mss.size()); ++n) {
-                if (((parsedargs[i].first == "default") || parsedargs[i].first == "m") && (parsedargs[i].second == mss[n]->shortname())) {
-                    ms.push_back(mss[n]);
-                    found = true;
-                    //std::cout << "mss push back\n";
+            if (parsedargs[i].first == "m" || parsedargs[i].first == "default") {
+                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2 = cmdlineparseiterationthree(parsedargs[i].second);
+                for (int n = 0; !found && (n < mss.size()); ++n) {
+                    for (int m = 0; !found && (m < parsedargs2.size()); ++m) {
+                        if (parsedargs2[m].first == mss[n]->shortname()) {
+                            ms.push_back(mss[n]);
+                            msargs.push_back(parsedargs2[m].second);
+                            for (int k = 0; k < parsedargs2.size();++k) {
+                                if (parsedargs2[k].first == "all" || is_number(parsedargs2[k].first)) {
+                                    mscombinations.push_back( {ms.size()-1,parsedargs2[k].first});
+                                }
+                            }
+                            found = true;
+                        }
+                    }
                 }
             }
             if (found)
@@ -1652,6 +1687,53 @@ public:
             ms.push_back(mss[0]);
             //std::cout << ms[0]->name << "\n";
         }
+
+        std::vector<std::vector<int>> crmspairs;
+        crmspairs.resize(cs.size());
+        for (int m = 0; m < ms.size(); ++m) {
+            bool all = true;
+            bool allsuperceded = false;
+            for (int j = 0; j < mscombinations.size(); ++j) {
+                if (mscombinations[j].first == m) {
+                    all |= mscombinations[j].second == "all";
+                    if (is_number(mscombinations[j].second)) {
+                        allsuperceded = true;
+                        int idx = stoi(mscombinations[j].second );
+                        if (idx < 0 && cs.size()+idx >=0)
+                            crmspairs[cs.size()+idx].push_back( m);
+                        if (idx >= 0 && idx < cs.size())
+                            crmspairs[idx].push_back( m );
+                    }
+                }
+
+            }
+            if (all && !allsuperceded) {
+                for (int c = 0; c < cs.size(); ++c) {
+                    crmspairs[c].push_back(m);
+                }
+            }
+
+        }
+
+        bool addedzeromeasure = false;
+        int zeromeasureidx;
+        for (int c = 0; c < cs.size(); ++c) {
+            if (crmspairs[c].empty()) {
+                if (!addedzeromeasure)
+                    for (int i = 0; i < ms.size(); ++i)
+                        if (ms[i] == mss[0]) {
+                            zeromeasureidx = i;
+                            addedzeromeasure = true;
+                        }
+                if (!addedzeromeasure) {
+                    ms.push_back(mss[0]);
+                    zeromeasureidx = ms.size()-1;
+                    addedzeromeasure = true;
+                }
+                crmspairs[c].push_back(zeromeasureidx);  // the measure indexed at zero being the always true measure
+            }
+        }
+
         for (int l = 0; l < ms.size(); ++l) {
             ms[l]->gptrs = &glist;
             ms[l]->nsptrs = &nslist;
@@ -1660,6 +1742,7 @@ public:
             for (int i = 0; i < ms[l]->res->size(); ++i)
                 (*ms[l]->res)[i] = -1;
         }
+
 
         std::vector<std::vector<bool>> done {};
         done.resize(eqclass.size());
@@ -1689,8 +1772,8 @@ public:
             }
 
 
-            for (int l = 0; l < ms.size(); ++l) {
-                auto wi = new checkcriterionitem<bool,float>(*cs[k],*ms[l]);
+            for (int l = 0; l < crmspairs[k].size(); ++l) {
+                auto wi = new checkcriterionitem<bool,float>(*cs[k],*ms[crmspairs[k][l]]);
 
                 wi->res.resize(eqclass.size());
                 wi->fpslist = {};
@@ -1715,9 +1798,9 @@ public:
                     }
                     wi->meas.resize(items.size());
                     if (wi->res[m]) {
-                        wi->meas[m] = ms[l]->takemeasureidxed(eqclass[m]);
-                        if (!(done[m][l])) {
-                            gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[l],gi,wi->meas[m]));
+                        wi->meas[m] = ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+                        if (!(done[m][crmspairs[k][l]])) {
+                            gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[crmspairs[k][l]],gi,wi->meas[m]));
                             done[m][l] = true;
                         }
                     }
