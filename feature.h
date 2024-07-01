@@ -1475,13 +1475,14 @@ public:
                             auto newcs = (*crsfactory[n])();
                             cs.push_back(newcs);
                             if (!parsedargs2[m].second.empty()) {
-                                //try {
                                 //std::cout << typeid(cs[cs.size()-1]).name() << " typeid \n";
                                 //if (typeid(cs[cs.size()-1]).name() == "abstractmemoryparameterizedmeasure") {
-                                auto ampm = (abstractmemoryparameterizedmeasure<bool>*)cs[cs.size()-1];
-                                ampm->setparams(parsedargs2[m].second);
-                                //} catch () {
-                                //    std::cout << "Error passing parameters to a non-parameterized criterion\n";
+                                if (abstractmemoryparameterizedmeasure<bool>* ampm = dynamic_cast<abstractmemoryparameterizedmeasure<bool>*>(cs[cs.size()-1]))
+                                    ampm->setparams(parsedargs2[m].second);
+                                //auto ampm = (abstractmemoryparameterizedmeasure<bool>*)cs[cs.size()-1];
+                                //ampm->setparams(parsedargs2[m].second);
+                                else
+                                    std::cout << "Error passing parameters to a non-parameterized criterion\n";
                                 //}
                             }
                             found = true;
@@ -1505,8 +1506,15 @@ public:
                             auto newms = (*mssfactory[n])();
                             ms.push_back(newms);
                             if (!parsedargs2[m].second.empty()) {
-                                auto ampm = (abstractmemoryparameterizedmeasure<float>*)ms[ms.size()-1];
-                                ampm->setparams(parsedargs2[m].second);
+                                if (abstractmemoryparameterizedmeasure<float>* ampm = dynamic_cast<abstractmemoryparameterizedmeasure<float>*>(cs[cs.size()-1]))
+                                    ampm->setparams(parsedargs2[m].second);
+                                //auto ampm = (abstractmemoryparameterizedmeasure<bool>*)cs[cs.size()-1];
+                                //ampm->setparams(parsedargs2[m].second);
+                                //} catch () {
+                                else
+                                    std::cout << "Error passing parameters to a non-parameterized criterion\n";
+                                //auto ampm = (abstractmemoryparameterizedmeasure<float>*)ms[ms.size()-1];
+                                //ampm->setparams(parsedargs2[m].second);
                             }
                             //msargs.push_back(parsedargs2[m].second);
                             for (int k = 0; k < parsedargs2.size();++k) {
