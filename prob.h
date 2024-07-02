@@ -20,7 +20,7 @@ using weightstype = std::vector<float>;
 class abstractrandomgraph {
 public:
     virtual std::string shortname() {return "_arg";};
-    const std::string name;
+    std::string name;
 
     virtual void randomgraph( graphtype* gptr ) {}
     virtual std::vector<graphtype*> randomgraphs( const int cnt ) { return {};}
@@ -510,6 +510,7 @@ public:
     }
 
     legacyrandomgraph() : legacyrandomgraphptr{new T}, abstractparameterizedrandomgraph("legacy random graph") {
+        name = legacyrandomgraphptr->name;
     }
     ~legacyrandomgraph() {
         delete legacyrandomgraphptr;

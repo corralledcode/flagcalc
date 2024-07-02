@@ -1478,7 +1478,7 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
         // (that is, allowing the subsets above to be a larger set
         // that contains rearrangements of things already in the set)
         auto nstemp = new neighbors(&gtemp);
-        cnt += existsiso(ns1,fp,ns2) ? 1 : 0;
+        cnt = (existsiso(ns1,fp,nstemp) ? cnt+1 : cnt);
         //res = res || existsiso( ns1, fp, nstemp );
     }
     //free(subsets);
