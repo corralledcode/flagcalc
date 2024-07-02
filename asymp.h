@@ -162,23 +162,25 @@ public:
 class kncriterion : public abstractmemorymeasure<bool> {
 public:
     const int n;
-    bool takemeasure( const graphtype* g, const neighbors* ns) override {
+    bool takemeasure( const graphtype* g, const neighbors* ns, const int mincnt = 1)  {
         int dim = g->dim;
 
         std::vector<int> subsets {};
         enumsizedsubsets(0,n,nullptr,0,dim,&subsets);
 
         bool found = false;
+        int foundcnt = 0;
         int j = 0;
-        while (!found && j < (subsets.size()/n)) {
+        while ((foundcnt < mincnt) && (j < (subsets.size()/n))) {
             found = true;
             for (auto i = 0; found && (i < n-1); ++i) {
                 for (auto k = i+1; found && (k < n); ++k)
                     found = found && g->adjacencymatrix[dim*subsets[j*n + i] + subsets[j*n + k]];
             }
+            foundcnt += (found ? 1 : 0);
             ++j;
         }
-        return found;
+        return foundcnt >= mincnt;
     }
 
 
@@ -222,10 +224,13 @@ public:
     }
     bool takemeasure( const graphtype* g, const neighbors* ns ) override {
 
-        if (ps.size() == 1 && is_number(ps[0])) {
+        if (ps.size() >= 1 && is_number(ps[0])) {
             int sz = stoi(ps[0]);
+            int mincnt = 1;
+            if (ps.size() == 2 && is_number(ps[1]))
+                mincnt = stoi(ps[1]);
             if (sz <= KNMAXCLIQUESIZE)
-                return kns[stoi(ps[0])]->takemeasure(g,ns);
+                return kns[stoi(ps[0])]->takemeasure(g,ns,mincnt);
             else {
                 std::cout<< "Increase KNMAXCLIQUESIZE compiler define (current value " + std::to_string(KNMAXCLIQUESIZE) + ")";
                 return false;
@@ -511,36 +516,6 @@ public:
     }
 
 };
-
-/*
-class notcriteria : public abstractmemoryparameterizedmeasure<bool> {
-protected:
-    std::vector<bool*> variables{};
-public:
-    std::string shortname() override {return "not";}
-    //std::vector<bool*> outcome {};
-
-    bool takemeasureidxed(const int idx) override
-    {
-        for (int i = 0; i < variables.size(); ++i)
-            for (int j = 0; j < sz; ++j)
-                outcome[j][i] = !variables[i];
-        if (ps.size() == 1 && is_number(ps[0]))
-            return (!variables[stoi(ps[0])][idx]);
-    }
-
-    notcriteria(std::vector<bool*> variablesin )
-        : abstractmemoryparameterizedmeasure<bool>("logical NOT (parameter is index to negate)"), variables{variablesin}
-    {
-        outcome.resize(variables.size());
-        for (int i = 0; i < variables.size(); ++i) {
-            outcome[i] = (bool*)malloc(sz*sizeof(bool));
-
-    }
-
-
-};*/
-
 
 class notcriteria : public abstractmemorymeasure<bool> {
 protected:

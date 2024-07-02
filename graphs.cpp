@@ -1447,7 +1447,7 @@ void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop,
 
 
 
-bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2 ) {
+bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt ) {
     graphtype* g1 = ns1->g;
     graphtype* g2 = ns2->g;
     int dim1 = g1->dim;
@@ -1462,8 +1462,8 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2 ) {
         std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
         return false;
     }
-    bool res = false;
-    for (int n = 0; !res && (n < numberofsubsets); ++n) {
+    int cnt = 0;
+    for (int n = 0; (cnt < mincnt) && (n < numberofsubsets); ++n) {
         graphtype gtemp(dim1);
         for (int i = 0; i < dim1; ++i) {
             vertextype g2vertex1 = subsets[dim1*n + i];
@@ -1478,10 +1478,11 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2 ) {
         // (that is, allowing the subsets above to be a larger set
         // that contains rearrangements of things already in the set)
         auto nstemp = new neighbors(&gtemp);
-        res = res || existsiso( ns1, fp, nstemp );
+        cnt += existsiso(ns1,fp,ns2) ? 1 : 0;
+        //res = res || existsiso( ns1, fp, nstemp );
     }
     //free(subsets);
-    return res;
+    return cnt >= mincnt;
 }
 
 void osfingerprintrecurse( std::ostream &os, neighbors* ns, FP* fps, int fpscnt, int depth ) {
