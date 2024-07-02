@@ -92,11 +92,29 @@ inline std::vector<std::pair<std::string,std::vector<std::string>>> cmdlineparse
         //std::regex r3( "\\((\\w)+,(\\w)+\\)");
         std::regex r3( "\\(([^\\)]+)\\)" );
 
-        std::vector<std::string> parameters {};
+        std::vector<std::string> parametersall {};
 
         for (std::sregex_iterator p3( tmp2.begin(), tmp2.end(),r3); p3 != std::sregex_iterator{}; ++p3) {
-            parameters.push_back((*p3)[1]);
+            parametersall.push_back((*p3)[1]);
         }
+
+        std::vector<std::string> parameters {};
+
+        if (!parametersall.empty()) {
+
+            std::regex r4( "(.+?)(?:,|$)" );
+
+            for (std::sregex_iterator p4( parametersall[0].begin(),parametersall[0].end(),r4); p4 != std::sregex_iterator{}; ++p4) {
+                parameters.push_back((*p4)[1]);
+            }
+
+
+/*            for (auto f4 : parameters)
+                std::cout << "parameters " << f4 << " // ";
+            std::cout << "\n";
+*/
+        }
+
 
         overallres.push_back({s2,parameters});
     }
