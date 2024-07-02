@@ -470,8 +470,11 @@ public:
         }
         if (dist10000(rng) > RANDOMRANGEFLOAT/2.0) {
             vertextype lastv2 = (vertextype((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT));
-            gptr->adjacencymatrix[lastv1*gptr->dim + lastv2] = true;
-            gptr->adjacencymatrix[lastv2*gptr->dim + lastv1] = true;
+            if (lastv1 != lastv2) {
+                gptr->adjacencymatrix[lastv1*gptr->dim + lastv2] = true;
+                gptr->adjacencymatrix[lastv2*gptr->dim + lastv1] = true;
+
+            }
         }
     }
 

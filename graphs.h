@@ -44,6 +44,9 @@ public:
 using graphtype = labelledgraph<std::string>;
 //using graphtype = labelledgraph<vltype>;
 
+void osadjacencymatrix( std::ostream &os, graphtype* g );
+
+
 class neighbors {
 public:
     graphtype* g;
@@ -80,6 +83,7 @@ public:
         for (int n = 0; n < dim; ++n) {
             if (degrees[n] + nondegrees[n] != dim-1) {
                 std::cout << "BUG in computeneighborslist\n";
+                osadjacencymatrix( std::cout, g);
                 return false;
             }
         }
