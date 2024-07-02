@@ -1,0 +1,7 @@
+/* Second graph: 6!*4! = 17280 automorphisms;
+ * First graph: 6!*4! = 17280 automorphisms */
+
+a b c d e f g h i j END
+!abcd+efghij END
+a b c d e f g h i j END
+abcdef+ghij END

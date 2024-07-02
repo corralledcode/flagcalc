@@ -589,13 +589,19 @@ public:
 
         Tm sum = 0;
         int cnt = 0;
+        float max = 0;
+        float min = -1;
+        bool first = true;
         for (int i = 0; i < sorted.size(); ++i ) {
             if (res[i]) {
+                min = first || (meas[i] < min) ? meas[i] : min;
+                first = false;
                 sum += meas[i];
+                max = meas[i] > max ? meas[i] : max;
                 cnt++;
             }
         }
-        os << "Average of measure " << am.name << ": " << (float)sum/(float)cnt << "\n";
+        os << "Average, min, max of measure " << am.name << ": " << (float)sum/(float)cnt << ", " << min << ", " << max << "\n";
 
         return true;
     }

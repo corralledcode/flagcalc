@@ -10,6 +10,20 @@
 #include "graphs.h"
 
 
+graphtype parsegraph( const std::string ins )
+{
+
+
+
+}
+
+
+
+
+
+
+
+
 class graphio {
     int id = -1;
     virtual graph readgraph();

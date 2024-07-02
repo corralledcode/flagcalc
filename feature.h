@@ -1277,11 +1277,13 @@ public:
         // add any new criterion types to the list here...
 
         auto (*c1)() = factory<truecriterion,bool>;
+        //auto (*nc)() = factory<notcriteria,bool>;
         auto (*cr1)() = factory<trianglefreecriterion,bool>;
         auto (*tc)() = factory<treecriterion,bool>;
         auto (*kn)() = factory<knparameterizedcriterion,bool>;
 
         crsfactory.push_back(*c1);
+        //crsfactory.push_back(*nc);
         crsfactory.push_back(*cr1);
         crsfactory.push_back(*tc);
         crsfactory.push_back(*kn);
@@ -1811,6 +1813,25 @@ public:
                 wi->sorted.resize(eqclass.size());
                 wi->gnames.resize(eqclass.size());
                 wi->nslist.resize(eqclass.size());
+
+                std::vector<std::future<float>> f {};
+                f.resize(eqclass.size());
+                for (int m =  0; m < eqclass.size(); ++m)
+                {
+                    if (threadbool[m])
+                    {
+                        f[m] = std::async(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
+                    }
+
+                }
+                std::vector<float> threadfloat {};
+                threadfloat.resize(eqclass.size());
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (threadbool[m])
+                        threadfloat[m] = f[m].get();
+                }
+
                 for (int m=0; m < eqclass.size(); ++m) {
                     wi->res[m] = threadbool[m];
                     wi->glist[m] = glist[m];
@@ -1828,7 +1849,7 @@ public:
                     }
                     wi->meas.resize(items.size());
                     if (wi->res[m]) {
-                        wi->meas[m] = ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+                        wi->meas[m] = threadfloat[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
                         if (!(done[m][crmspairs[k][l]])) {
                             gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[crmspairs[k][l]],gi,wi->meas[m]));
                             done[m][l] = true;
