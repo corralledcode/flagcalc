@@ -17,16 +17,18 @@
 //#define THREADPOOL6
 
 
-int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int outof ) { // returns the count of how many pairs share a fingerprint
+int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int outof ) { // returns the count of how many pairs share a fingerprint
     int cnt = 0;
     auto g5 = new graphtype(dim);
     auto g6 = new graphtype(dim);
 
+    rg->setparams({std::to_string(dim),std::to_string(edgecnt),std::to_string(outof)});
+
     for (int i = 0; i < outof; ++i) {
-        rg->randomgraph(g5,edgecnt);
+        rg->randomgraph(g5);
         //osadjacencymatrix(std::cout,g5);
         //std::cout << "\n";
-        rg->randomgraph(g6,edgecnt);
+        rg->randomgraph(g6);
         //osadjacencymatrix(std::cout,g6);
         //std::cout << "\n\n";
 
@@ -58,6 +60,7 @@ int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const fl
 
         takefingerprint(ns6,fps6,dim);
 
+        /*
         FP fpstmp5;
         fpstmp5.parent = nullptr;
         fpstmp5.ns = fps5;
@@ -67,9 +70,11 @@ int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const fl
         fpstmp6.parent = nullptr;
         fpstmp6.ns = fps6;
         fpstmp6.nscnt = dim;
-
+*/
         //osfingerprint(std::cout,ns6,fps6,g6.dim);
-        if (FPcmp(ns5,ns6,&fpstmp5,&fpstmp6) == 0) {
+        //if (FPcmp(ns5,ns6,&fpstmp5,&fpstmp6) == 0) {
+
+        if (FPcmp(ns5,ns6,fps5,fps6) == 0) {
             //std::cout << "Fingerprints MATCH\n";
             cnt++;
         } else {
@@ -111,7 +116,7 @@ std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const f
 
 
 
-std::vector<graphtype*> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
+std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
 /*    std::vector<graph> gv {};
     gv.resize(cnt);
 
@@ -127,8 +132,9 @@ std::vector<graphtype*> randomgraphs( abstractrandomgraph* rg, const int dim, co
     }
 
     return gv;*/
+    rg->setparams({std::to_string(dim),std::to_string(edgecnt),std::to_string(cnt)});
 
-    return rg->randomgraphs(dim,edgecnt,cnt);  //<-- an attempt to use the multithreaded, but it is no faster than the above
+    return rg->randomgraphs(cnt);  //<-- an attempt to use the multithreaded, but it is no faster than the above
 }
 
 

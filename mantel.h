@@ -15,7 +15,7 @@ public:
         int sampled = 0;
         int n = 1;
         std::vector<bool*> samplegraphs;
-        auto rg = new randomconnectedgraphfixededgecnt();
+        auto rg = new legacyrandomgraph<legacyrandomconnectedgraphfixededgecnt>();
         auto g = new graphtype(dim);
 #ifdef THREADED3
 
@@ -73,7 +73,8 @@ public:
 #ifndef THREADED3
         while (sampled < outof) {
             while (max < n && sampled < outof) {
-                rg->randomgraph(g,n);
+                rg->setparams({std::to_string(dim),std::to_string(n),std::to_string(outof)});
+                rg->randomgraph(g);
                 //auto ns = new neighbors(g);
                 //ns = computeneighborslist(g); ns isn't used by criterion...
                 if (cr->takemeasure(g,nullptr)) {

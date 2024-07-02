@@ -166,7 +166,7 @@ public:
 
 class abstractrandomgraphsfeature : public feature {
 protected:
-    std::vector<abstractrandomgraph*> rgs {};
+    std::vector<abstractparameterizedrandomgraph*> rgs {};
 
 public:
     virtual void listoptions() override {
@@ -176,11 +176,11 @@ public:
 
         // add any new abstractrandomgraph types to the list here...
 
-        auto rg1 = new stdrandomgraph();
-        auto rg2 = new randomgraphonnedges();
-        auto rg3 = new randomconnectedgraph();
-        auto rg4 = new randomconnectedgraphfixededgecnt();
-        auto rg5 = new weightedrandomconnectedgraph();
+        auto rg1 = new legacyrandomgraph<legacystdrandomgraph>();
+        auto rg2 = new legacyrandomgraph<legacyrandomgraphonnedges>();
+        auto rg3 = new legacyrandomgraph<legacyrandomconnectedgraph>();
+        auto rg4 = new legacyrandomgraph<legacyrandomconnectedgraphfixededgecnt>();
+        auto rg5 = new legacyrandomgraph<legacyweightedrandomconnectedgraph>();
         rgs.push_back(rg1);
         rgs.push_back(rg2);
         rgs.push_back(rg3);
@@ -224,29 +224,64 @@ public:
         int outof = 1000;
         int dim = 5;
         float edgecnt = dim*(dim-1)/4.0;
-        int rgidx = 0;
-        if (args.size() > 1) {
-            dim = std::stoi(args[1]);
-            if (args.size() > 2) {
-                edgecnt = std::stof(args[2]);
-                if (args.size() > 3) {
-                    outof = std::stoi(args[3]);
+        //std::vector<abstractparameterizedrandomgraph> rs {};
+        int rgsidx = 0;
+        std::vector<std::string> rgparams {};
+
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+        if (parsedargs.size() >= 1 && parsedargs[0].first == "default" && is_number(parsedargs[0].second)) {
+            dim = std::stoi(parsedargs[0].second);
+        }
+        if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_number(parsedargs[1].second)) {
+            edgecnt = std::stof(parsedargs[1].second);
+        }
+        if (parsedargs.size() >= 3 && parsedargs[2].first == "default" && is_number(parsedargs[2].second)) {
+            outof = std::stoi(parsedargs[2].second);
+        }
+
+        for (int i = 0; i < parsedargs.size(); ++i) {
+            if (parsedargs[i].first == "default" || parsedargs[i].first == "r") {
+                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2 = cmdlineparseiterationthree(parsedargs[i].second);
+                for (int k = 0; k < parsedargs2.size(); ++k) {
+                    for (int l = 0; l < rgs.size(); ++l) {
+                        if (parsedargs2[k].first == rgs[l]->shortname()) {
+                            rgsidx = l;
+                            rgparams = parsedargs2[k].second;
+                            //for (int k = 0; k < rgparams.size(); ++k)
+                            //    std::cout << "rgparam " << rgparams[k] << ", ";
+                            //std::cout << "\n";
+
+                        }
+                    }
                 }
             }
         }
-        if (args.size() > 4) {
-            for (int i = 0; i < rgs.size(); ++i) {
-                if (args[4] == rgs[i]->shortname()) {
-                    rgidx = i;
-                }
-            }
+
+        if (rgparams.size() > 0 && is_number(rgparams[0]))
+            dim = stoi(rgparams[0]);
+        if (rgparams.size() > 1) // what is function to check if float
+            edgecnt = std::stof(rgparams[1]);
+        if (rgparams.size() > 2 && is_number(rgparams[2]))
+            outof = stoi(rgparams[2]);
+        //if (legacyrandomgraph<abstractrandomgraph>* larg = dynamic_cast<legacyrandomgraph<abstractrandomgraph>*>(rgs[rgsidx])) {
+        //    std::cout << "LEGACY ARG\n";
+        if (rgparams.empty()) {
+            rgparams.clear();
+            rgparams.resize(3);
+            rgparams[0] = std::to_string(dim);
+            rgparams[1] = std::to_string(edgecnt);
+            rgparams[2] = std::to_string(outof);
         }
-        int cnt = samplematchingrandomgraphs(rgs[rgidx],dim,edgecnt, outof);
+        rgs[rgsidx]->setparams(rgparams);
+
+        int cnt = samplematchingrandomgraphs(rgs[rgsidx],dim,edgecnt, outof);
             // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
             // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
             // vertices are obtained, is rather efficient too.
             // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
             //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
+
+
 
         auto wi = new samplerandommatchinggraphsitem;
         wi->dim = dim;
@@ -255,7 +290,7 @@ public:
         wi->name = _ws->getuniquename(wi->classname);
 
         wi-> percent = ((float)wi->cnt / (float)wi->outof);
-        wi->rgname = rgs[rgidx]->name;
+        wi->rgname = rgs[rgsidx]->name;
         _ws->items.push_back(wi);
 
         // to do: add a work item class and feature that announces which random alg was used to produce the graphs
@@ -288,28 +323,74 @@ public:
     }
 
     void execute(std::vector<std::string> args) override {
+
+
+
+
+
+
+
+
         abstractrandomgraphsfeature::execute(args);
+
+
+
+
+
+        int cnt = 100;
         int dim = 5;
-        int cnt = 2;
         float edgecnt = dim*(dim-1)/4.0;
-        int rgidx = 0;
-        if (args.size() > 1) {
-            dim = std::stoi(args[1]);
-            edgecnt = dim*(dim-1)/4.0;
-            if (args.size() > 2) {
-                edgecnt = std::stof(args[2]);
-                if (args.size() > 3) {
-                    cnt = std::stoi(args[3]);
+        //std::vector<abstractparameterizedrandomgraph> rs {};
+        int rgsidx = 0;
+        std::vector<std::string> rgparams {};
+
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+        if (parsedargs.size() >= 1 && parsedargs[0].first == "default" && is_number(parsedargs[0].second)) {
+            dim = std::stoi(parsedargs[0].second);
+        }
+        if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_number(parsedargs[1].second)) {
+            edgecnt = std::stof(parsedargs[1].second);
+        }
+        if (parsedargs.size() >= 3 && parsedargs[2].first == "default" && is_number(parsedargs[2].second)) {
+            cnt = std::stoi(parsedargs[2].second);
+        }
+
+        for (int i = 0; i < parsedargs.size(); ++i) {
+            if (parsedargs[i].first == "default" || parsedargs[i].first == "r") {
+                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2 = cmdlineparseiterationthree(parsedargs[i].second);
+                for (int k = 0; k < parsedargs2.size(); ++k) {
+                    for (int l = 0; l < rgs.size(); ++l) {
+                        if (parsedargs2[k].first == rgs[l]->shortname()) {
+                            rgsidx = l;
+                            rgparams = parsedargs2[k].second;
+                            //for (int k = 0; k < rgparams.size(); ++k)
+                            //    std::cout << "rgparam " << rgparams[k] << ", ";
+                            //std::cout << "\n";
+
+                        }
+                    }
                 }
             }
         }
-        if (args.size() > 4) {
-            for (int i = 0; i < rgs.size(); ++i) {
-                if (args[4] == rgs[i]->shortname()) {
-                    rgidx = i;
-                }
-            }
+
+        if (rgparams.size() > 0 && is_number(rgparams[0]))
+            dim = stoi(rgparams[0]);
+        if (rgparams.size() > 1) // what is function to check if float
+            edgecnt = std::stof(rgparams[1]);
+        if (rgparams.size() > 2 && is_number(rgparams[2]))
+            cnt = stoi(rgparams[2]);
+        //if (legacyrandomgraph<abstractrandomgraph>* larg = dynamic_cast<legacyrandomgraph<abstractrandomgraph>*>(rgs[rgsidx])) {
+        //    std::cout << "LEGACY ARG\n";
+        if (rgparams.empty()) {
+            rgparams.clear();
+            rgparams.resize(3);
+            rgparams[0] = std::to_string(dim);
+            rgparams[1] = std::to_string(edgecnt);
+            rgparams[2] = std::to_string(cnt);
         }
+        rgs[rgsidx]->setparams(rgparams);
+
+
 
 
         std::vector<graphtype*> gv {};
@@ -365,7 +446,7 @@ public:
 
 
 */
-        gv = randomgraphs(rgs[rgidx],dim,edgecnt,cnt);
+        gv = randomgraphs(rgs[rgsidx],dim,edgecnt,cnt);
 
         /*
         auto starttime = std::chrono::high_resolution_clock::now();
@@ -848,6 +929,11 @@ public:
         std::vector<std::future<void>> t {};
         t.resize(items.size());
 #endif
+
+        if (items.empty()) {
+            std::cout << "No graphs to fingerprint\n";
+            return;
+        }
 
         auto wi = new cmpfingerprintsitem;
         wi->nslist.resize(items.size());

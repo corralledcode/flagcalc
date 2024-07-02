@@ -98,15 +98,17 @@ public:
     truecriterion() : abstractmeasure<bool>("always true") {}
 };
 
-inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractmeasure<bool>* cr, graphtype* g,
+/*
+inline int threadcomputeasymp( abstractparameterizedrandomgraph* rg, abstractmeasure<bool>* cr, graphtype* g,
     int n, const int outof, int sampled, bool** samplegraph )
 {
     int max = 0;
     //int sampled = 0;
+    rg->setparams({std::to_string(n)})
     while( sampled < outof )
     {
         sampled++;
-        rg->randomgraph(g,n);
+        rg->randomgraph(g);
         //auto ns = new neighbors(g);
         //ns->computeneighborslist(g); ns isn't used by criterion...
         if (cr->takemeasure(g,nullptr)) {
@@ -129,7 +131,7 @@ inline int threadcomputeasymp( randomconnectedgraphfixededgecnt* rg, abstractmea
     return sampled;
 }
 
-
+*/
 
 
 class trianglefreecriterion : public abstractmemorymeasure<bool> {

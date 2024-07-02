@@ -9,6 +9,7 @@
 #include <random>
 #include <iostream>
 
+#include "asymp.h"
 #include "graphs.h"
 
 #define RANDOMRANGE 10000
@@ -16,6 +17,78 @@
 
 using weightstype = std::vector<float>;
 
+class abstractrandomgraph {
+public:
+    virtual std::string shortname() {return "_arg";};
+    const std::string name;
+
+    virtual void randomgraph( graphtype* gptr ) {}
+    virtual std::vector<graphtype*> randomgraphs( const int cnt ) { return {};}
+    abstractrandomgraph(const std::string namein) : name{namein} {}
+};
+
+class abstractparameterizedrandomgraph : public abstractrandomgraph {
+public:
+    std::vector<std::string> ps;
+    virtual void setparams( std::vector<std::string> psin ) {
+        ps = psin;
+    }
+    abstractparameterizedrandomgraph(const std::string namein) : abstractrandomgraph(namein) {}
+};
+
+class legacyabstractrandomgraph : public abstractrandomgraph {
+public:
+    std::vector<graphtype*> randomgraphsinternal(const int dim, const float edgecnt, const int cnt) {
+        std::vector<graphtype*> res {};
+        res.resize(cnt+1);
+        for (int i = 0; i < cnt+1; ++i) {
+            graphtype* rg = new graphtype(dim);
+            randomgraph(rg,edgecnt);;
+            res[i] = rg;
+        }
+        return res;
+    }
+
+
+    virtual void randomgraph( graphtype* gptr, const float edgecnt ) {};
+    /* The rules for the above virtual function: it must not modify the object's variables
+     * lest it create a contention when threaded. Use local variables instead,
+     * e.g. such as _edgecnt; just use the local version of it. */
+
+    std::vector<graphtype*> randomgraphs( const int dim, const float edgecnt, const int cnt ) {
+        unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+        float section = float(cnt)/float(thread_count);
+        // Note: MUST play safe in the abstractrandomgraph class so it won't contend
+
+        std::vector<std::future<std::vector<graphtype*>>> t {};
+        t.resize(thread_count);
+        for (int j = 0; j < thread_count; ++j) {
+            t[j] = std::async(&legacyabstractrandomgraph::randomgraphsinternal,this,dim,edgecnt,section);
+        }
+        std::vector<std::vector<graphtype*>> gvv {};
+        gvv.resize(thread_count);
+        for (int j = 0; j < thread_count; ++j) {
+            gvv[j] = t[j].get();
+        }
+        std::vector<graphtype*> res {};
+        res.resize(cnt);
+        //std::cout << (thread_count-1)*section + int(section) << "<-- highest index\n";
+        for (int j = 0; j < thread_count; ++j) {
+            //std::cout<<"section " << section << " , j*section  ="<< j*section << "\n";
+            for (int i = 0; i < gvv[j].size(); ++i) {
+                res[int(j*section + i)] = gvv[j][i];
+                //res.push_back(gvv[j][i]);
+            }
+        }
+        return res;
+    }
+
+    legacyabstractrandomgraph(std::string namein) : abstractrandomgraph(namein) {}
+};
+
+/*
 class abstractrandomgraph {
 
     std::vector<graphtype*> randomgraphsinternal(const int dim, const float edgecnt, const int cnt) {
@@ -34,9 +107,9 @@ public:
     std::string name;
 
     virtual void randomgraph( graphtype* gptr, const float edgecnt ) {};
-    /* The rules for the above virtual function: it must not modify the object's variables
-     * lest it create a contention when threaded. Use local variables instead,
-     * e.g. such as _edgecnt; just use the local version of it. */
+    //* The rules for the above virtual function: it must not modify the object's variables
+    // * lest it create a contention when threaded. Use local variables instead,
+    // * e.g. such as _edgecnt; just use the local version of it.
 
     std::vector<graphtype*> randomgraphs( const int dim, const float edgecnt, const int cnt ) {
         unsigned const thread_count = std::thread::hardware_concurrency();
@@ -72,7 +145,7 @@ public:
     ~abstractrandomgraph() {};
 
 
-};
+};*/
 
 /*
 class abstractrandomgraphptrtof : public abstractrandomgraph {
@@ -102,17 +175,13 @@ inline void stdrandomgraphfunc( graph* gptr, float edgecnt ) {
 
 }*/
 
-class stdrandomgraph : public abstractrandomgraph {
+class legacystdrandomgraph : public legacyabstractrandomgraph {
     float _edgecnt;
 public:
     std::string shortname() {return "r1";};
-    stdrandomgraph() : abstractrandomgraph() {
-        //_edgecnt = edgecnt;
-        //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
-        name = "random graph with given edgecnt";
-    }
+    legacystdrandomgraph() : legacyabstractrandomgraph("random graph with edgecnt probability") {}
     virtual void randomgraph( graphtype* gptr, float edgecnt ) override {
-        abstractrandomgraph::randomgraph(gptr,edgecnt);
+        legacyabstractrandomgraph::randomgraph(gptr,edgecnt);
         //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
         //_edgecnt = edgecnt;
 
@@ -129,13 +198,11 @@ public:
     }
 };
 
-class randomgraphonnedges : public abstractrandomgraph {
+class legacyrandomgraphonnedges : public legacyabstractrandomgraph {
     int _edgecnt;
 public:
     std::string shortname() {return "r2";}
-    randomgraphonnedges() : abstractrandomgraph() {
-        name = "random graph with given edgecnt";
-    }
+    legacyrandomgraphonnedges() : legacyabstractrandomgraph("random graph with given edgecnt") {}
     void randomgraph( graphtype*  gptr, float edgecnt ) {
         //_edgecnt = (int)edgecnt;
         //name = "random graph with edgecnt == " + std::to_string(edgecnt);
@@ -166,14 +233,12 @@ public:
 };
 
 
-class randomconnectedgraphfixededgecnt : public abstractrandomgraph {
+class legacyrandomconnectedgraphfixededgecnt : public legacyabstractrandomgraph {
     int _edgecnt;
 
 public:
     std::string shortname() {return "r3";}
-    randomconnectedgraphfixededgecnt() : abstractrandomgraph() {
-        name = "random connected graph with given fixed edge count (ignoring unconnected outliers)";
-    }
+    legacyrandomconnectedgraphfixededgecnt() : legacyabstractrandomgraph("random connected graph with given fixed edge count (ignoring unconnected outliers)") {}
     void randomgraph( graphtype* gptr, float edgecnt ) {
         //_edgecnt = edgecnt;
         //name = "random connected graph with fixed edge count " + std::to_string(_edgecnt) + " (ignoring unconnected outliers)";
@@ -243,15 +308,13 @@ public:
     }
 };
 
-class randomconnectedgraph : public abstractrandomgraph {
+class legacyrandomconnectedgraph : public legacyabstractrandomgraph {
     int _edgecnt;
 public:
     std::string shortname() {return "r4";}
-    randomconnectedgraph() : abstractrandomgraph() {
-        name = "random connected graph (algorithm does not find all such graphs...) with given edgecnt";
-    }
+    legacyrandomconnectedgraph() : legacyabstractrandomgraph("random connected graph (algorithm does not find all such graphs...) with given edgecnt") {}
     void randomgraph( graphtype*  gptr, float edgecnt ) override {
-        abstractrandomgraph::randomgraph(gptr, edgecnt);
+        legacyabstractrandomgraph::randomgraph(gptr, edgecnt);
         //_edgecnt = (int)edgecnt;
         //name = "random connected graph (algorithm does not find all such graphs...) edgecnt == " + std::to_string(_edgecnt);
         for (int i = 0; i < gptr->dim; ++i) {
@@ -332,13 +395,11 @@ inline std::vector<weightstype> computeweights(int n) {
     return res;
 }
 
-class weightedrandomconnectedgraph : public abstractrandomgraph {
+class legacyweightedrandomconnectedgraph : public legacyabstractrandomgraph {
     //std::vector<weightstype> _weights;
 public:
     std::string shortname() {return "r5";}
-    weightedrandomconnectedgraph() : abstractrandomgraph() {
-        name = "random connected graph with balanced/weighted search";
-    }
+    legacyweightedrandomconnectedgraph() : legacyabstractrandomgraph("random connected graph with balanced/weighted search") {}
     void randomgraph( graphtype*  gptr, float edgecnt ) {
         std::vector<weightstype> weights = computeweights(gptr->dim); // obviously would be nice to only do this once per dim...
         //name = "random connected graph with balanced/weighted search";
@@ -416,9 +477,9 @@ public:
 
 };
 
-int samplematchingrandomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int outof );
+int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int outof );
 
-std::vector<graphtype*> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt );
+std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int cnt );
 /*
 
 void randomgraph( graphtype*  gptr, const float edgecnt ); // legacy replaced as above by class
@@ -427,6 +488,33 @@ void randomconnectedgraphfixededgecnt( graphtype*  gptr, const int edgecnt ); //
 
 void randomconnectedgraph( graphtype*  gptr );  // legacy replaced as above by class
 */
+
+template<typename T>
+class legacyrandomgraph : public abstractparameterizedrandomgraph {
+protected:
+    T* legacyrandomgraphptr {};
+public:
+    std::string shortname() {return legacyrandomgraphptr->shortname();}
+
+    void randomgraph(graphtype *gptr) override {
+        legacyrandomgraphptr->randomgraph(gptr,stoi(ps[1]));
+    }
+    std::vector<graphtype*> randomgraphs(const int cnt) override {
+        int dim;
+        float edgecnt;
+        if (ps.size()>0)
+            dim = stoi(ps[0]);
+        if (ps.size()>1)
+            edgecnt = stof(ps[1]);
+        return legacyrandomgraphptr->randomgraphs(dim,edgecnt,cnt);
+    }
+
+    legacyrandomgraph() : legacyrandomgraphptr{new T}, abstractparameterizedrandomgraph("legacy random graph") {
+    }
+    ~legacyrandomgraph() {
+        delete legacyrandomgraphptr;
+    }
+};
 
 
 #endif //PROB_H
