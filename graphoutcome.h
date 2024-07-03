@@ -25,51 +25,6 @@ public:
         verbositylevel = VERBOSE_LISTGRAPHS;
     }
 
-    bool isitem( std::istream& is) {
-        int s = 0;
-
-        std::vector<std::string> eresa{}; // not used
-        std::string tmp1a = "";
-        std::string tmp2a = "";
-        while ((is >> tmp1a) && (tmp1a != "END") && (tmp1a != "###")) {
-            if (tmp1a == "/*") {
-                bool res = bool(is >> tmp1a);
-                while (res && (tmp1a != "*/")) {
-                    if (tmp1a.substr(0,6) == "#name=") {
-                        std::string tmpname = tmp1a.substr(6,tmp1a.length()-6);
-                        //std::cout << tmpname << "\n";
-                        if (tmpname != "")
-                            name = tmpname;
-                    }
-                    res = bool(is >> tmp1a);
-                }
-                continue;
-            }
-            eresa.push_back(tmp1a);
-            tmp2a += tmp1a + " ";
-            tmp1a = "";
-            s++;
-        }
-        s = 0;
-
-        std::string tmp1b = "";
-        std::string tmp2b = "";
-
-        std::vector<std::string> eresb {}; // not used
-        while ((is >> tmp1b) && (tmp1b != "END") && (tmp1b != "###")) {
-            if (tmp1b == "/*") {
-                bool res = bool(is >> tmp1b);
-                while (res && (tmp1b != "*/"))
-                    res = bool(is >> tmp1b);
-                continue;
-            }
-            eresb.push_back(tmp1b);
-            tmp2b += tmp1b + " ";
-            tmp1b = "";
-            s++;
-        }
-        return isiteminternal(tmp1a,tmp2a, tmp1b, tmp2b );
-    }
 
     void osmachinereadablegraph(std::ostream &os);
     ~graphitem() {

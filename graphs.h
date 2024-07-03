@@ -37,7 +37,7 @@ public:
     ~labelledgraph() {
         //vertexlabels);
         //free(vertexlabels);
-        graph::~graph();
+        //graph::~graph();
     }
 };
 

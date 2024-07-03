@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "asymp.h"
+#include "graphio.h"
 #include "graphoutcome.h"
 #include "graphs.h"
 #include "prob.h"
@@ -65,7 +66,8 @@ public:
     _sandboxfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws ) {
         //
     }
-    void execute(std::vector<std::string> args) override {
+    void execute(std::vector<std::string> args) override
+    {
         /*
                 std::ifstream ifs;
                 std::istream* is = &std::cin;
@@ -77,7 +79,37 @@ public:
         */
 
 
+        std::string tmpstr {};
+        std::vector<std::string> input {};
+        std::cin >> tmpstr;
+        while (tmpstr != "END") {
+            input.push_back(tmpstr);
+            std::cin >> tmpstr;
+        }
 
+
+        //auto cgs = new completegraphstyle();
+
+        //auto vgs = new verticesgraphstyle();
+        //auto ngs = new negationgraphstyle();
+        //std::string outstr {};
+        //bool out = cgs->applies(inputstr,&outstr);
+        //std::cout << "out = " << out << ", outstr = " << outstr << "\n";
+
+        //delete ngs;
+        //delete cgs;
+
+        auto g = igraphstyle(input);
+        auto ns = new neighbors(g);
+        osadjacencymatrix(std::cout,g);
+        osneighbors(std::cout,ns);
+
+        delete ns;
+        free( g->adjacencymatrix );
+        delete g;
+
+
+        /*
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
         for (int i = 0; i < res.size(); ++i) {
             std::cout << res[i].first << " === " << res[i].second << "\n";
@@ -91,7 +123,7 @@ public:
             }
             std::cout << "\n";
         }
-
+*/
 
         /*
         int dim1 = 3;
@@ -111,13 +143,13 @@ public:
         }
         //free(subsets);
 */
-
+/*
         std::string sentence = "((NOT (3 AND (2 OR 5))) AND ((NOT -4) AND 4))";
         std::vector<bool> variables = {true,true,true,false,true,false};
         //sentence = res[0].second;
         logicalsentence ls = parsesentence(sentence);
         std::cout << "Result: " << sentence<< " evals to " << evalsentence(ls,variables) << "\n";
-
+*/
     }
 
 };
@@ -1462,7 +1494,11 @@ public:
         *_os << "\t" << "\"not=<n>\": \t\t applies the logical NOT to the criteria numbered n, prior to AND or OR\n";
         *_os << "\t" << "\"l=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
         *_os << "\t" << "\"l=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
+        *_os << "\t" << "\"s=<sentence>\": \t\t applies the logical sentence inside the quotes to the criteria\n";
         *_os << "\t" << "\"is=<filename>\": \t\t applies the logical sentence in <filename> to the criteria\n";
+        *_os << "\t" << "\"f=<graph>\": \t\t checks the criterion of flag <graph> embedding\n";
+        *_os << "\t" << "\"if=<filename>\": \t\t applies the criteria of flags in <filename> embedding\n";
+
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
             *_os << "\t\t\"" << crs[n]->shortname() << "\": " << crs[n]->name << "\n";
@@ -1522,6 +1558,35 @@ public:
             if (parsedargs[i].first == "s")
             {
                 sentences.push_back(parsedargs[i].second);
+                continue;
+            }
+            if (parsedargs[i].first == "f")
+            {
+                std::vector<std::string> flagv {};
+                flagv.push_back(parsedargs[i].second);
+
+
+
+                graphitem* gi = new graphitem();
+                gi->g = igraphstyle({parsedargs[i].second});
+                gi->ns = new neighbors(gi->g);
+                gi->name = _ws->getuniquename(gi->classname) + "FLAG";
+                flaggraphitems.push_back(gi);
+                //_ws->items.push_back(gi);
+                int dim = gi->ns->g->dim;
+                FP* fp = (FP*)malloc(dim*sizeof(FP));
+                for (int j = 0; j < dim; ++j) {
+                    fp[j].v=j;
+                    fp[j].ns = nullptr;
+                    fp[j].nscnt = dim;
+                    fp[j].parent = nullptr;
+                    fp[j].invert = gi->ns->degrees[j] >= (dim+1)/2;
+                }
+                takefingerprint(gi->ns,fp,dim);
+
+                fps.push_back(fp);
+                nss.push_back(gi->ns);
+                dims.push_back(dim);
                 continue;
             }
             if (parsedargs[i].first == "is") {
@@ -1618,7 +1683,7 @@ public:
             if (found)
                 continue;
 
-            if (parsedargs[i].first == "f" || parsedargs[i].first == "if") {
+            if (parsedargs[i].first == "if") {
 
                 std::ifstream ifs;
                 std::istream* is = &std::cin;
@@ -1939,7 +2004,7 @@ public:
                         if (!(done[m][crmspairs[k][l]])) {
                             gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[crmspairs[k][l]],gi,wi->meas[m]));
                             done[m][l] = true;
-                        }
+                        } // default for wi->meas[m] ?
                     }
                 }
                 wi->name = _ws->getuniquename(wi->classname);

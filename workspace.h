@@ -12,6 +12,7 @@
 //#include <bits/regex.h>
 
 #include "asymp.h"
+#include "graphio.h"
 #include "graphs.h"
 #include "measure.cpp"
 
@@ -182,9 +183,6 @@ public:
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
 
-        //to do: would be nice to have a list of edges
-        //and a labelling for the adjacency matrix;
-        //add vertexlabels to graph struct type
         if (verbositycmdlineincludes(verbositylevel, VERBOSE_MINIMAL)) {
             os << name << ", dim==" << g->dim << ", edgecount==" << edgecnt(g) << "\n";
         } else {
@@ -197,245 +195,47 @@ public:
         return true;
     }
 
-    bool isiteminternal( std::string tmp1a, std::string tmp2a, std::string tmp1b, std::string tmp2b ) {
-        std::vector<std::string> vertexlabels {}; // ultimately store this in workitem to use for readouts
-        if (tmp2a.size() > 0) {
-            std::regex pat{"([\\w]+)"};
-
-            for (std::sregex_iterator p(tmp2a.begin(), tmp2a.end(), pat); p != std::sregex_iterator{}; ++p) {
-                std::string tmp3;
-                tmp3 = (*p)[1];
-                vertexlabels.push_back(tmp3);
-            }
-
-            // idata->removeduplicates(); must not remove duplicates yet... wait until setvertices has been called
-            this->g = new graphtype(vertexlabels.size());
-            int dim = this->g->dim;
-            for (int i = 0; i <  dim; ++i)
-                for (int n = 0; n< dim; ++n)
-                    this->g->adjacencymatrix[n*dim + i] = false;
 
 
-            g->vertexlabels.resize(vertexlabels.size());
-            for (int i = 0; i < vertexlabels.size(); ++i)
-                g->vertexlabels[i] = vertexlabels[i];
+    bool isitem( std::istream& is)
+    {
+        std::vector<std::string> input {};
+        std::string item {};
+        bool comment = false;
+        int delimetercount = 0;
 
-
-        } else {
-            this->g = new graphtype(0);
-            this->ns = new neighbors(this->g);
-            return false;   // in case only one graph is given, default to computing automorphisms
-        }
-
-
-
-        std::vector<std::string> edgecommands {};
-        if (tmp2b.size() > 0) {
-            //std::regex pat{"([[:punct:]]*[\\w]+)|(\\w+\\+\\w+)"};
-
-            //std::regex pat{"([[:punct:]]*[\\w]+)"};
-            std::regex pat{"([[:punct:]|\\w]+)"};
-
-            for (std::sregex_iterator p(tmp2b.begin(), tmp2b.end(), pat); p != std::sregex_iterator{}; ++p) {
-                std::string tmp3;
-                tmp3 = (*p)[1];
-                edgecommands.push_back(tmp3);
-                //std::cout << tmp3 << ", ";
-            }
-            //std::cout << "\n";
-
-            // idata->removeduplicates(); must not remove duplicates yet... wait until setvertices has been called
-        }
-
-        if (edgecommands.size() >= 0) {
-            std::regex pat {"([a-zA-Z]{1}[\\d_]*)"};
-            for( int n = 0;n< edgecommands.size(); ++n) {
-                std::vector<std::string> v;
-                bool cmdomit = false;
-                bool cmdcomplete = true;
-                bool cmdline = false;
-                bool radial = false;
-                std::string radialstr1 {};
-                std::string radialstr2 {};
-                if (edgecommands[n].size() > 0) {
-                    if (edgecommands[n][0] == '!') {
-                        cmdomit = true;
-                        if (edgecommands[n].size()>1) {
-                            edgecommands[n] = edgecommands[n].substr(1,edgecommands[n].size()-1);
-                        }
-                    }
-                    if (edgecommands[n][0] == '*')
-                        cmdcomplete=true;
-                    if (edgecommands[n][0] == '-') {
-                        cmdline = true;
-                        cmdcomplete = false;
+        while ((is >> item && delimetercount < 2))
+        {
+            if ((item != "END") && (item != "###"))
+            {
+                if (!comment)
+                {
+                    int pos = item.find("/*");
+                    if (pos != std::string::npos) {
+                        input.push_back(item.substr(0, pos));
+                        comment = true;
+                        continue;
                     }
                 }
-                int pluspos = edgecommands[n].find("+");
-                //std::cout << "edgecommands[n] " << edgecommands[n] << " , " << pluspos << "\n";
-                if (pluspos != std::string::npos) {
-                    if (cmdline)
-                        break;
-                    cmdcomplete = false;
-                    radial = true;
-                    radialstr1 = edgecommands[n].substr(0,pluspos);
-                    radialstr2 = edgecommands[n].substr(pluspos+1,edgecommands[n].size()-pluspos-1);
-                    //std::cout << "radialstr1,2 " << radialstr1 << ", " << radialstr2 << "\n";
-                    std::string radialstrcombined = radialstr1 + radialstr2;
-                    for (std::sregex_iterator p(radialstrcombined.begin(),radialstrcombined.end(),pat); p != std::sregex_iterator{};++p)
-                        v.push_back((*p)[1]);
-
-                    std::sort(v.begin(), v.end());
-                    int sz = v.size();
-                    //std::cout<< "v.size == " << v.size() << "\n";
-                    // connect all pairs within the sequence of vertices
-                    for (int m = 0; m < sz; ++m) {
-                        for (int n = m+1; n < sz; ++n) {
-                            int i = 0;
-                            while( i < vertexlabels.size() && vertexlabels[i] != v[m])
-                                ++i;
-                            int j = 0;
-                            while( j < vertexlabels.size() && vertexlabels[j] != v[n])
-                                ++j;
-                            if (j < vertexlabels.size() && i < vertexlabels.size()) {
-                                if (vertexlabels[j] == v[n] && vertexlabels[i] == v[m]) {
-                                    if (j != i) {
-                                        g->adjacencymatrix[i*g->dim + j] = !cmdomit;
-                                        g->adjacencymatrix[j*g->dim + i] = !cmdomit;
-                                        //std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
-                                    }
-                                }
-                            }
-                        }
+                if (comment)
+                {
+                    int pos = item.find("*/");
+                    if (pos != std::string::npos) {
+                        input.push_back(item.substr(pos+2,item.size()-pos-2));
+                        comment = false;
                     }
-
-                    v.clear(); // now exclude all pairs within the second sequence of vertices amongst itself
-                    for (std::sregex_iterator p(radialstr2.begin(),radialstr2.end(),pat); p != std::sregex_iterator{};++p)
-                        v.push_back((*p)[1]);
-                    cmdomit = !cmdomit;
-                    sz = v.size();
-                    std::sort(v.begin(), v.end());
-                    //std::cout<< "v.size == " << v.size() << "\n";
-                    // connect all pairs within the sequence of vertices
-                    for (int m = 0; m < sz; ++m) {
-                        for (int n = m+1; n < sz; ++n) {
-                            int i = 0;
-                            while( i < vertexlabels.size() && vertexlabels[i] != v[m])
-                                ++i;
-                            int j = 0;
-                            while( j < vertexlabels.size() && vertexlabels[j] != v[n])
-                                ++j;
-                            if (j < vertexlabels.size() && i < vertexlabels.size()) {
-                                if (vertexlabels[j] == v[n] && vertexlabels[i] == v[m]) {
-                                    if (j != i) {
-                                        g->adjacencymatrix[i*g->dim + j] = !cmdomit;
-                                        g->adjacencymatrix[j*g->dim + i] = !cmdomit;
-                                        //std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-
-                } else {
-                    for (std::sregex_iterator p(edgecommands[n].begin(),edgecommands[n].end(),pat); p != std::sregex_iterator{};++p)
-                        v.push_back((*p)[1]);
-                    if (!cmdline)
-                        std::sort(v.begin(), v.end());
-                    int sz = v.size();
-                    //std::cout<< "v.size == " << v.size() << "\n";
-                    if (cmdcomplete) {
-                        // connect all pairs within the sequence of vertices
-                        for (int m = 0; m < sz; ++m) {
-                            for (int n = m+1; n < sz; ++n) {
-                                int i = 0;
-                                while( i < vertexlabels.size() && vertexlabels[i] != v[m])
-                                    ++i;
-                                int j = 0;
-                                while( j < vertexlabels.size() && vertexlabels[j] != v[n])
-                                    ++j;
-                                if (j < vertexlabels.size() && i < vertexlabels.size()) {
-                                    if (vertexlabels[j] == v[n] && vertexlabels[i] == v[m]) {
-                                        if (j != i) {
-                                            g->adjacencymatrix[i*g->dim + j] = !cmdomit;
-                                            g->adjacencymatrix[j*g->dim + i] = !cmdomit;
-                                            //std::cout << "v[m]: " << v[m] << " v[n]: " << v[n] << "\n";
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (cmdline) {
-                        for (int m = 0; m < (sz-1); ++m) {
-                            int i = 0;
-                            while( i < vertexlabels.size() && vertexlabels[i] != v[m])
-                                ++i;
-                            int j = 0;
-                            while( j < vertexlabels.size() && vertexlabels[j] != v[m+1])
-                                ++j;
-                            if (j < vertexlabels.size() && i < vertexlabels.size()) {
-                                if (vertexlabels[i] == v[m] && vertexlabels[j] == v[m+1]) {
-                                    if (i != j) {
-                                        g->adjacencymatrix[i*g->dim + j] = !cmdomit;
-                                        g->adjacencymatrix[j*g->dim + i] = !cmdomit;
-                                        //std::cout << "v[m]: " << v[m] << " v[m+1]: " << v[m+1] << "\n";
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    continue;
                 }
+                //std::cout << item << " voila \n";
+                input.push_back(item);
             }
+            if (item == "END" || item == "###")
+                ++delimetercount;
         }
+
+        this->g = igraphstyle(input);
         ns = new neighbors(this->g);
-        //ns->computeneighborslist();
-        return (g->dim > 0);   // for now no support for trivial empty graphs
-    }
-
-
-    bool isitem( std::istream& is) {
-        //auto p = paused();
-        //pause();
-        //if (!idata || !edata)
-        //    throw std::exception();
-        int s = 0;
-
-        std::vector<std::string> eresa{}; // not used
-        std::string tmp1a = "";
-        std::string tmp2a = "";
-        while ((is >> tmp1a) && (tmp1a != "END") && (tmp1a != "###")) {
-            if (tmp1a == "/*") {
-                bool res = bool(is >> tmp1a);
-                while (res && (tmp1a != "*/"))
-                    res = bool(is >> tmp1a);
-                continue;
-            }
-            eresa.push_back(tmp1a);
-            tmp2a += tmp1a + " ";
-            tmp1a = "";
-            s++;
-        }
-        s = 0;
-
-        std::string tmp1b = "";
-        std::string tmp2b = "";
-
-        std::vector<std::string> eresb {}; // not used
-        while ((is >> tmp1b) && (tmp1b != "END") && (tmp1b != "###")) {
-            if (tmp1b == "/*") {
-                bool res = bool(is >> tmp1b);
-                while (res && (tmp1b != "*/"))
-                    res = bool(is >> tmp1b);
-                continue;
-            }
-            eresb.push_back(tmp1b);
-            tmp2b += tmp1b + " ";
-            tmp1b = "";
-            s++;
-        }
-        return isiteminternal(tmp1a,tmp2a, tmp1b, tmp2b);
+        return (g->dim > 0);
     }
 
 };

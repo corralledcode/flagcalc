@@ -1,0 +1,3 @@
+/*This graph should have 2!*5 = 10 automorphisms,
+ *and is included to test the new format for graph input*/
+abcde -fghijf af bg ch di ej

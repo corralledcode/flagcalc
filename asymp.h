@@ -519,6 +519,36 @@ public:
 
 };
 
+/*
+class notcriteria : public abstractmemoryparameterizedmeasure<bool> {
+protected:
+    std::vector<bool*> variables{};
+public:
+    std::string shortname() override {return "not";}
+    //std::vector<bool*> outcome {};
+
+    bool takemeasureidxed(const int idx) override
+    {
+        for (int i = 0; i < variables.size(); ++i)
+            for (int j = 0; j < sz; ++j)
+                outcome[j][i] = !variables[i];
+        if (ps.size() == 1 && is_number(ps[0]))
+            return (!variables[stoi(ps[0])][idx]);
+    }
+
+    notcriteria(std::vector<bool*> variablesin )
+        : abstractmemoryparameterizedmeasure<bool>("logical NOT (parameter is index to negate)"), variables{variablesin}
+    {
+        outcome.resize(variables.size());
+        for (int i = 0; i < variables.size(); ++i) {
+            outcome[i] = (bool*)malloc(sz*sizeof(bool));
+
+    }
+
+
+};*/
+
+
 class notcriteria : public abstractmemorymeasure<bool> {
 protected:
     const int sz;
