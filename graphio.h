@@ -146,22 +146,27 @@ public:
         auto vgs = new verticesforgraphstyle();
         std::vector<std::string> v0 = vgs->getvertices(sin);
         std::vector<std::string> v1 = vgs->getvertices(sin.substr(0,pos));
-        std::vector<std::string> v2 = vgs->getvertices(sin.substr(pos,sin.size()-pos));
-        auto cgs = new completegraphstyle();
-        cgs->applytograph(sin,v0,moves);
-        std::vector<std::pair<bool, std::pair<std::string, std::string>>> movesinvert {};
-        cgs->applytograph( sin,v2,&movesinvert );
-        auto ngs = new negationgraphstyle();
-        ngs->applytograph(sin.substr(pos,sin.size()-pos),v2,&movesinvert);
+        //std::vector<std::string> v2 = vgs->getvertices(sin.substr(pos,sin.size()-pos));
+        //auto cgs = new completegraphstyle();
+        //cgs->applytograph(sin,v0,moves);
+        //std::vector<std::pair<bool, std::pair<std::string, std::string>>> movesinvert {};
+        //cgs->applytograph( sin,v2,moves );
+        //auto ngs = new negationgraphstyle();
+        //ngs->applytograph(sin.substr(pos,sin.size()-pos),v2,&movesinvert);
 
-        for (auto m : movesinvert)
-        {
-            moves->push_back(m);
-        }
+        for (auto si : v1)
+            for (auto s : v0)
+                if (si != s)
+                    moves->push_back({true,{si,s}});
+
+        //for (auto m : movesinvert)
+        //{
+        //    moves->push_back(m);
+        //}
 
         delete vgs;
-        delete cgs;
-        delete ngs;
+        //delete cgs;
+        //delete ngs;
     }
 };
 
@@ -188,11 +193,20 @@ public:
             return;
 
         auto vgs = new verticesforgraphstyle();
-        std::vector<std::string> v0 = vgs->getvertices(sin);
+        //std::vector<std::string> v0 = vgs->getvertices(sin);
         std::vector<std::string> v1 = vgs->getvertices(sin.substr(0,pos));
         std::vector<std::string> v2 = vgs->getvertices(sin.substr(pos,sin.size()-pos));
-        auto cgs = new completegraphstyle();
-        cgs->applytograph(sin,v0,moves);
+        //auto cgs = new completegraphstyle();
+        //cgs->applytograph(sin,v0,moves);
+
+
+        for (auto sl : v1)
+            for (auto sr : v2)
+                if (sl != sr)
+                    moves->push_back({true,{sl,sr}});
+
+
+/*
         std::vector<std::pair<bool, std::pair<std::string, std::string>>> movesinvertleft {};
         std::vector<std::pair<bool, std::pair<std::string, std::string>>> movesinvertright {};
         cgs->applytograph( sin,v1,&movesinvertleft );
@@ -209,10 +223,10 @@ public:
         {
             moves->push_back(m);
         }
-
+*/
         delete vgs;
-        delete cgs;
-        delete ngs;
+        //delete cgs;
+        //delete ngs;
     }
 };
 
