@@ -846,6 +846,64 @@ public:
                 std::cout << "Using std::cin for input\n"; // recode so this is possible
             }
 
+            unsigned const thread_count = std::thread::hardware_concurrency();
+            std::vector<std::future<bool>> t;
+            t.resize(thread_count);
+
+            std::vector<std::vector<std::string>> items {};
+            items.resize(thread_count);
+
+            std::string item {};
+            int delimetercount = 0;
+
+            std::vector<bool> res {};
+            res.resize(thread_count);
+
+            std::vector<graphitem*> giv {};
+            giv.resize(thread_count);
+
+            int threadidx = 0;
+            bool done = false;
+            while (!done) {
+                delimetercount = 0;
+
+                threadidx = 0;
+                while (threadidx < thread_count && !done) {
+                    done = !(*is >> item);
+                    while (!done) {
+                        if (item == "END" || item == "###") {
+                            if( ++delimetercount >= 2 ) {
+                                delimetercount = 0;
+                                break;
+                            } else {
+                                done = !(*is >> item);
+                                continue;
+                            }
+                        }
+                        items[threadidx].push_back(item);
+                        done = !(*is >> item);
+                    }
+                    giv[threadidx] = new graphitem();
+                    t[threadidx] = std::async(&graphitem::isitemstr,giv[threadidx],items[threadidx]);
+                    ++threadidx;
+                }
+                for (int m = 0; m < threadidx; ++m) {
+                    res[m] = t[m].get();
+                    items[m].clear();
+                }
+
+                for (int m = 0; m < threadidx; ++m) {
+                    if (res[m]) {
+                        if (giv[m]->name == "") {
+                            giv[m]->name = _ws->getuniquename(giv[m]->classname);
+                        }
+                        _ws->items.push_back(giv[m]);
+                    } else
+                        delete giv[m];
+                }
+            }
+
+/*
 
             graphitem* gi = new graphitem();
             while (gi->isitem(*is)) {
@@ -855,7 +913,7 @@ public:
                 _ws->items.push_back(gi);
                 gi = new graphitem();
             }
-            delete gi;
+            delete gi; */
         }
     }
 

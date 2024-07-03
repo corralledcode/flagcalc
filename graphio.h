@@ -16,6 +16,9 @@
 #include "graphs.h"
 
 
+// Threading here is actually slower by two or three times, so it is left out
+//#define THREADIGRAPHSTYLE
+
 
 
 

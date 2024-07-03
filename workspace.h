@@ -195,16 +195,13 @@ public:
         return true;
     }
 
-
-
-    bool isitem( std::istream& is)
-    {
+    bool isitemstr( std::vector<std::string> streamstr) {
         std::vector<std::string> input {};
-        std::string item {};
+        //std::string item {};
         bool comment = false;
         int delimetercount = 0;
 
-        while ((is >> item))
+        for (auto item : streamstr)
         {
             if (item == "END" || item == "###") {
                 ++delimetercount;
@@ -217,7 +214,8 @@ public:
             {
                 int pos = item.find("/*");
                 if (pos != std::string::npos) {
-                    input.push_back(item.substr(0, pos));
+                    if (pos > 0)
+                        input.push_back(item.substr(0, pos));
                     comment = true;
                     continue;
                 }
@@ -226,7 +224,8 @@ public:
             {
                 int pos = item.find("*/");
                 if (pos != std::string::npos) {
-                    input.push_back(item.substr(pos+2,item.size()-pos-2));
+                    if (pos+2 < item.size())
+                        input.push_back(item.substr(pos+2,item.size()-pos-2));
                     comment = false;
                 }
                 continue;
@@ -237,6 +236,26 @@ public:
         this->g = igraphstyle(input);
         ns = new neighbors(this->g);
         return (g->dim > 0);
+    }
+
+    bool isitem( std::istream& is) {
+        std::vector<std::string> input {};
+        std::string item {};
+        bool comment = false;
+        int delimetercount = 0;
+        std::vector<std::string> streamstr {};
+        while ((is >> item)) {
+            if (item == "END" || item == "###") {
+                ++delimetercount;
+                if (delimetercount >= 2)
+                    break;
+                else
+                    continue;;
+
+                streamstr.push_back(item);
+            }
+        }
+        return isitemstr(streamstr);
     }
 
 };
