@@ -821,14 +821,49 @@ public:
     void listoptions() override {
         feature::listoptions();
         *_os << "\t" << "<filename>: \t input filename, or \"std::cin\"; <filename> can be repeated any number of times\n";
+        *_os << "\t" << "f=\"<graph>\": \t reads the graph from the command line that is enclosed in quotes\n";
+
     }
 
 
     void execute(std::vector<std::string> args) override {
+
+        auto parsedargs = cmdlineparseiterationtwo(args);
+        for (int i = 0; i < parsedargs.size(); ++i)
+        {
+            if (parsedargs[i].first == "f")
+            {
+                graphitem* gi = new graphitem();
+                gi->g = igraphstyle({parsedargs[i].second});
+                gi->ns = new neighbors(gi->g);
+                gi->name = _ws->getuniquename(gi->classname);
+                _ws->items.push_back(gi);
+
+                /*
+                int dim = gi->ns->g->dim;
+                FP* fp = (FP*)malloc(dim*sizeof(FP));
+                for (int k = 0; k < dim; ++k) {
+                    fp[k].v=k;
+                    fp[k].ns = nullptr;
+                    fp[k].nscnt = dim;
+                    fp[k].parent = nullptr;
+                    fp[k].invert = gi->ns->degrees[j] >= (dim+1)/2;
+                }
+                takefingerprint(gi->ns,fp,dim);
+
+                fps.push_back(fp);
+                nss.push_back(gi->ns);
+                dims.push_back(dim);*/
+                continue;
+
+            }
+        }
         int filenameidx = 0;
         bool oncethrough = true;
-        while ((args.size() <= 1 && oncethrough) || filenameidx < args.size()-1) {
-            ++filenameidx;
+        while ((args.size() <= 1 && oncethrough) || filenameidx < args.size()-1)
+        {
+            if (parsedargs[filenameidx++].first == "f")
+                continue;
             oncethrough = false;
             std::ifstream ifs;
             std::istream* is = &std::cin;
