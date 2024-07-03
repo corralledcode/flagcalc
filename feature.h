@@ -540,8 +540,8 @@ public:
     void listoptions() override {
         feature::listoptions();
         *_os << "\t" << "<filename>: \t\t output filename, or \"std::cout\"\n";
-        *_os << "\t" << "\"o=<filename>\": \t\t output filename, or \"std::cout\"\n";
-        *_os << "\t" << "\"i=<filename>\": \t\t input filename (use to prepackage verbosity commands)\n";
+        *_os << "\t" << "\"o=<filename>\": \t output filename, or \"std::cout\"\n";
+        *_os << "\t" << "\"i=<filename>\": \t input filename (use to prepackage verbosity commands)\n";
         *_os << "\t" << "<verbosityname>: \t any levels can be listed, delimited by spaces;\n";
         *_os << "\t\t\t\t\t\t in addition to what's optionally in the input file\n";
         // eventually do a loop which calls on each verbosity option to identify itself
@@ -1587,10 +1587,10 @@ public:
         *_os << "\t" << "\"not=<n>\": \t\t applies the logical NOT to the criteria numbered n, prior to AND or OR\n";
         *_os << "\t" << "\"l=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
         *_os << "\t" << "\"l=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
-        *_os << "\t" << "\"s=<sentence>\": \t\t applies the logical sentence inside the quotes to the criteria\n";
-        *_os << "\t" << "\"is=<filename>\": \t\t applies the logical sentence in <filename> to the criteria\n";
-        *_os << "\t" << "\"f=<graph>\": \t\t checks the criterion of flag <graph> embedding\n";
-        *_os << "\t" << "\"if=<filename>\": \t\t applies the criteria of flags in <filename> embedding\n";
+        *_os << "\t" << "\"s=<sentence>\": applies the logical sentence inside the quotes to the criteria\n";
+        *_os << "\t" << "\"is=<filename>\": applies the logical sentence in <filename> to the criteria\n";
+        *_os << "\t" << "\"f=<graph>\": \t checks the criterion of flag <graph> embedding\n";
+        *_os << "\t" << "\"if=<filename>\": applies the criteria of flags in <filename> embedding\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
