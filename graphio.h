@@ -117,7 +117,8 @@ public:
     {
         for (int i = 0; i < vertices.size()-1; ++i)
         {
-            moves->push_back({true,{vertices[i],vertices[i+1]}});
+            if (vertices[i] != vertices[i+1])
+                moves->push_back({true,{vertices[i],vertices[i+1]}});
         }
     }
 };
