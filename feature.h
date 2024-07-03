@@ -801,8 +801,6 @@ public:
 
 
         for (int i = 0; i < eqclass.size(); ++i) {
-            if (!first)
-                *_os << "\n";
             auto gi = (graphitem*)_ws->items[items[eqclass[i]]];
             if (sortedbool)
             {
@@ -839,9 +837,17 @@ public:
 
                 }
                 if (accept)
+                {
+                    if (!first)
+                        *_os << "\n";
                     gi->osmachinereadablegraph(*_os);
+                }
             } else
+            {
+                if (!first)
+                    *_os << "\n";
                 gi->osmachinereadablegraph(*_os);
+            }
             first = false;
         }
 
