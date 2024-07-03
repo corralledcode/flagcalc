@@ -264,8 +264,47 @@ inline void graphstylerecurse( std::vector<std::pair<bool,std::pair<std::string,
         (*gsv)[defaultgsidx]->applytograph( sin, vertices, moves );
 }
 
+inline std::vector<std::string> spacedelimitedinput( std::vector<std::string> vsin )
+{
+    std::vector<std::string> res {};
+    for (auto s : vsin)
+    {
+        if (s.find(' ') == std::string::npos)
+        {
+            res.push_back(s);
+            continue;
+        }
+        std::string thusfar {};
+        for (auto ch : s)
+        {
+            if (ch == ' ' && thusfar != "")
+            {
+                res.push_back(thusfar);
+                thusfar.clear();
+                continue;
+            }
+            if (ch != ' ')
+                thusfar.push_back(ch);
+        }
+        if (thusfar != "")
+            res.push_back(thusfar);
+        thusfar.clear();
+    }
+
+    /*
+    std::cout << " res ----- \n";
+    for (auto s : res)
+        std::cout << s << " : ";
+    std::cout << "\n";
+*/
+    return res;
+
+}
+
 inline graphtype* igraphstyle( std::vector<std::string> vsin)
 {
+    vsin = spacedelimitedinput(vsin);
+
     std::vector<graphstyle*> styles {};
     styles.push_back(new completegraphstyle());
     styles.push_back(new negationgraphstyle());
