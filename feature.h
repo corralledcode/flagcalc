@@ -897,6 +897,12 @@ public:
             std::vector<graphitem*> giv {};
             giv.resize(thread_count);
 
+            std::vector<bool> foundname {};
+            foundname.resize(thread_count);
+
+            std::vector<std::string> name {};
+            name.resize(thread_count);
+
             int threadidx = 0;
             bool done = false;
             while (!done) {
@@ -904,21 +910,31 @@ public:
 
                 threadidx = 0;
                 while (threadidx < thread_count && !done) {
+                    foundname[threadidx] = false;
                     done = !(*is >> item);
                     while (!done) {
                         if (item == "END" || item == "###") {
                             if( ++delimetercount >= 2 ) {
                                 delimetercount = 0;
                                 break;
-                            } else {
-                                done = !(*is >> item);
-                                continue;
                             }
-                        }
-                        items[threadidx].push_back(item);
+                        } else
+                            items[threadidx].push_back(item);
+                        if (!foundname[threadidx])
+                            if (int pos = item.find("#name=") != std::string::npos) {
+                                foundname[threadidx] = true;
+                                std::string initial = item.substr(pos+5,item.size()-pos-5);
+                                if (int pos2 = initial.find(" ") != std::string::npos) {
+                                    name[threadidx] =  item.substr(pos+5,pos2);
+                                } else
+                                    name[threadidx] = item.substr(pos+5,item.size()-pos-5);
+                            }
+
                         done = !(*is >> item);
                     }
                     giv[threadidx] = new graphitem();
+                    if (foundname[threadidx])
+                        giv[threadidx]->name = name[threadidx];
                     t[threadidx] = std::async(&graphitem::isitemstr,giv[threadidx],items[threadidx]);
                     ++threadidx;
                 }
