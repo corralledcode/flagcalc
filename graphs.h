@@ -16,12 +16,11 @@ class graph {
 public:
     int dim;
     bool* adjacencymatrix;
-    graph(int dim) {
-        this->dim = dim;
+    graph(int dimin) : dim{dimin} {
         adjacencymatrix = (bool*)malloc(dim*dim*sizeof(bool));
     }
     ~graph() {
-        //free(adjacencymatrix);
+        //delete adjacencymatrix;
     }
 };
 
@@ -34,11 +33,6 @@ public:
         //vertexlabels = (T*)malloc(dim*sizeof(T));
     }
 
-    ~labelledgraph() {
-        //vertexlabels);
-        //free(vertexlabels);
-        //graph::~graph();
-    }
 };
 
 using graphtype = labelledgraph<std::string>;
@@ -105,6 +99,7 @@ public:
     ~neighbors() {
         free(neighborslist);
         free(nonneighborslist);
+        free(degrees);
     }
 
 };

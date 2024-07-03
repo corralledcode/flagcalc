@@ -672,6 +672,7 @@ public:
         *_os << "\t" << "\"append\":" << "\t\t Appends to an existing file (default)\n";
         *_os << "\t" << "\"overwrite\":" << "\t Overwrites if file exists already\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\":" << "\t\t Outputs one graph per fingerprint-equivalence class\n";
+        *_os << "\t" << "\"passed\":" << "\t\t Outputs only graphs that pass the last (or parameterized) criterion\n";
     }
 
 
@@ -683,6 +684,8 @@ public:
         bool append = true;
         bool overwrite = false;
         bool sortedbool = false;
+        bool passed = false;
+        std::vector<std::string> passedargs {};
         std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
             if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == "append") {
@@ -694,6 +697,22 @@ public:
                 append = false;
                 overwrite = true;
                 continue;
+            }
+            if (cmdlineoptions[n].first == "default") {
+                auto parsedargs2 = cmdlineparseiterationthree(cmdlineoptions[n].second);
+                bool found = false;
+                for (auto p : parsedargs2)
+                {
+                    if (p.first == "passed")
+                    {
+                        passed = true;
+                        passedargs = p.second;
+                        found = true;
+                        break;
+                    }
+                }
+                if (found)
+                    continue;
             }
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
@@ -746,7 +765,7 @@ public:
             auto wi = _ws->items[i];
             if (wi->classname == "GRAPH") {
                 auto gi = (graphitem*)wi;
-                items.push_back(i);
+                items.push_back(i); // default to working with all graphitems
             }
         }
 
@@ -794,7 +813,35 @@ public:
                     eqclasssize = eqclass[i+1]-eqclass[i];
                 gi->intitems.push_back(new genericgraphoutcome<int>("eqclasssize","Equivalence class size",gi,eqclasssize));
             }
-            gi->osmachinereadablegraph(*_os);
+            if (passed)
+            {
+                bool accept = true; // default to logical AND
+                if (passedargs.size() == 0)
+                    accept = (gi->boolitems.size()>0) && gi->boolitems[gi->boolitems.size()-1]->value;
+                for (auto a : passedargs)
+                {
+                    if (is_number(a))
+                    {
+                        int j = stoi(a);
+                        if (j >= 0 && j < gi->boolitems.size())
+                            accept &= gi->boolitems[j]->value;
+                        else
+                            if (j < 0 && gi->boolitems.size() + j >= 0)
+                                accept &= gi->boolitems[gi->boolitems.size() + j]->value;
+                    } else
+                    {
+                        for (auto bi : gi->boolitems)
+                        {
+                            if (bi->name() == a)
+                                accept &= bi->value;
+                        }
+                    }
+
+                }
+                if (accept)
+                    gi->osmachinereadablegraph(*_os);
+            } else
+                gi->osmachinereadablegraph(*_os);
             first = false;
         }
 
