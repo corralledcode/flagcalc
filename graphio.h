@@ -11,6 +11,8 @@
 #include <fstream>
 //#include <bits/regex.h>
 
+#include <future>
+
 #include "graphs.h"
 
 
@@ -247,7 +249,7 @@ inline void graphstylerecurse( std::vector<std::pair<bool,std::pair<std::string,
         if ((*gsv)[i]->applies( sin, sout ))
         {
             //std::cout << sin << " sin sout " << sout << "\n";
-            graphstylerecurse( moves, vertices,sout, gsv, true );
+            graphstylerecurse( moves, vertices,sout, gsv, 0, true );
             (*gsv)[i]->applytograph(sin,vertices,moves);
             return;
         }
@@ -277,6 +279,46 @@ inline graphtype* igraphstyle( std::vector<std::string> vsin)
 
     auto vgs = new verticesforgraphstyle();
 
+#ifdef THREADIGRAPHSTYLE
+
+    std::vector<std::future<std::vector<std::string>>> tv {};
+    tv.resize(vsin.size());
+    for (int m = 0; m < vsin.size(); ++m) {
+        tv[m] = std::async(&verticesforgraphstyle::getvertices,vgs,(vsin[m]));
+    }
+    std::vector<std::vector<std::string>> workingv {};
+    workingv.resize(vsin.size());
+    for (int m = 0; m < vsin.size(); ++m) {
+        workingv[m] = tv[m].get();
+    }
+
+    std::vector<std::vector<std::pair<bool,std::pair<std::string,std::string>>>> movesv {};
+    std::vector<std::future<void>> t {};
+    movesv.resize(vsin.size());
+    t.resize(vsin.size());
+    for (int m = 0; m < vsin.size(); ++m) {
+        t[m] = std::async(&graphstylerecurse,&movesv[m],workingv[m],vsin[m], &styles,0,false);
+    }
+    for (int m = 0; m < vsin.size(); ++m) {
+        t[m].get();
+    }
+
+    for (int m = 0; m < vsin.size(); ++m) {
+        for (auto m : movesv[m])
+        {
+            for (int k = 0; k < v.size(); ++k)
+                for (int l = 0; l < v.size(); ++l)
+                    if (m.second.first == v[k] && m.second.second == v[l])
+                    {
+                        outg->adjacencymatrix[k*outg->dim + l] = m.first;
+                        outg->adjacencymatrix[l*outg->dim + k] = m.first;
+                    }
+        }
+    }
+
+
+#else
+
     for (auto s : vsin)
     {
         auto workingv = vgs->getvertices(s); // allow unsorted and allow repeats
@@ -295,6 +337,7 @@ inline graphtype* igraphstyle( std::vector<std::string> vsin)
                     }
         }
     }
+#endif
     for (auto s : styles)
         delete s;
     return outg;

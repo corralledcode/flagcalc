@@ -204,33 +204,34 @@ public:
         bool comment = false;
         int delimetercount = 0;
 
-        while ((is >> item && delimetercount < 2))
+        while ((is >> item))
         {
-            if ((item != "END") && (item != "###"))
+            if (item == "END" || item == "###") {
+                ++delimetercount;
+                if (delimetercount >= 2)
+                    break;
+                else
+                    continue;;
+            }
+            if (!comment)
             {
-                if (!comment)
-                {
-                    int pos = item.find("/*");
-                    if (pos != std::string::npos) {
-                        input.push_back(item.substr(0, pos));
-                        comment = true;
-                        continue;
-                    }
-                }
-                if (comment)
-                {
-                    int pos = item.find("*/");
-                    if (pos != std::string::npos) {
-                        input.push_back(item.substr(pos+2,item.size()-pos-2));
-                        comment = false;
-                    }
+                int pos = item.find("/*");
+                if (pos != std::string::npos) {
+                    input.push_back(item.substr(0, pos));
+                    comment = true;
                     continue;
                 }
-                //std::cout << item << " voila \n";
-                input.push_back(item);
             }
-            if (item == "END" || item == "###")
-                ++delimetercount;
+            if (comment)
+            {
+                int pos = item.find("*/");
+                if (pos != std::string::npos) {
+                    input.push_back(item.substr(pos+2,item.size()-pos-2));
+                    comment = false;
+                }
+                continue;
+            }
+            input.push_back(item);
         }
 
         this->g = igraphstyle(input);
