@@ -154,7 +154,7 @@ int nchoosek( const int n, const int k);
 
 void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res);
 
-bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2, const int mincnt = 1 );
+bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2, const int mincnt );
 
 
 

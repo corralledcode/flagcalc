@@ -1281,7 +1281,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
         fps1ptr[n].ns = nullptr;
         fps1ptr[n].nscnt = 0;
         fps1ptr[n].parent = nullptr;
-        fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
+        fps1ptr[n].invert = ns1->degrees[n] >= int((dim+1)/2);
     }
 
     takefingerprint(ns1,fps1ptr,dim);
@@ -1303,7 +1303,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighborstype* ns1, neighborstype*
             fps2ptr[n].ns = nullptr;
             fps2ptr[n].nscnt = 0;
             fps2ptr[n].parent = nullptr;
-            fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
+            fps2ptr[n].invert = ns2->degrees[n] >= int((dim+1)/2);
         }
 
         takefingerprint(ns2,fps2ptr,dim);
@@ -1367,7 +1367,7 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
             fps1ptr[n].ns = nullptr;
             fps1ptr[n].nscnt = 0;
             fps1ptr[n].parent = nullptr;
-            fps1ptr[n].invert = ns1->degrees[n] >= int(dim+1/2);
+            fps1ptr[n].invert = ns1->degrees[n] >= int((dim+1)/2);
         }
 
         takefingerprint(ns1,fps1ptr,dim);
@@ -1390,7 +1390,7 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
             fps2ptr[n].ns = nullptr;
             fps2ptr[n].nscnt = 0;
             fps2ptr[n].parent = nullptr;
-            fps2ptr[n].invert = ns2->degrees[n] >= int(dim+1/2);
+            fps2ptr[n].invert = ns2->degrees[n] >= int((dim+1)/2);
         }
 
         takefingerprint(ns2,fps2ptr,dim);
@@ -1454,14 +1454,15 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
     int dim2 = g2->dim;
     if (dim2 < dim1)
         return false;
-    int numberofsubsets = nchoosek(dim2,dim1);
+    int numberofsubsets; // = nchoosek(dim2,dim1);
     //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
     std::vector<int> subsets {};
     enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
-    if (numberofsubsets*dim1 != subsets.size()) {
+    numberofsubsets = subsets.size()/dim1;
+    /*if (numberofsubsets*dim1 != subsets.size()) {
         std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
         return false;
-    }
+    }*/
     int cnt = 0;
     auto gtemp = new graphtype(dim1);
     for (int n = 0; (cnt < mincnt) && (n < numberofsubsets); ++n) {
@@ -1754,7 +1755,7 @@ void osmachinereadablegraph(std::ostream &os, graphtype* g) {
 void zerograph(graphtype* g) {
     for (int i = 0; i < g->dim; ++i)
         for (int j = 0; j < g->dim; ++j)
-            g->adjacencymatrix[i*g->dim + j] = 0;
+            g->adjacencymatrix[i*g->dim + j] = false;
 }
 
 

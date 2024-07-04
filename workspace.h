@@ -408,9 +408,11 @@ public:
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
         std::vector<std::pair<Tc,int>> count = {};
+        count.clear();
+        count.resize(0);
         //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
             os << "Criterion "<< ac.name << " results of graphs:\n";
-        for (int n = 0; n < sorted.size(); ++n) {
+        for (int n = 0; n < res.size(); ++n) {
             if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
                 os << gnames[n]<<", number " << n+1 << " out of " << sorted.size();
                 os << ": " << res[n] << "\n";
@@ -418,7 +420,7 @@ public:
             bool found = false;
             for (int i = 0; !found && (i < count.size()); ++i)
                 if (count[i].first == res[n]) {
-                    ++(count[i].second);
+                    count[i].second += 1;
                     found = true;
                 }
             if (!found)

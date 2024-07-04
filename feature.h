@@ -767,8 +767,8 @@ public:
         for (int i = 0; i < _ws->items.size(); ++i) {
             auto wi = _ws->items[i];
             if (wi->classname == "GRAPH") {
-                auto gi = (graphitem*)wi;
-                items.push_back(i); // default to working with all graphitems
+                if (graphitem* gi = dynamic_cast<graphitem*>(wi))
+                    items.push_back(i); // default to working with all graphitems
             }
         }
 
@@ -783,17 +783,23 @@ public:
 
             eqclass.push_back(0);
             for (int m = 0; m < items.size()-1; ++m) {
-                auto gi = (graphitem*)_ws->items[items[m]];
-                bool found = false;
-                for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
-                    if (gi->intitems[r]->name() == "FP") {
-                        auto fpo = (fpoutcome*)gi->intitems[r];
-                        if (fpo->value == 1) {
-                            eqclass.push_back(m+1);
+                if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[m]])) {
+                    bool found = false;
+                    for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
+                        if (gi->intitems[r]->name() == "FP") {
+                            if (fpoutcome* fpo = dynamic_cast<fpoutcome*>(gi->intitems[r])) {
+                                if (fpo->value == 1) {
+                                    eqclass.push_back(m+1);
+                                }
+                                found = true;
+                                sortedcnt++;
+                            } else {
+                                std::cout << "Bad cast to fpoutcome (checked by dynamic_cast)\n";
+                            }
                         }
-                        found = true;
-                        sortedcnt++;
                     }
+                } else {
+                    std::cout << "Bad cast to graphitem (checked by dynamic_cast)\n";
                 }
             }
         } else {
@@ -804,54 +810,57 @@ public:
 
 
         for (int i = 0; i < eqclass.size(); ++i) {
-            auto gi = (graphitem*)_ws->items[items[eqclass[i]]];
-            if (sortedbool)
-            {
-                int eqclasssize;
-                if (i == eqclass.size()-1)
-                    eqclasssize = sortedcnt -eqclass[i];
-                else
-                    eqclasssize = eqclass[i+1]-eqclass[i];
-                gi->intitems.push_back(new genericgraphoutcome<int>("eqclasssize","Equivalence class size",gi,eqclasssize));
-            }
-            if (passed)
-            {
-                bool accept = true; // default to logical AND
-                if (passedargs.size() == 0)
-                    accept = (gi->boolitems.size()>0) && gi->boolitems[gi->boolitems.size()-1]->value;
-                for (auto a : passedargs)
+            if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[i]]])) {
+                if (sortedbool)
                 {
-                    if (is_number(a))
-                    {
-                        int j = stoi(a);
-                        if (j >= 0 && j < gi->boolitems.size())
-                            accept &= gi->boolitems[j]->value;
-                        else
-                            if (j < 0 && gi->boolitems.size() + j >= 0)
-                                accept &= gi->boolitems[gi->boolitems.size() + j]->value;
-                    } else
-                    {
-                        for (auto bi : gi->boolitems)
-                        {
-                            if (bi->name() == a)
-                                accept &= bi->value;
-                        }
-                    }
-
+                    int eqclasssize;
+                    if (i == eqclass.size()-1)
+                        eqclasssize = sortedcnt -eqclass[i];
+                    else
+                        eqclasssize = eqclass[i+1]-eqclass[i];
+                    gi->intitems.push_back(new genericgraphoutcome<int>("eqclasssize","Equivalence class size",gi,eqclasssize));
                 }
-                if (accept)
+                if (passed)
+                {
+                    bool accept = true; // default to logical AND
+                    if (passedargs.size() == 0)
+                        accept = (gi->boolitems.size()>0) && gi->boolitems[gi->boolitems.size()-1]->value;
+                    for (auto a : passedargs)
+                    {
+                        if (is_number(a))
+                        {
+                            int j = stoi(a);
+                            if (j >= 0 && j < gi->boolitems.size())
+                                accept &= gi->boolitems[j]->value;
+                            else
+                                if (j < 0 && gi->boolitems.size() + j >= 0)
+                                    accept &= gi->boolitems[gi->boolitems.size() + j]->value;
+                        } else
+                        {
+                            for (auto bi : gi->boolitems)
+                            {
+                                if (bi->name() == a)
+                                    accept &= bi->value;
+                            }
+                        }
+
+                    }
+                    if (accept)
+                    {
+                        if (!first)
+                            *_os << "\n";
+                        gi->osmachinereadablegraph(*_os);
+                    }
+                } else
                 {
                     if (!first)
                         *_os << "\n";
                     gi->osmachinereadablegraph(*_os);
                 }
-            } else
-            {
-                if (!first)
-                    *_os << "\n";
-                gi->osmachinereadablegraph(*_os);
+                first = false;
+            } else {
+                std::cout << "Bad cast to graphitem* \n";
             }
-            first = false;
         }
 
 
@@ -1929,9 +1938,11 @@ public:
 
         for (int i = 0; i < items.size(); ++i)
         {
-            auto gi = (graphitem*)(_ws->items[items[i]]);
-            nslist[i] = gi->ns;
-            glist[i] = gi->g;
+            if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[i]])) {
+                nslist[i] = gi->ns;
+                glist[i] = gi->g;
+            } else
+                std::cout << "Error dynamically casting to graphitem*\n";
         }
 
         std::vector<bool*> res {};
@@ -1946,7 +1957,7 @@ public:
             }
 
             res.resize(cs.size());
-            for (int i = 0; i < cs.size(); ++i)
+            for (int i = 0; i < res.size(); ++i)
                 res[i] = (bool*)malloc(items.size()*sizeof(bool));
 
             std::vector<bool> negv {};
@@ -2029,6 +2040,7 @@ public:
                 }
             }
         } else {
+            eqclass.clear();
             for (int m = 0; m < items.size(); ++m) {
                 eqclass.push_back(m);
             }
@@ -2086,9 +2098,9 @@ public:
         }
 
         for (int l = 0; l < ms.size(); ++l) {
+            ms[l]->setsize(items.size());
             ms[l]->gptrs = &glist;
             ms[l]->nsptrs = &nslist;
-            ms[l]->setsize(items.size());
             //ms[l]->res = new std::vector<float>;
             //ms[l]->res->resize(items.size());
             //for (int i = 0; i < ms[l]->res->size(); ++i)
@@ -2152,27 +2164,30 @@ public:
 
                 for (int m=0; m < eqclass.size(); ++m) {
                     wi->res[m] = threadbool[m];
-                    wi->glist[m] = glist[m];
+                    wi->glist[m] = glist[eqclass[m]];
                     wi->sorted[m] = m;
-                    wi->nslist[m] = nslist[m];
-                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                    if (l == 0) { // hokey way of saying "do it once", as if outside the nested loops
-                        gi->boolitems.push_back(new abstractmeasureoutcome<bool>(cs[k],gi,wi->res[m]));
-                    }
-                    wi->gnames[m] = gi->name;
-                    if (k < res.size())
-                    {
-                        // recall all the sentence-level criteria were added after malloc
-                        res[k][eqclass[m]] = wi->res[m];
-                    }
-                    wi->meas.resize(items.size());
-                    if (wi->res[m]) {
-                        wi->meas[m] = threadfloat[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
-                        if (!(done[m][crmspairs[k][l]])) {
-                            gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[crmspairs[k][l]],gi,wi->meas[m]));
-                            done[m][l] = true;
-                        } // default for wi->meas[m] ?
-                    }
+                    wi->nslist[m] = nslist[eqclass[m]];
+                    //auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]])) {
+                        if (l == 0) { // hokey way of saying "do it once", as if outside the nested loops
+                            gi->boolitems.push_back(new abstractmeasureoutcome<bool>(cs[k],gi,threadbool[m]));
+                        }
+                        wi->gnames[m] = gi->name;
+                        if (k < res.size()) {
+                            // recall all the sentence-level criteria were added after malloc
+                            if (l == 0)
+                                (res[k])[eqclass[m]] = wi->res[m];
+                        }
+                        wi->meas.resize(eqclass.size());
+                        if (wi->res[m]) {
+                            wi->meas[m] = threadfloat[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+                            if (!(done[m][crmspairs[k][l]])) {
+                                gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[crmspairs[k][l]],gi,wi->meas[m]));
+                                done[m][crmspairs[k][l]] = true;
+                            } // default for wi->meas[m] ?
+                        }
+                    } else
+                        std::cout << "Dynamic cast error to graphitem*\n";
                 }
                 wi->name = _ws->getuniquename(wi->classname);
                 _ws->items.push_back(wi);
@@ -2211,6 +2226,7 @@ public:
             }
 
 #endif
+
 
     }
 };

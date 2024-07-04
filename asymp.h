@@ -71,6 +71,8 @@ public:
 
     T takemeasureidxed( const int idx ) override
     {
+        if (idx >= this->sz)
+            std::cout << "Error in size of abstractmemorymeasure\n";
         if (!computed[idx]) {
             computed[idx] = true;
             res[idx] = abstractmeasure<T>::takemeasureidxed(idx);
@@ -259,7 +261,7 @@ public:
     std::string shortname() override {return "cr3";}
     embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
-        return (embeds(flagns, fp, ns));
+        return (embeds(flagns, fp, ns, 1));
     }
 };
 
@@ -454,11 +456,11 @@ protected:
     //std::vector<abstractmemorymeasure<bool>*> cs;
     logicalsentence ls;
     std::vector<bool*> variables {};
-    const int sz;
+    const int sz2;
 
 public:
-    std::string shortname() override {return "crSENTENCE";}
 
+    std::string shortname() override {return "crSENTENCE";}
     bool takemeasureidxed( const int idx ) override {
         if (!computed[idx]) {
             std::vector<bool> tmpres {};
@@ -473,7 +475,9 @@ public:
 
     sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence, std::string stringin )
         : abstractmemorymeasure<bool>(stringin == "" ? "logical sentence of several criteria" : stringin),
-            variables{variablesin}, ls{parsesentence(sentence)}, sz{szin} {}
+            variables{variablesin}, ls{parsesentence(sentence)}, sz2{szin} {
+        setsize(sz2);
+    }
 
 };
 
@@ -551,18 +555,19 @@ public:
 
 class notcriteria : public abstractmemorymeasure<bool> {
 protected:
-    const int sz;
+    const int nsz;
     std::vector<bool*> variables {};
 public:
     std::string shortname() override {return "crNOT";}
     std::vector<bool> neg {};
     std::vector<bool*> res {};
     notcriteria(std::vector<bool*> variablesin, const int szin, std::vector<bool> negin)
-        : abstractmemorymeasure<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, sz{szin}
+        : abstractmemorymeasure<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, nsz{szin}
     {
+        setsize(nsz);
         res.resize(variables.size());
         for (int i = 0; i < variables.size(); ++i)
-            res[i] = (bool*)malloc(sz*sizeof(bool));
+            res[i] = (bool*)malloc(nsz*sizeof(bool));
     }
 
     ~notcriteria()
@@ -577,7 +582,7 @@ public:
     {
         for (int i = 0; i < res.size(); ++i)
         {
-            res[i][idx] = variables[i][idx] != neg[i];
+            res[i][idx] = (variables[i][idx]) != neg[i];
         }
         // technically the return value should be a vector
         if (!res.empty()) {

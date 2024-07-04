@@ -108,7 +108,7 @@ public:
                 cyclefp[i].nscnt = 0;
                 cyclefp[i].v = i;
                 cyclefp[i].parent = nullptr;
-                cyclefp[i].invert = cyclens->degrees[i] >= int(n+1/2); // = 2
+                cyclefp[i].invert = cyclens->degrees[i] >= int((n+1)/2); // = 2
             }
             takefingerprint(cyclens,cyclefp,n);
             cyclefps.push_back(cyclefp);
@@ -129,7 +129,7 @@ public:
         bool embedsbool = false;
         if (g->dim < cyclegraphs.size()) {
             while (!embedsbool && n <= g->dim) {
-                embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns);
+                embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns, 1);
                 ++n;
             }
             if (embedsbool)
@@ -155,14 +155,13 @@ public:
                 cyclefps.push_back(cyclefp);
             }
             while (!embedsbool && n <= g->dim) {
-                embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns);
+                embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns,1);
                 ++n;
             }
             if (embedsbool)
                 return n-1;
         }
         if (!embedsbool) {
-            //std::cout << "Error in girthmeasure: no cycles embed\n";
             return 0;
         }
 
@@ -221,7 +220,7 @@ public:
     virtual std::string shortname() {return "_mzc";}
 
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
-        return am->takemeasure(g,ns) == 0;
+        return (abs(am->takemeasure(g,ns))) < 0.1;
     }
     measurezerocriterion(abstractmeasure<float>* amin)
         : abstractmemorymeasure<bool>(amin->name + " measure zero"), am{amin} {}
