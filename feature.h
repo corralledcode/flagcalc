@@ -104,6 +104,9 @@ public:
         osadjacencymatrix(std::cout,g);
         osneighbors(std::cout,ns);
 
+        auto tc = new treecriterion();
+        std::cout << "tree criterion == " << tc->takemeasure(g,ns) << "\n";
+
         delete ns;
         //free( g->adjacencymatrix );
         delete g;
@@ -1561,12 +1564,14 @@ public:
         auto (*cr1)() = factory<trianglefreecriterion,bool>;
         auto (*tc)() = factory<treecriterion,bool>;
         auto (*kn)() = factory<knparameterizedcriterion,bool>;
+        auto (*ltc)() = factory<legacytreecriterion,bool>;
 
         crsfactory.push_back(*c1);
         //crsfactory.push_back(*nc);
         crsfactory.push_back(*cr1);
         crsfactory.push_back(*tc);
         crsfactory.push_back(*kn);
+        crsfactory.push_back(*ltc);
 
         // ...
 

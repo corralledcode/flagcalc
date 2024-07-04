@@ -227,15 +227,19 @@ public:
         : abstractmemorymeasure<bool>(amin->name + " measure zero"), am{amin} {}
 };
 
-class treecriterion : public measurezerocriterion{
+
+
+
+
+class legacytreecriterion : public measurezerocriterion{
 protected:
 public:
-    std::string name = "treecriterion";
+    std::string name = "legacytreecriterion";
 
-    virtual std::string shortname() {return "tc";}
+    virtual std::string shortname() {return "ltc";}
 
-    treecriterion() : measurezerocriterion(new girthmeasure()) {}
-    ~treecriterion() {
+    legacytreecriterion() : measurezerocriterion(new girthmeasure()) {}
+    ~legacytreecriterion() {
         delete am;
     }
 };

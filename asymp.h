@@ -603,4 +603,83 @@ template<typename T,typename M> abstractmeasure<M>* factory(void) {
 }
 
 
+class treecriterion : public abstractmemorymeasure<bool>
+{
+public:
+    virtual std::string shortname() {return "tc";}
+
+    treecriterion() : abstractmemorymeasure<bool>("Tree criterion") {}
+
+    bool takemeasure( const graphtype* g, const neighbors* ns ) override
+    {
+        int dim = g->dim;
+        if (dim <= 0)
+            return true;
+        int* visited = (int*)malloc(dim*sizeof(int));
+
+        for (int i = 0; i < dim; ++i)
+        {
+            visited[i] = -1;
+        }
+
+        visited[0] = 0;
+        bool allvisited = false;
+        while (!allvisited)
+        {
+            bool changed = false;
+            for ( int i = 0; i < dim; ++i)
+            {
+                if (visited[i] >= 0)
+                {
+                    for (int j = 0; j < ns->degrees[i]; ++j)
+                    {
+                        vertextype nextv = ns->neighborslist[i*dim+j];
+                        // loop = if a neighbor of vertex i is found in visited
+                        // and that neighbor is not the origin of vertex i
+                        bool loop = false;
+                        if (visited[nextv] >= 0)
+                            if (visited[nextv] != i)
+                                if (visited[i] != nextv)
+                                    loop = true;
+
+                        if (loop)
+                        {
+                            free (visited);
+                            return false;
+                        }
+                        if (visited[nextv] < 0)
+                        {
+                            visited[nextv] = i;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            if (!changed) {
+                allvisited = true;
+                int firstunvisited = 0;
+                while( allvisited && (firstunvisited < dim))
+                {
+                    allvisited &= (visited[firstunvisited] != -1);
+                    ++firstunvisited;
+                }
+                if (allvisited)
+                {
+                    free (visited);
+                    return true;
+                }
+                visited[firstunvisited-1] = firstunvisited-1;
+                changed = true;
+            }
+
+        }
+
+    }
+
+
+};
+
+
+
+
 #endif //ASYMP_H
