@@ -6,7 +6,7 @@
 #include "graphs.h"
 #include "asymp.h"
 // how many cycles to compute in advance, e.g. in girthmeasure
-#define GRAPH_PRECOMPUTECYCLESCNT 20
+#define GRAPH_PRECOMPUTECYCLESCNT 15
 
 
 

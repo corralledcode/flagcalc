@@ -1463,8 +1463,8 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
         return false;
     }
     int cnt = 0;
+    auto gtemp = new graphtype(dim1);
     for (int n = 0; (cnt < mincnt) && (n < numberofsubsets); ++n) {
-        auto gtemp = new graphtype(dim1);
         for (int i = 0; i < dim1; ++i) {
             vertextype g2vertex1 = subsets[dim1*n + i];
             for (int j = 0; j < dim1; ++j) {
@@ -1482,9 +1482,9 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
         cnt = (existsiso(ns1,fp,nstemp) ? cnt+1 : cnt);
         //res = res || existsiso( ns1, fp, nstemp );
         free(nstemp);
-        free(gtemp);
 
     }
+    free(gtemp);
 
     //free(subsets);
     return cnt >= mincnt;
