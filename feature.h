@@ -105,7 +105,7 @@ public:
         osneighbors(std::cout,ns);
 
         delete ns;
-        free( g->adjacencymatrix );
+        //free( g->adjacencymatrix );
         delete g;
 
 

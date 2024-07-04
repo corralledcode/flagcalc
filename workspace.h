@@ -180,7 +180,7 @@ public:
     void freemem() override {
         workitems::freemem();
         delete ns;
-        free (g->adjacencymatrix);
+        //free (g->adjacencymatrix);
         delete g;
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {

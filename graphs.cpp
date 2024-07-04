@@ -1463,13 +1463,14 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
         return false;
     }
     int cnt = 0;
+    auto gtemp = new graphtype(dim1);
+    auto nstemp = new neighbors(gtemp);
     for (int n = 0; (cnt < mincnt) && (n < numberofsubsets); ++n) {
-        graphtype gtemp(dim1);
         for (int i = 0; i < dim1; ++i) {
             vertextype g2vertex1 = subsets[dim1*n + i];
             for (int j = 0; j < dim1; ++j) {
                 vertextype g2vertex2 = subsets[dim1*n + j];
-                gtemp.adjacencymatrix[i*dim1+j] = g2->adjacencymatrix[g2vertex1*dim2 + g2vertex2];
+                gtemp->adjacencymatrix[i*dim1+j] = g2->adjacencymatrix[g2vertex1*dim2 + g2vertex2];
             }
         }
 
@@ -1477,10 +1478,14 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
         // when instead simply checking iso for the identity map
         // (that is, allowing the subsets above to be a larger set
         // that contains rearrangements of things already in the set)
-        auto nstemp = new neighbors(&gtemp);
+        nstemp->computeneighborslist();
         cnt = (existsiso(ns1,fp,nstemp) ? cnt+1 : cnt);
         //res = res || existsiso( ns1, fp, nstemp );
     }
+    free(nstemp);
+    //free(gtemp->adjacencymatrix);
+    free(gtemp);
+
     //free(subsets);
     return cnt >= mincnt;
 }
@@ -1754,16 +1759,16 @@ void zerograph(graphtype* g) {
 
 
 
-graphtype cyclegraph( const int dim ) {
-    graphtype res(dim);
-    zerograph(&res);
+graphtype* cyclegraph( const int dim ) {
+    auto res = new graphtype(dim);
+    zerograph(res);
     for (int i = 0; i < dim-1; ++i) {
-        res.adjacencymatrix[i*dim + (i + 1)] = true;
-        res.adjacencymatrix[(i+1)*dim + i] = true;
+        res->adjacencymatrix[i*dim + (i + 1)] = true;
+        res->adjacencymatrix[(i+1)*dim + i] = true;
     }
     if (dim > 2) {
-        res.adjacencymatrix[0 + dim - 1] = true;
-        res.adjacencymatrix[(dim-1)*dim + 0] = true;
+        res->adjacencymatrix[0 + dim - 1] = true;
+        res->adjacencymatrix[(dim-1)*dim + 0] = true;
     }
     return res;
 }

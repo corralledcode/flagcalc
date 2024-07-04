@@ -20,7 +20,7 @@ public:
         adjacencymatrix = (bool*)malloc(dim*dim*sizeof(bool));
     }
     ~graph() {
-        //delete adjacencymatrix;
+        delete adjacencymatrix;
     }
 };
 
@@ -178,6 +178,6 @@ void osmachinereadablegraph(std::ostream &os, graphtype* g);
 
 void zerograph(graphtype* g);
 
-graphtype cyclegraph( const int dim );
+graphtype* cyclegraph( const int dim );
 
 #endif //GRAPHS_H

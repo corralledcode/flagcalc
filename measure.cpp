@@ -99,7 +99,7 @@ public:
     girthmeasure() : abstractmeasure<float>("Graph's girth") {
         for (int n = 0; n < GRAPH_PRECOMPUTECYCLESCNT; ++n) {
             graphtype* cycleg = new graphtype(n);
-            *cycleg = cyclegraph(n);
+            cycleg = cyclegraph(n);
             neighbors* cyclens = new neighbors(cycleg);
             cyclegraphs.push_back(cycleg);
             cycleneighbors.push_back(cyclens);
@@ -121,6 +121,7 @@ public:
             free (cyclefps[i]);
         }
         for (int i = 0; i < cyclegraphs.size(); ++i) {
+            //delete cyclegraphs[i]->adjacencymatrix;
             delete cyclegraphs[i];
             delete cycleneighbors[i];
         }
@@ -141,8 +142,8 @@ public:
             while (!embedsbool && n < g->dim) {
 
 
-                graphtype cycleg = cyclegraph(n);
-                neighbors* cyclens = new neighbors(&cycleg);
+                auto cycleg = cyclegraph(n);
+                neighbors* cyclens = new neighbors(cycleg);
                 FP* cyclefp = (FP*)malloc(n*sizeof(FP));
                 for (int i = 0; i < n; ++i) {
                     cyclefp[i].ns = nullptr;
@@ -153,7 +154,11 @@ public:
                 }
                 takefingerprint(cyclens,cyclefp,n);
                 embedsbool |= embeds(cyclens, cyclefp, ns);
-                ++n;
+                delete cycleg;
+                delete cyclens;
+                freefps(cyclefp,n);
+                delete cyclefp;
+                n++;
             }
             if (embedsbool)
                 return n-1;
