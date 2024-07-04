@@ -128,7 +128,7 @@ public:
         int n = 3;
         bool embedsbool = false;
         if (g->dim < cyclegraphs.size()) {
-            while (!embedsbool && n <= g->dim) {
+            while (!embedsbool && n < g->dim) {
                 embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns);
                 ++n;
             }
@@ -137,7 +137,7 @@ public:
         }
 
         if (g->dim >= cyclegraphs.size()) {
-            for (int j = cyclegraphs.size(); j <= g->dim; ++j) {
+            for (int j = cyclegraphs.size(); j < g->dim; ++j) {
                 auto cycleg = cyclegraph(j);
                 neighbors* cyclens = new neighbors(cycleg);
                 FP* cyclefp = (FP*)malloc(j*sizeof(FP));
