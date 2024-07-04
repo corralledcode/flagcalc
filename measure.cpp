@@ -98,8 +98,7 @@ public:
 
     girthmeasure() : abstractmeasure<float>("Graph's girth") {
         for (int n = 0; n < GRAPH_PRECOMPUTECYCLESCNT; ++n) {
-            graphtype* cycleg = new graphtype(n);
-            cycleg = cyclegraph(n);
+            auto cycleg = cyclegraph(n);
             neighbors* cyclens = new neighbors(cycleg);
             cyclegraphs.push_back(cycleg);
             cycleneighbors.push_back(cyclens);
@@ -121,7 +120,6 @@ public:
             free (cyclefps[i]);
         }
         for (int i = 0; i < cyclegraphs.size(); ++i) {
-            //delete cyclegraphs[i]->adjacencymatrix;
             delete cyclegraphs[i];
             delete cycleneighbors[i];
         }
@@ -129,8 +127,8 @@ public:
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         int n = 3;
         bool embedsbool = false;
-        if (g->dim < GRAPH_PRECOMPUTECYCLESCNT) {
-            while (!embedsbool && n < g->dim) {
+        if (g->dim < cyclegraphs.size()) {
+            while (!embedsbool && n <= g->dim) {
                 embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns);
                 ++n;
             }
@@ -138,27 +136,27 @@ public:
                 return n-1;
         }
 
-        if (g->dim >= GRAPH_PRECOMPUTECYCLESCNT) {
-            while (!embedsbool && n < g->dim) {
-
-
-                auto cycleg = cyclegraph(n);
+        if (g->dim >= cyclegraphs.size()) {
+            for (int j = cyclegraphs.size(); j <= g->dim; ++j) {
+                auto cycleg = cyclegraph(j);
                 neighbors* cyclens = new neighbors(cycleg);
-                FP* cyclefp = (FP*)malloc(n*sizeof(FP));
-                for (int i = 0; i < n; ++i) {
+                FP* cyclefp = (FP*)malloc(j*sizeof(FP));
+                for (int i = 0; i < j; ++i) {
                     cyclefp[i].ns = nullptr;
                     cyclefp[i].nscnt = 0;
                     cyclefp[i].v = i;
                     cyclefp[i].parent = nullptr;
-                    cyclefp[i].invert = cyclens->degrees[i] >= int(n+1/2); // = 2
+                    cyclefp[i].invert = cyclens->degrees[i] >= int(j+1/2); // = 2
                 }
-                takefingerprint(cyclens,cyclefp,n);
-                embedsbool |= embeds(cyclens, cyclefp, ns);
-                delete cycleg;
-                delete cyclens;
-                freefps(cyclefp,n);
-                delete cyclefp;
-                n++;
+                takefingerprint(cyclens,cyclefp,j);
+
+                cyclegraphs.push_back(cycleg);
+                cycleneighbors.push_back(cyclens);
+                cyclefps.push_back(cyclefp);
+            }
+            while (!embedsbool && n <= g->dim) {
+                embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns);
+                ++n;
             }
             if (embedsbool)
                 return n-1;
