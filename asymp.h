@@ -46,6 +46,8 @@ public:
     virtual T takemeasureidxed(const int idx ) {
         return takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
     }
+
+
     abstractmeasure( std::string namein ) :name{namein} {}
 };
 
@@ -79,12 +81,18 @@ public:
         }
         return res[idx];
     }
+
+    virtual void takemeasurethreadsection( const int startidx, const int stopidx ) {
+        for (int i = startidx; i < stopidx; ++i)
+            takemeasureidxed(i);
+    }
+
+
     abstractmemorymeasure( std::string namein ) : abstractmeasure<T>(namein) {}
 };
 
 
-
-class truecriterion : public abstractmeasure<bool>{
+class truecriterion : public abstractmemorymeasure<bool>{
 protected:
 public:
     std::string name = "truecriterion";
@@ -97,7 +105,7 @@ public:
     bool takemeasureidxed( const int idx ) override {
         return true;
     }
-    truecriterion() : abstractmeasure<bool>("always true") {}
+    truecriterion() : abstractmemorymeasure<bool>("always true") {}
 };
 
 /*
@@ -603,7 +611,7 @@ public:
 };
 
 
-template<typename T,typename M> abstractmeasure<M>* factory(void) {
+template<typename T,typename M> abstractmemorymeasure<M>* factory(void) {
     return new T;
 }
 

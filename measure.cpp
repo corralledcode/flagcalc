@@ -10,7 +10,7 @@
 
 
 
-class boolmeasure : public abstractmeasure<float> {
+class boolmeasure : public abstractmemorymeasure<float> {
 public:
     virtual std::string shortname() override {return "bm";}
 
@@ -18,12 +18,12 @@ public:
         return (float)true;
     }
 
-    boolmeasure() : abstractmeasure<float>( "Graph's pass/fail of criterion") {}
+    boolmeasure() : abstractmemorymeasure<float>( "Graph's pass/fail of criterion") {}
 };
 
 
 
-class dimmeasure : public abstractmeasure<float> {
+class dimmeasure : public abstractmemorymeasure<float> {
 public:
     virtual std::string shortname() {return "dm";}
 
@@ -31,20 +31,20 @@ public:
         return g->dim;
     }
 
-    dimmeasure() : abstractmeasure<float>( "Graph's dimension") {}
+    dimmeasure() : abstractmemorymeasure<float>( "Graph's dimension") {}
 };
 
-class edgecntmeasure : public abstractmeasure<float> {
+class edgecntmeasure : public abstractmemorymeasure<float> {
 public:
     virtual std::string shortname() {return "ecm";}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         return edgecnt(g);
     }
-    edgecntmeasure() : abstractmeasure<float>( "Graph's edge count") {}
+    edgecntmeasure() : abstractmemorymeasure<float>( "Graph's edge count") {}
 };
 
-class avgdegreemeasure : public abstractmeasure<float> {
+class avgdegreemeasure : public abstractmemorymeasure<float> {
 public:
     virtual std::string shortname() {return "adm";}
 
@@ -57,10 +57,10 @@ public:
         return sum / ns->dim;
     }
 
-    avgdegreemeasure() : abstractmeasure<float>( "Graph's average degree") {}
+    avgdegreemeasure() : abstractmemorymeasure<float>( "Graph's average degree") {}
 };
 
-class mindegreemeasure : public abstractmeasure<float> {
+class mindegreemeasure : public abstractmemorymeasure<float> {
 public:
     virtual std::string shortname() {return "mdm";}
 
@@ -71,11 +71,11 @@ public:
         }
         return min;
     }
-    mindegreemeasure() : abstractmeasure<float>( "Graph's minimum degree") {}
+    mindegreemeasure() : abstractmemorymeasure<float>( "Graph's minimum degree") {}
 
 };
 
-class maxdegreemeasure : public abstractmeasure<float> {
+class maxdegreemeasure : public abstractmemorymeasure<float> {
 public:
     virtual std::string shortname() {return "Mdm";}
 
@@ -83,11 +83,11 @@ public:
         return ns->maxdegree;
     }
 
-    maxdegreemeasure() : abstractmeasure<float>( "Graph's maximum degree") {}
+    maxdegreemeasure() : abstractmemorymeasure<float>( "Graph's maximum degree") {}
 
 };
 
-class girthmeasure : public abstractmeasure<float> {
+class girthmeasure : public abstractmemorymeasure<float> {
     // "girth" is shortest cycle (Diestel p. 8)
 protected:
     std::vector<graphtype*> cyclegraphs {};
@@ -96,7 +96,7 @@ protected:
 public:
     virtual std::string shortname() {return "gm";}
 
-    girthmeasure() : abstractmeasure<float>("Graph's girth") {
+    girthmeasure() : abstractmemorymeasure<float>("Graph's girth") {
         for (int n = 0; n < GRAPH_PRECOMPUTECYCLESCNT; ++n) {
             auto cycleg = cyclegraph(n);
             neighbors* cyclens = new neighbors(cycleg);
@@ -170,11 +170,11 @@ public:
 };
 
 
-class maxcliquemeasure : public abstractmeasure<float> {
+class maxcliquemeasure : public abstractmemorymeasure<float> {
 public:
     virtual std::string shortname() {return "cm";}
 
-    maxcliquemeasure() : abstractmeasure<float>("Graph's largest clique") {}
+    maxcliquemeasure() : abstractmemorymeasure<float>("Graph's largest clique") {}
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         std::vector<kncriterion*> kns {};
         for (int n = 2; n <= ns->dim; ++n) {
@@ -201,28 +201,28 @@ public:
 class measurenonzerocriterion : public abstractmemorymeasure<bool> {
 public:
     std::string name = "_measurenonzerocriterion";
-    abstractmeasure<float>* am;
+    abstractmemorymeasure<float>* am;
 
     virtual std::string shortname() {return "_mnzc";}
 
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
         return am->takemeasure(g,ns) != 0;
     }
-    measurenonzerocriterion(abstractmeasure<float>* amin)
+    measurenonzerocriterion(abstractmemorymeasure<float>* amin)
         : abstractmemorymeasure<bool>(amin->name + " measure non zero"), am{amin} {}
 };
 
 class measurezerocriterion : public abstractmemorymeasure<bool> {
 public:
     std::string name = "_measurezerocriterion";
-    abstractmeasure<float>* am;
+    abstractmemorymeasure<float>* am;
 
     virtual std::string shortname() {return "_mzc";}
 
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
         return (abs(am->takemeasure(g,ns))) < 0.1;
     }
-    measurezerocriterion(abstractmeasure<float>* amin)
+    measurezerocriterion(abstractmemorymeasure<float>* amin)
         : abstractmemorymeasure<bool>(amin->name + " measure zero"), am{amin} {}
 };
 

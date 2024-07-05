@@ -34,7 +34,7 @@
 
 //#define THREADED7
 
-                                                            #define THREADCHECKCRITERION
+#define THREADCHECKCRITERION
 
 class feature {
 protected:
@@ -1560,10 +1560,10 @@ public:
 template<typename Tc,typename Tm>
 class abstractcheckcriterionfeature : public feature {
 protected:
-    std::vector<abstractmeasure<Tc>*> crs {};
-    std::vector<abstractmeasure<Tc>*(*)()> crsfactory;
-    std::vector<abstractmeasure<Tm>*> mss {};
-    std::vector<abstractmeasure<Tm>*(*)()> mssfactory {};
+    std::vector<abstractmemorymeasure<Tc>*> crs {};
+    std::vector<abstractmemorymeasure<Tc>*(*)()> crsfactory;
+    std::vector<abstractmemorymeasure<Tm>*> mss {};
+    std::vector<abstractmemorymeasure<Tm>*(*)()> mssfactory {};
 public:
     virtual void listoptions() override {
         feature::listoptions();
@@ -1641,8 +1641,8 @@ protected:
     thread_pool* pool;
 
 public:
-    std::vector<abstractmeasure<bool>*> cs {};
-    std::vector<abstractmeasure<float>*> ms {};
+    std::vector<abstractmemorymeasure<bool>*> cs {};
+    std::vector<abstractmemorymeasure<float>*> ms {};
     std::vector<std::pair<int,std::string>> mscombinations {};
     std::vector<std::string> sentences {};
 
@@ -1949,16 +1949,41 @@ public:
         glist.resize(items.size());
         // code this to run takefingerprint only once if graph 1 = graph 2
 
-        for (int i = 0; i < items.size(); ++i)
-        {
-            if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[i]])) {
-                nslist[i] = gi->ns;
-                glist[i] = gi->g;
-            } else
-                std::cout << "Error dynamically casting to graphitem*\n";
-        }
 
         std::vector<bool*> res {};
+
+
+        std::vector<int> eqclass {};
+        if (sortedbool) {
+            if (items.size()==0) {
+                std::cout << "No graphs to check criterion over\n";
+                return;
+            }
+
+
+
+            eqclass.push_back(0);
+            for (int m = 0; m < items.size()-1; ++m) {
+                auto gi = (graphitem*)_ws->items[items[m]];
+                bool found = false;
+                for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
+                    if (gi->intitems[r]->name() == "FP") {
+                        auto fpo = (fpoutcome*)gi->intitems[r];
+                        if (fpo->value == 1) {
+                            eqclass.push_back(m+1);
+                            found = true;
+                        }
+                    }
+                }
+            }
+        } else {
+            eqclass.clear();
+            eqclass.resize(items.size());
+            for (int m = 0; m < items.size(); ++m) {
+                eqclass[m] = m;
+            }
+        }
+
 
         if (items.size() >= 1)
         {
@@ -1971,7 +1996,7 @@ public:
 
             res.resize(cs.size());
             for (int i = 0; i < res.size(); ++i)
-                res[i] = (bool*)malloc(items.size()*sizeof(bool));
+                res[i] = (bool*)malloc(eqclass.size()*sizeof(bool));
 
             std::vector<bool> negv {};
             negv.resize(cs.size());
@@ -2029,36 +2054,16 @@ public:
 
 
 
-        std::vector<int> eqclass {};
-        if (sortedbool) {
-            if (items.size()==0) {
-                std::cout << "No graphs to check criterion over\n";
-                return;
-            }
 
-
-
-            eqclass.push_back(0);
-            for (int m = 0; m < items.size()-1; ++m) {
-                auto gi = (graphitem*)_ws->items[items[m]];
-                bool found = false;
-                for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
-                    if (gi->intitems[r]->name() == "FP") {
-                        auto fpo = (fpoutcome*)gi->intitems[r];
-                        if (fpo->value == 1) {
-                            eqclass.push_back(m+1);
-                            found = true;
-                        }
-                    }
-                }
-            }
-        } else {
-            eqclass.clear();
-            eqclass.resize(items.size());
-            for (int m = 0; m < items.size(); ++m) {
-                eqclass[m] = m;
-            }
+        for (int i = 0; i < eqclass.size(); ++i)
+        {
+            if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[i]]])) {
+                nslist[i] = gi->ns;
+                glist[i] = gi->g;
+            } else
+                std::cout << "Error dynamically casting to graphitem*\n";
         }
+
 
         if (ms.empty()) {
             auto newms = (*mssfactory[0])();
@@ -2116,7 +2121,7 @@ public:
         }
 
         for (int l = 0; l < ms.size(); ++l) {
-            ms[l]->setsize(items.size());
+            ms[l]->setsize(eqclass.size());
             ms[l]->gptrs = &glist;
             ms[l]->nsptrs = &nslist;
             //ms[l]->res = new std::vector<float>;
@@ -2136,6 +2141,16 @@ public:
         }
 
 
+
+
+        unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+
+
+
+
+
         for (int k = 0; k < cs.size(); ++k) {
 
 
@@ -2146,17 +2161,21 @@ public:
 
 
 
-            std::vector<std::future<bool>> t {};
+            std::vector<std::future<void>> t {};
             //t.clear();
-            t.resize(eqclass.size());
-            cs[k]->setsize(items.size());
+            t.resize(thread_count);
+            cs[k]->setsize(eqclass.size());
             cs[k]->gptrs = &glist;
             cs[k]->nsptrs = &nslist;
 
+            const float section = float(eqclass.size()) / float(thread_count);
+
 #ifdef THREADCHECKCRITERION
-            for (int m = 0; m < eqclass.size(); ++m) {
-                t[m] = pool->submit(std::bind(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]));
-                //t[m] = std::async(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]);
+            for (int m = 0; m < thread_count; ++m) {
+                const int startidx = int(m*section);
+                const int stopidx = int((m+1.0)*section);
+                //t[m] = pool->submit(std::bind(&abstractmemorymeasure<bool>::takemeasurethreadsection,cs[k],startidx, stopidx ));
+                t[m] = std::async(&abstractmemorymeasure<bool>::takemeasurethreadsection,cs[k],startidx,stopidx);
                 //t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
             }
 #endif
@@ -2164,22 +2183,22 @@ public:
             std::vector<bool> threadbool {};
             threadbool.resize(eqclass.size());
 
-            for (int m = 0; m < eqclass.size(); ++m) {
+            for (int m = 0; m < thread_count; ++m) {
 
 #ifdef THREADCHECKCRITERION
-                while (t[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
-                    pool->run_pending_task();
-                }
-                threadbool[m] = t[m].get();
+//                while (t[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
+//                    pool->run_pending_task();
+//                }
+                t[m].get();
 #else
                 threadbool[m] = cs[k]->takemeasureidxed(eqclass[m]);
 #endif
             }
-            //for (int m = 0; m < eqclass.size(); ++m) {
+            for (int m = 0; m < eqclass.size(); ++m) {
                 //t[m].join();
                 //t[m].detach();
-            //    threadbool[m] = t[m].get();
-            //}
+                threadbool[m] = cs[k]->res[m];
+            }
 
 
             for (int l = 0; l < crmspairs[k].size(); ++l) {
@@ -2200,7 +2219,7 @@ public:
                 {
                     if (threadbool[m])
                     {
-                        f[m] = pool->submit(std::bind(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]], eqclass[m]));
+                        f[m] = pool->submit(std::bind(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]], m));
                         //f[m] = std::async(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
                     }
 
@@ -2232,9 +2251,9 @@ public:
 */
                 for (int m=0; m < eqclass.size(); ++m) {
                     wi->res[m] = threadbool[m];
-                    wi->glist[m] = glist[eqclass[m]];
+                    wi->glist[m] = glist[m];
                     wi->sorted[m] = m;
-                    wi->nslist[m] = nslist[eqclass[m]];
+                    wi->nslist[m] = nslist[m];
                     //auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                     if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]])) {
                         if (l == 0) { // hokey way of saying "do it once", as if outside the nested loops
@@ -2244,7 +2263,7 @@ public:
                         if (k < res.size()) {
                             // recall all the sentence-level criteria were added after malloc
                             if (l == 0)
-                                (res[k])[eqclass[m]] = wi->res[m];
+                                (res[k])[m] = wi->res[m];
                         }
                         wi->meas.resize(eqclass.size());
                         if (wi->res[m]) {
