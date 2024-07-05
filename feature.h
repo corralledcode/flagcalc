@@ -34,6 +34,8 @@
 
 //#define THREADED7
 
+                                                            #define THREADCHECKCRITERION
+
 class feature {
 protected:
     std::istream* _is;
@@ -1647,7 +1649,9 @@ public:
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
+#ifdef THREADCHECKCRITERION
         pool = new thread_pool;
+#endif
     }
 
     ~checkcriterionfeature() {
@@ -2014,7 +2018,7 @@ public:
             }
         }
 
-#ifdef THREADPOOL4
+//#ifdef THREADPOOL4
 
 
         //unsigned const thread_count = std::thread::hardware_concurrency();
@@ -2148,20 +2152,28 @@ public:
             cs[k]->setsize(items.size());
             cs[k]->gptrs = &glist;
             cs[k]->nsptrs = &nslist;
+
+#ifdef THREADCHECKCRITERION
             for (int m = 0; m < eqclass.size(); ++m) {
                 t[m] = pool->submit(std::bind(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]));
                 //t[m] = std::async(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]);
                 //t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
             }
+#endif
 
             std::vector<bool> threadbool {};
             threadbool.resize(eqclass.size());
 
             for (int m = 0; m < eqclass.size(); ++m) {
+
+#ifdef THREADCHECKCRITERION
                 while (t[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
                     pool->run_pending_task();
                 }
                 threadbool[m] = t[m].get();
+#else
+                threadbool[m] = cs[k]->takemeasureidxed(eqclass[m]);
+#endif
             }
             //for (int m = 0; m < eqclass.size(); ++m) {
                 //t[m].join();
@@ -2183,6 +2195,7 @@ public:
                 std::vector<std::future<float>> f {};
                 f.resize(eqclass.size());
 
+#ifdef THREADCHECKCRITERION
                 for (int m =  0; m < eqclass.size(); ++m)
                 {
                     if (threadbool[m])
@@ -2192,16 +2205,22 @@ public:
                     }
 
                 }
+#endif
                 std::vector<float> threadfloat;
                 threadfloat.resize(eqclass.size());
 
                 for (int m = 0; m < eqclass.size(); ++m) {
+#ifdef THREADCHECKCRITERION
                     if (threadbool[m]) {
                         while (f[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
                             pool->run_pending_task();
                         }
                         threadfloat[m] = f[m].get();
                     }
+#else
+                    if (threadbool[m])
+                        threadfloat[m] = ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+#endif
                 }
 
 /*
@@ -2250,7 +2269,7 @@ public:
             free(res[j]);
 
 
-#endif
+//#endif
 
         for (int i = 0; i < fps.size(); ++i) {
             freefps(fps[i],dims[i]);
@@ -2260,21 +2279,6 @@ public:
         for (auto gi : flaggraphitems)
             _ws->items.push_back(gi);
 
-
-
-#ifdef NOTTHREADED4
-
-            for (int j = 0; j < items.size(); ++j) {
-                auto wi = new enumisomorphismsitem;
-                wi->gm = enumisomorphisms(nslist[j],nslist[j]);
-                wi->name = _ws->getuniquename(wi->classname);
-                _ws->items.push_back(wi);
-
-                freefps(fpslist[j].ns,glist[j].dim);
-                free(fpslist[j].ns);
-            }
-
-#endif
 
 
     }
