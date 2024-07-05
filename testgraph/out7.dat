@@ -1,0 +1,650 @@
+
+/* #name=GRAPH1863
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab 
+bf 
+cd 
+de df 
+ef eg eh 
+END
+
+/* #name=GRAPH2369
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ad 
+bc be bg bh 
+ce ch 
+de dh 
+ef 
+fh 
+END
+
+/* #name=GRAPH2595
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ad ag 
+be bg 
+cd ch 
+dh 
+eg 
+fg 
+END
+
+/* #name=GRAPH4471
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+bc be 
+cg 
+ef 
+fg 
+END
+
+/* #name=GRAPH7648
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab af 
+cd cg 
+de 
+eh 
+END
+
+/* #name=GRAPH8184
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ag 
+bc bg 
+ch 
+ef eg 
+fg 
+END
+
+/* #name=GRAPH9427
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab 
+bc be 
+dg dh 
+fh 
+END
+
+/* #name=GRAPH10937
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ac ag 
+cd ce cg 
+ef eh 
+END
+
+/* #name=GRAPH11534
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ah 
+bc be 
+ce 
+de 
+ef eg 
+fh 
+END
+
+/* #name=GRAPH14886
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ae 
+be bf bg 
+cg 
+de 
+ef 
+END
+
+/* #name=GRAPH19310
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+af 
+bc bd be 
+cd cg 
+df dh 
+eh 
+fh 
+END
+
+/* #name=GRAPH21651
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ac af 
+bc 
+cd ce 
+dg dh 
+END
+
+/* #name=GRAPH23285
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab 
+bf 
+cg 
+ef eg 
+fg 
+END
+
+/* #name=GRAPH24212
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ad ag ah 
+bd be 
+ch 
+de df dh 
+ef eg 
+fg 
+END
+
+/* #name=GRAPH24227
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ag 
+bc be 
+cd ce 
+df dh 
+ef eh 
+fg 
+gh 
+END
+
+/* #name=GRAPH28258
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ag 
+cd cf 
+dg 
+END
+
+/* #name=GRAPH31009
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ad ah 
+bc bd 
+ce cf ch 
+dg 
+eh 
+END
+
+/* #name=GRAPH31672
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+bc bd be bg 
+cd ce cf ch 
+eh 
+fg 
+gh 
+END
+
+/* #name=GRAPH37111
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+bc bh 
+ch 
+de df dh 
+fh 
+gh 
+END
+
+/* #name=GRAPH38160
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ad ae 
+bf bg 
+cd cg 
+dg dh 
+END
+
+/* #name=GRAPH38205
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ah 
+cd ce cg 
+de 
+eh 
+END
+
+/* #name=GRAPH40723
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ad 
+bc bd be bf 
+df dg 
+ef 
+gh 
+END
+
+/* #name=GRAPH41678
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ad ah 
+ce ch 
+dh 
+fg 
+END
+
+/* #name=GRAPH41713
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ad af 
+be 
+de df 
+END
+
+/* #name=GRAPH44870
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ac 
+bd be bf 
+df dg 
+eg eh 
+fg 
+END
+
+/* #name=GRAPH52768
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ae ag 
+bd 
+ch 
+df dg 
+eg eh 
+fh 
+gh 
+END
+
+/* #name=GRAPH58074
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ag ah 
+bd 
+cd cg 
+dg dh 
+gh 
+END
+
+/* #name=GRAPH58975
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+bg bh 
+ch 
+eg 
+END
+
+/* #name=GRAPH59727
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ac ad ae 
+be bf bg bh 
+dh 
+fh 
+END
+
+/* #name=GRAPH65385
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ac ag 
+bg 
+dg dh 
+ef eg 
+fh 
+gh 
+END
+
+/* #name=GRAPH65613
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ah 
+be bf bh 
+cg 
+df dh 
+fg 
+END
+
+/* #name=GRAPH66187
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ag 
+be bh 
+dg 
+eg 
+fg fh 
+gh 
+END
+
+/* #name=GRAPH68884
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ad af 
+be bf bg 
+df dh 
+eh 
+fg fh 
+END
+
+/* #name=GRAPH72241
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+bd bf bh 
+cd cf cg 
+de dg 
+eg 
+END
+
+/* #name=GRAPH74471
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+af ag 
+bc 
+ce cg 
+de 
+eh 
+END
+
+/* #name=GRAPH75539
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ae ah 
+cg 
+dg 
+eg 
+fh 
+END
+
+/* #name=GRAPH77731
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab 
+bf 
+ch 
+ef eh 
+END
+
+/* #name=GRAPH77953
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ac af 
+bd bh 
+cd cf 
+dg 
+ef eh 
+fg 
+END
+
+/* #name=GRAPH78612
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+cd cf cg ch 
+eg 
+fh 
+END
+
+/* #name=GRAPH80646
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ad af 
+bh 
+cg 
+df 
+ef 
+fg 
+gh 
+END
+
+/* #name=GRAPH81514
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+af ah 
+bc bd 
+cd ce 
+dg 
+eg 
+END
+
+/* #name=GRAPH82978
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ah 
+cd 
+de dg 
+eg 
+fh 
+END
+
+/* #name=GRAPH85484
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ag 
+bc bf bh 
+dh 
+gh 
+END
+
+/* #name=GRAPH87403
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ae 
+bf 
+cd ch 
+df 
+ef 
+END
+
+/* #name=GRAPH88174
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ac ae ah 
+bg 
+ch 
+gh 
+END
+
+/* #name=GRAPH90506
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ab ac ae af 
+bc bf bg 
+ch 
+fg 
+END
+
+/* #name=GRAPH99908
+ * #kn=0
+ * #cr1=0
+ * #crSENTENCE=1
+ * #bm=1
+ */
+a b c d e f g h END
+ag ah 
+bh 
+ce cf 
+ef 
+fh 
+gh 
+END

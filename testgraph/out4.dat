@@ -1,0 +1,15 @@
+
+/* #name=GRAPH9752
+ * #tc=1
+ * #ltc=0
+ * #crNOT=1
+ * #crAND=1
+ * #bm=1
+ */
+a b c d e f g h END
+ah 
+bg bh 
+cf 
+dh 
+ef 
+END
