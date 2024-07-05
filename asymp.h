@@ -86,6 +86,11 @@ public:
         for (int i = startidx; i < stopidx; ++i)
             takemeasureidxed(i);
     }
+    virtual void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
+        for (int i = startidx; i < stopidx; ++i)
+            if ((*todo)[i])
+                takemeasureidxed(i);
+    }
 
 
     abstractmemorymeasure( std::string namein ) : abstractmeasure<T>(namein) {}

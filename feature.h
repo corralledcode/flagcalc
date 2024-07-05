@@ -2211,44 +2211,49 @@ public:
                 wi->gnames.resize(eqclass.size());
                 wi->nslist.resize(eqclass.size());
 
-                std::vector<std::future<float>> f {};
-                f.resize(eqclass.size());
+                std::vector<std::future<void>> f {};
+                f.resize(thread_count);
+
+                std::vector<bool>* todo = &cs[k]->res;
 
 #ifdef THREADCHECKCRITERION
-                for (int m =  0; m < eqclass.size(); ++m)
+                for (int m =  0; m < thread_count; ++m)
                 {
-                    if (threadbool[m])
-                    {
-                        f[m] = pool->submit(std::bind(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]], m));
+//                    if (threadbool[m])
+//                    {
+                        //f[m] = pool->submit(std::bind(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]], m));
                         //f[m] = std::async(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
-                    }
+//                    }
+                    const int startidx = int(m*section);
+                    const int stopidx = int((m+1.0)*section);
 
+                    f[m] = std::async(&abstractmemorymeasure<float>::takemeasurethreadsectionportion,ms[crmspairs[k][l]],startidx,stopidx,todo);
                 }
 #endif
                 std::vector<float> threadfloat;
                 threadfloat.resize(eqclass.size());
 
-                for (int m = 0; m < eqclass.size(); ++m) {
+                for (int m = 0; m < thread_count; ++m) {
 #ifdef THREADCHECKCRITERION
-                    if (threadbool[m]) {
-                        while (f[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
-                            pool->run_pending_task();
-                        }
-                        threadfloat[m] = f[m].get();
-                    }
+//                    if (threadbool[m]) {
+//                        while (f[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
+//                            pool->run_pending_task();
+//                        }
+                        f[m].get();
+//                  }
 #else
                     if (threadbool[m])
                         threadfloat[m] = ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
 #endif
                 }
 
-/*
+
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
                     if (threadbool[m])
-                        threadfloat[m] = f[m].get();
+                        threadfloat[m] = ms[crmspairs[k][l]]->res[m];
                 }
-*/
+
                 for (int m=0; m < eqclass.size(); ++m) {
                     wi->res[m] = threadbool[m];
                     wi->glist[m] = glist[m];
