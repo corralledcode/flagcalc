@@ -51,9 +51,6 @@ public:
     int* nonneighborslist;
     bool computeneighborslist() {
         maxdegree = -1;
-        neighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
-        nonneighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
-        degrees = (int*)malloc(dim * sizeof(int) );
         int nondegrees[dim];
         for (int n = 0; n < dim; ++n) {
             degrees[n] = 0;
@@ -94,6 +91,9 @@ public:
         }
         dim = g->dim;
         maxdegree = 0;
+        neighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
+        nonneighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
+        degrees = (int*)malloc(dim * sizeof(int) );
         computeneighborslist();
     }
     ~neighbors() {

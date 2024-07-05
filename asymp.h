@@ -71,11 +71,11 @@ public:
 
     T takemeasureidxed( const int idx ) override
     {
-        if (idx >= this->sz)
+        if (idx >= abstractmeasure<T>::sz)
             std::cout << "Error in size of abstractmemorymeasure\n";
         if (!computed[idx]) {
-            computed[idx] = true;
             res[idx] = abstractmeasure<T>::takemeasureidxed(idx);
+            computed[idx] = true;
         }
         return res[idx];
     }

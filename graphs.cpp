@@ -1448,9 +1448,9 @@ void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop,
 
 
 bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt ) {
-    graphtype* g1 = ns1->g;
+    //graphtype* g1 = ns1->g;
     graphtype* g2 = ns2->g;
-    int dim1 = g1->dim;
+    int dim1 = ns1->g->dim;
     int dim2 = g2->dim;
     if (dim2 < dim1)
         return false;

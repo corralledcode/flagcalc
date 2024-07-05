@@ -16,6 +16,7 @@
 #include "prob.h"
 #include "workspace.h"
 #include "mantel.h"
+#include "thread_pool.cpp"
 
 //default is to enumisomorphisms
 #define DEFAULTCMDLINESWITCH "i"
@@ -974,7 +975,7 @@ public:
                 delimetercount = 0;
 
                 threadidx = 0;
-                while (threadidx < thread_count && !done) {
+                while ((threadidx < thread_count) && !done) {
                     foundname[threadidx] = false;
                     done = !(*is >> item);
                     while (!done) {
@@ -1006,6 +1007,7 @@ public:
                 for (int m = 0; m < threadidx; ++m) {
                     res[m] = t[m].get();
                     items[m].clear();
+                    items[m].resize(0);
                 }
 
                 for (int m = 0; m < threadidx; ++m) {
@@ -1633,6 +1635,9 @@ public:
 };
 
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool,float> {
+protected:
+    thread_pool* pool;
+
 public:
     std::vector<abstractmeasure<bool>*> cs {};
     std::vector<abstractmeasure<float>*> ms {};
@@ -1641,10 +1646,12 @@ public:
 
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
-    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
+    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
+        pool = new thread_pool;
+    }
 
     ~checkcriterionfeature() {
-       for (int i = 0; i < cs.size(); ++i) {
+        for (int i = 0; i < cs.size(); ++i) {
            bool found = false;
            for (int j = 0; !found && j < crs.size(); ++j) {
                found |= crs[j] == cs[i];
@@ -1661,6 +1668,7 @@ public:
             if (!found)
                 delete ms[i];
         }
+
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
@@ -1712,6 +1720,7 @@ public:
         {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
                 takeallgraphitems = true;
+                sortedbool = false;
                 continue;
             }
             if ((parsedargs[i].first == "default") && (parsedargs[i].second == CMDLINE_ENUMISOSSORTED)) {
@@ -1756,7 +1765,7 @@ public:
                     fp[j].ns = nullptr;
                     fp[j].nscnt = dim;
                     fp[j].parent = nullptr;
-                    fp[j].invert = gi->ns->degrees[j] >= (dim+1)/2;
+                    fp[j].invert = gi->ns->degrees[j] >= int((dim+1)/2);
                 }
                 takefingerprint(gi->ns,fp,dim);
 
@@ -1964,7 +1973,7 @@ public:
             negv.resize(cs.size());
             for (int i = 0; i < negv.size(); ++i)
             {
-                negv[i] == false;
+                negv[i] = false;
             }
             for (int i = 0; i < neg.size(); ++i)
             {
@@ -2041,18 +2050,23 @@ public:
             }
         } else {
             eqclass.clear();
+            eqclass.resize(items.size());
             for (int m = 0; m < items.size(); ++m) {
-                eqclass.push_back(m);
+                eqclass[m] = m;
             }
         }
 
         if (ms.empty()) {
-            ms.push_back(mss[0]);
+            auto newms = (*mssfactory[0])();
+            ms.push_back(newms);
+            //ms.push_back(mss[0]);
             //std::cout << ms[0]->name << "\n";
         }
 
         std::vector<std::vector<int>> crmspairs;
         crmspairs.resize(cs.size());
+        for (int c = 0; c < cs.size(); ++c)
+            crmspairs[c].clear();
         for (int m = 0; m < ms.size(); ++m) {
             bool all = true;
             bool allsuperceded = false;
@@ -2116,23 +2130,45 @@ public:
                 done[k][i] = false;
             }
         }
+
+
         for (int k = 0; k < cs.size(); ++k) {
+
+
+
+
+
+
+
+
+
             std::vector<std::future<bool>> t {};
+            //t.clear();
             t.resize(eqclass.size());
             cs[k]->setsize(items.size());
             cs[k]->gptrs = &glist;
             cs[k]->nsptrs = &nslist;
             for (int m = 0; m < eqclass.size(); ++m) {
-                t[m] = std::async(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]);
+                t[m] = pool->submit(std::bind(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]));
+                //t[m] = std::async(&abstractmeasure<bool>::takemeasureidxed,cs[k],eqclass[m]);
                 //t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
             }
+
             std::vector<bool> threadbool {};
             threadbool.resize(eqclass.size());
+
             for (int m = 0; m < eqclass.size(); ++m) {
-                //t[m].join();
-                //t[m].detach();
+                while (t[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
+                    pool->run_pending_task();
+                }
                 threadbool[m] = t[m].get();
             }
+            //for (int m = 0; m < eqclass.size(); ++m) {
+                //t[m].join();
+                //t[m].detach();
+            //    threadbool[m] = t[m].get();
+            //}
+
 
             for (int l = 0; l < crmspairs[k].size(); ++l) {
                 auto wi = new checkcriterionmeasureitem<bool,float>(*cs[k],*ms[crmspairs[k][l]]);
@@ -2146,22 +2182,35 @@ public:
 
                 std::vector<std::future<float>> f {};
                 f.resize(eqclass.size());
+
                 for (int m =  0; m < eqclass.size(); ++m)
                 {
                     if (threadbool[m])
                     {
-                        f[m] = std::async(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
+                        f[m] = pool->submit(std::bind(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]], eqclass[m]));
+                        //f[m] = std::async(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
                     }
 
                 }
-                std::vector<float> threadfloat {};
+                std::vector<float> threadfloat;
                 threadfloat.resize(eqclass.size());
+
+                for (int m = 0; m < eqclass.size(); ++m) {
+                    if (threadbool[m]) {
+                        while (f[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
+                            pool->run_pending_task();
+                        }
+                        threadfloat[m] = f[m].get();
+                    }
+                }
+
+/*
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
                     if (threadbool[m])
                         threadfloat[m] = f[m].get();
                 }
-
+*/
                 for (int m=0; m < eqclass.size(); ++m) {
                     wi->res[m] = threadbool[m];
                     wi->glist[m] = glist[eqclass[m]];
