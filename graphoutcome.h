@@ -112,12 +112,14 @@ public:
 
 template<typename Tm>
 class abstractmeasureoutcome : public graphoutcome<Tm> {
-public:
-    abstractmeasure<Tm>* ms;
+    std::string _shortname;
+    std::string _name;
+    public:
+//    abstractmeasure<Tm>* ms; // commented to allow it's deletion earlier
     abstractmeasureoutcome(abstractmeasure<Tm>* msin, const graphitem* giin, Tm newmvalue)
-        : graphoutcome<Tm>(giin,newmvalue),ms{msin} {}
-    std::string name() override {return ms->shortname(); /*"_abstractcriterion"*/}
-    std::string longname() override {return ms->name;}
+        : graphoutcome<Tm>(giin,newmvalue),_shortname{msin->shortname()}, _name{msin->name} {}
+    std::string name() override {return _shortname;}
+    std::string longname() override {return _name;}
 };
 
 

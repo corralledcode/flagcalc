@@ -1638,7 +1638,6 @@ public:
 
 class checkcriterionfeature : public abstractcheckcriterionfeature<bool,float> {
 protected:
-    thread_pool* pool;
 
 public:
     std::vector<abstractmemorymeasure<bool>*> cs {};
@@ -1648,11 +1647,7 @@ public:
 
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
-    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
-#ifdef THREADCHECKCRITERION
-        pool = new thread_pool;
-#endif
-    }
+    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
 
     ~checkcriterionfeature() {
         for (int i = 0; i < cs.size(); ++i) {
@@ -2303,6 +2298,13 @@ public:
         for (auto gi : flaggraphitems)
             _ws->items.push_back(gi);
 
+        for (auto m : ms)
+            delete m;
+        ms.clear();
+
+        for (auto c : cs)
+            delete c;
+        cs.clear();
 
 
     }
