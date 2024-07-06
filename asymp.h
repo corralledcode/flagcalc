@@ -180,7 +180,10 @@ class kncriterion : public abstractmemorymeasure<bool> {
 public:
     const int n;
     bool takemeasure( const graphtype* g, const neighbors* ns, const int mincnt = 1)  {
+        if (n <= 0)
+            return true;
         int dim = g->dim;
+
 
         std::vector<int> subsets {};
         enumsizedsubsets(0,n,nullptr,0,dim,&subsets);
@@ -234,7 +237,7 @@ public:
     std::string shortname() override {return "kn";}
     void populatekns() {
         kns.resize(KNMAXCLIQUESIZE);
-        for (int i = 1; i < KNMAXCLIQUESIZE; ++i) {
+        for (int i = 0; i < KNMAXCLIQUESIZE; ++i) {
             auto kn = new kncriterion(i);
             kns[i] = kn;
         }
@@ -246,7 +249,7 @@ public:
             int mincnt = 1;
             if (ps.size() == 2 && is_number(ps[1]))
                 mincnt = stoi(ps[1]);
-            if (sz <= KNMAXCLIQUESIZE)
+            if (0<=sz && sz <= KNMAXCLIQUESIZE)
                 return kns[stoi(ps[0])]->takemeasure(g,ns,mincnt);
             else {
                 std::cout<< "Increase KNMAXCLIQUESIZE compiler define (current value " + std::to_string(KNMAXCLIQUESIZE) + ")";
