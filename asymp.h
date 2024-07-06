@@ -576,32 +576,32 @@ protected:
 public:
     std::string shortname() override {return "crNOT";}
     std::vector<bool> neg {};
-    std::vector<bool*> res {};
+    std::vector<bool*> resnot {};
     notcriteria(std::vector<bool*> variablesin, const int szin, std::vector<bool> negin)
         : abstractmemorymeasure<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, nsz{szin}
     {
         setsize(nsz);
-        res.resize(variables.size());
+        resnot.resize(variables.size());
         for (int i = 0; i < variables.size(); ++i)
-            res[i] = (bool*)malloc(nsz*sizeof(bool));
+            resnot[i] = (bool*)malloc(nsz*sizeof(bool));
     }
 
     ~notcriteria()
     {
-        for (int i = 0; i < res.size(); ++i)
+        for (int i = 0; i < resnot.size(); ++i)
         {
-            free(res[i]);
+            free(resnot[i]);
         }
     }
 
     bool takemeasureidxed(const int idx) override
     {
-        for (int i = 0; i < res.size(); ++i)
+        for (int i = 0; i < resnot.size(); ++i)
         {
-            res[i][idx] = (variables[i][idx]) != neg[i];
+            resnot[i][idx] = (variables[i][idx]) != neg[i];
         }
         // technically the return value should be a vector
-        if (!res.empty()) {
+        if (!resnot.empty()) {
             bool found = false;
             int i = 0;
             while(!found && (i < neg.size())) {
@@ -609,9 +609,15 @@ public:
                 ++i;
             }
             if (found && (i > 0))
-                return res[i-1][idx];
+            {
+                res[idx] = resnot[i-1][idx];
+                return res[idx];;
+            }
             else
-                return res[0][idx];
+            {
+                res[idx] = resnot[0][idx];
+                return res[idx];
+            }
         } else
             return true;
     }
@@ -699,6 +705,13 @@ public:
 
 
 };
+
+
+
+
+
+
+
 
 
 

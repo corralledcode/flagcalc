@@ -198,6 +198,7 @@ public:
 
 
 
+template<typename T>
 class measurenonzerocriterion : public abstractmemorymeasure<bool> {
 public:
     std::string name = "_measurenonzerocriterion";
@@ -208,39 +209,155 @@ public:
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
         return am->takemeasure(g,ns) != 0;
     }
-    measurenonzerocriterion(abstractmemorymeasure<float>* amin)
-        : abstractmemorymeasure<bool>(amin->name + " measure non zero"), am{amin} {}
+    measurenonzerocriterion(abstractmemorymeasure<T>* amin)
+        : abstractmemorymeasure<bool>(amin->name + " measure non-zero"), am{amin} {}
 };
 
+template<typename T>
 class measurezerocriterion : public abstractmemorymeasure<bool> {
 public:
     std::string name = "_measurezerocriterion";
-    abstractmemorymeasure<float>* am;
+    abstractmemorymeasure<T>* am;
 
     virtual std::string shortname() {return "_mzc";}
 
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
-        return (abs(am->takemeasure(g,ns))) < 0.1;
+        return am->takemeasure(g,ns) == 0;
     }
-    measurezerocriterion(abstractmemorymeasure<float>* amin)
+    measurezerocriterion(abstractmemorymeasure<T>* amin)
         : abstractmemorymeasure<bool>(amin->name + " measure zero"), am{amin} {}
+};
+
+template<typename T>
+class measurenonzeroparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool>
+{
+public:
+    std::string name = "_measurenonzeroparameterizedcriterion";
+    abstractmemoryparameterizedmeasure<T>* apm;
+    virtual std::string shortname() override {return "_mnzpc";}
+
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        return apm->takemeasure(g,ns) != 0;
+    }
+    measurenonzeroparameterizedcriterion(abstractmemoryparameterizedmeasure<T>* apmin)
+        : abstractmemoryparameterizedmeasure<bool>(apmin->name + " measure non-zero"), apm{apmin} {}
 };
 
 
 
 
 
-class legacytreecriterion : public measurezerocriterion{
+class legacytreecriterion : public measurezerocriterion<float>{
 protected:
 public:
     std::string name = "legacytreecriterion";
 
     virtual std::string shortname() {return "ltc";}
 
-    legacytreecriterion() : measurezerocriterion(new girthmeasure()) {}
+    legacytreecriterion() : measurezerocriterion<float>(new girthmeasure()) {}
     ~legacytreecriterion() {
         delete am;
     }
 };
+
+
+class connectedmeasure : public  abstractmemoryparameterizedmeasure<float>
+{
+public:
+    virtual std::string shortname() override {return "cnm";}
+
+    connectedmeasure() : abstractmemoryparameterizedmeasure<float>("Connected components") {}
+
+    float takemeasure( const graphtype* g, const neighbors* ns ) override
+    {
+        int breaksize = -1; // by default wait until all connected components are counted
+        if (ps.size() > 0 && is_number(ps[0]))
+            breaksize = stoi(ps[0]);
+
+        int dim = g->dim;
+        if (dim <= 0)
+            return 0;
+
+
+        int* visited = (int*)malloc(dim*sizeof(int));
+
+        for (int i = 0; i < dim; ++i)
+        {
+            visited[i] = -1;
+        }
+
+        visited[0] = 0;
+        int res = 1;
+        bool allvisited = false;
+        while (!allvisited)
+        {
+            bool changed = false;
+            for ( int i = 0; i < dim; ++i)
+            {
+                if (visited[i] >= 0)
+                {
+                    for (int j = 0; j < ns->degrees[i]; ++j)
+                    {
+                        vertextype nextv = ns->neighborslist[i*dim+j];
+                        // loop = if a neighbor of vertex i is found in visited
+                        // and that neighbor is not the origin of vertex i
+
+                        if (visited[nextv] < 0)
+                        {
+                            visited[nextv] = i;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            if (!changed) {
+                allvisited = true;
+                int firstunvisited = 0;
+                while( allvisited && (firstunvisited < dim))
+                {
+                    allvisited &= (visited[firstunvisited] != -1);
+                    ++firstunvisited;
+                }
+                if (allvisited)
+                {
+                    free (visited);
+                    return res;
+                }
+                res++;
+                if (breaksize >=0 && res >= breaksize)
+                    return res;
+                visited[firstunvisited-1] = firstunvisited-1;
+                changed = true;
+            }
+
+        }
+
+    }
+
+
+};
+
+class connectedcriterion : public  abstractmemoryparameterizedmeasure<bool>
+{
+public:
+    virtual std::string shortname() override {return "cc";}
+
+    connectedmeasure* cm;
+    connectedcriterion() : abstractmemoryparameterizedmeasure<bool>("Connected graph")
+    {
+        cm = new connectedmeasure;
+        setparams({"2"});
+    }
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        return cm->takemeasure(g,ns) <= 1;
+    }
+    ~connectedcriterion()
+    {
+        delete cm;
+    }
+};
+
 
 

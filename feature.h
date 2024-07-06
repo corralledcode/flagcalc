@@ -107,13 +107,20 @@ public:
         osadjacencymatrix(std::cout,g);
         osneighbors(std::cout,ns);
 
-        auto tc = new treecriterion();
-        std::cout << "tree criterion == " << tc->takemeasure(g,ns) << "\n";
+//        auto tc = new treecriterion();
+//        std::cout << "tree criterion == " << tc->takemeasure(g,ns) << "\n";
+
+        auto cm = new connectedmeasure();
+        std::cout << "connected measure == " << cm->takemeasure(g,ns) << "\n";
+        auto cc = new connectedcriterion();
+        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
 
         delete ns;
         //free( g->adjacencymatrix );
         delete g;
-
+//        delete tc;
+        delete cm;
+        delete cc;
 
         /*
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
@@ -1578,6 +1585,7 @@ public:
         auto (*tc)() = factory<treecriterion,bool>;
         auto (*kn)() = factory<knparameterizedcriterion,bool>;
         auto (*ltc)() = factory<legacytreecriterion,bool>;
+        auto (*cc)() = factory<connectedcriterion,bool>;
 
         crsfactory.push_back(*c1);
         //crsfactory.push_back(*nc);
@@ -1585,6 +1593,7 @@ public:
         crsfactory.push_back(*tc);
         crsfactory.push_back(*kn);
         crsfactory.push_back(*ltc);
+        crsfactory.push_back(*cc);
 
         // ...
 
@@ -1605,6 +1614,7 @@ public:
         auto (*ms6)() = factory<maxdegreemeasure,float>;
         auto (*ms7)() = factory<girthmeasure,float>;
         auto (*mc)() = factory<maxcliquemeasure,float>;
+        auto (*cnm)() = factory<connectedmeasure,float>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1614,6 +1624,7 @@ public:
         mssfactory.push_back(*ms6);
         mssfactory.push_back(*ms7);
         mssfactory.push_back(*mc);
+        mssfactory.push_back(*cnm);
 
         // ,,,
 
@@ -1650,6 +1661,7 @@ public:
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
 
     ~checkcriterionfeature() {
+        /*
         for (int i = 0; i < cs.size(); ++i) {
            bool found = false;
            for (int j = 0; !found && j < crs.size(); ++j) {
@@ -1667,7 +1679,7 @@ public:
             if (!found)
                 delete ms[i];
         }
-
+*/
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
@@ -2002,7 +2014,7 @@ public:
             for (int i = 0; i < neg.size(); ++i)
             {
                 if (neg[i].first < negv.size())
-                    negv[neg[i].first] = neg[i].second;
+                    negv[neg[i].first] = true;
             }
             if (!neg.empty())
             {
@@ -2010,15 +2022,15 @@ public:
                 cs.push_back(nc);
 
                 if (sentences.empty() && !cs.empty() && andmode) {
-                    cs.push_back(new andcriteria(nc->res,items.size()));
+                    cs.push_back(new andcriteria(nc->resnot,items.size()));
                 }
 
                 if (sentences.empty() && !cs.empty() && ormode) {
-                    cs.push_back(new orcriteria(nc->res,items.size()));
+                    cs.push_back(new orcriteria(nc->resnot,items.size()));
                 }
 
                 for (auto s: sentences)
-                    cs.push_back(new sentenceofcriteria(nc->res,items.size(),s,"Logical sentence " +s));
+                    cs.push_back(new sentenceofcriteria(nc->resnot,items.size(),s,"Logical sentence " +s));
                 // inside the quotes in the line above put a more descriptive name
             } else
             {
