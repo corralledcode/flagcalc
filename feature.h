@@ -110,17 +110,22 @@ public:
 //        auto tc = new treecriterion();
 //        std::cout << "tree criterion == " << tc->takemeasure(g,ns) << "\n";
 
-        auto cm = new connectedmeasure();
-        std::cout << "connected measure == " << cm->takemeasure(g,ns) << "\n";
-        auto cc = new connectedcriterion();
-        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
+//        auto cm = new connectedmeasure();
+//        std::cout << "connected measure == " << cm->takemeasure(g,ns) << "\n";
+//        auto cc = new connectedcriterion();
+//        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
 
+        auto rm = new radiusmeasure();
+        auto tmp = rm->takemeasure(g,ns);
+        std::cout << "radius measure == " << tmp << "\n";
+
+        delete rm;
         delete ns;
         //free( g->adjacencymatrix );
         delete g;
 //        delete tc;
-        delete cm;
-        delete cc;
+        // delete cm;
+        // delete cc;
 
         /*
         std::vector<std::pair<std::string,std::string>> res = cmdlineparseiterationtwo(args);
@@ -1615,6 +1620,7 @@ public:
         auto (*ms7)() = factory<girthmeasure,float>;
         auto (*mc)() = factory<maxcliquemeasure,float>;
         auto (*cnm)() = factory<connectedmeasure,float>;
+        auto (*rm)() = factory<radiusmeasure,float>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1625,6 +1631,7 @@ public:
         mssfactory.push_back(*ms7);
         mssfactory.push_back(*mc);
         mssfactory.push_back(*cnm);
+        mssfactory.push_back(*rm);
 
         // ,,,
 

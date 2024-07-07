@@ -222,7 +222,7 @@ public:
     virtual std::string shortname() {return "_mzc";}
 
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
-        return am->takemeasure(g,ns) == 0;
+        return (abs(am->takemeasure(g,ns))) < 0.1;
     }
     measurezerocriterion(abstractmemorymeasure<T>* amin)
         : abstractmemorymeasure<bool>(amin->name + " measure zero"), am{amin} {}
@@ -361,3 +361,111 @@ public:
 
 
 
+class radiusmeasure : public  abstractmemoryparameterizedmeasure<float>
+{
+public:
+    virtual std::string shortname() override {return "rm";}
+
+    radiusmeasure() : abstractmemoryparameterizedmeasure<float>("Graph radius") {}
+
+    float takemeasure( const graphtype* g, const neighbors* ns ) override {
+        int breaksize = -1; // by default wait until finding the actual (extreme) radius
+        if (ps.size() > 0 && is_number(ps[0]))
+            breaksize = stoi(ps[0]);
+
+        int dim = g->dim;
+        if (dim <= 0)
+            return 0;
+
+
+        int* distances = (int*)malloc(dim*dim*sizeof(int));
+        int* dextremes = (int*)malloc(dim*sizeof(int));
+        std::vector<vertextype> nextvs {};
+
+        for (int i = 0; i < dim; ++i)
+        {
+            dextremes[i] = 0;
+            for (int j = 0; j < dim; ++j)
+                distances[i*dim + j] = -1;
+        }
+
+        int v = -1;
+        int nextv = 0;
+        bool changed = true;
+        int distance = 0;
+        v = nextv;
+        distances[v*dim + v] = distance;
+        while (v != -1) {
+            while (changed) {
+                changed = false;
+                for (int w = 0; w < dim; ++w) {
+                    if (distances[v*dim + w] == distance ) {
+                        for (int x = 0; x < ns->degrees[w]; ++x) {
+                            int newv = ns->neighborslist[w*dim + x];
+                            if (distances[v*dim + newv] < 0) {
+                                distances[v*dim + newv] = distance+1;
+                                //distances[newv*dim + v] = distance+1;
+                                changed = true;
+                                nextvs.push_back(newv);
+                            }
+                        }
+                    }
+                }
+                if (changed)
+                    distance++;
+            }
+            dextremes[v] = distance;
+            if ((breaksize >= 0) && (distance > breaksize)) {
+                delete distances;
+                delete dextremes;
+                return distance;  // the parameterized break-out option
+            }
+
+
+            nextv = v;
+            while (dextremes[nextv] > 0) {
+                nextv = nextv + 1;
+                if (nextv >= dim)
+                    nextv = 0;
+                if (nextv == v)
+                    break;
+            }
+            if (nextv == v) {
+                v = -1;
+            } else {
+                distance = 0;
+                v = nextv;
+                nextvs.clear();
+                changed = true;
+                distances[v*dim + v] = distance;
+            }
+
+            /*
+            int nextvidx = (int)((distance - 1) / 2);
+            nextv = nextvs[nextvidx];
+            int startingpoint = nextvidx > 0 ? nextvidx-1 : distance;
+            while ((dextremes[nextv] > 0) && (nextvidx+1 != startingpoint)) {
+                nextvidx++;
+                if (nextvidx >= distance)
+                    nextvidx = 0;
+                nextv = nextvs[nextvidx];
+            }
+            if (nextvidx == startingpoint)
+                v = -1;
+            else {
+                distance = 0;
+                v = nextv;
+                nextvs.clear();
+            }*/
+        }
+        int min = dim + 1;
+        for (int i = 0; i < dim; ++i) {
+            std::cout << dextremes[i] << "\n";
+            min = dextremes[i] < min ? dextremes[i] : min;
+        }
+        delete distances;
+        delete dextremes;
+        return min;
+    }
+
+};
