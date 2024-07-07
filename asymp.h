@@ -108,6 +108,7 @@ public:
         return true;
     }
     bool takemeasureidxed( const int idx ) override {
+        res[idx] = true;
         return true;
     }
     truecriterion() : abstractmemorymeasure<bool>("always true") {}

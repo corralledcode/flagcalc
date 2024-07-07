@@ -460,7 +460,7 @@ public:
         }
         int min = dim + 1;
         for (int i = 0; i < dim; ++i) {
-            std::cout << dextremes[i] << "\n";
+            //std::cout << dextremes[i] << "\n";
             min = dextremes[i] < min ? dextremes[i] : min;
         }
         delete distances;
