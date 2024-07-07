@@ -18,14 +18,6 @@ public:
         return (float)true;
     }
 
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
 
     boolmeasure() : abstractmemorymeasure<float>( "Graph's pass/fail of criterion") {}
 };
@@ -40,14 +32,6 @@ public:
         return g->dim;
     }
 
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
 
     dimmeasure() : abstractmemorymeasure<float>( "Graph's dimension") {}
 };
@@ -58,14 +42,6 @@ public:
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         return edgecnt(g);
-    }
-
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
     }
 
     edgecntmeasure() : abstractmemorymeasure<float>( "Graph's edge count") {}
@@ -84,14 +60,6 @@ public:
         return sum / ns->dim;
     }
 
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
     avgdegreemeasure() : abstractmemorymeasure<float>( "Graph's average degree") {}
 };
 
@@ -107,14 +75,6 @@ public:
         return min;
     }
 
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
     mindegreemeasure() : abstractmemorymeasure<float>( "Graph's minimum degree") {}
 
 };
@@ -125,14 +85,6 @@ public:
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         return ns->maxdegree;
-    }
-
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
     }
 
 
@@ -220,15 +172,6 @@ public:
 
     }
 
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
-
 };
 
 
@@ -254,15 +197,6 @@ public:
         kns.clear();
         return ns->dim;
     }
-
-    float takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
 
 
 };
@@ -442,7 +376,7 @@ public:
     radiusmeasure() : abstractmemoryparameterizedmeasure<float>("Graph radius") {}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) override {
-        int breaksize = -1; // by default wait until finding the actual (extreme) radius
+        int breaksize = -1; // by default wait until finding the actual (minimal) radius
         if (ps.size() > 0 && is_number(ps[0]))
             breaksize = stoi(ps[0]);
 

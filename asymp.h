@@ -48,7 +48,8 @@ public:
     }
 
 
-    abstractmeasure( std::string namein ) :name{namein} {}
+    explicit abstractmeasure( const std::string namein ) :name{namein} {}
+    virtual ~abstractmeasure() = default;
 };
 
 
@@ -57,43 +58,51 @@ template<typename T>
 class abstractmemorymeasure : public abstractmeasure<T>{
 protected:
 public:
-    std::vector<T> res {};
-    std::vector<bool> computed;
+    T* res = nullptr;
+    bool* computed = nullptr;
     //std::string name = "_abstractmemorymeasure";
 
     void setsize(const int szin) override {
         abstractmeasure<T>::setsize(szin);
-        res.resize(this->sz);
-        computed.resize(this->sz);
-        for (int n = 0; n < computed.size(); ++n)
+        if (res != nullptr)
+            delete res;
+        if (computed != nullptr)
+            delete computed;
+        res = (T*)(malloc(szin*sizeof(T)));
+        computed = (bool*)(malloc(szin*sizeof(bool)));
+        for (int n = 0; n < szin; ++n)
             computed[n] = false;
     }
 
-    virtual std::string shortname() {return "_amc";}
+    std::string shortname() override {return "_amc";}
 
     T takemeasureidxed( const int idx ) override
     {
         if (idx >= abstractmeasure<T>::sz)
             std::cout << "Error in size of abstractmemorymeasure\n";
         if (!computed[idx]) {
-            res[idx] = abstractmeasure<T>::takemeasureidxed(idx);
+            res[idx] = this->takemeasure((*this->gptrs)[idx],(*this->nsptrs)[idx]);
             computed[idx] = true;
         }
         return res[idx];
     }
 
-    virtual void takemeasurethreadsection( const int startidx, const int stopidx ) {
+    void takemeasurethreadsection( const int startidx, const int stopidx ) {
         for (int i = startidx; i < stopidx; ++i)
-            takemeasureidxed(i);
+            this->takemeasureidxed(i);
     }
-    virtual void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
+    void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
         for (int i = startidx; i < stopidx; ++i)
             if ((*todo)[i])
-                takemeasureidxed(i);
+                this->takemeasureidxed(i);
     }
 
 
-    abstractmemorymeasure( std::string namein ) : abstractmeasure<T>(namein) {}
+    explicit abstractmemorymeasure( std::string namein ) : abstractmeasure<T>(namein) {}
+    ~abstractmemorymeasure() {
+        delete res;
+        delete computed;
+    }
 };
 
 
@@ -105,13 +114,14 @@ public:
     virtual std::string shortname() {return "c1";}
 
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
+        //std::cout << "returning TRUE\n";
         return true;
     }
-    bool takemeasureidxed( const int idx ) override {
-        res[idx] = true;
-        computed[idx] = true;
-        return true;
-    }
+//    bool takemeasureidxed( const int idx ) override {
+//        res[idx] = true;
+//        computed[idx] = true;
+//        return true;
+//    }
     truecriterion() : abstractmemorymeasure<bool>("always true") {}
 };
 
@@ -173,14 +183,6 @@ public:
         return true;
     }
 
-    bool takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
     std::string shortname() override {return "cr1";}
     trianglefreecriterion() : abstractmemorymeasure("triangle-free criterion") {}
 };
@@ -210,14 +212,6 @@ public:
             ++j;
         }
         return foundcnt >= mincnt;
-    }
-
-    bool takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
     }
 
 
@@ -276,14 +270,6 @@ public:
         // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
     }
 
-    bool takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
     knparameterizedcriterion() : abstractmemoryparameterizedmeasure<bool>("Parameterized K_n criterion (parameter is complete set size)") {
         populatekns();
     }
@@ -304,13 +290,6 @@ public:
     embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns, 1));
-    }
-    bool takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
     }
 
 };
@@ -520,7 +499,7 @@ public:
             res[idx] = evalsentence(ls,tmpres);  // check for speed cost
             computed[idx] = true;
         }
-        return abstractmemorymeasure::takemeasureidxed(idx);
+        return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
     }
 
     sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence, std::string stringin )
@@ -738,15 +717,6 @@ public:
         }
 
     }
-
-    bool takemeasureidxed(const int idx) override {
-        if (!computed[idx]) {
-            computed[idx] = true;
-            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
-        }
-        return res[idx];
-    }
-
 
 
 };

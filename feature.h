@@ -2188,6 +2188,7 @@ public:
             for (int m = 0; m < thread_count; ++m) {
                 const int startidx = int(m*section);
                 const int stopidx = int((m+1.0)*section);
+                //std::cout << "startidx " << startidx << ", stopidx " << stopidx << "\n";
                 //t[m] = pool->submit(std::bind(&abstractmemorymeasure<bool>::takemeasurethreadsection,cs[k],startidx, stopidx ));
                 t[m] = std::async(&abstractmemorymeasure<bool>::takemeasurethreadsection,cs[k],startidx,stopidx);
                 //t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
@@ -2228,7 +2229,7 @@ public:
                 std::vector<std::future<void>> f {};
                 f.resize(thread_count);
 
-                std::vector<bool>* todo = &cs[k]->res;
+                std::vector<bool>* todo = &threadbool; //cs[k]->res;
 
 #ifdef THREADCHECKCRITERION
                 for (int m =  0; m < thread_count; ++m)
