@@ -109,6 +109,7 @@ public:
     }
     bool takemeasureidxed( const int idx ) override {
         res[idx] = true;
+        computed[idx] = true;
         return true;
     }
     truecriterion() : abstractmemorymeasure<bool>("always true") {}
@@ -172,6 +173,13 @@ public:
         return true;
     }
 
+    bool takemeasureidxed(const int idx) override {
+        if (!computed[idx]) {
+            computed[idx] = true;
+            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
+        }
+        return res[idx];
+    }
 
     std::string shortname() override {return "cr1";}
     trianglefreecriterion() : abstractmemorymeasure("triangle-free criterion") {}
@@ -202,6 +210,14 @@ public:
             ++j;
         }
         return foundcnt >= mincnt;
+    }
+
+    bool takemeasureidxed(const int idx) override {
+        if (!computed[idx]) {
+            computed[idx] = true;
+            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
+        }
+        return res[idx];
     }
 
 
@@ -259,6 +275,15 @@ public:
         }
         // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
     }
+
+    bool takemeasureidxed(const int idx) override {
+        if (!computed[idx]) {
+            computed[idx] = true;
+            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
+        }
+        return res[idx];
+    }
+
     knparameterizedcriterion() : abstractmemoryparameterizedmeasure<bool>("Parameterized K_n criterion (parameter is complete set size)") {
         populatekns();
     }
@@ -280,6 +305,14 @@ public:
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns, 1));
     }
+    bool takemeasureidxed(const int idx) override {
+        if (!computed[idx]) {
+            computed[idx] = true;
+            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
+        }
+        return res[idx];
+    }
+
 };
 
 enum class logicalconnective {lcand, lcor};
@@ -612,10 +645,12 @@ public:
             if (found && (i > 0))
             {
                 res[idx] = resnot[i-1][idx];
+                computed[idx] = true;
                 return res[idx];;
             }
             else
             {
+                computed[idx] = true;
                 res[idx] = resnot[0][idx];
                 return res[idx];
             }
@@ -703,6 +738,15 @@ public:
         }
 
     }
+
+    bool takemeasureidxed(const int idx) override {
+        if (!computed[idx]) {
+            computed[idx] = true;
+            res[idx] = takemeasure((*gptrs)[idx],(*nsptrs)[idx]);
+        }
+        return res[idx];
+    }
+
 
 
 };
