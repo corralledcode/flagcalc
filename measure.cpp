@@ -424,7 +424,7 @@ public:
     radiusmeasure() : abstractmemoryparameterizedmeasure<float>("Graph radius") {}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) override {
-        int breaksize = -2; // by default wait until finding the actual (minimal) radius
+        int breaksize = -1; // by default wait until finding the actual (minimal) radius
         if (ps.size() > 0 && is_number(ps[0]))
             breaksize = stoi(ps[0]);
 
@@ -459,7 +459,6 @@ public:
                             int newv = ns->neighborslist[w*dim + x];
                             if (distances[v*dim + newv] < 0) {
                                 distances[v*dim + newv] = distance+1;
-                                //distances[newv*dim + v] = distance+1;
                                 changed = true;
                                 nextvs.push_back(newv);
                             }
@@ -486,9 +485,13 @@ public:
                 return -1; // the graph isn't connected
             }
             if ((breaksize >= 0) && (distance <= breaksize)) {
+                int res = distance;
+                for (int i = 0; i < dim; ++i)
+                    if (distances[v*dim + i] < 0)
+                        res = -1;
                 delete distances;
                 delete dextremes;
-                return distance;  // the parameterized break-out option
+                return res;  // the parameterized break-out option
             }
 
             if (nextv == v) {
@@ -550,6 +553,7 @@ public:
     bool takemeasure(const graphtype* g, const neighbors* ns) override
     {
         auto resf = rm->takemeasure(g,ns);
+        std::cout << "resf == " << resf << "\n";
         if (ps.size()>0 && is_number(ps[0]))
             return ((resf >= 0) && (resf <= stoi(ps[0])));
         return (resf >= 0);

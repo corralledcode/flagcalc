@@ -2158,8 +2158,8 @@ public:
 
 
 
-        unsigned const thread_count = std::thread::hardware_concurrency();
-        //unsigned const thread_count = 1;
+        //unsigned const thread_count = std::thread::hardware_concurrency();
+        unsigned const thread_count = 1;
 
 
 
@@ -2242,6 +2242,7 @@ public:
 //                    }
                     const int startidx = int(m*section);
                     const int stopidx = int((m+1.0)*section);
+                    //std::cout << "startidx " << startidx << ", stopidx " << stopidx << "\n";
 
                     f[m] = std::async(&abstractmemorymeasure<float>::takemeasurethreadsectionportion,ms[crmspairs[k][l]],startidx,stopidx,todo);
                 }
