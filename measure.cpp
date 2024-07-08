@@ -435,7 +435,7 @@ public:
 
         int* distances = (int*)malloc(dim*dim*sizeof(int));
         int* dextremes = (int*)malloc(dim*sizeof(int));
-        std::vector<vertextype> nextvs {};
+        //std::vector<vertextype> nextvs {};
 
         for (int i = 0; i < dim; ++i)
         {
@@ -460,7 +460,7 @@ public:
                             if (distances[v*dim + newv] < 0) {
                                 distances[v*dim + newv] = distance+1;
                                 changed = true;
-                                nextvs.push_back(newv);
+                                //nextvs.push_back(newv);
                             }
                         }
                     }
@@ -499,7 +499,7 @@ public:
             } else {
                 distance = 0;
                 v = nextv;
-                nextvs.clear();
+                //nextvs.clear();
                 changed = true;
                 distances[v*dim + v] = distance;
             }
@@ -565,4 +565,93 @@ public:
     }
 };
 
+inline int recursecircumferencemeasure( int* path, int pathsize, const graphtype* g, const neighbors* ns, const int breaksize ) {
+    if (pathsize == 0) {
+        int respl = 0;
+        for (int n = 0; n < g->dim; ++n) {
+            int newpath[] = {n};
+            int newpl = recursecircumferencemeasure(newpath, 1, g, ns,breaksize);
+            respl = (respl < newpl ? newpl : respl);
+        }
+        return respl;
+    }
+
+    if (breaksize >= 0 && pathsize >= breaksize)
+        return pathsize;
+
+    int respl = 0;
+    for (int i = 0; i < ns->degrees[path[pathsize-1]]; ++i ) {
+        int newpl = 0;
+        int newpath[pathsize+1];
+        int newv = ns->neighborslist[path[pathsize-1]*g->dim + i];
+        bool found = false;
+        int j = 0;
+        for (; !found && (j < pathsize); ++j) {
+            newpath[j] = path[j];
+            found = (path[j] == newv);
+        }
+        if (!found) {
+            newpath[pathsize] = newv;
+            newpl = recursecircumferencemeasure(newpath,pathsize+1, g, ns,breaksize);
+        } else
+            newpl = pathsize-j + 1;
+        respl = (respl < newpl ? newpl : respl);
+    }
+    respl = respl == 2 ? 0 : respl;
+    return respl;
+}
+
+class circumferencemeasure: public abstractmemoryparameterizedmeasure<float> {
+public:
+
+    virtual std::string shortname() override {return "circm";}
+
+    circumferencemeasure() : abstractmemoryparameterizedmeasure<float>("Graph circumference") {}
+
+
+
+    float takemeasure( const graphtype* g, const neighbors* ns ) {
+        int breaksize = -1; // by default compute the largest circumference possible
+        if (ps.size() > 0 && is_number(ps[0]))
+            breaksize = stoi(ps[0]);
+
+        int dim = g->dim;
+        if (dim <= 0)
+            return 0;
+
+        return recursecircumferencemeasure(nullptr,0,g,ns,breaksize);
+    }
+};
+
+
+class circumferencecriterion : public abstractmemoryparameterizedmeasure<bool>
+{
+public:
+    circumferencemeasure* cm;
+    std::string shortname() override {return "circc";}
+
+    circumferencecriterion() : abstractmemoryparameterizedmeasure<bool>("Circumference greater than")
+    {
+        cm = new circumferencemeasure;
+        cm->setparams({"-1"});
+    }
+    void setparams(const std::vector<std::string> pin) override
+    {
+        abstractmemoryparameterizedmeasure::setparams(pin);
+        cm->setparams(pin);
+    }
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        auto resf = cm->takemeasure(g,ns);
+        //std::cout << "resf == " << resf << "\n";
+        if (ps.size()>0 && is_number(ps[0]))
+            return (resf >= stoi(ps[0]));
+        return (resf >= 3);
+    }
+
+    ~circumferencecriterion()
+    {
+        delete cm;
+    }
+};
 

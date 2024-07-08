@@ -115,11 +115,18 @@ public:
 //        auto cc = new connectedcriterion();
 //        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
 
-        auto rm = new radiusmeasure();
-        auto tmp = rm->takemeasure(g,ns);
-        std::cout << "radius measure == " << tmp << "\n";
+        //auto rm = new radiusmeasure();
+        //auto tmp = rm->takemeasure(g,ns);
+        //std::cout << "radius measure == " << tmp << "\n";
 
-        delete rm;
+        auto cm = new circumferencemeasure;
+        auto tmp = cm->takemeasure(g,ns);
+        std::cout << "circumference measure == " << tmp << "\n";
+
+        delete cm;
+
+
+        //delete rm;
         delete ns;
         delete g;
 //        delete tc;
@@ -1591,6 +1598,7 @@ public:
         auto (*ltc)() = factory<legacytreecriterion,bool>;
         auto (*cc)() = factory<connectedcriterion,bool>;
         auto (*rltc)() = factory<radiuscriterion,bool>;
+        auto (*circc)() = factory<circumferencecriterion,bool>;
 
         crsfactory.push_back(*c1);
         //crsfactory.push_back(*nc);
@@ -1600,6 +1608,7 @@ public:
         crsfactory.push_back(*ltc);
         crsfactory.push_back(*cc);
         crsfactory.push_back(*rltc);
+        crsfactory.push_back(*circc);
 
         // ...
 
@@ -1622,6 +1631,7 @@ public:
         auto (*mc)() = factory<maxcliquemeasure,float>;
         auto (*cnm)() = factory<connectedmeasure,float>;
         auto (*rm)() = factory<radiusmeasure,float>;
+        auto (*circm)() = factory<circumferencemeasure,float>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1633,6 +1643,7 @@ public:
         mssfactory.push_back(*mc);
         mssfactory.push_back(*cnm);
         mssfactory.push_back(*rm);
+        mssfactory.push_back(*circm);
 
         // ,,,
 
@@ -2325,7 +2336,8 @@ public:
         ms.clear();
 
         for (auto c : cs)
-            delete c;
+            if (c != crs[0])
+                delete c;
         cs.clear();
 
 
