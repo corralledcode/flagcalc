@@ -576,9 +576,6 @@ inline int recursecircumferencemeasure( int* path, int pathsize, const graphtype
         return respl;
     }
 
-    if (breaksize >= 0 && pathsize >= breaksize)
-        return pathsize;
-
     int respl = 0;
     for (int i = 0; i < ns->degrees[path[pathsize-1]]; ++i ) {
         int newpl = 0;
@@ -598,6 +595,9 @@ inline int recursecircumferencemeasure( int* path, int pathsize, const graphtype
         respl = (respl < newpl ? newpl : respl);
     }
     respl = respl == 2 ? 0 : respl;
+    if (breaksize >= 3 && respl >= breaksize)
+        return respl;
+
     return respl;
 }
 
