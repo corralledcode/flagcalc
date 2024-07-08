@@ -565,12 +565,63 @@ public:
     }
 };
 
-inline int recursecircumferencemeasure( int* path, int pathsize, const graphtype* g, const neighbors* ns, const int breaksize ) {
+inline int recursecircumferencemeasure( int* path, int pathsize, bool* hit, const graphtype* g, const neighbors* ns, const int breaksize ) {
+    if (pathsize == 0) {
+        int respl = 0;
+        bool found = true;
+        int n = 0;
+        while (found) {
+            found = false;
+            while (!found && n < g->dim) {
+                found = !hit[n++];
+            }
+            if (found) {
+                int newpath[] = {n-1};
+                hit[n-1] = true;
+                int newpl = recursecircumferencemeasure(newpath,1,hit,g,ns,breaksize);
+                //for (int n = 0; n < g->dim; ++n) {
+                //    int newpath[] = {n};
+                //    int newpl = recursecircumferencemeasure(newpath, 1, g, ns,breaksize);
+                respl = (respl < newpl ? newpl : respl);
+            }
+
+        }
+        return respl;
+    }
+
+    int respl = 0;
+    for (int i = 0; i < ns->degrees[path[pathsize-1]]; ++i ) {
+        int newpl = 0;
+        int newpath[pathsize+1];
+        int newv = ns->neighborslist[path[pathsize-1]*g->dim + i];
+        bool found = false;
+        int j = 0;
+        for (; !found && (j < pathsize); ++j) {
+            newpath[j] = path[j];
+            found = (path[j] == newv);
+        }
+        if (!found) {
+            newpath[pathsize] = newv;
+            hit[newv] = true;
+            newpl = recursecircumferencemeasure(newpath,pathsize+1,hit, g, ns,breaksize);
+        } else
+            newpl = pathsize-j + 1;
+        respl = (respl < newpl ? newpl : respl);
+    }
+    respl = respl == 2 ? 0 : respl;
+    if (breaksize >= 3 && respl >= breaksize)
+        return respl;
+
+    return respl;
+}
+
+inline int legacyrecursecircumferencemeasure( int* path, int pathsize, const graphtype* g, const neighbors* ns, const int breaksize ) {
+
     if (pathsize == 0) {
         int respl = 0;
         for (int n = 0; n < g->dim; ++n) {
             int newpath[] = {n};
-            int newpl = recursecircumferencemeasure(newpath, 1, g, ns,breaksize);
+            int newpl = legacyrecursecircumferencemeasure(newpath, 1, g, ns,breaksize);
             respl = (respl < newpl ? newpl : respl);
         }
         return respl;
@@ -589,7 +640,7 @@ inline int recursecircumferencemeasure( int* path, int pathsize, const graphtype
         }
         if (!found) {
             newpath[pathsize] = newv;
-            newpl = recursecircumferencemeasure(newpath,pathsize+1, g, ns,breaksize);
+            newpl = legacyrecursecircumferencemeasure(newpath,pathsize+1, g, ns,breaksize);
         } else
             newpl = pathsize-j + 1;
         respl = (respl < newpl ? newpl : respl);
@@ -619,7 +670,32 @@ public:
         if (dim <= 0)
             return 0;
 
-        return recursecircumferencemeasure(nullptr,0,g,ns,breaksize);
+        bool hit[g->dim];
+        for (int i = 0; i < g->dim; ++i)
+            hit[i] = false;
+        return recursecircumferencemeasure(nullptr,0,hit,g,ns,breaksize);
+    }
+};
+
+class legacycircumferencemeasure: public abstractmemoryparameterizedmeasure<float> {
+public:
+
+    virtual std::string shortname() override {return "lcircm";}
+
+    legacycircumferencemeasure() : abstractmemoryparameterizedmeasure<float>("Legacy Graph circumference") {}
+
+
+
+    float takemeasure( const graphtype* g, const neighbors* ns ) {
+        int breaksize = -1; // by default compute the largest circumference possible
+        if (ps.size() > 0 && is_number(ps[0]))
+            breaksize = stoi(ps[0]);
+
+        int dim = g->dim;
+        if (dim <= 0)
+            return 0;
+
+        return legacyrecursecircumferencemeasure(nullptr,0,g,ns,breaksize);
     }
 };
 

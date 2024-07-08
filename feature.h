@@ -1632,6 +1632,7 @@ public:
         auto (*cnm)() = factory<connectedmeasure,float>;
         auto (*rm)() = factory<radiusmeasure,float>;
         auto (*circm)() = factory<circumferencemeasure,float>;
+        auto (*lcircm)() = factory<legacycircumferencemeasure,float>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1644,6 +1645,7 @@ public:
         mssfactory.push_back(*cnm);
         mssfactory.push_back(*rm);
         mssfactory.push_back(*circm);
+        mssfactory.push_back(*lcircm);
 
         // ,,,
 
