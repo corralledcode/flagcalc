@@ -115,11 +115,11 @@ public:
 //        auto cc = new connectedcriterion();
 //        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
 
-        // auto rm = new radiusmeasure();
-        // auto tmp = rm->takemeasure(g,ns);
-        // std::cout << "radius measure == " << tmp << "\n";
+        auto rm = new radiusmeasure();
+        auto tmp = rm->takemeasure(g,ns);
+        std::cout << "radius measure == " << tmp << "\n";
 
-        // delete rm;
+        delete rm;
         delete ns;
         delete g;
 //        delete tc;
@@ -1590,6 +1590,7 @@ public:
         auto (*kn)() = factory<knparameterizedcriterion,bool>;
         auto (*ltc)() = factory<legacytreecriterion,bool>;
         auto (*cc)() = factory<connectedcriterion,bool>;
+        auto (*rltc)() = factory<radiuscriterion,bool>;
 
         crsfactory.push_back(*c1);
         //crsfactory.push_back(*nc);
@@ -1598,6 +1599,7 @@ public:
         crsfactory.push_back(*kn);
         crsfactory.push_back(*ltc);
         crsfactory.push_back(*cc);
+        crsfactory.push_back(*rltc);
 
         // ...
 

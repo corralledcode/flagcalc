@@ -87,11 +87,11 @@ public:
         return res[idx];
     }
 
-    void takemeasurethreadsection( const int startidx, const int stopidx ) {
+    virtual void takemeasurethreadsection( const int startidx, const int stopidx ) {
         for (int i = startidx; i < stopidx; ++i)
             this->takemeasureidxed(i);
     }
-    void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
+    virtual void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
         for (int i = startidx; i < stopidx; ++i)
             if ((*todo)[i])
                 this->takemeasureidxed(i);

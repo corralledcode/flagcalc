@@ -435,9 +435,9 @@ public:
         float max = 0;
         float min = -1;
         bool first = true;
-        for (int i = 0; i < sorted.size(); ++i ) {
+        for (int i = 0; i < res.size(); ++i ) {
             if (res[i]) {
-                min = first || (meas[i] < min) ? meas[i] : min;
+                min = (first || (meas[i] < min)) ? meas[i] : min;
                 first = false;
                 sum += meas[i];
                 max = meas[i] > max ? meas[i] : max;

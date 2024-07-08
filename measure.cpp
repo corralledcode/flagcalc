@@ -251,6 +251,57 @@ public:
         : abstractmemoryparameterizedmeasure<bool>(apmin->name + " measure non-zero"), apm{apmin} {}
 };
 
+template<typename T>
+class measuregreaterthanparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool>
+{
+public:
+    std::string name = "_measuregreaterthanparameterizedcriterion";
+    abstractmemoryparameterizedmeasure<T>* apm;
+    virtual std::string shortname() override {return "_mgtpc";}
+
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        float limit = 0;
+        if (ps.size() > 0)
+            limit = stof(ps[0]);
+        return apm->takemeasure(g,ns) > limit;
+    }
+
+    void setparams(const std::vector<std::string> pin) override
+    {
+        abstractmemoryparameterizedmeasure::setparams(pin);
+
+    }
+    measuregreaterthanparameterizedcriterion(abstractmemoryparameterizedmeasure<T>* apmin)
+        : abstractmemoryparameterizedmeasure<bool>(apmin->name + " measure greater than"), apm{apmin} {}
+};
+
+template<typename T>
+class measurelessthanparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool>
+{
+public:
+    std::string name = "_measurelessthanparameterizedcriterion";
+    abstractmemoryparameterizedmeasure<T>* apm;
+    virtual std::string shortname() override {return "_mltpc";}
+
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        float limit = 0;
+        if (ps.size() > 0)
+            limit = stof(ps[0]);
+        return apm->takemeasure(g,ns) < limit;
+    }
+
+    void setparams(const std::vector<std::string> pin) override
+    {
+        abstractmemoryparameterizedmeasure::setparams(pin);
+        apm->setparams(pin);
+    }
+    measurelessthanparameterizedcriterion(abstractmemoryparameterizedmeasure<T>* apmin)
+        : abstractmemoryparameterizedmeasure<bool>(apmin->name + " measure less than"), apm{apmin} {}
+};
+
+
 
 
 
@@ -333,7 +384,10 @@ public:
                 }
                 res++;
                 if (breaksize >=0 && res >= breaksize)
+                {
+                    free (visited);
                     return res;
+                }
                 visited[firstunvisited-1] = firstunvisited-1;
                 changed = true;
             }
@@ -345,24 +399,18 @@ public:
 
 };
 
-class connectedcriterion : public  abstractmemoryparameterizedmeasure<bool>
+class connectedcriterion : public measurelessthanparameterizedcriterion<float>
 {
 public:
-    virtual std::string shortname() override {return "cc";}
+    std::string shortname() override {return "cc";}
 
-    connectedmeasure* cm;
-    connectedcriterion() : abstractmemoryparameterizedmeasure<bool>("Connected graph")
+    connectedcriterion() : measurelessthanparameterizedcriterion<float>(new connectedmeasure())
     {
-        cm = new connectedmeasure;
         setparams({"2"});
-    }
-    bool takemeasure(const graphtype* g, const neighbors* ns) override
-    {
-        return cm->takemeasure(g,ns) <= 1;
     }
     ~connectedcriterion()
     {
-        delete cm;
+        delete apm;
     }
 };
 
@@ -376,7 +424,7 @@ public:
     radiusmeasure() : abstractmemoryparameterizedmeasure<float>("Graph radius") {}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) override {
-        int breaksize = -1; // by default wait until finding the actual (minimal) radius
+        int breaksize = -2; // by default wait until finding the actual (minimal) radius
         if (ps.size() > 0 && is_number(ps[0]))
             breaksize = stoi(ps[0]);
 
@@ -391,7 +439,7 @@ public:
 
         for (int i = 0; i < dim; ++i)
         {
-            dextremes[i] = 0;
+            dextremes[i] = -1;
             for (int j = 0; j < dim; ++j)
                 distances[i*dim + j] = -1;
         }
@@ -422,21 +470,27 @@ public:
                     distance++;
             }
             dextremes[v] = distance;
-            if ((breaksize >= 0) && (distance > breaksize)) {
-                delete distances;
-                delete dextremes;
-                return distance;  // the parameterized break-out option
-            }
-
 
             nextv = v;
-            while (dextremes[nextv] > 0) {
-                nextv = nextv + 1;
+            while (dextremes[nextv] >= 0) {
+                nextv++;
                 if (nextv >= dim)
                     nextv = 0;
                 if (nextv == v)
                     break;
             }
+            if (distances[v*dim + nextv] < 0)
+            {
+                delete distances;
+                delete dextremes;
+                return -1; // the graph isn't connected
+            }
+            if ((breaksize >= 0) && (distance <= breaksize)) {
+                delete distances;
+                delete dextremes;
+                return distance;  // the parameterized break-out option
+            }
+
             if (nextv == v) {
                 v = -1;
             } else {
@@ -476,3 +530,35 @@ public:
     }
 
 };
+
+class radiuscriterion : public abstractmemoryparameterizedmeasure<bool>
+{
+public:
+    radiusmeasure* rm;
+    std::string shortname() override {return "rltc";}
+
+    radiuscriterion() : abstractmemoryparameterizedmeasure<bool>("Radius less than")
+    {
+        rm = new radiusmeasure;
+        rm->setparams({"-1"});
+    }
+    void setparams(const std::vector<std::string> pin) override
+    {
+        abstractmemoryparameterizedmeasure::setparams(pin);
+        rm->setparams(pin);
+    }
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        auto resf = rm->takemeasure(g,ns);
+        if (ps.size()>0 && is_number(ps[0]))
+            return ((resf >= 0) && (resf <= stoi(ps[0])));
+        return (resf >= 0);
+    }
+
+    ~radiuscriterion()
+    {
+        delete rm;
+    }
+};
+
+
