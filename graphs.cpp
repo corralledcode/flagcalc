@@ -1447,6 +1447,7 @@ void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop,
 
 
 
+
 bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt ) {
     //graphtype* g1 = ns1->g;
     graphtype* g2 = ns2->g;
@@ -1490,6 +1491,110 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
     //free(subsets);
     return cnt >= mincnt;
 }
+
+class embedsquicktest {
+public:
+    graphtype* gtemp;
+    const graphtype* g2;
+    const neighbors* ns1;
+    FP* fp;
+    const int dim1;
+    const int dim2;
+    bool test(int* testseq) {
+        for (int i = 0; i < dim1; ++i) {
+            vertextype g2vertex1 = testseq[i];
+            for (int j = 0; j < dim1; ++j) {
+                vertextype g2vertex2 = testseq[j];
+                gtemp->adjacencymatrix[i*dim1+j] = g2->adjacencymatrix[g2vertex1*dim2 + g2vertex2];
+            }
+        }
+
+        bool resbool;
+        auto nstemp = new neighbors(gtemp);
+        resbool = existsiso(ns1,fp,nstemp);
+        free(nstemp);
+        return resbool;
+    }
+    embedsquicktest( graphtype* gtempin, const graphtype* g2in, const neighbors* ns1in, FP* fpin, const int dim1in, const int dim2in)
+        : gtemp{gtempin}, g2{g2in}, ns1{ns1in}, fp{fpin}, dim1{dim1in}, dim2{dim2in} {}
+
+};
+
+
+
+bool enumsizedsubsetsquick(int sizestart, int sizeend, int* seq, int start, int stop, int* cnt, const int mincnt, embedsquicktest* test) {
+    if (start > stop)
+        return false;
+    if (sizestart >= sizeend) {
+        //for (int i = 0; i < sizeend; ++i) {
+        if (test->test(seq)) {
+            ++(*cnt);
+            if (*cnt >= mincnt)
+                return true;
+        }
+        //res->push_back(seq[i]);
+        return false;
+    }
+    // pseudo code:
+    //      for each n in [start,stop-1]
+    //          call enumsizedsubsets on (s + n), sizestart+1,sizeend, n+1,stop;
+    //          call enumsizedsubsets on s, sizestart,sizeend, n+1, stop
+
+    int newseq[sizestart+1];
+    for (int i = 0; i < sizestart; ++i) {
+        newseq[i] = seq[i];
+    }
+    newseq[sizestart] = start;
+    if (enumsizedsubsetsquick(sizestart+1,sizeend,newseq,start+1,stop,cnt,mincnt,test))
+        return true;
+    if (enumsizedsubsetsquick(sizestart,sizeend,seq,start+1,stop,cnt,mincnt,test))
+        return true;
+    return false;
+}
+
+
+bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt ) {
+    //graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+    int numberofsubsets; // = nchoosek(dim2,dim1);
+    //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
+    //std::vector<int> subsets {};
+    //enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
+    //numberofsubsets = subsets.size()/dim1;
+    /*if (numberofsubsets*dim1 != subsets.size()) {
+        std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
+        return false;
+    }*/
+
+    int cnt = 0;
+    auto gtemp = new graphtype(dim1);
+    auto test = new embedsquicktest(gtemp,g2,ns1,fp,dim1,dim2);
+
+    bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
+
+        // note this code obviously might be much faster
+        // when instead simply checking iso for the identity map
+        // (that is, allowing the subsets above to be a larger set
+        // that contains rearrangements of things already in the set)
+        //nstemp->computeneighborslist();
+
+    delete gtemp;
+    delete test;
+
+    //free(subsets);
+    return resbool;
+}
+
+
+
+
+
+
+
 
 void osfingerprintrecurse( std::ostream &os, neighbors* ns, FP* fps, int fpscnt, int depth ) {
     for (int i = 0; i < depth; ++i) {

@@ -286,8 +286,25 @@ public:
     graphtype* flagg;
     neighbors* flagns;
     FP* fp;
-    std::string shortname() override {return "cr3";}
+    std::string shortname() override {return "ec";}
     embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+    bool takemeasure( const graphtype* g, const neighbors* ns) override {
+        return (embedsquick(flagns, fp, ns, 1));
+    }
+
+};
+
+
+
+class legacyembedscriterion : public abstractmemorymeasure<bool> {
+protected:
+
+public:
+    graphtype* flagg;
+    neighbors* flagns;
+    FP* fp;
+    std::string shortname() override {return "lec";}
+    legacyembedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("legacy embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns, 1));
     }

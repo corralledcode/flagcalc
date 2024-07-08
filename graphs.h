@@ -156,6 +156,7 @@ void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop,
 
 bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2, const int mincnt );
 
+bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt );
 
 
 
