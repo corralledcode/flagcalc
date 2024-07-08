@@ -553,7 +553,7 @@ public:
     bool takemeasure(const graphtype* g, const neighbors* ns) override
     {
         auto resf = rm->takemeasure(g,ns);
-        std::cout << "resf == " << resf << "\n";
+        //std::cout << "resf == " << resf << "\n";
         if (ps.size()>0 && is_number(ps[0]))
             return ((resf >= 0) && (resf <= stoi(ps[0])));
         return (resf >= 0);
