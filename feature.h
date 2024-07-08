@@ -115,13 +115,12 @@ public:
 //        auto cc = new connectedcriterion();
 //        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
 
-        auto rm = new radiusmeasure();
-        auto tmp = rm->takemeasure(g,ns);
-        std::cout << "radius measure == " << tmp << "\n";
+        // auto rm = new radiusmeasure();
+        // auto tmp = rm->takemeasure(g,ns);
+        // std::cout << "radius measure == " << tmp << "\n";
 
-        delete rm;
+        // delete rm;
         delete ns;
-        //free( g->adjacencymatrix );
         delete g;
 //        delete tc;
         // delete cm;

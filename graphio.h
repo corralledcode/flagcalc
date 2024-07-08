@@ -11,6 +11,7 @@
 #include <fstream>
 //#include <bits/regex.h>
 
+#include <cstring>
 #include <future>
 
 #include "graphs.h"
@@ -171,15 +172,21 @@ public:
     }
 };
 
-class bipartitegraphstyle : public graphstyle
+class kpartitegraphstyle : public graphstyle
 {
 public:
     bool applies(std::string sin, std::string& sout ) override
     {
         int pos = sin.find("=");
-        if (pos != std::string::npos)
+        bool foundone = false;
+        while (pos != std::string::npos) {
+            foundone = true;
+            sin = sin.substr(0,pos) + sin.substr(pos+1,sin.size()-pos-1);
+            pos = sin.find("=");
+        }
+        if (foundone)
         {
-            sout = sin.substr(0,pos) + sin.substr(pos+1,sin.size()-pos-1);
+            sout = sin;
             return true;
         } else
             return false;
@@ -187,47 +194,39 @@ public:
 
     void applytograph(std::string sin, std::vector<std::string> vertices,
         std::vector<std::pair<bool, std::pair<std::string, std::string>>>* moves) override {
-
-        int pos = sin.find("=");
-
+        std::vector<int> posv {};
+        int pos = 0;
+        posv.push_back(0);
+        std::string news = sin.substr(pos,sin.size()-pos);
+        pos = news.find("=");
+        while (pos != std::string::npos) {
+            posv.push_back(pos+1);
+            news = news.substr(pos+1,news.size()-pos-1);
+            pos = news.find("=");
+        }
         if (pos == std::string::npos)
-            return;
-
-        auto vgs = new verticesforgraphstyle();
-        //std::vector<std::string> v0 = vgs->getvertices(sin);
-        std::vector<std::string> v1 = vgs->getvertices(sin.substr(0,pos));
-        std::vector<std::string> v2 = vgs->getvertices(sin.substr(pos,sin.size()-pos));
-        //auto cgs = new completegraphstyle();
-        //cgs->applytograph(sin,v0,moves);
-
-
-        for (auto sl : v1)
-            for (auto sr : v2)
-                if (sl != sr)
-                    moves->push_back({true,{sl,sr}});
-
-
-/*
-        std::vector<std::pair<bool, std::pair<std::string, std::string>>> movesinvertleft {};
-        std::vector<std::pair<bool, std::pair<std::string, std::string>>> movesinvertright {};
-        cgs->applytograph( sin,v1,&movesinvertleft );
-        cgs->applytograph( sin, v2, &movesinvertright );
-        auto ngs = new negationgraphstyle();
-        ngs->applytograph(sin.substr(pos,sin.size()-pos),v2,&movesinvertleft);
-        ngs->applytograph(sin.substr(pos,sin.size()-pos),v2,&movesinvertright);
-
-        for (auto m : movesinvertleft)
-        {
-            moves->push_back(m);
+            posv.push_back(news.size());
+        int tally = 0;
+        for (int i = 0; i < posv.size(); ++i) {
+            tally += posv[i];
+            posv[i] = tally;
         }
-        for (auto m : movesinvertright)
-        {
-            moves->push_back(m);
+
+        std::vector<std::vector<std::string>> vv {};
+        auto vgs = new verticesforgraphstyle;
+
+        vv.resize(posv.size()-1);
+        for (int i = 0; i < posv.size()-1; ++i) {
+            vv[i] = vgs->getvertices(sin.substr(posv[i],posv[i+1]-posv[i]));
         }
-*/
         delete vgs;
-        //delete cgs;
-        //delete ngs;
+
+        for (int i = 0; i < vv.size(); ++i)
+            for (int j = i+1; j < vv.size(); ++j)
+                for (auto v1 : vv[i])
+                    for (auto v2 : vv[j])
+                        if (v1 != v2)
+                            moves->push_back({true,{v1,v2}});
     }
 };
 
@@ -325,7 +324,7 @@ inline graphtype* igraphstyle( std::vector<std::string> vsin)
     styles.push_back(new negationgraphstyle());
     styles.push_back(new pathgraphstyle());
     styles.push_back(new radialgraphstyle());
-    styles.push_back(new bipartitegraphstyle());
+    styles.push_back(new kpartitegraphstyle());
 
     auto v = enumvertices(vsin);
     auto outg = new graphtype(v.size());
@@ -397,6 +396,7 @@ inline graphtype* igraphstyle( std::vector<std::string> vsin)
 #endif
     for (auto s : styles)
         delete s;
+    delete vgs;
     return outg;
 
 }
