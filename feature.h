@@ -119,11 +119,14 @@ public:
         //auto tmp = rm->takemeasure(g,ns);
         //std::cout << "radius measure == " << tmp << "\n";
 
-        auto cm = new circumferencemeasure;
-        auto tmp = cm->takemeasure(g,ns);
-        std::cout << "circumference measure == " << tmp << "\n";
+        //auto cm = new circumferencemeasure;
+        // auto tmp = cm->takemeasure(g,ns);
 
-        delete cm;
+        auto dm = new diametermeasure;
+        auto tmp = dm->takemeasure(g,ns);
+        std::cout << "diameter measure == " << tmp << "\n";
+
+        //delete cm;
 
 
         //delete rm;
@@ -1599,6 +1602,7 @@ public:
         auto (*cc)() = factory<connectedcriterion,bool>;
         auto (*rltc)() = factory<radiuscriterion,bool>;
         auto (*circc)() = factory<circumferencecriterion,bool>;
+        auto (*diamc)() = factory<diametercriterion,bool>;
 
         crsfactory.push_back(*c1);
         //crsfactory.push_back(*nc);
@@ -1609,7 +1613,7 @@ public:
         crsfactory.push_back(*cc);
         crsfactory.push_back(*rltc);
         crsfactory.push_back(*circc);
-
+        crsfactory.push_back(*diamc);
         // ...
 
 
@@ -1633,6 +1637,7 @@ public:
         auto (*rm)() = factory<radiusmeasure,float>;
         auto (*circm)() = factory<circumferencemeasure,float>;
         auto (*lcircm)() = factory<legacycircumferencemeasure,float>;
+        auto (*diamm)() = factory<diametermeasure,float>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1646,6 +1651,7 @@ public:
         mssfactory.push_back(*rm);
         mssfactory.push_back(*circm);
         mssfactory.push_back(*lcircm);
+        mssfactory.push_back(*diamm);
 
         // ,,,
 

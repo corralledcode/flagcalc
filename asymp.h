@@ -87,11 +87,11 @@ public:
         return res[idx];
     }
 
-    virtual void takemeasurethreadsection( const int startidx, const int stopidx ) {
+    void takemeasurethreadsection( const int startidx, const int stopidx ) {
         for (int i = startidx; i < stopidx; ++i)
             this->takemeasureidxed(i);
     }
-    virtual void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
+    void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
         for (int i = startidx; i < stopidx; ++i)
             if ((*todo)[i])
                 this->takemeasureidxed(i);
@@ -111,7 +111,7 @@ protected:
 public:
     std::string name = "truecriterion";
 
-    virtual std::string shortname() {return "c1";}
+    virtual std::string shortname() {return "truec";}
 
     bool takemeasure(const graphtype *g, const neighbors *ns) override {
         //std::cout << "returning TRUE\n";
@@ -245,7 +245,7 @@ class knparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool>
 protected:
     std::vector<kncriterion*> kns {};
 public:
-    std::string shortname() override {return "kn";}
+    std::string shortname() override {return "Knc";}
     void populatekns() {
         kns.resize(KNMAXCLIQUESIZE);
         for (int i = 0; i < KNMAXCLIQUESIZE; ++i) {
@@ -286,7 +286,7 @@ public:
     graphtype* flagg;
     neighbors* flagns;
     FP* fp;
-    std::string shortname() override {return "ec";}
+    std::string shortname() override {return "embedsc";}
     embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embedsquick(flagns, fp, ns, 1));
@@ -303,7 +303,7 @@ public:
     graphtype* flagg;
     neighbors* flagns;
     FP* fp;
-    std::string shortname() override {return "lec";}
+    std::string shortname() override {return "lembedsc";}
     legacyembedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("legacy embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns, 1));
@@ -665,7 +665,7 @@ template<typename T,typename M> abstractmemorymeasure<M>* factory(void) {
 class treecriterion : public abstractmemorymeasure<bool>
 {
 public:
-    virtual std::string shortname() {return "tc";}
+    virtual std::string shortname() {return "treec";}
 
     treecriterion() : abstractmemorymeasure<bool>("Tree criterion") {}
 

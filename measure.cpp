@@ -12,7 +12,7 @@
 
 class boolmeasure : public abstractmemorymeasure<float> {
 public:
-    virtual std::string shortname() override {return "bm";}
+    virtual std::string shortname() override {return "truem";}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) override {
         return (float)true;
@@ -26,7 +26,7 @@ public:
 
 class dimmeasure : public abstractmemorymeasure<float> {
 public:
-    virtual std::string shortname() {return "dm";}
+    virtual std::string shortname() {return "dimm";}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         return g->dim;
@@ -38,7 +38,7 @@ public:
 
 class edgecntmeasure : public abstractmemorymeasure<float> {
 public:
-    virtual std::string shortname() {return "ecm";}
+    virtual std::string shortname() {return "edgecm";}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         return edgecnt(g);
@@ -49,7 +49,7 @@ public:
 
 class avgdegreemeasure : public abstractmemorymeasure<float> {
 public:
-    virtual std::string shortname() {return "adm";}
+    virtual std::string shortname() {return "dm";}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         int sum = 0;
@@ -65,7 +65,7 @@ public:
 
 class mindegreemeasure : public abstractmemorymeasure<float> {
 public:
-    virtual std::string shortname() {return "mdm";}
+    virtual std::string shortname() {return "deltam";}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         int min = ns->maxdegree;
@@ -81,7 +81,7 @@ public:
 
 class maxdegreemeasure : public abstractmemorymeasure<float> {
 public:
-    virtual std::string shortname() {return "Mdm";}
+    virtual std::string shortname() {return "Deltam";}
 
     float takemeasure( const graphtype* g, const neighbors* ns ) {
         return ns->maxdegree;
@@ -99,7 +99,7 @@ protected:
     std::vector<neighbors*> cycleneighbors {};
     std::vector<FP*> cyclefps {};
 public:
-    virtual std::string shortname() {return "gm";}
+    virtual std::string shortname() {return "girthm";}
 
     girthmeasure() : abstractmemorymeasure<float>("Graph's girth") {
         for (int n = 0; n < GRAPH_PRECOMPUTECYCLESCNT; ++n) {
@@ -177,7 +177,7 @@ public:
 
 class maxcliquemeasure : public abstractmemorymeasure<float> {
 public:
-    virtual std::string shortname() {return "cm";}
+    virtual std::string shortname() {return "cliquem";}
 
     maxcliquemeasure() : abstractmemorymeasure<float>("Graph's largest clique") {}
     float takemeasure( const graphtype* g, const neighbors* ns ) {
@@ -311,7 +311,7 @@ protected:
 public:
     std::string name = "legacytreecriterion";
 
-    virtual std::string shortname() {return "ltc";}
+    virtual std::string shortname() {return "ltreec";}
 
     legacytreecriterion() : measurezerocriterion<float>(new girthmeasure()) {}
     ~legacytreecriterion() {
@@ -323,7 +323,7 @@ public:
 class connectedmeasure : public  abstractmemoryparameterizedmeasure<float>
 {
 public:
-    virtual std::string shortname() override {return "cnm";}
+    virtual std::string shortname() override {return "connm";}
 
     connectedmeasure() : abstractmemoryparameterizedmeasure<float>("Connected components") {}
 
@@ -402,7 +402,7 @@ public:
 class connectedcriterion : public measurelessthanparameterizedcriterion<float>
 {
 public:
-    std::string shortname() override {return "cc";}
+    std::string shortname() override {return "connc";}
 
     connectedcriterion() : measurelessthanparameterizedcriterion<float>(new connectedmeasure())
     {
@@ -419,7 +419,7 @@ public:
 class radiusmeasure : public  abstractmemoryparameterizedmeasure<float>
 {
 public:
-    virtual std::string shortname() override {return "rm";}
+    virtual std::string shortname() override {return "radiusm";}
 
     radiusmeasure() : abstractmemoryparameterizedmeasure<float>("Graph radius") {}
 
@@ -538,7 +538,7 @@ class radiuscriterion : public abstractmemoryparameterizedmeasure<bool>
 {
 public:
     radiusmeasure* rm;
-    std::string shortname() override {return "rltc";}
+    std::string shortname() override {return "radiusc";}
 
     radiuscriterion() : abstractmemoryparameterizedmeasure<bool>("Radius less than")
     {
@@ -555,7 +555,7 @@ public:
         auto resf = rm->takemeasure(g,ns);
         //std::cout << "resf == " << resf << "\n";
         if (ps.size()>0 && is_number(ps[0]))
-            return ((resf >= 0) && (resf <= stoi(ps[0])));
+            return ((resf >= 0) && (resf < stoi(ps[0])));
         return (resf >= 0);
     }
 
@@ -565,7 +565,7 @@ public:
     }
 };
 
-inline int recursecircumferencemeasure( int* path, int pathsize, bool* hit, const graphtype* g, const neighbors* ns, const int breaksize ) {
+inline int recursecircumferencemeasure( int* path, int pathsize, bool* visited, const graphtype* g, const neighbors* ns, const int breaksize ) {
     if (pathsize == 0) {
         int respl = 0;
         bool found = true;
@@ -573,12 +573,15 @@ inline int recursecircumferencemeasure( int* path, int pathsize, bool* hit, cons
         while (found) {
             found = false;
             while (!found && n < g->dim) {
-                found = !hit[n++];
+                found = !visited[n++];
             }
             if (found) {
                 int newpath[] = {n-1};
-                hit[n-1] = true;
-                int newpl = recursecircumferencemeasure(newpath,1,hit,g,ns,breaksize);
+                visited[n-1] = true;
+                int newpl = recursecircumferencemeasure(newpath,1,visited,g,ns,breaksize);
+                if (breaksize > 2 && newpl > breaksize)
+                    return newpl;
+                //visited[n-1] = false;
                 //for (int n = 0; n < g->dim; ++n) {
                 //    int newpath[] = {n};
                 //    int newpl = recursecircumferencemeasure(newpath, 1, g, ns,breaksize);
@@ -590,28 +593,31 @@ inline int recursecircumferencemeasure( int* path, int pathsize, bool* hit, cons
     }
 
     int respl = 0;
+    int newpath[pathsize+1];
+    for (int j = 0; j < pathsize; ++j) {
+        newpath[j] = path[j];
+    }
     for (int i = 0; i < ns->degrees[path[pathsize-1]]; ++i ) {
         int newpl = 0;
-        int newpath[pathsize+1];
         int newv = ns->neighborslist[path[pathsize-1]*g->dim + i];
-        bool found = false;
         int j = 0;
+        bool found = false;
         for (; !found && (j < pathsize); ++j) {
-            newpath[j] = path[j];
             found = (path[j] == newv);
         }
         if (!found) {
             newpath[pathsize] = newv;
-            hit[newv] = true;
-            newpl = recursecircumferencemeasure(newpath,pathsize+1,hit, g, ns,breaksize);
-        } else
+            visited[newv] = true;
+            newpl = recursecircumferencemeasure(newpath,pathsize+1,visited, g, ns,breaksize);
+            //visited[newv] = false;
+        } else {
             newpl = pathsize-j + 1;
+        }
+        if (breaksize > 2 && newpl > breaksize)
+            return newpl;
         respl = (respl < newpl ? newpl : respl);
     }
     respl = respl == 2 ? 0 : respl;
-    if (breaksize >= 3 && respl >= breaksize)
-        return respl;
-
     return respl;
 }
 
@@ -670,10 +676,10 @@ public:
         if (dim <= 0)
             return 0;
 
-        bool hit[g->dim];
+        bool visited[g->dim];
         for (int i = 0; i < g->dim; ++i)
-            hit[i] = false;
-        return recursecircumferencemeasure(nullptr,0,hit,g,ns,breaksize);
+            visited[i] = false;
+        return recursecircumferencemeasure(nullptr,0,visited,g,ns,breaksize);
     }
 };
 
@@ -721,7 +727,7 @@ public:
         auto resf = cm->takemeasure(g,ns);
         //std::cout << "resf == " << resf << "\n";
         if (ps.size()>0 && is_number(ps[0]))
-            return (resf >= stoi(ps[0]));
+            return (resf > stoi(ps[0]));
         return (resf >= 3);
     }
 
@@ -731,3 +737,150 @@ public:
     }
 };
 
+
+class diametermeasure : public  abstractmemoryparameterizedmeasure<float>
+{
+public:
+    virtual std::string shortname() override {return "diamm";}
+
+    diametermeasure() : abstractmemoryparameterizedmeasure<float>("Graph diameter") {}
+
+    float takemeasure( const graphtype* g, const neighbors* ns ) override {
+        int breaksize = -1; // by default wait until finding the actual (maximal) diameter
+        if (ps.size() > 0 && is_number(ps[0]))
+            breaksize = stoi(ps[0]);
+
+        int dim = g->dim;
+        if (dim <= 0)
+            return 0;
+
+        int* distances = (int*)malloc(dim*dim*sizeof(int));
+        int* dextremes = (int*)malloc(dim*sizeof(int));
+
+        for (int i = 0; i < dim; ++i)
+        {
+            dextremes[i] = -1;
+            for (int j = 0; j < dim; ++j)
+                distances[i*dim + j] = -1;
+        }
+
+        int v = -1;
+        int nextv = 0;
+        bool changed = true;
+        int distance = 0;
+        v = nextv;
+        distances[v*dim + v] = distance;
+        while (v != -1) {
+            while (changed) {
+                changed = false;
+                for (int w = 0; w < dim; ++w) {
+                    if (distances[v*dim + w] == distance ) {
+                        for (int x = 0; x < ns->degrees[w]; ++x) {
+                            int newv = ns->neighborslist[w*dim + x];
+                            if (distances[v*dim + newv] < 0) {
+                                distances[v*dim + newv] = distance+1;
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+                if (changed)
+                    distance++;
+            }
+            dextremes[v] = distance;
+
+            nextv = v;
+            while (dextremes[nextv] >= 0) {
+                nextv++;
+                if (nextv >= dim)
+                    nextv = 0;
+                if (nextv == v)
+                    break;
+            }
+            if (distances[v*dim + nextv] < 0)
+            {
+                delete distances;
+                delete dextremes;
+                return -1; // the graph isn't connected, so diameter is infinite
+            }
+            if ((breaksize >= 0) && (distance >= breaksize)) {
+                int res = distance;
+                for (int i = 0; i < dim; ++i)
+                    if (distances[v*dim + i] < 0)
+                        res = -1;
+                delete distances;
+                delete dextremes;
+                return res;  // the parameterized break-out option
+            }
+
+            if (nextv == v) {
+                v = -1;
+            } else {
+                distance = 0;
+                v = nextv;
+                //nextvs.clear();
+                changed = true;
+                distances[v*dim + v] = distance;
+            }
+
+            /*
+            int nextvidx = (int)((distance - 1) / 2);
+            nextv = nextvs[nextvidx];
+            int startingpoint = nextvidx > 0 ? nextvidx-1 : distance;
+            while ((dextremes[nextv] > 0) && (nextvidx+1 != startingpoint)) {
+                nextvidx++;
+                if (nextvidx >= distance)
+                    nextvidx = 0;
+                nextv = nextvs[nextvidx];
+            }
+            if (nextvidx == startingpoint)
+                v = -1;
+            else {
+                distance = 0;
+                v = nextv;
+                nextvs.clear();
+            }*/
+        }
+        int max = 0;
+        for (int i = 0; i < dim; ++i) {
+            //std::cout << dextremes[i] << "\n";
+            max = dextremes[i] > max ? dextremes[i] : max;
+        }
+        delete distances;
+        delete dextremes;
+        return max;
+
+    }
+
+};
+
+class diametercriterion : public abstractmemoryparameterizedmeasure<bool>
+{
+public:
+    diametermeasure* dm;
+    std::string shortname() override {return "diamc";}
+
+    diametercriterion() : abstractmemoryparameterizedmeasure<bool>("Diameter greater than")
+    {
+        dm = new diametermeasure;
+        dm->setparams({"-1"});
+    }
+    void setparams(const std::vector<std::string> pin) override
+    {
+        abstractmemoryparameterizedmeasure::setparams(pin);
+        dm->setparams(pin);
+    }
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        auto resf = dm->takemeasure(g,ns);
+        //std::cout << "resf == " << resf << "\n";
+        if (ps.size()>0 && is_number(ps[0]))
+            return (resf > stoi(ps[0]));
+        return (resf > 0);
+    }
+
+    ~diametercriterion()
+    {
+        delete dm;
+    }
+};
