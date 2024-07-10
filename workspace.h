@@ -428,23 +428,21 @@ public:
         }
 
         for (int i = 0; i < count.size(); ++i)
-            os << "result == " << count[i].first << ": " << count[i].second << " out of " << sorted.size() << ", " << (float)count[i].second / (float)sorted.size() << "\n";
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << sorted.size() << ", " << (double)count[i].second / (double)sorted.size() << "\n";
 
         Tm sum = 0;
         int cnt = 0;
-        float max = 0;
-        float min = -1;
-        bool first = true;
+        double max = 0;
+        double min = std::numeric_limits<double>::infinity();
         for (int i = 0; i < res.size(); ++i ) {
             if (res[i]) {
-                min = (first || (meas[i] < min)) ? meas[i] : min;
-                first = false;
+                min = meas[i] < min ? meas[i] : min;
                 sum += meas[i];
                 max = meas[i] > max ? meas[i] : max;
                 cnt++;
             }
         }
-        os << "Average, min, max of measure " << am.name << ": " << (float)sum/(float)cnt << ", " << min << ", " << max << "\n";
+        os << "Average, min, max of measure " << am.name << ": " << (double)sum/(double)cnt << ", " << min << ", " << max << "\n";
 
         return true;
     }
@@ -463,7 +461,7 @@ public:
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
-        os << ((float)duration)/1000000<< "\n";
+        os << ((double)duration)/1000000<< "\n";
         return true;
     }
 
@@ -471,7 +469,7 @@ public:
 
 class mantelstheoremitem : public workitems {
 public:
-    float max;
+    double max;
     int limitdim;
     int outof;
 
@@ -491,7 +489,7 @@ public:
 
 class samplerandommatchinggraphsitem : public workitems {
 public:
-    float percent = -1;
+    double percent = -1;
     int cnt = 0;
     int outof = 0;
     int dim = 0;
@@ -503,7 +501,7 @@ public:
 
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem( os, verbositylevel );
-        percent = float(cnt)/float(outof);
+        percent = double(cnt)/double(outof);
         os << "Probability amongst \""<< rgname << "\", dimension "<<dim<<"\n";
         os << "of fingerprints matching is " << cnt << " out of " << outof << " == " << percent << "\n";
         return true;

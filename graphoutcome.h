@@ -16,7 +16,7 @@ class graphitem : public abstractgraphitem {
 public:
     std::vector<graphoutcome<int>*> intitems {};
     std::vector<graphoutcome<bool>*> boolitems {};
-    std::vector<graphoutcome<float>*> floatitems {};
+    std::vector<graphoutcome<double>*> doubleitems {};
 
     graphitem() : abstractgraphitem() {
         classname = "GRAPH";
@@ -34,7 +34,7 @@ public:
         for (auto bo : boolitems) {
             delete bo;
         }
-        for (auto fo : floatitems) {
+        for (auto fo : doubleitems) {
             delete fo;
         }
     }
@@ -146,7 +146,7 @@ public:
 
 
 inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
-    if (!intitems.empty() || !boolitems.empty() || !floatitems.empty() || name != "") {
+    if (!intitems.empty() || !boolitems.empty() || !doubleitems.empty() || name != "") {
         os << "/* #name=" << name << "\n";
         for (int i = 0; i < intitems.size(); ++i) {
             os << " * ";
@@ -156,9 +156,9 @@ inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
             os << " * ";
             boolitems[i]->osdata(os);
         }
-        for (int i = 0; i < floatitems.size(); ++i) {
+        for (int i = 0; i < doubleitems.size(); ++i) {
             os << " * ";
-            floatitems[i]->osdata(os);
+            doubleitems[i]->osdata(os);
         }
         os << " */\n";
     }

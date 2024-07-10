@@ -1192,7 +1192,7 @@ std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, cons
 
 // below is non-pooled standard threaded, working but not using the concurrent processes as of yet...
 
-            float section = float(maps->size()) / float(thread_count);
+            double section = double(maps->size()) / double(thread_count);
             //std::cout << "maps.size() " <<maps.size()<< ", section size: " << section << ", thread_count: " << thread_count << "\n";
 
             //std::vector<std::future<bool>> t {};
@@ -1665,7 +1665,7 @@ void osfingerprintminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt 
 }
 
 
-void osadjacencymatrix( std::ostream &os, graphtype* g ) {
+void osadjacencymatrix( std::ostream &os, const graphtype* g ) {
     int labelssize[g->dim];
     int maxlabelsize = 0;
     bool labels = g->vertexlabels.size() == g->dim;
@@ -1705,7 +1705,7 @@ void osadjacencymatrix( std::ostream &os, graphtype* g ) {
     }
 }
 
-void osneighbors( std::ostream &os, neighborstype* ns ) {
+void osneighbors( std::ostream &os, const neighborstype* ns ) {
     bool labels = ns->g->vertexlabels.size()==ns->g->dim;
     int labelssize[ns->g->dim];
     int maxlabelsize = 0;
@@ -1749,7 +1749,7 @@ void osneighbors( std::ostream &os, neighborstype* ns ) {
     }*/
 }
 
-void osedges( std::ostream &os, graphtype* g) {
+void osedges( std::ostream &os, const graphtype* g) {
     int labelssize[g->dim];
     int maxlabelsize = 0;
     bool labels = g->vertexlabels.size() == g->dim;
@@ -1782,7 +1782,7 @@ void osedges( std::ostream &os, graphtype* g) {
     }
 }
 
-void osgraphmorphisms( std::ostream &os, graphtype* g1, graphtype* g2, std::vector<graphmorphism>* maps ) {
+void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g2, const std::vector<graphmorphism>* maps ) {
     int labelssize1[g1->dim];
     int maxlabelsize1 = 0;
     bool labels1 = g1->vertexlabels.size() == g1->dim;

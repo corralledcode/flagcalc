@@ -17,7 +17,7 @@
 //#define THREADPOOL6
 
 
-int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int outof ) { // returns the count of how many pairs share a fingerprint
+int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int outof ) { // returns the count of how many pairs share a fingerprint
     int cnt = 0;
     auto g5 = new graphtype(dim);
     auto g6 = new graphtype(dim);
@@ -88,7 +88,7 @@ int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int 
     //verboseio vio;
     //verbosedbio vdbio(getenv("DBSERVER"), getenv("DBUSR"), getenv("DBPWD"), getenv("DBSCHEMA"));
     //vio = vdbio;
-    //vio.output("Random probability of fingerprints matching is " + std::to_string(cnt) + " out of " + std::to_string(outof) + " == " + std::to_string(float(cnt)/float(outof)) + "\n");
+    //vio.output("Random probability of fingerprints matching is " + std::to_string(cnt) + " out of " + std::to_string(outof) + " == " + std::to_string(double(cnt)/double(outof)) + "\n");
     // the above four lines are commented out until MySQL C++ Connector is up and working (i.e. in files verboseio.h/cpp)
     return cnt;
 
@@ -96,7 +96,7 @@ int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int 
 
 
 /* PRE-threading variant
-std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
+std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const double edgecnt, const int cnt ) {
     std::vector<graph> gv {};
     gv.resize(cnt);
     for (int i = 0; i < cnt; ++i) {
@@ -116,7 +116,7 @@ std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const f
 
 
 
-std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int cnt ) {
+std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int cnt ) {
 /*    std::vector<graph> gv {};
     gv.resize(cnt);
 
@@ -139,14 +139,14 @@ std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, cons
 
 
 /*
-void randomgraph( graph* gptr, const float edgecnt ) {
+void randomgraph( graph* gptr, const double edgecnt ) {
     std::random_device dev;
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,10000);
     for (int n = 0; n < gptr->dim; ++n) {
         gptr->adjacencymatrix[n*gptr->dim + n] = 0;
         for (int i = n+1; i < gptr->dim; ++i) {
-            gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (10000*float(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
+            gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (10000*double(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
             gptr->adjacencymatrix[i*gptr->dim + n] = gptr->adjacencymatrix[n*gptr->dim+i];
         }
     }
@@ -164,10 +164,10 @@ void randomconnectedgraphfixededgecnt( graph* gptr, const int edgecnt ) {
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,9999);
     std::vector<vertextype> edges {};
-    vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/10000.0);
+    vertextype v1 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/10000.0);
     vertextype v2 = v1;
     while (v2 == v1) {
-        v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/10000.0);
+        v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/10000.0);
     }
     bool visited[gptr->dim];
     for (vertextype i = 0; i < (gptr->dim); ++i) {
@@ -180,7 +180,7 @@ void randomconnectedgraphfixededgecnt( graph* gptr, const int edgecnt ) {
     gptr->adjacencymatrix[v2*(gptr->dim) + v1] = true;
     int cnt = edgecnt-1;
     while (cnt > 0) {
-        vertextype candidatev1index = (vertextype)(float((dist10000(rng)) * float(visitedcnt))/10000.0);
+        vertextype candidatev1index = (vertextype)(double((dist10000(rng)) * double(visitedcnt))/10000.0);
         int cnt2 = 0;
         vertextype i = -1;
         while (cnt2 <= candidatev1index) {
@@ -193,7 +193,7 @@ void randomconnectedgraphfixededgecnt( graph* gptr, const int edgecnt ) {
         //std::cout << "candidatev1 == i == " << i << "\n";
         vertextype candidatev2 = candidatev1;
         while (candidatev2 == candidatev1) {
-            candidatev2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/10000.0);
+            candidatev2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/10000.0);
         }
         if ((candidatev2 >= gptr->dim) || (candidatev1 >= gptr->dim))
             std::cout << "ERROR\n";
@@ -225,10 +225,10 @@ void randomconnectedgraph( graph* gptr ) {
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,9999);
     std::vector<vertextype> edges {};
-    vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/10000.0);
+    vertextype v1 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/10000.0);
     vertextype v2 = v1;
     while (v2 == v1) {
-        v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/10000.0);
+        v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/10000.0);
     }
     bool visited[gptr->dim];
     for (vertextype i = 0; i < (gptr->dim); ++i) {
@@ -240,7 +240,7 @@ void randomconnectedgraph( graph* gptr ) {
     gptr->adjacencymatrix[v1*(gptr->dim) + v2] = true;
     gptr->adjacencymatrix[v2*(gptr->dim) + v1] = true;
     while (visitedcnt<gptr->dim) {
-        vertextype candidatev1index = (vertextype)(float((dist10000(rng)) * float(visitedcnt))/10000.0);
+        vertextype candidatev1index = (vertextype)(double((dist10000(rng)) * double(visitedcnt))/10000.0);
         int cnt2 = 0;
         vertextype i = -1;
         while (cnt2 <= candidatev1index) {
@@ -253,7 +253,7 @@ void randomconnectedgraph( graph* gptr ) {
         //std::cout << "candidatev1 == i == " << i << "\n";
         vertextype candidatev2 = candidatev1;
         while (candidatev2 == candidatev1) {
-            candidatev2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/10000.0);
+            candidatev2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/10000.0);
         }
         if ((candidatev2 >= gptr->dim) || (candidatev1 >= gptr->dim))
             std::cout << "ERROR\n";

@@ -30,4 +30,5 @@ add_executable(flagcalc main.cpp
         graphoutcome.h
         mantel.h
         measure.cpp
-        measure.h)
+        measure.h
+)

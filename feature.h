@@ -107,7 +107,7 @@ public:
         osadjacencymatrix(std::cout,g);
         osneighbors(std::cout,ns);
 
-//        auto tc = new treecriterion();
+//        auto tc = new forestcriterion();
 //        std::cout << "tree criterion == " << tc->takemeasure(g,ns) << "\n";
 
 //        auto cm = new connectedmeasure();
@@ -115,21 +115,21 @@ public:
 //        auto cc = new connectedcriterion();
 //        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
 
-        //auto rm = new radiusmeasure();
-        //auto tmp = rm->takemeasure(g,ns);
-        //std::cout << "radius measure == " << tmp << "\n";
+        auto rm = new radiusmeasure();
+        auto tmp = rm->takemeasure(g,ns);
+        std::cout << "radius measure == " << tmp << "\n";
 
         //auto cm = new circumferencemeasure;
         // auto tmp = cm->takemeasure(g,ns);
 
-        auto dm = new diametermeasure;
-        auto tmp = dm->takemeasure(g,ns);
-        std::cout << "diameter measure == " << tmp << "\n";
+        // auto dm = new diametermeasure;
+        // auto tmp = dm->takemeasure(g,ns);
+        // std::cout << "diameter measure == " << tmp << "\n";
 
         //delete cm;
 
 
-        //delete rm;
+        delete rm;
         delete ns;
         delete g;
 //        delete tc;
@@ -259,7 +259,7 @@ public:
 
 class samplerandomgraphsfeature : public abstractrandomgraphsfeature {
 public:
-    float percent = -1;
+    double percent = -1;
     std::string cmdlineoption() {
         return "R";
     }
@@ -282,7 +282,7 @@ public:
     void execute(std::vector<std::string> args) override {
         int outof = 1000;
         int dim = 5;
-        float edgecnt = dim*(dim-1)/4.0;
+        double edgecnt = dim*(dim-1)/4.0;
         //std::vector<abstractparameterizedrandomgraph> rs {};
         int rgsidx = 0;
         std::vector<std::string> rgparams {};
@@ -318,7 +318,7 @@ public:
 
         if (rgparams.size() > 0 && is_number(rgparams[0]))
             dim = stoi(rgparams[0]);
-        if (rgparams.size() > 1) // what is function to check if float
+        if (rgparams.size() > 1) // what is function to check if double
             edgecnt = std::stof(rgparams[1]);
         if (rgparams.size() > 2 && is_number(rgparams[2]))
             outof = stoi(rgparams[2]);
@@ -348,7 +348,7 @@ public:
         wi->outof = outof;
         wi->name = _ws->getuniquename(wi->classname);
 
-        wi-> percent = ((float)wi->cnt / (float)wi->outof);
+        wi-> percent = ((double)wi->cnt / (double)wi->outof);
         wi->rgname = rgs[rgsidx]->name;
         _ws->items.push_back(wi);
 
@@ -398,7 +398,7 @@ public:
 
         int cnt = 100;
         int dim = 5;
-        float edgecnt = dim*(dim-1)/4.0;
+        double edgecnt = dim*(dim-1)/4.0;
         //std::vector<abstractparameterizedrandomgraph> rs {};
         int rgsidx = 0;
         std::vector<std::string> rgparams {};
@@ -434,7 +434,7 @@ public:
 
         if (rgparams.size() > 0 && is_number(rgparams[0]))
             dim = stoi(rgparams[0]);
-        if (rgparams.size() > 1) // what is function to check if float
+        if (rgparams.size() > 1) // what is function to check if double
             edgecnt = std::stof(rgparams[1]);
         if (rgparams.size() > 2 && is_number(rgparams[2]))
             cnt = stoi(rgparams[2]);
@@ -463,7 +463,7 @@ public:
         std::vector<std::future<std::vector<graphtype>>> t {};
         t.resize(thread_count);
         for (int j = 0; j < thread_count; ++j) {
-            t[j] = std::async(&randomgraphs,rgs[rgidx],dim,edgecnt,int(float(cnt)/float(thread_count)));
+            t[j] = std::async(&randomgraphs,rgs[rgidx],dim,edgecnt,int(double(cnt)/double(thread_count)));
         }
         std::vector<std::vector<graphtype>> gvv {};
         gvv.resize(thread_count);
@@ -1596,9 +1596,10 @@ public:
         auto (*c1)() = factory<truecriterion,bool>;
         //auto (*nc)() = factory<notcriteria,bool>;
         auto (*cr1)() = factory<trianglefreecriterion,bool>;
+        auto (*fc)() = factory<forestcriterion,bool>;
         auto (*tc)() = factory<treecriterion,bool>;
         auto (*kn)() = factory<knparameterizedcriterion,bool>;
-        auto (*ltc)() = factory<legacytreecriterion,bool>;
+        auto (*ltc)() = factory<legacyforestcriterion,bool>;
         auto (*cc)() = factory<connectedcriterion,bool>;
         auto (*rltc)() = factory<radiuscriterion,bool>;
         auto (*circc)() = factory<circumferencecriterion,bool>;
@@ -1608,6 +1609,7 @@ public:
         //crsfactory.push_back(*nc);
         crsfactory.push_back(*cr1);
         crsfactory.push_back(*tc);
+        crsfactory.push_back(*fc);
         crsfactory.push_back(*kn);
         crsfactory.push_back(*ltc);
         crsfactory.push_back(*cc);
@@ -1625,19 +1627,19 @@ public:
 
         // add any new measure types to the list here...
 
-        auto (*ms1)() = factory<boolmeasure,float>;
-        auto (*ms2)() = factory<dimmeasure,float>;
-        auto (*ms3)() = factory<edgecntmeasure,float>;
-        auto (*ms4)() = factory<avgdegreemeasure,float>;
-        auto (*ms5)() = factory<mindegreemeasure,float>;
-        auto (*ms6)() = factory<maxdegreemeasure,float>;
-        auto (*ms7)() = factory<girthmeasure,float>;
-        auto (*mc)() = factory<maxcliquemeasure,float>;
-        auto (*cnm)() = factory<connectedmeasure,float>;
-        auto (*rm)() = factory<radiusmeasure,float>;
-        auto (*circm)() = factory<circumferencemeasure,float>;
-        auto (*lcircm)() = factory<legacycircumferencemeasure,float>;
-        auto (*diamm)() = factory<diametermeasure,float>;
+        auto (*ms1)() = factory<boolmeasure,double>;
+        auto (*ms2)() = factory<dimmeasure,double>;
+        auto (*ms3)() = factory<edgecntmeasure,double>;
+        auto (*ms4)() = factory<avgdegreemeasure,double>;
+        auto (*ms5)() = factory<mindegreemeasure,double>;
+        auto (*ms6)() = factory<maxdegreemeasure,double>;
+        auto (*ms7)() = factory<girthmeasure,double>;
+        auto (*mc)() = factory<maxcliquemeasure,double>;
+        auto (*cnm)() = factory<connectedmeasure,double>;
+        auto (*rm)() = factory<radiusmeasure,double>;
+        auto (*circm)() = factory<circumferencemeasure,double>;
+        auto (*lcircm)() = factory<legacycircumferencemeasure,double>;
+        auto (*diamm)() = factory<diametermeasure,double>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1674,12 +1676,12 @@ public:
 
 };
 
-class checkcriterionfeature : public abstractcheckcriterionfeature<bool,float> {
+class checkcriterionfeature : public abstractcheckcriterionfeature<bool,double> {
 protected:
 
 public:
     std::vector<abstractmemorymeasure<bool>*> cs {};
-    std::vector<abstractmemorymeasure<float>*> ms {};
+    std::vector<abstractmemorymeasure<double>*> ms {};
     std::vector<std::pair<int,std::string>> mscombinations {};
     std::vector<std::string> sentences {};
 
@@ -1882,14 +1884,14 @@ public:
                             auto newms = (*mssfactory[n])();
                             ms.push_back(newms);
                             if (!parsedargs2[m].second.empty()) {
-                                if (abstractmemoryparameterizedmeasure<float>* ampm = dynamic_cast<abstractmemoryparameterizedmeasure<float>*>(cs[cs.size()-1]))
+                                if (abstractmemoryparameterizedmeasure<double>* ampm = dynamic_cast<abstractmemoryparameterizedmeasure<double>*>(cs[cs.size()-1]))
                                     ampm->setparams(parsedargs2[m].second);
                                 //auto ampm = (abstractmemoryparameterizedmeasure<bool>*)cs[cs.size()-1];
                                 //ampm->setparams(parsedargs2[m].second);
                                 //} catch () {
                                 else
                                     std::cout << "Error passing parameters to a non-parameterized criterion\n";
-                                //auto ampm = (abstractmemoryparameterizedmeasure<float>*)ms[ms.size()-1];
+                                //auto ampm = (abstractmemoryparameterizedmeasure<double>*)ms[ms.size()-1];
                                 //ampm->setparams(parsedargs2[m].second);
                             }
                             //msargs.push_back(parsedargs2[m].second);
@@ -2158,7 +2160,7 @@ public:
             ms[l]->setsize(eqclass.size());
             ms[l]->gptrs = &glist;
             ms[l]->nsptrs = &nslist;
-            //ms[l]->res = new std::vector<float>;
+            //ms[l]->res = new std::vector<double>;
             //ms[l]->res->resize(items.size());
             //for (int i = 0; i < ms[l]->res->size(); ++i)
             //    (*ms[l]->res)[i] = -1;
@@ -2202,7 +2204,7 @@ public:
             cs[k]->gptrs = &glist;
             cs[k]->nsptrs = &nslist;
 
-            const float section = float(eqclass.size()) / float(thread_count);
+            const double section = double(eqclass.size()) / double(thread_count);
 
 #ifdef THREADCHECKCRITERION
             for (int m = 0; m < thread_count; ++m) {
@@ -2237,7 +2239,7 @@ public:
 
 
             for (int l = 0; l < crmspairs[k].size(); ++l) {
-                auto wi = new checkcriterionmeasureitem<bool,float>(*cs[k],*ms[crmspairs[k][l]]);
+                auto wi = new checkcriterionmeasureitem<bool,double>(*cs[k],*ms[crmspairs[k][l]]);
 
                 wi->res.resize(eqclass.size());
                 wi->fpslist = {};
@@ -2256,18 +2258,18 @@ public:
                 {
 //                    if (threadbool[m])
 //                    {
-                        //f[m] = pool->submit(std::bind(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]], m));
-                        //f[m] = std::async(&abstractmeasure<float>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
+                        //f[m] = pool->submit(std::bind(&abstractmeasure<double>::takemeasureidxed,ms[crmspairs[k][l]], m));
+                        //f[m] = std::async(&abstractmeasure<double>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
 //                    }
                     const int startidx = int(m*section);
                     const int stopidx = int((m+1.0)*section);
                     //std::cout << "startidx " << startidx << ", stopidx " << stopidx << "\n";
 
-                    f[m] = std::async(&abstractmemorymeasure<float>::takemeasurethreadsectionportion,ms[crmspairs[k][l]],startidx,stopidx,todo);
+                    f[m] = std::async(&abstractmemorymeasure<double>::takemeasurethreadsectionportion,ms[crmspairs[k][l]],startidx,stopidx,todo);
                 }
 #endif
-                std::vector<float> threadfloat;
-                threadfloat.resize(eqclass.size());
+                std::vector<double> threaddouble;
+                threaddouble.resize(eqclass.size());
 
                 for (int m = 0; m < thread_count; ++m) {
 #ifdef THREADCHECKCRITERION
@@ -2279,7 +2281,7 @@ public:
 //                  }
 #else
                     if (threadbool[m])
-                        threadfloat[m] = ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+                        threaddouble[m] = ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
 #endif
                 }
 
@@ -2287,7 +2289,7 @@ public:
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
                     if (threadbool[m])
-                        threadfloat[m] = ms[crmspairs[k][l]]->res[m];
+                        threaddouble[m] = ms[crmspairs[k][l]]->res[m];
                 }
 
                 for (int m=0; m < eqclass.size(); ++m) {
@@ -2308,9 +2310,9 @@ public:
                         }
                         wi->meas.resize(eqclass.size());
                         if (wi->res[m]) {
-                            wi->meas[m] = threadfloat[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+                            wi->meas[m] = threaddouble[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
                             if (!(done[m][crmspairs[k][l]])) {
-                                gi->floatitems.push_back( new abstractmeasureoutcome<float>(ms[crmspairs[k][l]],gi,wi->meas[m]));
+                                gi->doubleitems.push_back( new abstractmeasureoutcome<double>(ms[crmspairs[k][l]],gi,wi->meas[m]));
                                 done[m][crmspairs[k][l]] = true;
                             } // default for wi->meas[m] ?
                         }
@@ -2380,7 +2382,7 @@ public:
         asymp* as = new asymp();
         trianglefreecriterion* cr = new trianglefreecriterion();
         edgecntmeasure* ms = new edgecntmeasure();;
-        float max = as->computeasymptotic(cr,ms,outof,limitdim, *_os, _ws);
+        double max = as->computeasymptotic(cr,ms,outof,limitdim, *_os, _ws);
 
         auto mi = new mantelstheoremitem();
         mi->limitdim = limitdim;

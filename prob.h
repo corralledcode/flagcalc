@@ -13,9 +13,9 @@
 #include "graphs.h"
 
 #define RANDOMRANGE 10000
-#define RANDOMRANGEFLOAT 10000.0
+#define RANDOMRANGEdouble 10000.0
 
-using weightstype = std::vector<float>;
+using weightstype = std::vector<double>;
 
 class abstractrandomgraph {
 public:
@@ -38,7 +38,7 @@ public:
 
 class legacyabstractrandomgraph : public abstractrandomgraph {
 public:
-    std::vector<graphtype*> randomgraphsinternal(const int dim, const float edgecnt, const int cnt) {
+    std::vector<graphtype*> randomgraphsinternal(const int dim, const double edgecnt, const int cnt) {
         std::vector<graphtype*> res {};
         res.resize(cnt+1);
         for (int i = 0; i < cnt+1; ++i) {
@@ -50,16 +50,16 @@ public:
     }
 
 
-    virtual void randomgraph( graphtype* gptr, const float edgecnt ) {};
+    virtual void randomgraph( graphtype* gptr, const double edgecnt ) {};
     /* The rules for the above virtual function: it must not modify the object's variables
      * lest it create a contention when threaded. Use local variables instead,
      * e.g. such as _edgecnt; just use the local version of it. */
 
-    std::vector<graphtype*> randomgraphs( const int dim, const float edgecnt, const int cnt ) {
+    std::vector<graphtype*> randomgraphs( const int dim, const double edgecnt, const int cnt ) {
         unsigned const thread_count = std::thread::hardware_concurrency();
         //unsigned const thread_count = 1;
 
-        float section = float(cnt)/float(thread_count);
+        double section = double(cnt)/double(thread_count);
         // Note: MUST play safe in the abstractrandomgraph class so it won't contend
 
         std::vector<std::future<std::vector<graphtype*>>> t {};
@@ -91,7 +91,7 @@ public:
 /*
 class abstractrandomgraph {
 
-    std::vector<graphtype*> randomgraphsinternal(const int dim, const float edgecnt, const int cnt) {
+    std::vector<graphtype*> randomgraphsinternal(const int dim, const double edgecnt, const int cnt) {
         std::vector<graphtype*> res {};
         res.resize(cnt+1);
         for (int i = 0; i < cnt+1; ++i) {
@@ -106,16 +106,16 @@ public:
     virtual std::string shortname() {return "";};
     std::string name;
 
-    virtual void randomgraph( graphtype* gptr, const float edgecnt ) {};
+    virtual void randomgraph( graphtype* gptr, const double edgecnt ) {};
     //* The rules for the above virtual function: it must not modify the object's variables
     // * lest it create a contention when threaded. Use local variables instead,
     // * e.g. such as _edgecnt; just use the local version of it.
 
-    std::vector<graphtype*> randomgraphs( const int dim, const float edgecnt, const int cnt ) {
+    std::vector<graphtype*> randomgraphs( const int dim, const double edgecnt, const int cnt ) {
         unsigned const thread_count = std::thread::hardware_concurrency();
         //unsigned const thread_count = 1;
 
-        float section = float(cnt)/float(thread_count);
+        double section = double(cnt)/double(thread_count);
         // Note: MUST play safe in the abstractrandomgraph class so it won't contend
 
         std::vector<std::future<std::vector<graphtype*>>> t {};
@@ -150,9 +150,9 @@ public:
 /*
 class abstractrandomgraphptrtof : public abstractrandomgraph {
 public:
-    void (*randomgraphfunc)(graph* gptr, float edgecnt);
+    void (*randomgraphfunc)(graph* gptr, double edgecnt);
 
-    void randomgraph( graph* gptr, float edgecnt ) override {
+    void randomgraph( graph* gptr, double edgecnt ) override {
         abstractrandomgraph::randomgraph(gptr, edgecnt);
         randomgraphfunc(gptr,edgecnt);
     }
@@ -161,14 +161,14 @@ public:
 // E.G. a non-OOP function for use with abstractrandomgraphptrtof
 
 /*
-inline void stdrandomgraphfunc( graph* gptr, float edgecnt ) {
+inline void stdrandomgraphfunc( graph* gptr, double edgecnt ) {
     std::random_device dev;
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
     for (int n = 0; n < gptr->dim; ++n) {
         gptr->adjacencymatrix[n*gptr->dim + n] = 0;
         for (int i = n+1; i < gptr->dim; ++i) {
-            gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*float(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
+            gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*double(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
             gptr->adjacencymatrix[i*gptr->dim + n] = gptr->adjacencymatrix[n*gptr->dim+i];
         }
     }
@@ -176,11 +176,11 @@ inline void stdrandomgraphfunc( graph* gptr, float edgecnt ) {
 }*/
 
 class legacystdrandomgraph : public legacyabstractrandomgraph {
-    float _edgecnt;
+    double _edgecnt;
 public:
     std::string shortname() {return "r1";};
     legacystdrandomgraph() : legacyabstractrandomgraph("random graph with edgecnt probability") {}
-    virtual void randomgraph( graphtype* gptr, float edgecnt ) override {
+    virtual void randomgraph( graphtype* gptr, double edgecnt ) override {
         legacyabstractrandomgraph::randomgraph(gptr,edgecnt);
         //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
         //_edgecnt = edgecnt;
@@ -191,7 +191,7 @@ public:
         for (int n = 0; n < gptr->dim; ++n) {
             gptr->adjacencymatrix[n*gptr->dim + n] = 0;
             for (int i = n+1; i < gptr->dim; ++i) {
-                gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*float(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
+                gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*double(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
                 gptr->adjacencymatrix[i*gptr->dim + n] = gptr->adjacencymatrix[n*gptr->dim+i];
             }
         }
@@ -203,7 +203,7 @@ class legacyrandomgraphonnedges : public legacyabstractrandomgraph {
 public:
     std::string shortname() {return "r2";}
     legacyrandomgraphonnedges() : legacyabstractrandomgraph("random graph with given edgecnt") {}
-    void randomgraph( graphtype*  gptr, float edgecnt ) {
+    void randomgraph( graphtype*  gptr, double edgecnt ) {
         //_edgecnt = (int)edgecnt;
         //name = "random graph with edgecnt == " + std::to_string(edgecnt);
         if (edgecnt > (gptr->dim * gptr->dim / 2)) {
@@ -221,8 +221,8 @@ public:
         int n = 0;
 
         while (n < edgecnt) {
-            vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
-            vertextype v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+            vertextype v1 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
+            vertextype v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
             if ((v1 != v2) && !gptr->adjacencymatrix[v1*gptr->dim + v2]) {
                 gptr->adjacencymatrix[v1*gptr->dim + v2] = true;
                 gptr->adjacencymatrix[v2*gptr->dim + v1] = true;
@@ -239,7 +239,7 @@ class legacyrandomconnectedgraphfixededgecnt : public legacyabstractrandomgraph 
 public:
     std::string shortname() {return "r3";}
     legacyrandomconnectedgraphfixededgecnt() : legacyabstractrandomgraph("random connected graph with given fixed edge count (ignoring unconnected outliers)") {}
-    void randomgraph( graphtype* gptr, float edgecnt ) {
+    void randomgraph( graphtype* gptr, double edgecnt ) {
         //_edgecnt = edgecnt;
         //name = "random connected graph with fixed edge count " + std::to_string(_edgecnt) + " (ignoring unconnected outliers)";
         for (int i = 0; i < gptr->dim; ++i) {
@@ -262,10 +262,10 @@ public:
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
         std::vector<vertextype> edges {};
-        vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+        vertextype v1 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         vertextype v2 = v1;
         while (v2 == v1) {
-            v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+            v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         }
         bool visited[gptr->dim];
         for (vertextype i = 0; i < (gptr->dim); ++i) {
@@ -278,7 +278,7 @@ public:
         gptr->adjacencymatrix[v2*(gptr->dim) + v1] = true;
         int cnt = edgecnt-1;
         while (cnt > 0) {
-            vertextype candidatev1index = (vertextype)(float((dist10000(rng)) * float(visitedcnt))/RANDOMRANGEFLOAT);
+            vertextype candidatev1index = (vertextype)(double((dist10000(rng)) * double(visitedcnt))/RANDOMRANGEdouble);
             int cnt2 = 0;
             vertextype i = -1;
             while (cnt2 <= candidatev1index) {
@@ -291,7 +291,7 @@ public:
             //std::cout << "candidatev1 == i == " << i << "\n";
             vertextype candidatev2 = candidatev1;
             while (candidatev2 == candidatev1) {
-                candidatev2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+                candidatev2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
             }
             if ((candidatev2 >= gptr->dim) || (candidatev1 >= gptr->dim))
                 std::cout << "ERROR\n";
@@ -313,7 +313,7 @@ class legacyrandomconnectedgraph : public legacyabstractrandomgraph {
 public:
     std::string shortname() {return "r4";}
     legacyrandomconnectedgraph() : legacyabstractrandomgraph("random connected graph (algorithm does not find all such graphs...) with given edgecnt") {}
-    void randomgraph( graphtype*  gptr, float edgecnt ) override {
+    void randomgraph( graphtype*  gptr, double edgecnt ) override {
         legacyabstractrandomgraph::randomgraph(gptr, edgecnt);
         //_edgecnt = (int)edgecnt;
         //name = "random connected graph (algorithm does not find all such graphs...) edgecnt == " + std::to_string(_edgecnt);
@@ -328,10 +328,10 @@ public:
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
         std::vector<vertextype> edges {};
-        vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+        vertextype v1 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         vertextype v2 = v1;
         while (v2 == v1) {
-            v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+            v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         }
         bool visited[gptr->dim];
         for (vertextype i = 0; i < (gptr->dim); ++i) {
@@ -343,7 +343,7 @@ public:
         gptr->adjacencymatrix[v1*(gptr->dim) + v2] = true;
         gptr->adjacencymatrix[v2*(gptr->dim) + v1] = true;
         while (visitedcnt<gptr->dim) {
-            vertextype candidatev1index = (vertextype)(float((dist10000(rng)) * float(visitedcnt))/RANDOMRANGEFLOAT);
+            vertextype candidatev1index = (vertextype)(double((dist10000(rng)) * double(visitedcnt))/RANDOMRANGEdouble);
             int cnt2 = 0;
             vertextype i = -1;
             while (cnt2 <= candidatev1index) {
@@ -356,7 +356,7 @@ public:
             //std::cout << "candidatev1 == i == " << i << "\n";
             vertextype candidatev2 = candidatev1;
             while (candidatev2 == candidatev1) {
-                candidatev2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+                candidatev2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
             }
             if ((candidatev2 >= gptr->dim) || (candidatev1 >= gptr->dim))
                 std::cout << "ERROR\n";
@@ -378,7 +378,7 @@ inline std::vector<weightstype> computeweights(int n) {
     std::vector<weightstype> res {};
     for (int i = 0; i < n; ++i) {
         weightstype thisweights {};
-        float weight = 1.0;
+        double weight = 1.0;
         for (int k = 0; k < i; ++k) {
             weight = weight/2.0;
             thisweights.push_back(weight);
@@ -400,7 +400,7 @@ class legacyweightedrandomconnectedgraph : public legacyabstractrandomgraph {
 public:
     std::string shortname() {return "r5";}
     legacyweightedrandomconnectedgraph() : legacyabstractrandomgraph("random connected graph with balanced/weighted search") {}
-    void randomgraph( graphtype*  gptr, float edgecnt ) {
+    void randomgraph( graphtype*  gptr, double edgecnt ) {
         std::vector<weightstype> weights = computeweights(gptr->dim); // obviously would be nice to only do this once per dim...
         //name = "random connected graph with balanced/weighted search";
         for (int i = 0; i < gptr->dim; ++i) {
@@ -414,10 +414,10 @@ public:
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
         std::vector<vertextype> edges {};
-        vertextype v1 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+        vertextype v1 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         vertextype v2 = v1;
         while (v2 == v1) {
-            v2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+            v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         }
         bool visited[gptr->dim];
         for (vertextype i = 0; i < (gptr->dim); ++i) {
@@ -432,14 +432,14 @@ public:
         while (visitedcnt < gptr->dim) {
             int tmprnd = dist10000(rng);
             vertextype candidatev1index = 0;
-            while (candidatev1index < visitedcnt-1 && tmprnd > RANDOMRANGEFLOAT*weights[visitedcnt][candidatev1index+1])
+            while (candidatev1index < visitedcnt-1 && tmprnd > RANDOMRANGEdouble*weights[visitedcnt][candidatev1index+1])
                 ++candidatev1index;
             if (candidatev1index > visitedcnt-1) {
                 std::cout << "Error in candidatev1index\n";
                 return;
             }
 
-            //vertextype candidatev1index = (vertextype)(float((dist10000(rng)) * float(visitedcnt))/10000.0);
+            //vertextype candidatev1index = (vertextype)(double((dist10000(rng)) * double(visitedcnt))/10000.0);
 
 
             int cnt2 = 0;
@@ -454,7 +454,7 @@ public:
             //std::cout << "candidatev1 == i == " << i << "\n";
             vertextype candidatev2 = candidatev1;
             while (candidatev2 == candidatev1) {
-                candidatev2 = (vertextype)((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT);
+                candidatev2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
             }
             if ((candidatev2 >= gptr->dim) || (candidatev1 >= gptr->dim))
                 std::cout << "ERROR in exceeding dim\n";
@@ -468,8 +468,8 @@ public:
             }
             lastv1 = candidatev2;
         }
-        if (dist10000(rng) > RANDOMRANGEFLOAT/2.0) {
-            vertextype lastv2 = (vertextype((float)dist10000(rng) * (float)(gptr->dim)/RANDOMRANGEFLOAT));
+        if (dist10000(rng) > RANDOMRANGEdouble/2.0) {
+            vertextype lastv2 = (vertextype((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble));
             if (lastv1 != lastv2) {
                 gptr->adjacencymatrix[lastv1*gptr->dim + lastv2] = true;
                 gptr->adjacencymatrix[lastv2*gptr->dim + lastv1] = true;
@@ -480,12 +480,12 @@ public:
 
 };
 
-int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int outof );
+int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int outof );
 
-std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const float edgecnt, const int cnt );
+std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int cnt );
 /*
 
-void randomgraph( graphtype*  gptr, const float edgecnt ); // legacy replaced as above by class
+void randomgraph( graphtype*  gptr, const double edgecnt ); // legacy replaced as above by class
 
 void randomconnectedgraphfixededgecnt( graphtype*  gptr, const int edgecnt ); // legacy replaced as above by class
 
@@ -504,7 +504,7 @@ public:
     }
     std::vector<graphtype*> randomgraphs(const int cnt) override {
         int dim;
-        float edgecnt;
+        double edgecnt;
         if (ps.size()>0)
             dim = stoi(ps[0]);
         if (ps.size()>1)
