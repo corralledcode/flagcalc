@@ -38,7 +38,7 @@ public:
 using graphtype = labelledgraph<std::string>;
 //using graphtype = labelledgraph<vltype>;
 
-void osadjacencymatrix( std::ostream &os, graphtype* g );
+void osadjacencymatrix( std::ostream &os, const graphtype* g );
 
 
 class neighbors {
@@ -167,13 +167,13 @@ void osfingerprint( std::ostream &os, neighbors* ns, FP* fps, int fpscnt );
 void osfingerprintminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt );
 
 
-void osadjacencymatrix( std::ostream &os, graphtype* g );
+void osadjacencymatrix( std::ostream &os, const graphtype* g );
 
-void osneighbors( std::ostream &os, neighbors* ns );
+void osneighbors( std::ostream &os, const neighbors* ns );
 
-void osedges( std::ostream &os, graphtype* g );
+void osedges( std::ostream &os, const graphtype* g );
 
-void osgraphmorphisms( std::ostream &os, graphtype* g1, graphtype* g2, std::vector<graphmorphism>* maps );
+void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g2, const std::vector<graphmorphism>* maps );
 
 void osmachinereadablegraph(std::ostream &os, graphtype* g);
 
