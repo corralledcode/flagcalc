@@ -54,11 +54,13 @@ will use criterion “connected criterion” and for those that are connected gr
 
 7. Continuing,
 
-flagcalc <your commands here> -a connc treec radiusm s=”(NOT 0) AND 1” all
+flagcalc <your commands here> -a connc forestc radiusm s=”(NOT 0) AND 1” all
 
-will test “connected criterion” and “tree criterion”, accepting the logical “NOT” of the first and the positive truth of the second, I.e all forests (and here is the code I personally just used to confirm that “tree criterion” still departs from convention by including “forests”: 
+will test “connected criterion” and “forest criterion”, accepting the logical “NOT” of the first and the positive truth of the second, i.e all forests that aren’t trees i.e. have more than one connected component (and here is the code I personally just used to confirm that “forest criterion” is different from “forest criterion AND connected criterion”, i.e. from “tree criterion”: 
 
-“flagcalc -r 10 12 1000 -a connc treec l=AND all -v i=minimal2.cfg min”
+“flagcalc -r 10 12 1000 -a connc forestc l=AND all -v i=minimal2.cfg min”
+
+)
 
 8. Referring to the tool’s name, one can input a test graph to induce an embedding in the graphs on the workplace, using
 
@@ -70,7 +72,7 @@ will test for the cycle “abcda”, being embeddable such that adjacency and no
 
 flagcalc <your commands here> -g o=<filename> overwrite passed
 
-where one chooses between “overwrite” and “append”, and uses optionally “passed” or “passed=2” to output only those that passed the second criterion, or “passed=-1” to output those that passed the last criterion. All these can be interspersed, with say two invocations of a “-a” to get clock speed results on comparative algorithms, and “-g” used multiple times, once to output all graphs and once just those that passed the criteria.
+where one chooses between “overwrite” and “append”, and uses optionally “passed” or “passed(2)” to output only those that passed the second criterion, or “passed(-1)” to output those that passed the last criterion. All these can be interspersed, with say two invocations of a “-a” to get clock speed results on comparative algorithms, and “-g” used multiple times, once to output all graphs and once just those that passed the criteria.
 
 That is a very brief summary of what the tool does. Finally, here we explain the formalism for inputting graphs:
 
