@@ -102,10 +102,10 @@ public:
         //delete ngs;
         //delete cgs;
 
-        auto g = igraphstyle(input);
-        auto ns = new neighbors(g);
-        osadjacencymatrix(std::cout,g);
-        osneighbors(std::cout,ns);
+        // auto g = igraphstyle(input);
+        // auto ns = new neighbors(g);
+        // osadjacencymatrix(std::cout,g);
+        // osneighbors(std::cout,ns);
 
 //        auto tc = new forestcriterion();
 //        std::cout << "tree criterion == " << tc->takemeasure(g,ns) << "\n";
@@ -115,9 +115,9 @@ public:
 //        auto cc = new connectedcriterion();
 //        std::cout << "connected criterion == " << cc->takemeasure(g,ns) << "\n";
 
-        auto rm = new radiusmeasure();
-        auto tmp = rm->takemeasure(g,ns);
-        std::cout << "radius measure == " << tmp << "\n";
+        // auto rm = new radiusmeasure();
+        // auto tmp = rm->takemeasure(g,ns);
+        // std::cout << "radius measure == " << tmp << "\n";
 
         //auto cm = new circumferencemeasure;
         // auto tmp = cm->takemeasure(g,ns);
@@ -127,11 +127,20 @@ public:
         // std::cout << "diameter measure == " << tmp << "\n";
 
         //delete cm;
+        std::string f {};
+        for (auto s : input)
+            f += s + " ";
+        std::vector<double> literals = {0,1,5,10,-25};
+        formulaclass* fout = parseformula(f,nullptr); // don't use function names yet
+        if (fout != nullptr)
+            std::cout << "Result: " << evalformula(*fout,literals,nullptr) << "\n";
+        else
+            std::cout << "Null result\n";
+        delete fout;
 
-
-        delete rm;
-        delete ns;
-        delete g;
+        // delete rm;
+        // delete ns;
+        // delete g;
 //        delete tc;
         // delete cm;
         // delete cc;
@@ -1690,6 +1699,8 @@ public:
     std::vector<abstractmemorymeasure<double>*> ms {};
     std::vector<std::pair<int,std::string>> mscombinations {};
     std::vector<std::string> sentences {};
+    std::vector<std::string> formulae {};
+    std::vector<std::string> equalities {}; // includes inequalities
 
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
@@ -1726,8 +1737,10 @@ public:
         *_os << "\t" << "\"l=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
         *_os << "\t" << "\"s=<sentence>\": applies the logical sentence inside the quotes to the criteria\n";
         *_os << "\t" << "\"is=<filename>\": applies the logical sentence in <filename> to the criteria\n";
-        *_os << "\t" << "\"f=<graph>\": \t checks the criterion of flag <graph> embedding\n";
+        *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
         *_os << "\t" << "\"if=<filename>\": applies the criteria of flags in <filename> embedding\n";
+        *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
+        *_os << "\t" << "\"e=<equation>\": uses equation or inequality as a criterion\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
@@ -1753,6 +1766,8 @@ public:
         std::vector<std::pair<int,bool>> neg {};
 
         sentences.clear();
+        formulae.clear();
+        equalities.clear();
 
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
@@ -1789,6 +1804,14 @@ public:
             if (parsedargs[i].first == "s")
             {
                 sentences.push_back(parsedargs[i].second);
+                continue;
+            }
+            if (parsedargs[i].first == "a") {
+                formulae.push_back(parsedargs[i].second);
+                continue;
+            }
+            if (parsedargs[i].first == "e") {
+                equalities.push_back(parsedargs[i].second);
                 continue;
             }
             if (parsedargs[i].first == "f")
@@ -1848,6 +1871,65 @@ public:
                 }
                 continue;
             }
+
+            if (parsedargs[i].first == "ia") {
+                std::string ifname = parsedargs[i].second;
+                std::cout << "Opening file " << ifname << "\n";
+                std::ifstream infile(ifname);
+                if (infile.good()) {
+                    std::ifstream ifs;
+                    ifs.open(ifname, std::fstream::in );
+                    std::string algebraicformula = "";
+                    std::string tmp {};
+                    while (!ifs.eof()) {
+                        ifs >> tmp;
+                        bool changed = false;
+                        while (!ifs.eof() && tmp != "END" && tmp != "###")
+                        {
+                            algebraicformula += " " + tmp + " ";
+                            ifs >> tmp;
+                            changed = true;
+                        }
+                        if (changed)
+                            formulae.push_back(algebraicformula);
+                        algebraicformula = "";
+                    }
+                    ifs.close();
+                } else {
+                    std::cout << "Couldn't open file for reading " << ifname << "\n";
+                }
+                continue;
+            }
+
+            if (parsedargs[i].first == "ie") {
+                std::string ifname = parsedargs[i].second;
+                std::cout << "Opening file " << ifname << "\n";
+                std::ifstream infile(ifname);
+                if (infile.good()) {
+                    std::ifstream ifs;
+                    ifs.open(ifname, std::fstream::in );
+                    std::string equalityformula = "";
+                    std::string tmp {};
+                    while (!ifs.eof()) {
+                        ifs >> tmp;
+                        bool changed = false;
+                        while (!ifs.eof() && tmp != "END" && tmp != "###")
+                        {
+                            equalityformula += " " + tmp + " ";
+                            ifs >> tmp;
+                            changed = true;
+                        }
+                        if (changed)
+                            equalities.push_back(equalityformula);
+                        equalityformula = "";
+                    }
+                    ifs.close();
+                } else {
+                    std::cout << "Couldn't open file for reading " << ifname << "\n";
+                }
+                continue;
+            }
+
 
             bool found = false;
 
@@ -2029,7 +2111,7 @@ public:
 
         if (items.size() >= 1)
         {
-            if (cs.empty() && sentences.empty() && fps.empty())
+            if (cs.empty() && sentences.empty() && fps.empty() && equalities.empty())
                 cs.push_back(crs[0]);
 
             for (int i = 0; i < fps.size(); ++i) {
@@ -2107,12 +2189,38 @@ public:
         }
 
 
-        if (ms.empty()) {
+        if (ms.empty() && formulae.empty()) {
             auto newms = (*mssfactory[0])();
             ms.push_back(newms);
             //ms.push_back(mss[0]);
             //std::cout << ms[0]->name << "\n";
         }
+
+        for (int l = 0; l < ms.size(); ++l) {
+            ms[l]->setsize(eqclass.size());
+            ms[l]->gptrs = &glist;
+            ms[l]->nsptrs = &nslist;
+            //ms[l]->res = new std::vector<double>;
+            //ms[l]->res->resize(items.size());
+            //for (int i = 0; i < ms[l]->res->size(); ++i)
+            //    (*ms[l]->res)[i] = -1;
+        }
+
+
+        std::vector<double*> resm {};
+        for (auto m : ms)
+            resm.push_back(m->res);
+        for (auto a : formulae)
+            ms.push_back(new formulameasure(resm,items.size(),a,nullptr,a));
+
+
+        //        std::map<std::string,std::pair<double (*)(std::vector<double>),int>> fnptrs;
+        // for (auto m : mss) {
+        // fnptrs[m->shortname()] = {&m->res,0}
+        // }
+
+        for (auto e : equalities)
+            cs.push_back(new equationcriteria(resm,items.size(),e,e));
 
         std::vector<std::vector<int>> crmspairs;
         crmspairs.resize(cs.size());
@@ -2157,20 +2265,20 @@ public:
                     ms.push_back(mss[0]);
                     zeromeasureidx = ms.size()-1;
                     addedzeromeasure = true;
+                    ms[zeromeasureidx]->setsize(eqclass.size());
+                    ms[zeromeasureidx]->gptrs = &glist;
+                    ms[zeromeasureidx]->nsptrs = &nslist;
+
                 }
                 crmspairs[c].push_back(zeromeasureidx);  // the measure indexed at zero being the always true measure
             }
         }
 
-        for (int l = 0; l < ms.size(); ++l) {
-            ms[l]->setsize(eqclass.size());
-            ms[l]->gptrs = &glist;
-            ms[l]->nsptrs = &nslist;
-            //ms[l]->res = new std::vector<double>;
-            //ms[l]->res->resize(items.size());
-            //for (int i = 0; i < ms[l]->res->size(); ++i)
-            //    (*ms[l]->res)[i] = -1;
-        }
+
+
+
+
+
 
 
         std::vector<std::vector<bool>> done {};

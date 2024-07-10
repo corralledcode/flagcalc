@@ -884,3 +884,40 @@ public:
         delete dm;
     }
 };
+
+
+class formulameasure : public abstractmemorymeasure<double> {
+protected:
+    //std::vector<abstractmemorymeasure<bool>*> cs;
+    formulaclass* fc;
+    std::vector<double*> variables {};
+    const int sz2;
+    std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrs {};
+public:
+
+    std::string shortname() override {return "msFORMULA";}
+    double takemeasureidxed( const int idx ) override {
+        if (!computed[idx]) {
+            std::vector<double> tmpres {};
+            tmpres.resize(variables.size());
+            for (int i = 0; i < variables.size(); ++i )
+                tmpres[i] = variables[i][idx];
+            res[idx] = evalformula(*fc,tmpres,fnptrs);  // check for speed cost
+            computed[idx] = true;
+        }
+        return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
+    }
+
+    formulameasure( std::vector<double*> variablesin, const int szin, std::string formula,
+        std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrsin,
+        std::string stringin )
+        : abstractmemorymeasure<double>(stringin == "" ? "logical sentence of several criteria" : stringin),
+            variables{variablesin}, fc{parseformula(formula,fnptrsin)},fnptrs{fnptrsin}, sz2{szin} {
+        setsize(sz2);
+    }
+
+    ~formulameasure() {
+        delete fc;
+    }
+};
+

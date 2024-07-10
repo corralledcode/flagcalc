@@ -24,6 +24,7 @@
 #include "prob.h"
 //#include "measure.cpp"
 //#include "workspace.h"
+#include "math.cpp"
 
 #define KNMAXCLIQUESIZE 12
 
@@ -233,13 +234,6 @@ public:
 };
 
 
-inline bool is_number(const std::string& s)
-{
-    if (!s.empty() && s[0] == '-')
-        return (is_number(s.substr(1,s.size()-1)));
-    return !s.empty() && std::find_if(s.begin(),
-        s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
-}
 
 class knparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool> {
 protected:
@@ -311,191 +305,6 @@ public:
 
 };
 
-enum class logicalconnective {lcand, lcor};
-
-struct logicalsentence {
-    int item {};
-    std::vector<logicalsentence> ls {};
-    logicalconnective lc {logicalconnective::lcand};
-    bool negated {false};
-};
-
-inline bool evalsentence( logicalsentence ls, std::vector<bool> literals ) {
-
-    bool res;
-
-    if (ls.ls.size()==0) {
-        if (ls.item >= 0 && ls.item < literals.size()) {
-            res = literals[ls.item];
-        } else {
-            if (ls.item < 0 && (literals.size() + ls.item >= 0))
-                res = literals[literals.size() + ls.item];
-            else
-                return true;
-        }
-    }
-
-
-    if (ls.ls.size() > 0 && ls.lc == logicalconnective::lcand) {
-        res = true;
-        int n = 0;
-        while (res && n < ls.ls.size())
-            res &= evalsentence( ls.ls[n++], literals);
-    }
-    if (ls.ls.size() > 0 && ls.lc == logicalconnective::lcor) {
-        res = false;
-        int n = 0;
-        while (!res && n < ls.ls.size())
-            res |= evalsentence(ls.ls[n++],literals);
-    }
-    //std::cout << (ls.ls.size()) << "ls.ls.size()\n";
-    //std::cout << res << " (res)\n";
-    return ls.negated != res;
-}
-
-inline logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2, const logicalconnective lc ) {
-    logicalsentence res;
-    res.ls.push_back(ls1);
-    res.ls.push_back(ls2);
-    res.lc = lc;
-    res.negated = false;
-    res.item = 0;
-    return res;
-}
-
-inline std::vector<std::string> parsecomponents( std::string str ) {
-    std::string partial {};
-    std::vector<std::string> components {};
-    for (auto ch : str) {
-        if (ch == ' ') {
-            if (partial != "") {
-                components.push_back(partial);
-                partial = "";
-            }
-            continue;
-        }
-        if (ch == '(') {
-            if (partial != "") {
-                components.push_back(partial);
-                partial = "";
-            }
-            components.push_back("(");
-            continue;
-        }
-        if (ch == ')') {
-            if (partial != "") {
-                components.push_back(partial);
-                partial = "";
-            }
-            components.push_back(")");
-            continue;
-        }
-        partial += ch;
-    }
-    if (partial != "") {
-        components.push_back(partial);
-    }
-/*
-    for (auto c : components)
-        std::cout << "c == " << c << ", ";
-    std::cout << "\n"; */
-    return components;
-}
-
-
-inline logicalsentence parsesentenceinternal (std::vector<std::string> components, int nesting ) {
-    std::vector<std::string> left {};
-    std::vector<std::string> right = components;
-    logicalsentence ls;
-    if (components.size() < 1) {
-        std::cout << "Error in parsesentenceinternal\n";
-        ls.ls.clear();
-        ls.item = 0;
-        return ls;
-    }
-    if ((components.size() == 1) && is_number(components[0])) {
-        ls.ls.clear();
-        ls.item = stoi(components[0]);
-        ls.negated = false;
-        return ls;
-    }
-
-
-    if (components.size() > 0 && components[0] == "NOT") {
-        right.erase(right.begin(), right.begin()+1);
-        ls = parsesentenceinternal( right, nesting );
-        ls.negated = !ls.negated;
-        return ls;
-    }
-
-
-
-    //for (auto t : components)
-    //    std::cout << t << ", ";
-    //std::cout << "\n";
-
-
-
-
-    right = components;
-    left.clear();
-    int j = 0;
-    logicalsentence ls1;
-    logicalsentence ls2;
-    while (j < components.size()) {
-        right.erase(right.begin(), right.begin()+1);
-        if (nesting <= 0) {
-            if ((components[j] == "AND" || components[j] == "OR")) {
-                ls1 = parsesentenceinternal(left,nesting);
-                ls2 = parsesentenceinternal(right,nesting);
-                if (components[j] == "AND") {
-                    return lscombine(ls1,ls2,logicalconnective::lcand);
-                }
-                if (components[j] == "OR") {
-                    return lscombine(ls1,ls2,logicalconnective::lcor);
-                }
-            }
-        }
-        if (components[j] == "(") {
-            ++nesting;
-        }
-        if (components[j] == ")") {
-            --nesting;
-        }
-        left.push_back(components[j]);
-        ++j;
-    }
-
-    if (components.size() >= 3) {
-        if (components[0] == "(" && components[components.size()-1] == ")") {
-            std::vector<std::string>::const_iterator first = components.begin()+1;
-            std::vector<std::string>::const_iterator last = components.begin()+components.size()-1;
-            std::vector<std::string> tempcomponents(first,last);
-            components = tempcomponents;
-            return parsesentenceinternal(components,nesting);
-        }
-
-    }
-
-
-
-    std::cout << "Ill-formed overall sentence\n";
-    ls.ls.clear();
-    ls.item = 0;
-    ls.negated = false;
-    return ls;
-}
-
-inline logicalsentence parsesentence( std::string sentence ) {
-    if (sentence != "")
-        return parsesentenceinternal( parsecomponents(sentence), 0 );
-    else {
-        logicalsentence ls;
-        ls.ls.clear();
-        ls.item = 0;
-        return ls;
-    }
-}
 
 class sentenceofcriteria : public abstractmemorymeasure<bool> {
 protected:
@@ -568,35 +377,6 @@ public:
     }
 
 };
-
-/*
-class notcriteria : public abstractmemoryparameterizedmeasure<bool> {
-protected:
-    std::vector<bool*> variables{};
-public:
-    std::string shortname() override {return "not";}
-    //std::vector<bool*> outcome {};
-
-    bool takemeasureidxed(const int idx) override
-    {
-        for (int i = 0; i < variables.size(); ++i)
-            for (int j = 0; j < sz; ++j)
-                outcome[j][i] = !variables[i];
-        if (ps.size() == 1 && is_number(ps[0]))
-            return (!variables[stoi(ps[0])][idx]);
-    }
-
-    notcriteria(std::vector<bool*> variablesin )
-        : abstractmemoryparameterizedmeasure<bool>("logical NOT (parameter is index to negate)"), variables{variablesin}
-    {
-        outcome.resize(variables.size());
-        for (int i = 0; i < variables.size(); ++i) {
-            outcome[i] = (bool*)malloc(sz*sizeof(bool));
-
-    }
-
-
-};*/
 
 
 class notcriteria : public abstractmemorymeasure<bool> {
@@ -812,6 +592,71 @@ public:
 
     }
 
+
+};
+
+
+
+class equationcriteria : public abstractmemorymeasure<bool> {
+protected:
+    //std::vector<abstractmemorymeasure<bool>*> cs;
+    formulaclass* lhs;
+    formulaclass* rhs;
+    int eqtype = 0; // 0: equal; 1: >= ; -1: <=; 2: >; -2: <
+    std::vector<double*> variables {};
+    const int sz2;
+
+public:
+
+    std::string shortname() override {return "crEQUATION";}
+    bool takemeasureidxed( const int idx ) override {
+        if (!computed[idx]) {
+            std::vector<double> tmpres {};
+            tmpres.resize(variables.size());
+            for (int i = 0; i < variables.size(); ++i )
+                tmpres[i] = variables[i][idx];
+            switch (eqtype) {
+                case 0: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) == evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case 1: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) >= evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case 2: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) >  evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case -1: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) <= evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case -2: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) < evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+            }
+            computed[idx] = true;
+        }
+        return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
+    }
+
+    equationcriteria( std::vector<double*> variablesin, const int szin, std::string equationin, std::string stringin )
+        : abstractmemorymeasure<bool>(stringin == "" ? "equation" : stringin),
+            variables{variablesin}, sz2{szin} {
+        setsize(sz2);
+        std::string lhstr;
+        std::string rhstr;
+        parseequation(&equationin,&lhstr,&rhstr,&eqtype);
+        lhs = parseformula(lhstr,nullptr);
+        rhs = parseformula(rhstr,nullptr);
+    }
+
+    ~equationcriteria() {
+        delete lhs;
+        delete rhs;
+    }
 
 };
 
