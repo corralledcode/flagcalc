@@ -951,13 +951,17 @@ public:
         bool oncethrough = true;
         while ((args.size() <= 1 && oncethrough) || filenameidx < args.size()-1)
         {
-            if (parsedargs[filenameidx++].first == "f")
-                continue;
+            if (parsedargs.size() > filenameidx)
+                if (parsedargs[filenameidx].first == "f") {
+                    filenameidx++;
+                    continue;
+                }
+            filenameidx++;
             oncethrough = false;
             std::ifstream ifs;
             std::istream* is = &std::cin;
             std::ostream* os = _os;
-            if (args.size() > filenameidx) {
+            if ((args.size() > filenameidx) && (args[filenameidx] != "std::cin")) {
                 std::string filename = args[filenameidx];
                 *_os << "Opening file " << filename << "\n";
                 ifs.open(filename);
@@ -1001,10 +1005,12 @@ public:
                 while ((threadidx < thread_count) && !done) {
                     foundname[threadidx] = false;
                     done = !(*is >> item);
+
                     while (!done) {
                         if (item == "END" || item == "###") {
                             if( ++delimetercount >= 2 ) {
                                 delimetercount = 0;
+                                done = done || (is == &std::cin);
                                 break;
                             }
                         } else

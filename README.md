@@ -1,4 +1,4 @@
-FlagCalc is intended to assist the theoretical mathematician at all levels of profession and expertise, including those in secondary school settings and those doing the most cutting edge research.
+﻿FlagCalc is intended to assist the theoretical mathematician at all levels of profession and expertise, including those in secondary school settings and those doing the most cutting edge research.
 
 It arose from a simple curiosity around asymptotic extremal graph theory, namely to decipher the first pages of research and books on graph theory. Initially, that meant curiosity explored around computing isomorphisms between any two similarly-dimensioned graphs, which led to automorphism counts and a “fingerprinting” of any graph, done automatically, and leading to one suggestion of how one can order a set of graphs linearly. The early goal was simply a database of graphs unique up to isomorphism.
 
@@ -88,7 +88,7 @@ or
 
 each do the same thing, making a K_5, with edges ab ac ad ae bc bd be cd ce de.
 
-3. A leading “-” means “path with the following sequence of vertices” (including cycles, if the path ends with the vertex it began on.
+3. A leading “-” means “path with the following sequence of vertices” (including cycles, if the path ends with the vertex it began on; we technically include “walks” when not a path due to visiting vertices more than once, e.g. -abcdefghdijka for a figure eight).
 
 -abcde 
 
