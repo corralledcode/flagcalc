@@ -190,6 +190,28 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         }
         if (ch == ']') {
             bracketed = false;
+            partial += ']';
+            components.push_back(partial);
+            partial = "";
+            continue;
+        }
+        if (ch == '<')
+        {
+            if (partial != "")
+            {
+                components.push_back(partial);
+            }
+            partial = "<";
+            continue;
+        }
+        if (ch == '>')
+        {
+            if (partial != "")
+            {
+                components.push_back(partial);
+            }
+            partial = ">";
+            continue;
         }
         partial += ch;
     }
@@ -197,9 +219,9 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         components.push_back(partial);
     }
 
-    // for (auto c : components)
-        // std::cout << "c == " << c << ", ";
-    // std::cout << "\n";
+    for (auto c : components)
+        std::cout << "c == " << c << ", ";
+    std::cout << "\n";
     return components;
 }
 
