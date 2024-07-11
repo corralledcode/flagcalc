@@ -185,6 +185,37 @@ inline std::vector<std::string> parsecomponents( std::string str) {
                 }
             }
         }
+        if (ch == '&')
+        {
+            if (partial != "")
+            {
+                if (partial[partial.size()-1] == '&')
+                {
+                    partial.push_back(ch);
+                    if (partial.size() > 2)
+                        components.push_back(partial.substr(0,partial.size()-2));
+                    components.push_back( partial.substr(partial.size() - 2, 2));
+                    partial = "";
+                    continue;
+                }
+            }
+        }
+        if (ch == '|')
+        {
+            if (partial != "")
+            {
+                if (partial[partial.size()-1] == '|')
+                {
+                    partial.push_back(ch);
+                    if (partial.size() > 2)
+                        components.push_back(partial.substr(0,partial.size()-2));
+                    components.push_back( partial.substr(partial.size() - 2, 2));
+                    partial = "";
+                    continue;
+                }
+            }
+        }
+
         if (ch == '[') {
             bracketed = true;
         }
@@ -213,15 +244,27 @@ inline std::vector<std::string> parsecomponents( std::string str) {
             partial = ">";
             continue;
         }
+        if (partial.size() > 0 && partial[partial.size()-1] == '!')
+        {
+            if (partial.size() > 1)
+                components.push_back(partial.substr(0,partial.size()-1));
+            components.push_back( partial.substr(partial.size() - 1, 1));
+            partial = "";
+        }
+        if (partial.size() > 0 && (partial[partial.size()-1] == '<' || partial[partial.size()-1] == '>'))
+        {
+            components.push_back( partial );
+            partial = "";
+        }
         partial += ch;
     }
     if (partial != "") {
         components.push_back(partial);
     }
 
-    // for (auto c : components)
-        // std::cout << "c == " << c << ", ";
-    // std::cout << "\n";
+    for (auto c : components)
+        std::cout << "c == " << c << ", ";
+    std::cout << "\n";
     return components;
 }
 
