@@ -69,7 +69,33 @@ inline logicalsentence lscombine( const logicalsentence ls1, const logicalsenten
     return res;
 }
 
-inline std::vector<std::string> parsecomponents( std::string str, const std::vector<std::string> keywords = {"AND","OR","NOT","+","-","*"} ) {
+
+enum class formulaoperator
+{foliteral,fofunction, foconstant, foplus, fominus, fotimes, fodivide, foexponent,
+folte, folt, foe,fone,fogte,fogt,
+foand,foor,fonot,fotrue,fofalse};
+
+inline std::map<std::string,formulaoperator> operatorsmap
+    {{"^",formulaoperator::foexponent},
+        {"*",formulaoperator::fotimes},
+        {"/",formulaoperator::fodivide},
+        {"+",formulaoperator::foplus},
+        {"-",formulaoperator::fominus},
+        {"AND",formulaoperator::foand},
+        {"OR",formulaoperator::foor},
+        {"NOT",formulaoperator::fonot},
+        {"&&",formulaoperator::foand},
+        {"||",formulaoperator::foor},
+        {"!",formulaoperator::fonot},
+        {"==",formulaoperator::foe},
+        {"<=",formulaoperator::folte},
+        {"<",formulaoperator::folt},
+        {">=",formulaoperator::fogte},
+        {">",formulaoperator::fogt},
+        {"!=",formulaoperator::fone}};
+
+
+inline std::vector<std::string> parsecomponents( std::string str) {
     std::string partial {};
     std::vector<std::string> components {};
     bool bracketed = false;
@@ -108,8 +134,8 @@ inline std::vector<std::string> parsecomponents( std::string str, const std::vec
         if (!bracketed && ch == '-') {
             if (components.size() > 0) {
                 bool keyword = false;
-                for (auto k : keywords)
-                    keyword |= k == components[components.size()-1];
+                for (auto k : operatorsmap)
+                    keyword |= k.first == components[components.size()-1];
                 if (!keyword && components[components.size()-1] != "(") {
                     if (partial != "") {
                         components.push_back(partial);
@@ -143,6 +169,21 @@ inline std::vector<std::string> parsecomponents( std::string str, const std::vec
             }
             components.push_back("^");
             continue;
+        }
+        if (ch == '=')
+        {
+            if (partial != "")
+            {
+                if (partial[partial.size()-1] == '<' || partial[partial.size()-1] == '>' || partial[partial.size()-1] == '=')
+                {
+                    partial.push_back(ch);
+                    if (partial.size() > 2)
+                        components.push_back(partial.substr(0,partial.size()-2));
+                    components.push_back( partial.substr(partial.size() - 2, 2));
+                    partial = "";
+                    continue;
+                }
+            }
         }
         if (ch == '[') {
             bracketed = true;
@@ -257,8 +298,6 @@ inline logicalsentence parsesentence( std::string sentence ) {
     }
 }
 
-enum class formulaoperator {foliteral,fofunction, foconstant, foplus, fominus, fotimes, fodivide, foexponent};
-
 class formulaclass;
 
 struct fnstruct {
@@ -268,6 +307,7 @@ struct fnstruct {
 
 struct formulavalue {
     double val;
+    bool bval;
     int lit;
     fnstruct fns;
 };
@@ -293,6 +333,10 @@ public:
 
 inline double evalformula( const formulaclass& fc, std::vector<double> literals, std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrs ) {
     double res;
+    if (fc.fo == formulaoperator::fotrue)
+        return true;
+    if (fc.fo == formulaoperator::fofalse)
+        return false;
     if (fc.fo == formulaoperator::foconstant)
         return fc.v.val;
 
@@ -344,7 +388,36 @@ inline double evalformula( const formulaclass& fc, std::vector<double> literals,
     if (fc.fo == formulaoperator::foexponent) {
         res = pow(evalformula( *fc.fcleft, literals,fnptrs ), evalformula( *fc.fcright, literals,fnptrs ));
     }
-    
+
+    if (fc.fo == formulaoperator::foand) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) && evalformula( *fc.fcright, literals,fnptrs );
+    }
+    if (fc.fo == formulaoperator::foor) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) || evalformula( *fc.fcright, literals,fnptrs );
+    }
+    if (fc.fo == formulaoperator::fonot) {
+        res = !evalformula( *fc.fcright, literals,fnptrs );
+    }
+
+    if (fc.fo == formulaoperator::foe) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) == evalformula( *fc.fcright, literals,fnptrs );
+    }
+    if (fc.fo == formulaoperator::folte) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) <= evalformula( *fc.fcright, literals,fnptrs );
+    }
+    if (fc.fo == formulaoperator::folt) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) < evalformula( *fc.fcright, literals,fnptrs );
+    }
+    if (fc.fo == formulaoperator::fogte) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) >= evalformula( *fc.fcright, literals,fnptrs );
+    }
+    if (fc.fo == formulaoperator::fogt) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) > evalformula( *fc.fcright, literals,fnptrs );
+    }
+    if (fc.fo == formulaoperator::fone) {
+        res = evalformula( *fc.fcleft, literals,fnptrs ) != evalformula( *fc.fcright, literals,fnptrs );
+    }
+
     return res;
 }
 
@@ -355,17 +428,33 @@ inline formulaclass* fccombine( const formulavalue& item, const formulaclass* fc
     return res;
 }
 
-inline bool is_operator( const std::string tok ) {
-    return (tok == "+" || tok == "-" || tok == "*" || tok == "/" || tok == "^");
+
+inline std::map<formulaoperator,int> precedencemap {
+                            {formulaoperator::foexponent,0},
+                            {formulaoperator::fotimes,1},
+                            {formulaoperator::fodivide,1},
+                            {formulaoperator::foplus,2},
+                            {formulaoperator::fominus,2},
+                            {formulaoperator::foe,3},
+                            {formulaoperator::folte,3},
+                            {formulaoperator::folt,3},
+                            {formulaoperator::fogte,3},
+                            {formulaoperator::fogt,3},
+                            {formulaoperator::fone,3},
+                            {formulaoperator::fonot,4},
+                            {formulaoperator::foand,5},
+                            {formulaoperator::foor,5}};
+
+
+
+inline bool is_operator( const std::string& tok ) {
+    for (auto o : operatorsmap)
+        if (o.first == tok)
+            return true;
+    return false;
 }
 
 inline formulaoperator lookupoperator( const std::string& tok ) {
-    std::map<std::string,formulaoperator> operatorsmap
-        {{"^",formulaoperator::foexponent},
-            {"*",formulaoperator::fotimes},
-            {"/",formulaoperator::fodivide},
-            {"+",formulaoperator::foplus},
-            {"-",formulaoperator::fominus}};
 
     for (auto o : operatorsmap ) {
         if (tok == o.first)
@@ -374,16 +463,20 @@ inline formulaoperator lookupoperator( const std::string& tok ) {
     return formulaoperator::fotimes;
 }
 
+inline bool is_truth( const std::string& tok )
+{
+    return tok == "TRUE" || tok == "FALSE";
+}
+
+inline formulaoperator lookuptruth( const std::string& tok )
+{
+    return tok == "TRUE" ? formulaoperator::fotrue : formulaoperator::fofalse;
+}
+
 inline int operatorprecedence( const std::string& tok1, const std::string& tok2) {
     formulaoperator tok1o = lookupoperator(tok1);
     formulaoperator tok2o = lookupoperator(tok2);
 
-    std::map<formulaoperator,int> precedencemap {
-                    {formulaoperator::foexponent,0},
-                       {formulaoperator::fotimes,1},
-                       {formulaoperator::fodivide,1},
-                       {formulaoperator::foplus,2},
-                       {formulaoperator::fominus,2}};
     if (precedencemap[tok1o] == precedencemap[tok2o])
         return 0;
     if (precedencemap[tok1o] < precedencemap[tok2o])
@@ -421,6 +514,10 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
             continue;
         }
         if (is_literal(tok)) {
+            output.push_back(tok);
+            continue;
+        }
+        if (is_truth(tok)) {
             output.push_back(tok);
             continue;
         }
@@ -507,11 +604,17 @@ inline formulaclass* parseformulainternal( std::vector<std::string>& q, int& pos
     while( pos > 0) {
         --pos;
         std::string tok = q[pos];
-        if (is_operator(tok)) {
+        if (is_operator(tok))
+        {
+            formulaoperator o = lookupoperator(tok);
             formulaclass* fcright = parseformulainternal(q,pos,fnptrs);
-            formulaclass* fcleft = parseformulainternal(q,pos,fnptrs);
-            if (fcright && fcleft)
-                return fccombine({0},fcleft,fcright,lookupoperator(tok));
+            formulaclass* fcleft = nullptr;
+            if (o != formulaoperator::fonot)
+            {
+                fcleft = parseformulainternal(q,pos,fnptrs);
+            }
+            if (fcright)
+                return fccombine({0},fcleft,fcright,o);
         }
         if (is_function(tok)) {
             std::vector<formulaclass*> ps {};
@@ -532,9 +635,17 @@ inline formulaclass* parseformulainternal( std::vector<std::string>& q, int& pos
             fv.val = stoi(tok);
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
         }
+        if (is_truth(tok))
+        {
+            formulavalue fv {};
+            formulaoperator t = lookuptruth(tok);
+            fv.bval = t == formulaoperator::fotrue;
+            return fccombine(fv,nullptr,nullptr,t);
+        }
     }
     std::cout << "Error in parsing formula \n";
-    return nullptr;
+    auto fc = new formulaclass({0},nullptr,nullptr,formulaoperator::foconstant);
+    return fc;
 }
 
 inline formulaclass* parseformula( std::string sentence,std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrs  ) {
@@ -548,6 +659,7 @@ inline formulaclass* parseformula( std::string sentence,std::map<std::string,std
     }
 }
 
+/*
 inline void parseequation( std::string* equation, std::string* lhs, std::string* rhs, int* eqtype) {
 
     int pos0 = equation->find ("==");
@@ -583,4 +695,4 @@ inline void parseequation( std::string* equation, std::string* lhs, std::string*
     //std::cout << *lhs << " === " << *rhs << " , " << *eqtype << "\n";
 
 }
-
+*/

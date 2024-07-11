@@ -61,7 +61,14 @@ protected:
 public:
     T* res = nullptr;
     bool* computed = nullptr;
-    //std::string name = "_abstractmemorymeasure";
+    std::string name = "_abstractmemorymeasure";
+
+    std::vector<std::string> ps {};
+
+    virtual void setparams( const std::vector<std::string> pin ) {
+        ps = pin;
+    }
+
 
     void setsize(const int szin) override {
         abstractmeasure<T>::setsize(szin);
@@ -88,11 +95,11 @@ public:
         return res[idx];
     }
 
-    void takemeasurethreadsection( const int startidx, const int stopidx ) {
+    virtual void takemeasurethreadsection( const int startidx, const int stopidx ) {
         for (int i = startidx; i < stopidx; ++i)
             this->takemeasureidxed(i);
     }
-    void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
+    virtual void takemeasurethreadsectionportion( const int startidx, const int stopidx, std::vector<bool>* todo ) {
         for (int i = startidx; i < stopidx; ++i)
             if ((*todo)[i])
                 this->takemeasureidxed(i);
@@ -100,14 +107,26 @@ public:
 
 
     explicit abstractmemorymeasure( std::string namein ) : abstractmeasure<T>(namein) {}
-    ~abstractmemorymeasure() {
+    ~abstractmemorymeasure() override {
         delete res;
         delete computed;
     }
 };
 
+class criterion : public abstractmemorymeasure<bool>
+{
+public:
+    std::string name = "_criterion";
 
-class truecriterion : public abstractmemorymeasure<bool>{
+    virtual std::string shortname() {return "_c";}
+
+    criterion( const std::string namein )
+        : abstractmemorymeasure<bool>(namein) {}
+
+};
+
+
+class truecriterion : public criterion{
 protected:
 public:
     std::string name = "truecriterion";
@@ -123,46 +142,11 @@ public:
 //        computed[idx] = true;
 //        return true;
 //    }
-    truecriterion() : abstractmemorymeasure<bool>("always true") {}
+    truecriterion() : criterion("always true") {}
 };
 
-/*
-inline int threadcomputeasymp( abstractparameterizedrandomgraph* rg, abstractmeasure<bool>* cr, graphtype* g,
-    int n, const int outof, int sampled, bool** samplegraph )
-{
-    int max = 0;
-    //int sampled = 0;
-    rg->setparams({std::to_string(n)})
-    while( sampled < outof )
-    {
-        sampled++;
-        rg->randomgraph(g);
-        //auto ns = new neighbors(g);
-        //ns->computeneighborslist(g); ns isn't used by criterion...
-        if (cr->takemeasure(g,nullptr)) {
-            //double tmp = ms->takemeasure(g,ns);
-            //max = (tmp > max ? tmp : max);
-            max = n;
-            //bool* tmpadjacencymatrix = (bool*)malloc(g.dim * g.dim * sizeof(bool));
-            *samplegraph = (bool*)malloc(g->dim * g->dim * sizeof(bool));
-            for (int i = 0; i < g->dim; ++i) {
-                for (int j = 0; j < g->dim; ++j) {
-                    (*samplegraph)[g->dim*i + j] = g->adjacencymatrix[g->dim*i+j];
-                }
-            }
-            std::cout << "1\n";
-            return sampled;
-        }
-    }
-    //free(ns.neighborslist); // nothing to free
-    *samplegraph = nullptr;
-    return sampled;
-}
 
-*/
-
-
-class trianglefreecriterion : public abstractmemorymeasure<bool> {
+class trianglefreecriterion : public criterion {
 public:
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         int dim = g->dim;
@@ -185,10 +169,10 @@ public:
     }
 
     std::string shortname() override {return "cr1";}
-    trianglefreecriterion() : abstractmemorymeasure("triangle-free criterion") {}
+    trianglefreecriterion() : criterion("triangle-free criterion") {}
 };
 
-class kncriterion : public abstractmemorymeasure<bool> {
+class kncriterion : public criterion {
 public:
     const int n;
     bool takemeasure( const graphtype* g, const neighbors* ns, const int mincnt = 1)  {
@@ -217,25 +201,25 @@ public:
 
 
     std::string shortname() override {return "k" + std::to_string(n);}
-    kncriterion( const int nin) : abstractmemorymeasure("embeds K_" + std::to_string(nin) + " criterion"), n{nin} {}
+    kncriterion( const int nin) : criterion("embeds K_" + std::to_string(nin) + " criterion"), n{nin} {}
 };
 
 
-template<typename T>
-class abstractmemoryparameterizedmeasure : public abstractmemorymeasure<T> {
-public:
-    std::vector<std::string> ps {};
+// template<typename T>
+// class abstractmemoryparameterizedmeasure : public abstractmemorymeasure<T> {
+// public:
+    // std::vector<std::string> ps {};
 
-    virtual void setparams( const std::vector<std::string> pin ) {
-        ps = pin;
-    }
+    // virtual void setparams( const std::vector<std::string> pin ) {
+        // ps = pin;
+    // }
 
-    abstractmemoryparameterizedmeasure( std::string namein ) : abstractmemorymeasure<T>(namein) {}
-};
+    // abstractmemoryparameterizedmeasure( std::string namein ) : abstractmemorymeasure<T>(namein) {}
+// };
 
 
 
-class knparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool> {
+class knparameterizedcriterion : public criterion {
 protected:
     std::vector<kncriterion*> kns {};
 public:
@@ -264,7 +248,7 @@ public:
         // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
     }
 
-    knparameterizedcriterion() : abstractmemoryparameterizedmeasure<bool>("Parameterized K_n criterion (parameter is complete set size)") {
+    knparameterizedcriterion() : criterion("Parameterized K_n criterion (parameter is complete set size)") {
         populatekns();
     }
     ~knparameterizedcriterion() {
@@ -273,7 +257,7 @@ public:
     }
 };
 
-class embedscriterion : public abstractmemorymeasure<bool> {
+class embedscriterion : public criterion {
 protected:
 
 public:
@@ -281,7 +265,7 @@ public:
     neighbors* flagns;
     FP* fp;
     std::string shortname() override {return "embedsc";}
-    embedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+    embedscriterion(neighbors* flagnsin,FP* fpin) : criterion("embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embedsquick(flagns, fp, ns, 1));
     }
@@ -290,7 +274,7 @@ public:
 
 
 
-class legacyembedscriterion : public abstractmemorymeasure<bool> {
+class legacyembedscriterion : public criterion {
 protected:
 
 public:
@@ -298,7 +282,8 @@ public:
     neighbors* flagns;
     FP* fp;
     std::string shortname() override {return "lembedsc";}
-    legacyembedscriterion(neighbors* flagnsin,FP* fpin) : abstractmemorymeasure("legacy embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+    legacyembedscriterion(neighbors* flagnsin,FP* fpin)
+        : criterion("legacy embeds flag criterion"), flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeasure( const graphtype* g, const neighbors* ns) override {
         return (embeds(flagns, fp, ns, 1));
     }
@@ -306,9 +291,9 @@ public:
 };
 
 
-class sentenceofcriteria : public abstractmemorymeasure<bool> {
+class sentenceofcriteria : public criterion {
 protected:
-    //std::vector<abstractmemorymeasure<bool>*> cs;
+    //std::vector<criterion*> cs;
     logicalsentence ls;
     std::vector<bool*> variables {};
     const int sz2;
@@ -328,8 +313,8 @@ public:
         return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
     }
 
-    sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence, std::string stringin )
-        : abstractmemorymeasure<bool>(stringin == "" ? "logical sentence of several criteria" : stringin),
+    sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence,std::string stringin )
+        : criterion(stringin == "" ? "logical sentence of several criteria" : stringin),
             variables{variablesin}, ls{parsesentence(sentence)}, sz2{szin} {
         setsize(sz2);
     }
@@ -379,7 +364,7 @@ public:
 };
 
 
-class notcriteria : public abstractmemorymeasure<bool> {
+/*class notcriteria : public criterion {
 protected:
     const int nsz;
     std::vector<bool*> variables {};
@@ -388,7 +373,7 @@ public:
     std::vector<bool> neg {};
     std::vector<bool*> resnot {};
     notcriteria(std::vector<bool*> variablesin, const int szin, std::vector<bool> negin)
-        : abstractmemorymeasure<bool>("logical NOT of several criteria"), variables{variablesin}, neg{negin}, nsz{szin}
+        : criterion("logical NOT of several criteria"), variables{variablesin}, neg{negin}, nsz{szin}
     {
         setsize(nsz);
         resnot.resize(variables.size());
@@ -435,19 +420,26 @@ public:
     }
 
 };
+*/
 
-
-template<typename T,typename M> abstractmemorymeasure<M>* factory(void) {
+template<typename T> criterion* criterionfactory(void)
+{
     return new T;
 }
 
 
-class forestcriterion : public abstractmemorymeasure<bool>
+
+// template<typename T,typename M> abstractmemorymeasure<M>* factory(void) {
+    // return new T;
+// }
+
+
+class forestcriterion : public criterion
 {
 public:
     virtual std::string shortname() {return "forestc";}
 
-    forestcriterion() : abstractmemorymeasure<bool>("Forest criterion") {}
+    forestcriterion() : criterion("Forest criterion") {}
 
     bool takemeasure( const graphtype* g, const neighbors* ns ) override
     {
@@ -518,12 +510,12 @@ public:
 
 };
 
-class treecriterion : public abstractmemorymeasure<bool>
+class treecriterion : public criterion
 {
 public:
     virtual std::string shortname() {return "treec";}
 
-    treecriterion() : abstractmemorymeasure<bool>("Tree criterion") {}
+    treecriterion() : criterion("Tree criterion") {}
 
     bool takemeasure( const graphtype* g, const neighbors* ns ) override
     {
@@ -597,69 +589,27 @@ public:
 
 
 
-class equationcriteria : public abstractmemorymeasure<bool> {
-protected:
-    //std::vector<abstractmemorymeasure<bool>*> cs;
-    formulaclass* lhs;
-    formulaclass* rhs;
-    int eqtype = 0; // 0: equal; 1: >= ; -1: <=; 2: >; -2: <
-    std::vector<double*> variables {};
-    const int sz2;
 
+class negatablecriterion : public criterion
+{
 public:
+    bool negated;
+    criterion* cr;
 
-    std::string shortname() override {return "crEQUATION";}
-    bool takemeasureidxed( const int idx ) override {
-        if (!computed[idx]) {
-            std::vector<double> tmpres {};
-            tmpres.resize(variables.size());
-            for (int i = 0; i < variables.size(); ++i )
-                tmpres[i] = variables[i][idx];
-            switch (eqtype) {
-                case 0: {
-                    res[idx] = evalformula(*lhs,tmpres,nullptr) == evalformula(*rhs,tmpres,nullptr);
-                    break;
-                }
-                case 1: {
-                    res[idx] = evalformula(*lhs,tmpres,nullptr) >= evalformula(*rhs,tmpres,nullptr);
-                    break;
-                }
-                case 2: {
-                    res[idx] = evalformula(*lhs,tmpres,nullptr) >  evalformula(*rhs,tmpres,nullptr);
-                    break;
-                }
-                case -1: {
-                    res[idx] = evalformula(*lhs,tmpres,nullptr) <= evalformula(*rhs,tmpres,nullptr);
-                    break;
-                }
-                case -2: {
-                    res[idx] = evalformula(*lhs,tmpres,nullptr) < evalformula(*rhs,tmpres,nullptr);
-                    break;
-                }
-            }
-            computed[idx] = true;
-        }
-        return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
+    negatablecriterion( bool negatedin, criterion* crin) : criterion((negatedin ? "NOT of " : "") + crin->name), negated{negatedin}, cr{crin} {}
+
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        return negated != cr->takemeasure(g,ns);
     }
 
-    equationcriteria( std::vector<double*> variablesin, const int szin, std::string equationin, std::string stringin )
-        : abstractmemorymeasure<bool>(stringin == "" ? "equation" : stringin),
-            variables{variablesin}, sz2{szin} {
-        setsize(sz2);
-        std::string lhstr;
-        std::string rhstr;
-        parseequation(&equationin,&lhstr,&rhstr,&eqtype);
-        lhs = parseformula(lhstr,nullptr);
-        rhs = parseformula(rhstr,nullptr);
+    ~negatablecriterion()
+    {
+        delete cr;
     }
 
-    ~equationcriteria() {
-        delete lhs;
-        delete rhs;
-    }
 
 };
-
 
 
 

@@ -9,8 +9,14 @@
 #define GRAPH_PRECOMPUTECYCLESCNT 15
 
 
+class measure : public abstractmemorymeasure<double>
+{
+public:
+    measure(std::string namein) : abstractmemorymeasure<double>(namein) {}
+};
 
-class boolmeasure : public abstractmemorymeasure<double> {
+
+class boolmeasure : public measure {
 public:
     virtual std::string shortname() override {return "truem";}
 
@@ -19,12 +25,12 @@ public:
     }
 
 
-    boolmeasure() : abstractmemorymeasure<double>( "Graph's pass/fail of criterion") {}
+    boolmeasure() : measure( "Graph's pass/fail of criterion") {}
 };
 
 
 
-class dimmeasure : public abstractmemorymeasure<double> {
+class dimmeasure : public measure {
 public:
     virtual std::string shortname() {return "dimm";}
 
@@ -33,10 +39,10 @@ public:
     }
 
 
-    dimmeasure() : abstractmemorymeasure<double>( "Graph's dimension") {}
+    dimmeasure() : measure( "Graph's dimension") {}
 };
 
-class edgecntmeasure : public abstractmemorymeasure<double> {
+class edgecntmeasure : public measure {
 public:
     virtual std::string shortname() {return "edgecm";}
 
@@ -44,10 +50,10 @@ public:
         return edgecnt(g);
     }
 
-    edgecntmeasure() : abstractmemorymeasure<double>( "Graph's edge count") {}
+    edgecntmeasure() : measure( "Graph's edge count") {}
 };
 
-class avgdegreemeasure : public abstractmemorymeasure<double> {
+class avgdegreemeasure : public measure {
 public:
     virtual std::string shortname() {return "dm";}
 
@@ -60,10 +66,10 @@ public:
         return sum / ns->dim;
     }
 
-    avgdegreemeasure() : abstractmemorymeasure<double>( "Graph's average degree") {}
+    avgdegreemeasure() : measure( "Graph's average degree") {}
 };
 
-class mindegreemeasure : public abstractmemorymeasure<double> {
+class mindegreemeasure : public measure {
 public:
     virtual std::string shortname() {return "deltam";}
 
@@ -75,11 +81,11 @@ public:
         return min;
     }
 
-    mindegreemeasure() : abstractmemorymeasure<double>( "Graph's minimum degree") {}
+    mindegreemeasure() : measure( "Graph's minimum degree") {}
 
 };
 
-class maxdegreemeasure : public abstractmemorymeasure<double> {
+class maxdegreemeasure : public measure {
 public:
     virtual std::string shortname() {return "Deltam";}
 
@@ -88,11 +94,11 @@ public:
     }
 
 
-    maxdegreemeasure() : abstractmemorymeasure<double>( "Graph's maximum degree") {}
+    maxdegreemeasure() : measure( "Graph's maximum degree") {}
 
 };
 
-class girthmeasure : public abstractmemorymeasure<double> {
+class girthmeasure : public measure {
     // "girth" is shortest cycle (Diestel p. 8)
 protected:
     std::vector<graphtype*> cyclegraphs {};
@@ -101,7 +107,7 @@ protected:
 public:
     virtual std::string shortname() {return "girthm";}
 
-    girthmeasure() : abstractmemorymeasure<double>("Graph's girth") {
+    girthmeasure() : measure("Graph's girth") {
         for (int n = 0; n < GRAPH_PRECOMPUTECYCLESCNT; ++n) {
             auto cycleg = cyclegraph(n);
             neighbors* cyclens = new neighbors(cycleg);
@@ -175,11 +181,11 @@ public:
 };
 
 
-class maxcliquemeasure : public abstractmemorymeasure<double> {
+class maxcliquemeasure : public measure {
 public:
     virtual std::string shortname() {return "cliquem";}
 
-    maxcliquemeasure() : abstractmemorymeasure<double>("Graph's largest clique") {}
+    maxcliquemeasure() : measure("Graph's largest clique") {}
     double takemeasure( const graphtype* g, const neighbors* ns ) {
         std::vector<kncriterion*> kns {};
         for (int n = 2; n <= ns->dim; ++n) {
@@ -206,10 +212,10 @@ public:
 
 
 template<typename T>
-class measurenonzerocriterion : public abstractmemorymeasure<bool> {
+class measurenonzerocriterion : public criterion {
 public:
     std::string name = "_measurenonzerocriterion";
-    abstractmemorymeasure<double>* am;
+    abstractmemorymeasure<T>* am;
 
     virtual std::string shortname() {return "_mnzc";}
 
@@ -217,11 +223,11 @@ public:
         return am->takemeasure(g,ns) != 0;
     }
     measurenonzerocriterion(abstractmemorymeasure<T>* amin)
-        : abstractmemorymeasure<bool>(amin->name + " measure non-zero"), am{amin} {}
+        : criterion(amin->name + " measure non-zero"), am{amin} {}
 };
 
 template<typename T>
-class measurezerocriterion : public abstractmemorymeasure<bool> {
+class measurezerocriterion : public criterion {
 public:
     std::string name = "_measurezerocriterion";
     abstractmemorymeasure<T>* am;
@@ -232,31 +238,16 @@ public:
         return (abs(am->takemeasure(g,ns))) < 0.1;
     }
     measurezerocriterion(abstractmemorymeasure<T>* amin)
-        : abstractmemorymeasure<bool>(amin->name + " measure zero"), am{amin} {}
+        : criterion(amin->name + " measure zero"), am{amin} {}
 };
 
-template<typename T>
-class measurenonzeroparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool>
-{
-public:
-    std::string name = "_measurenonzeroparameterizedcriterion";
-    abstractmemoryparameterizedmeasure<T>* apm;
-    virtual std::string shortname() override {return "_mnzpc";}
-
-    bool takemeasure(const graphtype* g, const neighbors* ns) override
-    {
-        return apm->takemeasure(g,ns) != 0;
-    }
-    measurenonzeroparameterizedcriterion(abstractmemoryparameterizedmeasure<T>* apmin)
-        : abstractmemoryparameterizedmeasure<bool>(apmin->name + " measure non-zero"), apm{apmin} {}
-};
 
 template<typename T>
-class measuregreaterthanparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool>
+class measuregreaterthancriterion : public criterion
 {
 public:
-    std::string name = "_measuregreaterthanparameterizedcriterion";
-    abstractmemoryparameterizedmeasure<T>* apm;
+    std::string name = "_measuregreaterthancriterion";
+    abstractmemorymeasure<T>* am;
     virtual std::string shortname() override {return "_mgtpc";}
 
     bool takemeasure(const graphtype* g, const neighbors* ns) override
@@ -264,24 +255,24 @@ public:
         double limit = 0;
         if (ps.size() > 0)
             limit = stof(ps[0]);
-        return apm->takemeasure(g,ns) > limit;
+        return am->takemeasure(g,ns) > limit;
     }
 
     void setparams(const std::vector<std::string> pin) override
     {
-        abstractmemoryparameterizedmeasure::setparams(pin);
-
+        criterion::setparams(pin);
+        am->setparams(pin);
     }
-    measuregreaterthanparameterizedcriterion(abstractmemoryparameterizedmeasure<T>* apmin)
-        : abstractmemoryparameterizedmeasure<bool>(apmin->name + " measure greater than"), apm{apmin} {}
+    measuregreaterthancriterion(abstractmemorymeasure<T>* amin)
+        : criterion(amin->name + " measure greater than"), am{amin} {}
 };
 
 template<typename T>
-class measurelessthanparameterizedcriterion : public abstractmemoryparameterizedmeasure<bool>
+class measurelessthancriterion : public criterion
 {
 public:
     std::string name = "_measurelessthanparameterizedcriterion";
-    abstractmemoryparameterizedmeasure<T>* apm;
+    abstractmemorymeasure<T>* am;
     virtual std::string shortname() override {return "_mltpc";}
 
     bool takemeasure(const graphtype* g, const neighbors* ns) override
@@ -289,16 +280,16 @@ public:
         double limit = 0;
         if (ps.size() > 0)
             limit = stof(ps[0]);
-        return apm->takemeasure(g,ns) < limit;
+        return am->takemeasure(g,ns) < limit;
     }
 
     void setparams(const std::vector<std::string> pin) override
     {
-        abstractmemoryparameterizedmeasure::setparams(pin);
-        apm->setparams(pin);
+        criterion::setparams(pin);
+        am->setparams(pin);
     }
-    measurelessthanparameterizedcriterion(abstractmemoryparameterizedmeasure<T>* apmin)
-        : abstractmemoryparameterizedmeasure<bool>(apmin->name + " measure less than"), apm{apmin} {}
+    measurelessthancriterion(abstractmemorymeasure<T>* amin)
+        : criterion(amin->name + " measure less than"), am{amin} {}
 };
 
 
@@ -320,12 +311,12 @@ public:
 };
 
 
-class connectedmeasure : public  abstractmemoryparameterizedmeasure<double>
+class connectedmeasure : public measure
 {
 public:
     virtual std::string shortname() override {return "connm";}
 
-    connectedmeasure() : abstractmemoryparameterizedmeasure<double>("Connected components") {}
+    connectedmeasure() : measure("Connected components") {}
 
     double takemeasure( const graphtype* g, const neighbors* ns ) override
     {
@@ -399,29 +390,29 @@ public:
 
 };
 
-class connectedcriterion : public measurelessthanparameterizedcriterion<double>
+class connectedcriterion : public measurelessthancriterion<double>
 {
 public:
     std::string shortname() override {return "connc";}
 
-    connectedcriterion() : measurelessthanparameterizedcriterion<double>(new connectedmeasure())
+    connectedcriterion() : measurelessthancriterion<double>(new connectedmeasure())
     {
         setparams({"2"});
     }
     ~connectedcriterion()
     {
-        delete apm;
+        delete am;
     }
 };
 
 
 
-class radiusmeasure : public  abstractmemoryparameterizedmeasure<double>
+class radiusmeasure : public measure
 {
 public:
     virtual std::string shortname() override {return "radiusm";}
 
-    radiusmeasure() : abstractmemoryparameterizedmeasure<double>("Graph radius") {}
+    radiusmeasure() : measure("Graph radius") {}
 
     double takemeasure( const graphtype* g, const neighbors* ns ) override {
         int breaksize = -1; // by default wait until finding the actual (minimal) radius
@@ -534,34 +525,28 @@ public:
 
 };
 
-class radiuscriterion : public abstractmemoryparameterizedmeasure<bool>
+class radiuscriterion : public measurelessthancriterion<double>
 {
 public:
-    radiusmeasure* rm;
     std::string shortname() override {return "radiusc";}
 
-    radiuscriterion() : abstractmemoryparameterizedmeasure<bool>("Radius less than")
+    radiuscriterion() : measurelessthancriterion<double>(new radiusmeasure)
     {
-        rm = new radiusmeasure;
-        rm->setparams({"-1"});
+        setparams({"-1"});
     }
-    void setparams(const std::vector<std::string> pin) override
-    {
-        abstractmemoryparameterizedmeasure::setparams(pin);
-        rm->setparams(pin);
-    }
-    bool takemeasure(const graphtype* g, const neighbors* ns) override
-    {
-        auto resf = rm->takemeasure(g,ns);
-        //std::cout << "resf == " << resf << "\n";
-        if (ps.size()>0 && is_number(ps[0]))
-            return ((resf >= 0) && (resf < stoi(ps[0])));
-        return (resf >= 0);
-    }
+
+    // bool takemeasure(const graphtype* g, const neighbors* ns) override
+    // {
+        // auto resf = rm->takemeasure(g,ns);
+        // std::cout << "resf == " << resf << "\n";
+        // if (ps.size()>0 && is_number(ps[0]))
+            // return ((resf >= 0) && (resf < stoi(ps[0])));
+        // return (resf >= 0);
+    // }
 
     ~radiuscriterion()
     {
-        delete rm;
+        delete am;
     }
 };
 
@@ -658,14 +643,12 @@ inline int legacyrecursecircumferencemeasure( int* path, int pathsize, const gra
     return respl;
 }
 
-class circumferencemeasure: public abstractmemoryparameterizedmeasure<double> {
+class circumferencemeasure: public measure {
 public:
 
     virtual std::string shortname() override {return "circm";}
 
-    circumferencemeasure() : abstractmemoryparameterizedmeasure<double>("Graph circumference") {}
-
-
+    circumferencemeasure() : measure("Graph circumference") {}
 
     double takemeasure( const graphtype* g, const neighbors* ns ) {
         int breaksize = -1; // by default compute the largest circumference possible
@@ -683,12 +666,12 @@ public:
     }
 };
 
-class legacycircumferencemeasure: public abstractmemoryparameterizedmeasure<double> {
+class legacycircumferencemeasure: public measure {
 public:
 
     virtual std::string shortname() override {return "lcircm";}
 
-    legacycircumferencemeasure() : abstractmemoryparameterizedmeasure<double>("Legacy Graph circumference") {}
+    legacycircumferencemeasure() : measure("Legacy Graph circumference") {}
 
 
 
@@ -706,44 +689,31 @@ public:
 };
 
 
-class circumferencecriterion : public abstractmemoryparameterizedmeasure<bool>
+class circumferencecriterion : public measuregreaterthancriterion<double>
 {
 public:
-    circumferencemeasure* cm;
     std::string shortname() override {return "circc";}
 
-    circumferencecriterion() : abstractmemoryparameterizedmeasure<bool>("Circumference greater than")
+    circumferencecriterion() : measuregreaterthancriterion<double>(new circumferencemeasure)
     {
-        cm = new circumferencemeasure;
-        cm->setparams({"-1"});
+        setparams({"-1"});
     }
-    void setparams(const std::vector<std::string> pin) override
-    {
-        abstractmemoryparameterizedmeasure::setparams(pin);
-        cm->setparams(pin);
-    }
-    bool takemeasure(const graphtype* g, const neighbors* ns) override
-    {
-        auto resf = cm->takemeasure(g,ns);
-        //std::cout << "resf == " << resf << "\n";
-        if (ps.size()>0 && is_number(ps[0]))
-            return (resf > stoi(ps[0]));
-        return (resf >= 3);
-    }
+
+    // return res > 3
 
     ~circumferencecriterion()
     {
-        delete cm;
+        delete am;
     }
 };
 
 
-class diametermeasure : public  abstractmemoryparameterizedmeasure<double>
+class diametermeasure : public measure
 {
 public:
     virtual std::string shortname() override {return "diamm";}
 
-    diametermeasure() : abstractmemoryparameterizedmeasure<double>("Graph diameter") {}
+    diametermeasure() : measure("Graph diameter") {}
 
     double takemeasure( const graphtype* g, const neighbors* ns ) override {
         int breaksize = -1; // by default wait until finding the actual (maximal) diameter
@@ -854,39 +824,24 @@ public:
 
 };
 
-class diametercriterion : public abstractmemoryparameterizedmeasure<bool>
+class diametercriterion : public measuregreaterthancriterion<double>
 {
 public:
-    diametermeasure* dm;
     std::string shortname() override {return "diamc";}
 
-    diametercriterion() : abstractmemoryparameterizedmeasure<bool>("Diameter greater than")
+    diametercriterion() : measuregreaterthancriterion<double>(new diametermeasure)
     {
-        dm = new diametermeasure;
-        dm->setparams({"-1"});
-    }
-    void setparams(const std::vector<std::string> pin) override
-    {
-        abstractmemoryparameterizedmeasure::setparams(pin);
-        dm->setparams(pin);
-    }
-    bool takemeasure(const graphtype* g, const neighbors* ns) override
-    {
-        auto resf = dm->takemeasure(g,ns);
-        //std::cout << "resf == " << resf << "\n";
-        if (ps.size()>0 && is_number(ps[0]))
-            return (resf > stoi(ps[0]));
-        return (resf > 0);
+        am->setparams({"-1"});
     }
 
     ~diametercriterion()
     {
-        delete dm;
+        delete am;
     }
 };
 
 
-class formulameasure : public abstractmemorymeasure<double> {
+class formulameasure : public measure {
 protected:
     //std::vector<abstractmemorymeasure<bool>*> cs;
     formulaclass* fc;
@@ -911,7 +866,7 @@ public:
     formulameasure( std::vector<double*> variablesin, const int szin, std::string formula,
         std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrsin,
         std::string stringin )
-        : abstractmemorymeasure<double>(stringin == "" ? "logical sentence of several criteria" : stringin),
+        : measure(stringin == "" ? "logical sentence of several criteria" : stringin),
             variables{variablesin}, fc{parseformula(formula,fnptrsin)},fnptrs{fnptrsin}, sz2{szin} {
         setsize(sz2);
     }
@@ -920,4 +875,73 @@ public:
         delete fc;
     }
 };
+
+/* class equationcriteria : public criterion {
+protected:
+    //std::vector<criterion*> cs;
+    formulaclass* lhs;
+    formulaclass* rhs;
+    int eqtype = 0; // 0: equal; 1: >= ; -1: <=; 2: >; -2: <
+    std::vector<double*> variables {};
+    const int sz2;
+
+public:
+
+    std::string shortname() override {return "crEQUATION";}
+    bool takemeasureidxed( const int idx ) override {
+        if (!computed[idx]) {
+            std::vector<double> tmpres {};
+            tmpres.resize(variables.size());
+            for (int i = 0; i < variables.size(); ++i )
+                tmpres[i] = variables[i][idx];
+            switch (eqtype) {
+                case 0: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) == evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case 1: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) >= evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case 2: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) >  evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case -1: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) <= evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+                case -2: {
+                    res[idx] = evalformula(*lhs,tmpres,nullptr) < evalformula(*rhs,tmpres,nullptr);
+                    break;
+                }
+            }
+            computed[idx] = true;
+        }
+        return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
+    }
+
+    equationcriteria( std::vector<double*> variablesin, const int szin, std::string equationin, std::string stringin )
+        : criterion(stringin == "" ? "equation" : stringin),
+            variables{variablesin}, sz2{szin} {
+        setsize(sz2);
+        std::string lhstr;
+        std::string rhstr;
+        parseequation(&equationin,&lhstr,&rhstr,&eqtype);
+        lhs = parseformula(lhstr,nullptr);
+        rhs = parseformula(rhstr,nullptr);
+    }
+
+    ~equationcriteria() {
+        delete lhs;
+        delete rhs;
+    }
+
+};
+*/
+
+template<typename T> measure* measurefactory(void)
+{
+    return new T;
+}
 
