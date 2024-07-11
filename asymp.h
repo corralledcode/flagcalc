@@ -61,7 +61,6 @@ protected:
 public:
     T* res = nullptr;
     bool* computed = nullptr;
-    std::string name = "_abstractmemorymeasure";
 
     std::vector<std::string> ps {};
 
@@ -116,7 +115,6 @@ public:
 class criterion : public abstractmemorymeasure<bool>
 {
 public:
-    std::string name = "_criterion";
 
     virtual std::string shortname() {return "_c";}
 
