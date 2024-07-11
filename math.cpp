@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include "mathfn.cpp"
 
 inline bool is_number(const std::string& s)
 {
@@ -46,13 +47,13 @@ inline bool evalsentence( logicalsentence ls, std::vector<bool> literals ) {
         res = true;
         int n = 0;
         while (res && n < ls.ls.size())
-            res &= evalsentence( ls.ls[n++], literals);
+            res = res && evalsentence( ls.ls[n++], literals);
     }
     if (ls.ls.size() > 0 && ls.lc == logicalconnective::lcor) {
         res = false;
         int n = 0;
         while (!res && n < ls.ls.size())
-            res |= evalsentence(ls.ls[n++],literals);
+            res = res || evalsentence(ls.ls[n++],literals);
     }
     //std::cout << (ls.ls.size()) << "ls.ls.size()\n";
     //std::cout << res << " (res)\n";
@@ -135,7 +136,7 @@ inline std::vector<std::string> parsecomponents( std::string str) {
             if (components.size() > 0) {
                 bool keyword = false;
                 for (auto k : operatorsmap)
-                    keyword |= k.first == components[components.size()-1];
+                    keyword = keyword || k.first == components[components.size()-1];
                 if (!keyword && components[components.size()-1] != "(") {
                     if (partial != "") {
                         components.push_back(partial);
@@ -170,6 +171,15 @@ inline std::vector<std::string> parsecomponents( std::string str) {
             components.push_back("^");
             continue;
         }
+        if (ch == ',') {
+            if (partial != "") {
+                components.push_back(partial);
+                partial = "";
+            }
+            components.push_back(",");
+            continue;
+        }
+
         if (ch == '=')
         {
             if (partial != "")
@@ -396,7 +406,10 @@ public:
 };
 
 
-inline double evalformula( const formulaclass& fc, std::vector<double> literals, std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrs ) {
+inline double evalformula(
+    const formulaclass& fc,
+    const std::vector<double> literals,
+    const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs ) {
     double res;
     if (fc.fo == formulaoperator::fotrue)
         return true;
@@ -420,7 +433,7 @@ inline double evalformula( const formulaclass& fc, std::vector<double> literals,
 
     if (fc.fo == formulaoperator::fofunction) {
         bool found = false;
-        double (*fn)(std::vector<double>);
+        double (*fn)(std::vector<double>&);
         for (auto fnptr : *fnptrs) {
             if ( fnptr.first == fc.v.fns.fn ) {
                 found = true;
@@ -553,7 +566,7 @@ inline int operatorprecedence( const std::string& tok1, const std::string& tok2)
 inline bool is_function(std::string tok) {
     bool res = !tok.empty();
     for (auto c : tok)
-        res &= isalnum(c);
+        res = res && isalpha(c);
     return res;
 }
 
@@ -586,9 +599,6 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
             output.push_back(tok);
             continue;
         }
-        if (is_function(tok)) {
-            operatorstack.push_back(tok);
-        }
         if (is_operator(tok)) {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
@@ -601,6 +611,10 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
                         break;
                 }
             }
+            operatorstack.push_back(tok);
+            continue;
+        }
+        if (is_function(tok)) {
             operatorstack.push_back(tok);
             continue;
         }
@@ -663,7 +677,11 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
 }
 
 
-inline formulaclass* parseformulainternal( std::vector<std::string>& q, int& pos, std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrs ) {
+inline formulaclass* parseformulainternal(
+    const std::vector<std::string>& q,
+    int& pos,
+    const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs )
+{
     if (pos == -1)
         pos = q.size();
     while( pos > 0) {
@@ -683,10 +701,20 @@ inline formulaclass* parseformulainternal( std::vector<std::string>& q, int& pos
         }
         if (is_function(tok)) {
             std::vector<formulaclass*> ps {};
-            for (int i = 0; i < (*fnptrs)[tok].second; ++i) {
-                ps.push_back(parseformulainternal(q,pos,fnptrs));
+            // double (*f2)(std::vector<double>&);
+            int argcnt = 0;
+            for (auto f : *fnptrs)
+                if (f.first == tok)
+                    argcnt = f.second.second;
+            std::vector<formulaclass*> psrev {};
+            for (int i = 0; i < argcnt; ++i) {
+                psrev.push_back(parseformulainternal(q,pos,fnptrs));
             }
+            for (int i = psrev.size()-1; i >= 0; --i)
+                ps.push_back(psrev[i]);
+
             formulavalue fv {};
+            fv.fns.fn = tok;
             fv.fns.ps = ps;
             return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
         }
@@ -713,7 +741,10 @@ inline formulaclass* parseformulainternal( std::vector<std::string>& q, int& pos
     return fc;
 }
 
-inline formulaclass* parseformula( std::string sentence,std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrs  ) {
+inline formulaclass* parseformula(
+    const std::string sentence,
+    const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs  )
+{
     if (sentence != "") {
         std::vector<std::string> components = Shuntingyardalg(parsecomponents(sentence));
         int pos = components.size();
@@ -723,6 +754,7 @@ inline formulaclass* parseformula( std::string sentence,std::map<std::string,std
         return fc;
     }
 }
+
 
 /*
 inline void parseequation( std::string* equation, std::string* lhs, std::string* rhs, int* eqtype) {

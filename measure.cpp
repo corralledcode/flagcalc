@@ -140,7 +140,7 @@ public:
         bool embedsbool = false;
         if (g->dim < cyclegraphs.size()) {
             while (!embedsbool && n <= g->dim) {
-                embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns, 1);
+                embedsbool = embedsbool || embeds(cycleneighbors[n], cyclefps[n], ns, 1);
                 ++n;
             }
             if (embedsbool)
@@ -166,7 +166,7 @@ public:
                 cyclefps.push_back(cyclefp);
             }
             while (!embedsbool && n <= g->dim) {
-                embedsbool |= embeds(cycleneighbors[n], cyclefps[n], ns,1);
+                embedsbool = embedsbool || embeds(cycleneighbors[n], cyclefps[n], ns,1);
                 ++n;
             }
             if (embedsbool)
@@ -365,7 +365,7 @@ public:
                 int firstunvisited = 0;
                 while( allvisited && (firstunvisited < dim))
                 {
-                    allvisited &= (visited[firstunvisited] != -1);
+                    allvisited = allvisited && (visited[firstunvisited] != -1);
                     ++firstunvisited;
                 }
                 if (allvisited)
@@ -847,7 +847,6 @@ protected:
     formulaclass* fc;
     std::vector<double*> variables {};
     const int sz2;
-    std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrs {};
 public:
 
     std::string shortname() override {return "msFORMULA";}
@@ -857,17 +856,16 @@ public:
             tmpres.resize(variables.size());
             for (int i = 0; i < variables.size(); ++i )
                 tmpres[i] = variables[i][idx];
-            res[idx] = evalformula(*fc,tmpres,fnptrs);  // check for speed cost
+            res[idx] = evalformula(*fc,tmpres);  // check for speed cost
             computed[idx] = true;
         }
         return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
     }
 
     formulameasure( std::vector<double*> variablesin, const int szin, std::string formula,
-        std::map<std::string,std::pair<double (*)(std::vector<double>),int>>* fnptrsin,
         std::string stringin )
         : measure(stringin == "" ? "logical sentence of several criteria" : stringin),
-            variables{variablesin}, fc{parseformula(formula,fnptrsin)},fnptrs{fnptrsin}, sz2{szin} {
+            variables{variablesin}, fc{parseformula(formula)}, sz2{szin} {
         setsize(sz2);
     }
 

@@ -244,7 +244,7 @@ inline std::vector<std::string> enumvertices( std::vector<std::string> vsin )
                 break;
             bool found = false;
             for (auto bv : v) {
-                found |= (bv == av);
+                found = found || (bv == av);
                 if (found)
                     break;
             }

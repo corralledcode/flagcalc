@@ -131,9 +131,9 @@ public:
         for (auto s : input)
             f += s + " ";
         std::vector<double> literals = {0,1,5,10,-25};
-        formulaclass* fout = parseformula(f,nullptr); // don't use function names yet
+        formulaclass* fout = parseformula(f); // don't use function names yet
         if (fout != nullptr)
-            std::cout << "Result: " << evalformula(*fout,literals,nullptr) << "\n";
+            std::cout << "Result: " << evalformula(*fout,literals) << "\n";
         else
             std::cout << "Null result\n";
         delete fout;
@@ -864,16 +864,16 @@ public:
                         {
                             int j = stoi(a);
                             if (j >= 0 && j < gi->boolitems.size())
-                                accept &= gi->boolitems[j]->value;
+                                accept = accept && gi->boolitems[j]->value;
                             else
                                 if (j < 0 && gi->boolitems.size() + j >= 0)
-                                    accept &= gi->boolitems[gi->boolitems.size() + j]->value;
+                                    accept = accept && gi->boolitems[gi->boolitems.size() + j]->value;
                         } else
                         {
                             for (auto bi : gi->boolitems)
                             {
                                 if (bi->name() == a)
-                                    accept &= bi->value;
+                                    accept = accept && bi->value;
                             }
                         }
 
@@ -1707,7 +1707,7 @@ public:
         for (int i = 0; i < cs.size(); ++i) {
            bool found = false;
            for (int j = 0; !found && j < crs.size(); ++j) {
-               found |= crs[j] == cs[i];
+               found = found || crs[j] == cs[i];
            }
            if (!found)
                 delete cs[i];
@@ -1716,7 +1716,7 @@ public:
         for (int i = 0; i < ms.size(); ++i) {
             bool found = false;
             for (int j = 0; !found && j < mss.size(); ++j) {
-                found |= mss[j] == ms[i];
+                found = found || mss[j] == ms[i];
             }
             if (!found)
                 delete ms[i];
@@ -2084,7 +2084,7 @@ public:
 
         for (auto a : formulae)
         {
-            ms.push_back(new formulameasure(resm,eqclass.size(),a,nullptr,a));
+            ms.push_back(new formulameasure(resm,eqclass.size(),a,a));
             ms[ms.size()-1]->setsize(eqclass.size());
             ms[ms.size()-1]->gptrs = &glist;
             ms[ms.size()-1]->nsptrs = &nslist;

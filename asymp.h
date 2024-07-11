@@ -489,7 +489,7 @@ public:
                 int firstunvisited = 0;
                 while( allvisited && (firstunvisited < dim))
                 {
-                    allvisited &= (visited[firstunvisited] != -1);
+                    allvisited = allvisited && (visited[firstunvisited] != -1);
                     ++firstunvisited;
                 }
                 if (allvisited)
@@ -565,7 +565,7 @@ public:
                 int firstunvisited = 0;
                 while( allvisited && (firstunvisited < dim))
                 {
-                    allvisited &= (visited[firstunvisited] != -1);
+                    allvisited = allvisited && (visited[firstunvisited] != -1);
                     ++firstunvisited;
                 }
                 if (allvisited)
