@@ -1734,8 +1734,9 @@ public:
         *_os << "\t" << "\"s=<sentence>\": applies the logical sentence inside the quotes to the criteria\n";
         *_os << "\t" << "\"is=<filename>\": applies the logical sentence in <filename> to the criteria\n";
         *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
-        *_os << "\t" << "\"if=<filename>\": applies the criteria of flags in <filename> embedding\n";
+        *_os << "\t" << "\"if=<filename>\": applies the criteria of flag(s) in <filename> embedding\n";
         *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
+        *_os << "\t" << "\"ia=<filename>\": uses the mathematical expression(s) in <filename> embedding\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
@@ -1770,6 +1771,9 @@ public:
         std::vector<FP*> fps {};
         std::vector<int> dims {};
         std::vector<neighbors*> nss {};
+        std::vector<FP*> fpsc {};
+        std::vector<int> dimsc {};
+        std::vector<neighbors*> nssc {};
 
         for (int i = 0; i < parsedargs.size(); ++i)
         {
@@ -1828,9 +1832,9 @@ public:
                 }
                 takefingerprint(gi->ns,fp,dim);
 
-                fps.push_back(fp);
-                nss.push_back(gi->ns);
-                dims.push_back(dim);
+                fpsc.push_back(fp);
+                nssc.push_back(gi->ns);
+                dimsc.push_back(dim);
                 continue;
             }
             if (parsedargs[i].first == "is") {
@@ -2093,12 +2097,32 @@ public:
             return;
         }
 
-        if (cs.empty() && sentences.empty() && fps.empty())
+        if (cs.empty() && sentences.empty() && fps.empty() && fpsc.empty())
             cs.push_back((*crsfactory[0])());
 
-        for (int i = 0; i < fps.size(); ++i) {
+
+        bool found = false;
+
+        if (!fps.empty())
+            for( auto n : neg )
+            {
+                found |= (n.first == cs.size() && n.second); // was the "if" file input negated
+            }
+        for (int i = 0; i < fps.size(); ++i)
+        {
+            if (i > 0)
+            {
+                for (int n=0; n < neg.size(); ++n)
+                    if (neg[n].first >= cs.size())
+                        neg[n].first++;
+                if (found)
+                    neg.push_back({cs.size(),true});
+            }
             cs.push_back(new embedscriterion(nss[i],fps[i]));
         }
+
+        for (int j = 0; j < fpsc.size(); ++j)
+            cs.push_back(new embedscriterion(nssc[j],fpsc[j]));
 
         res.resize(cs.size());
         for (int i = 0; i < res.size(); ++i)
@@ -2113,7 +2137,7 @@ public:
         for (int i = 0; i < neg.size(); ++i)
         {
             if (neg[i].first < negv.size())
-                negv[neg[i].first] = true;
+                negv[neg[i].first] = neg[i].second;
         }
 
         for (auto i = 0 ; i < negv.size(); ++i)
@@ -2307,6 +2331,10 @@ public:
         for (int i = 0; i < fps.size(); ++i) {
             freefps(fps[i],dims[i]);
             free(fps[i]);
+        }
+        for (int i = 0; i < fpsc.size(); ++i) {
+            freefps(fpsc[i],dimsc[i]);
+            free(fpsc[i]);
         }
 
         for (auto gi : flaggraphitems)

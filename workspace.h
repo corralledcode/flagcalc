@@ -248,15 +248,15 @@ public:
         int delimetercount = 0;
         std::vector<std::string> streamstr {};
         while ((is >> item)) {
-            if (item == "END" || item == "###") {
+            if (item == "END" || item == "###")
+            {
                 ++delimetercount;
                 if (delimetercount >= 2)
                     break;
                 else
                     continue;;
-
-                streamstr.push_back(item);
             }
+            streamstr.push_back(item);
         }
         return isitemstr(streamstr);
     }
