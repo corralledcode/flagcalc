@@ -1736,7 +1736,6 @@ public:
         *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
         *_os << "\t" << "\"if=<filename>\": applies the criteria of flags in <filename> embedding\n";
         *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
-        *_os << "\t" << "\"e=<equation>\": uses equation or inequality as a criterion\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
