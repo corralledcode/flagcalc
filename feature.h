@@ -1710,9 +1710,72 @@ public:
 
 };
 
+inline void readfromfile( std::string ifname, std::vector<std::string>& out )
+{
+    out.clear();
+    std::cout << "Opening file " << ifname << "\n";
+    std::ifstream infile(ifname);
+    if (infile.good()) {
+        std::ifstream ifs;
+        ifs.open(ifname, std::fstream::in );
+        std::string dat = "";
+        std::string tmp {};
+        while (!ifs.eof()) {
+            ifs >> tmp;
+            bool changed = false;
+            while (!ifs.eof() && tmp != "END" && tmp != "###")
+            {
+                dat += " " + tmp + " ";
+                ifs >> tmp;
+                changed = true;
+            }
+            if (changed)
+                out.push_back(dat);
+            dat = "";
+        }
+        ifs.close();
+    } else {
+        std::cout << "Couldn't open file for reading " << ifname << "\n";
+    }
+}
 
 enum measuretype { mtdiscrete, mtcontinuous };
 
+struct compactcmdline
+{
+    std::string t;
+    int i;
+    bool n;
+};
+
+inline compactcmdline parsecompactcmdline( std::string& s )
+{
+    compactcmdline res;
+    res.t = "";
+    int j = 0;
+    if (!s.empty() && s[0] == 'n')
+    {
+        res.n = true;
+        j = 1;
+    } else
+    {
+        res.n = false;
+        j = 0;
+    }
+    while (s.size() > j && isalpha(s[j]))
+        res.t.push_back(s[j++]);
+    if (j >= s.size())
+    {
+        res.i = 0;
+        return res;
+    }
+    if (is_number(s.substr(j+1,s.size()-j-1)))
+        res.i = std::stoi( s.substr(j+1,s.size()-j-1));
+    else
+        res.i = 0;
+    return res;
+
+}
 
 class checkcriterionfeature : public abstractcheckcriterionfeature {
 protected:
@@ -1886,7 +1949,6 @@ public:
         bool sortedverify = false;
         bool andmode = false;
         bool ormode = false;
-        std::vector<std::pair<int,bool>> neg {};
 
         sentences.clear();
         formulae.clear();
@@ -1905,8 +1967,7 @@ public:
         std::vector<double*> variables;
 
 
-        for (int i = 0; i < parsedargs.size(); ++i)
-        {
+        for (int i = 0; i < parsedargs.size(); ++i) {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
                 takeallgraphitems = true;
                 sortedbool = false;
@@ -1917,51 +1978,109 @@ public:
                 takeallgraphitems = true;
                 continue;
             }
-            if ((parsedargs[i].first == "not" || parsedargs[i].first == "NOT") && is_number(parsedargs[i].second)) {
-                neg.push_back({stoi(parsedargs[i].second),true});
-                continue;
-            }
-            if ((parsedargs[i].first == "default" || parsedargs[i].first == "l") && parsedargs[i].second == "AND") {
-                andmode = true;
-                continue;
-            }
-            if ((parsedargs[i].first == "default" || parsedargs[i].first == "l") && parsedargs[i].second == "OR") {
-                ormode = true;
-                continue;
-            }
-            if (parsedargs[i].first != "" && parsedargs[i].first[0] == 's')
+
+
+            compactcmdline ccl;
+            if (parsedargs[i].first == "default")
             {
-                int round = 0;
-                if (parsedargs[i].first.size() > 1 && is_number(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1)))
-                    round = stoi(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1));
-                std::string s = bindformula(parsedargs[i].second,mtdiscrete,round);
+                ccl.t = "c";
+                ccl.n = false;
+                ccl.i = 0;
+            } else
+            {
+                ccl = parsecompactcmdline(parsedargs[i].first);
+            }
+            if (ccl.t == "s")
+            {
+                std::string s = bindformula(parsedargs[i].second,mtdiscrete,ccl.i);
                 abstms a;
                 a.type = 0;
-                a.cs = new sentenceofcriteria(&variables,0,s,s);
-                auto it = newiteration(mtdiscrete,round,a);
+                a.cs = new negatablecriterion( ccl.n, new sentenceofcriteria(&variables,0,s,s) );
+                auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
+
                 continue;
             }
-            if (parsedargs[i].first != "" && parsedargs[i].first[0] == 'a')
+            if (ccl.t == "a")
             {
-                int round = 0;
-                if (parsedargs[i].first.size() > 1 && is_number(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1)))
-                    round = stoi(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1));
-                std::string s = bindformula(parsedargs[i].second,mtcontinuous,round);
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mtcontinuous,ccl.i);
                 abstms a;
                 a.type = 1;
                 a.ms = new formulameasure(&variables,0,s,s);
-                auto it = newiteration(mtdiscrete,round,a);
+                auto it = newiteration(mtcontinuous,ccl.i,a);
                 iter.push_back(it);
+
                 continue;
             }
-
-            // if (parsedargs[i].first == "a") {
-                // formulae.push_back(parsedargs[i].second);
-                // continue;
-            // }
-            if (parsedargs[i].first != "" && parsedargs[i].first[0] == 'f')
+            if (ccl.t == "c")
             {
+                bool found = false;
+                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2
+                            = cmdlineparseiterationthree(parsedargs[i].second);
+                for (int n = 0; !found && (n < crs.size()); ++n) {
+                    for (int m = 0; !found && (m < parsedargs2.size()); ++m)
+                    {
+                        if (parsedargs2[m].first == crs[n]->shortname())
+                        {
+                            abstms a;
+                            a.type = 0;
+                            a.cs = new negatablecriterion( ccl.n, (*crsfactory[n])() );
+                            if (lookupiter(parsedargs2[m].first) < 0)
+                                iter.push_back( newiteration(mtdiscrete,ccl.i,a));
+
+                            // ... add parameters
+
+                            // auto newcs = (*crsfactory[n])();
+                            // cs.push_back(newcs);
+                            // if (!parsedargs2[m].second.empty())
+                            // cs[cs.size()-1]->setparams(parsedargs2[m].second);
+                            // found = true;
+                        }
+                    }
+                }
+                if (found)
+                    continue;
+            }
+
+            if (ccl.t == "m")
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+                bool found = false;
+                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2
+                            = cmdlineparseiterationthree(parsedargs[i].second);
+                for (int n = 0; !found && (n < mss.size()); ++n) {
+                    for (int m = 0; !found && (m < parsedargs2.size()); ++m)
+                    {
+                        if (parsedargs2[m].first == mss[n]->shortname())
+                        {
+                            abstms a;
+                            a.type = 1;
+                            a.ms = (*mssfactory[n])();  // for now no notion of negatable measure
+                            if (lookupiter(parsedargs2[m].first) < 0)
+                                iter.push_back( newiteration(mtcontinuous,ccl.i,a));
+
+                            // ... add parameters
+
+                            // auto newcs = (*crsfactory[n])();
+                            // cs.push_back(newcs);
+                            // if (!parsedargs2[m].second.empty())
+                            // cs[cs.size()-1]->setparams(parsedargs2[m].second);
+                            // found = true;
+                        }
+                    }
+                }
+                if (found)
+                    continue;
+            }
+
+            if (ccl.t == "f")
+            {
+
+
                 std::vector<std::string> flagv {};
                 flagv.push_back(parsedargs[i].second);
 
@@ -1988,242 +2107,71 @@ public:
                 nssc.push_back(gi->ns);
                 dimsc.push_back(dim);
 
-                int round = 0;
-                if (parsedargs[i].first.size() > 1 && is_number(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1)))
-                    round = stoi(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1));
                 abstms a;
                 a.type = 0;
-                a.cs = new embedscriterion(gi->ns,fp);
-                auto it = newiteration(mtdiscrete,round,a);
+                a.cs = new negatablecriterion(ccl.n, new embedscriterion(gi->ns,fp) );
+                auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
                 continue;
+
             }
-
-            if (parsedargs[i].first.size() >= 2 && parsedargs[i].first.substr(0,2) == "is")
+            if (ccl.t == "is")
             {
-                std::string ifname = parsedargs[i].second;
-                std::cout << "Opening file " << ifname << "\n";
-                std::ifstream infile(ifname);
-                if (infile.good()) {
-                    std::ifstream ifs;
-                    ifs.open(ifname, std::fstream::in );
-                    std::string sentence = "";
-                    std::string tmp {};
-                    while (!ifs.eof()) {
-                        ifs >> tmp;
-                        bool changed = false;
-                        while (!ifs.eof() && tmp != "END" && tmp != "###")
-                        {
-                            sentence += " " + tmp + " ";
-                            ifs >> tmp;
-                            changed = true;
-                        }
-                        if (changed)
-                            sentences.push_back(sentence);
-                        sentence = "";
-                    }
-                    ifs.close();
-                } else {
-                    std::cout << "Couldn't open file for reading " << ifname << "\n";
-                }
 
-                int round = 0;
-                if (parsedargs[i].first.size() > 2 && is_number(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2)))
-                    round = stoi(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2));
-                for (auto q : sentences)
+                std::vector<std::string> filedata;
+
+                readfromfile( parsedargs[i].second, filedata);
+
+                for (auto q : filedata)
                 {
-                    std::string s = bindformula(q,mtdiscrete,round);
+                    std::string s = bindformula(q,mtdiscrete,ccl.i);
                     abstms a;
                     a.type = 0;
-                    a.cs = new sentenceofcriteria(&variables,0,s,s);
-                    auto it = newiteration(mtdiscrete,round,a);
+                    a.cs = new negatablecriterion( ccl.n, new sentenceofcriteria(&variables,0,s,s) );
+                    auto it = newiteration(mtdiscrete,ccl.i,a);
                     iter.push_back(it);
                 }
                 continue;
             }
-
-
-
-
-            if (parsedargs[i].first.size() >= 2 && parsedargs[i].first.substr(0,2) == "is")
+            if (ccl.t == "ia")
             {
-                std::string ifname = parsedargs[i].second;
-                std::cout << "Opening file " << ifname << "\n";
-                std::ifstream infile(ifname);
-                if (infile.good()) {
-                    std::ifstream ifs;
-                    ifs.open(ifname, std::fstream::in );
-                    std::string sentence = "";
-                    std::string tmp {};
-                    while (!ifs.eof()) {
-                        ifs >> tmp;
-                        bool changed = false;
-                        while (!ifs.eof() && tmp != "END" && tmp != "###")
-                        {
-                            sentence += " " + tmp + " ";
-                            ifs >> tmp;
-                            changed = true;
-                        }
-                        if (changed)
-                            sentences.push_back(sentence);
-                        sentence = "";
-                    }
-                    ifs.close();
-                } else {
-                    std::cout << "Couldn't open file for reading " << ifname << "\n";
-                }
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
 
-                int round = 0;
-                if (parsedargs[i].first.size() > 2 && is_number(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2)))
-                    round = stoi(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2));
-                for (auto q : sentences)
+                std::vector<std::string> filedata;
+
+                readfromfile( parsedargs[i].second, filedata);
+
+                for (auto q : filedata)
                 {
-                    std::string s = bindformula(q,mtdiscrete,round);
-                    abstms a;
-                    a.type = 0;
-                    a.cs = new sentenceofcriteria(&variables,0,s,s);
-                    auto it = newiteration(mtdiscrete,round,a);
-                    iter.push_back(it);
-                }
-                continue;
-            }
-
-
-
-
-            if (parsedargs[i].first.size() >= 2 && parsedargs[i].first.substr(0,2) == "ia")
-            {
-                std::string ifname = parsedargs[i].second;
-                std::cout << "Opening file " << ifname << "\n";
-                std::ifstream infile(ifname);
-                if (infile.good()) {
-                    std::ifstream ifs;
-                    ifs.open(ifname, std::fstream::in );
-                    std::string formula = "";
-                    std::string tmp {};
-                    while (!ifs.eof()) {
-                        ifs >> tmp;
-                        bool changed = false;
-                        while (!ifs.eof() && tmp != "END" && tmp != "###")
-                        {
-                            formula += " " + tmp + " ";
-                            ifs >> tmp;
-                            changed = true;
-                        }
-                        if (changed)
-                            formulae.push_back(formula);
-                        formula = "";
-                    }
-                    ifs.close();
-                } else {
-                    std::cout << "Couldn't open file for reading " << ifname << "\n";
-                }
-
-                int round = 0;
-                if (parsedargs[i].first.size() > 2 && is_number(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2)))
-                    round = stoi(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2));
-                for (auto q : formulae)
-                {
-                    std::string s = bindformula(q,mtdiscrete,round);
+                    std::string s = bindformula(q,mtcontinuous,ccl.i);
                     abstms a;
                     a.type = 1;
                     a.ms = new formulameasure(&variables,0,s,s);
-                    auto it = newiteration(mtcontinuous,round,a);
+                    auto it = newiteration(mtcontinuous,ccl.i,a);
                     iter.push_back(it);
                 }
+
                 continue;
             }
-
-
-
-
-            bool found = false;
-
-            if ((!parsedargs[i].first.empty() && parsedargs[i].first[0] == 'c') || parsedargs[i].first == "default") {
-                int round = 0;
-                if (parsedargs[i].first != "default")
-                    if (parsedargs[i].first.size() > 1 && is_number(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1)))
-                        round = stoi(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1));
-                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2
-                        = cmdlineparseiterationthree(parsedargs[i].second);
-                for (int n = 0; !found && (n < crs.size()); ++n) {
-                    for (int m = 0; !found && (m < parsedargs2.size()); ++m)
-                    {
-                        if (parsedargs2[m].first == crs[n]->shortname())
-                        {
-                            abstms a;
-                            a.type = 0;
-                            a.cs = crs[n];
-                            if (lookupiter(parsedargs2[m].first) < 0)
-                                iter.push_back( newiteration(mtdiscrete,round,a));
-
-                            // ... add parameters
-
-                            // auto newcs = (*crsfactory[n])();
-                            // cs.push_back(newcs);
-                            // if (!parsedargs2[m].second.empty())
-                                // cs[cs.size()-1]->setparams(parsedargs2[m].second);
-                            // found = true;
-                        }
-                    }
-                }
-            }
-
-            if (found)
-                continue;
-
-            found = false;
-            if ((!parsedargs[i].first.empty() && parsedargs[i].first[0] == 'm') || parsedargs[i].first == "default") {
-                int round = 0;
-                if (parsedargs[i].first != "default")
-                    if (parsedargs[i].first.size() > 1 && is_number(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1)))
-                        round = stoi(parsedargs[i].first.substr(1,parsedargs[i].first.size()-1));
-                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2
-                        = cmdlineparseiterationthree(parsedargs[i].second);
-                for (int n = 0; !found && (n < mss.size()); ++n) {
-                    for (int m = 0; !found && (m < parsedargs2.size()); ++m)
-                    {
-                        if (parsedargs2[m].first == mss[n]->shortname())
-                        {
-                            abstms a;
-                            a.type = 1;
-                            a.ms = mss[n];
-                            if (lookupiter(parsedargs2[m].first) < 0)
-                                iter.push_back( newiteration(mtcontinuous,round,a));
-
-                            // ... add parameters
-
-                            // auto newcs = (*crsfactory[n])();
-                            // cs.push_back(newcs);
-                            // if (!parsedargs2[m].second.empty())
-                            // cs[cs.size()-1]->setparams(parsedargs2[m].second);
-                            // found = true;
-                        }
-                    }
-                }
-            }
-
-            if (parsedargs[i].first == "if")
+            if (ccl.t == "if")
             {
-                std::ifstream ifs;
-                std::istream* is = &std::cin;
-                std::ostream* os = _os;
-                std::string filename = parsedargs[i].second;
-                if (filename == "std::cin" || filename == "") {
-                    std::cout << "Using std::cin for input\n"; // recode so this is possible
-                } else {
-                    *_os << "Opening file " << filename << "\n";
-                    ifs.open(filename);
-                    if (!ifs) {
-                        std::cout << "Couldn't open file for reading \n";
-                        return;
-                    }
-                    is = &ifs;
+
+                std::vector<std::string> filedata;
+                readfromfile(parsedargs[i].second, filedata );
+
+                std::vector<std::vector<std::string>> tmp {};
+                for (auto d : filedata)
+                {
+                    std::vector<std::string> tmp2;
+                    tmp2.clear();
+                    tmp2.push_back(d);
+                    tmp.push_back(tmp2);
                 }
 
-
+                int n = 0;
                 graphitem* gi = new graphitem();
-                while (gi->isitem(*is)) {
+                while (n < tmp.size() && gi->isitemstr(tmp[n++])) {
                     gi->name = _ws->getuniquename(gi->classname) + "FLAG";
                     flaggraphitems.push_back(gi);
                     //_ws->items.push_back(gi);
@@ -2245,21 +2193,17 @@ public:
                 }
                 delete gi;
 
-                int round = 0;
-                if (parsedargs[i].first.size() > 2 && is_number(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2)))
-                    round = stoi(parsedargs[i].first.substr(2,parsedargs[i].first.size()-2));
                 for (int i = 0; i < fps.size(); ++i)
                 {
                     abstms a;
                     a.type = 0;
-                    a.cs = new embedscriterion(nss[i],fps[i]);
-                    auto it = newiteration(mtdiscrete,round,a);
+                    a.cs = new negatablecriterion( ccl.n, new embedscriterion(nss[i],fps[i]) );
+                    auto it = newiteration(mtdiscrete,ccl.i,a);
                     iter.push_back(it);
                 }
+
                 continue;
-
             }
-
         }
 
         if (!takeallgraphitems) {

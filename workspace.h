@@ -220,7 +220,9 @@ public:
                     if (pos > 0)
                         input.push_back(item.substr(0, pos));
                     comment = true;
-                    continue;
+                    item = item.substr(pos+2,item.size()-pos-2);
+
+                    //continue;
                 }
             }
             if (comment)
