@@ -1811,7 +1811,7 @@ protected:
             std::regex reg(pattern);
             sin = std::regex_replace(sin,reg,replacement);
         }
-        std::cout << sin << "\n";
+        //std::cout << sin << "\n";
         return sin;
     }
 
