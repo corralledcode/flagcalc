@@ -91,6 +91,16 @@ inline double nchoosekfn( std::vector<double>& din )
     return nchoosek(din[0],din[1]);
 }
 
+inline double expfn(std::vector<double>& din)
+{
+    if (din.empty())
+    {
+        std::cout << "No arguments passed to expfn\n";
+        return 0;
+    }
+    return exp(din[0]);
+}
+
 
 inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> global_fnptrs
     {{"log", {&logfn,1}},
@@ -100,4 +110,5 @@ inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> glo
      {"floor", {&floorfn,1}},
      {"ceil", {&ceilfn,1}},
      {"gamma", {&gammafn,1}},
-     {"nchoosek", {&nchoosekfn,2}}};
+     {"nchoosek", {&nchoosekfn,2}},
+     {"exp",{&expfn,1}}};

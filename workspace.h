@@ -35,7 +35,7 @@
 #define VERBOSE_APPLYCRITERION "crit"
 
 #define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
-#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
+#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt"
 
 #define VERBOSE_FORDB "db"
 
