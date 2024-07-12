@@ -845,7 +845,7 @@ class formulameasure : public measure {
 protected:
     //std::vector<abstractmemorymeasure<bool>*> cs;
     formulaclass* fc;
-    std::vector<double*> variables {};
+    std::vector<double*>* variables {};
     const int sz2;
 public:
 
@@ -853,16 +853,16 @@ public:
     double takemeasureidxed( const int idx ) override {
         if (!computed[idx]) {
             std::vector<double> tmpres {};
-            tmpres.resize(variables.size());
-            for (int i = 0; i < variables.size(); ++i )
-                tmpres[i] = variables[i][idx];
+            tmpres.resize(variables->size());
+            for (int i = 0; i < variables->size(); ++i )
+                tmpres[i] = (*variables)[i][idx];
             res[idx] = evalformula(*fc,tmpres);  // check for speed cost
             computed[idx] = true;
         }
         return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
     }
 
-    formulameasure( std::vector<double*> variablesin, const int szin, std::string formula,
+    formulameasure( std::vector<double*>* variablesin, const int szin, std::string formula,
         std::string stringin )
         : measure(stringin == "" ? "logical sentence of several criteria" : stringin),
             variables{variablesin}, fc{parseformula(formula)}, sz2{szin} {

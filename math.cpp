@@ -376,7 +376,7 @@ inline logicalsentence parsesentence( std::string sentence ) {
 class formulaclass;
 
 struct fnstruct {
-    std::string fn;
+    double (*fn)(std::vector<double>&);
     std::vector<formulaclass*> ps;
 };
 
@@ -433,17 +433,17 @@ inline double evalformula(
 
     if (fc.fo == formulaoperator::fofunction) {
         bool found = false;
-        double (*fn)(std::vector<double>&);
-        for (auto fnptr : *fnptrs) {
-            if ( fnptr.first == fc.v.fns.fn ) {
-                found = true;
-                fn = fnptr.second.first;
-            }
-        }
-        if (!found) {
-            std::cout << "Unknown function named " << fc.v.fns.fn << "\n";
-            return -1;
-        }
+        double (*fn)(std::vector<double>&) = fc.v.fns.fn;
+        // for (auto fnptr : *fnptrs) {
+            // if ( fnptr.first == fc.v.fns.fn ) {
+                // found = true;
+                // fn = fnptr.second.first;
+            // }
+        // }
+        // if (!found) {
+            // std::cout << "Unknown function named " << fc.v.fns.fn << "\n";
+            // return -1;
+        // }
         std::vector<double> ps;
         for (auto f : fc.v.fns.ps) {
             ps.push_back(evalformula(*f,literals,fnptrs));
@@ -714,9 +714,15 @@ inline formulaclass* parseformulainternal(
                 ps.push_back(psrev[i]);
 
             formulavalue fv {};
-            fv.fns.fn = tok;
-            fv.fns.ps = ps;
-            return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
+            if (auto search = fnptrs->find(tok); search != fnptrs->end())
+            {
+                fv.fns.fn = search->second.first;
+                fv.fns.ps = ps;
+                return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
+            } else
+            {
+                std::cout << "Unknown function " << tok << " in parseformula internal\n";
+            }
         }
         if (is_literal(tok)) {
             formulavalue fv {};

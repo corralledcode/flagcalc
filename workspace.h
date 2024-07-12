@@ -451,6 +451,152 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+template<typename Tm>
+class checkcontinuousitem : public workitems {
+public:
+    std::vector<graphtype*> glist;
+    std::vector<neighborstype*> nslist;
+    std::vector<FP*> fpslist;
+    std::vector<std::string> gnames;
+    std::vector<Tm> meas;
+    std::vector<bool> parentbool;
+    int parentboolcnt;
+    abstractmeasure<Tm>& am;
+    std::vector<int> sorted {};
+    checkcontinuousitem( abstractmeasure<Tm>& amin ) : workitems(), am{amin} {
+        classname = "APPLYCRITERION";
+        verbositylevel = VERBOSE_APPLYCRITERION;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+/*        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n]->nscnt > 0) {
+                freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                free(fpslist[n]->ns);
+            }
+        }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+
+        Tm sum = 0;
+        int cnt = 0;
+        double max = 0;
+        double min = std::numeric_limits<double>::infinity();
+        for (int i = 0; i < parentbool.size(); ++i ) {
+            if (parentbool[i]) {
+                min = meas[i] < min ? meas[i] : min;
+                sum += meas[i];
+                max = meas[i] > max ? meas[i] : max;
+                cnt++;
+            }
+        }
+        os << "Average, min, max of measure " << am.name << ": " << (double)sum/(double)cnt << ", " << min << ", " << max << "\n";
+
+        return true;
+    }
+};
+
+
+
+
+
+
+
+
+
+
+template<typename Tc>
+class checkdiscreteitem : public workitems {
+public:
+    std::vector<graphtype*> glist;
+    std::vector<neighborstype*> nslist;
+    std::vector<FP*> fpslist;
+    std::vector<std::string> gnames;
+    std::vector<Tc> res;
+    std::vector<bool> parentbool;
+    int parentboolcnt;
+    abstractmeasure<Tc>& ac;
+    std::vector<int> sorted {};
+    checkdiscreteitem(abstractmeasure<Tc>& acin ) : workitems(), ac{acin} {
+        classname = "APPLYDISCRETECRITERION";
+        verbositylevel = VERBOSE_APPLYCRITERION;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+/*        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n]->nscnt > 0) {
+                freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                free(fpslist[n]->ns);
+            }
+        }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        std::vector<std::pair<Tc,int>> count = {};
+        count.clear();
+        count.resize(0);
+        //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+            os << "Criterion "<< ac.name << " results of graphs:\n";
+        for (int n = 0; n < res.size(); ++n) {
+            if (!parentbool[n])
+                continue;
+            if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
+                os << gnames[n]<<", number " << n+1 << " out of " << parentboolcnt;
+                os << ": " << res[n] << "\n";
+            }
+            bool found = false;
+            for (int i = 0; !found && (i < count.size()); ++i)
+            {
+                if (count[i].first == res[n]) {
+                    count[i].second += 1;
+                    found = true;
+                }
+            }
+            if (!found)
+                count.push_back({res[n],1});
+        }
+
+        for (int i = 0; i < count.size(); ++i)
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << parentboolcnt << ", " << (double)count[i].second / (double)parentboolcnt << "\n";
+
+
+        return true;
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class timedrunitem : public workitems {
 public:
     long duration;

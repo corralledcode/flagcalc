@@ -292,29 +292,33 @@ public:
 class sentenceofcriteria : public criterion {
 protected:
     //std::vector<criterion*> cs;
-    logicalsentence ls;
-    std::vector<bool*> variables {};
-    const int sz2;
+    formulaclass* fc;
+    std::vector<double*>* variables {};
 
 public:
 
     std::string shortname() override {return "crSENTENCE";}
     bool takemeasureidxed( const int idx ) override {
         if (!computed[idx]) {
-            std::vector<bool> tmpres {};
-            tmpres.resize(variables.size());
-            for (int i = 0; i < variables.size(); ++i )
-                tmpres[i] = variables[i][idx];
-            res[idx] = evalsentence(ls,tmpres);  // check for speed cost
+            std::vector<double> tmpres {};
+            tmpres.resize(variables->size());
+            for (int i = 0; i < variables->size(); ++i )
+                tmpres[i] = ((bool*)(*variables)[i])[idx];
+            // for (int i = 0; i < variables->size(); ++i)
+            // {
+                // std::cout << i << " == " << (bool)tmpres[i] << " , ";
+            // }
+            // std::cout << "\n";
+            res[idx] = evalformula(*fc,tmpres);  // check for speed cost
             computed[idx] = true;
         }
         return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
     }
 
-    sentenceofcriteria( std::vector<bool*> variablesin, const int szin, std::string sentence,std::string stringin )
+    sentenceofcriteria( std::vector<double*>* variablesin, const int szin, std::string sentence,std::string stringin )
         : criterion(stringin == "" ? "logical sentence of several criteria" : stringin),
-            variables{variablesin}, ls{parsesentence(sentence)}, sz2{szin} {
-        setsize(sz2);
+            variables{variablesin}, fc{parseformula(sentence)} {
+        setsize(sz);
     }
 
 };
@@ -323,19 +327,19 @@ class andcriteria : public sentenceofcriteria {
 public:
     std::string shortname() override {return "crAND";}
 
-    andcriteria( std::vector<bool*> variablesin, const int szin )
+    andcriteria( std::vector<double*>* variablesin, const int szin )
             : sentenceofcriteria(variablesin,szin,"","logical AND of several criteria")
     {
         std::string s {};
 
-        if (variables.size() > 0) {
+        if (variables->size() > 0) {
             s = "0";
-            for (int i = 1; i < variables.size(); ++i) {
+            for (int i = 1; i < variables->size(); ++i) {
                 s += " AND " + std::to_string(i);
             }
-            ls = parsesentence(s);
+            fc = parseformula(s);
         } else
-            ls = {};
+            fc = {};
     }
 
 };
@@ -344,19 +348,19 @@ class orcriteria : public sentenceofcriteria {
 public:
     std::string shortname() override {return "crOR";}
 
-    orcriteria( std::vector<bool*> variablesin, const int szin )
+    orcriteria( std::vector<double*>* variablesin, const int szin )
             : sentenceofcriteria(variablesin,szin,"","logical OR of several criteria")
     {
         std::string s {};
 
-        if (variables.size() > 0) {
+        if (variables->size() > 0) {
             s = "0";
-            for (int i = 1; i < variables.size(); ++i) {
+            for (int i = 1; i < variables->size(); ++i) {
                 s += " OR " + std::to_string(i);
             }
-            ls = parsesentence(s);
+            fc = parseformula(s);
         } else
-            ls = {};
+            fc = {};
     }
 
 };
