@@ -1416,11 +1416,6 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
 
 }
 
-int nchoosek( const int n, const int k) {
-    if (k == 0)
-        return 1;
-    return (n* nchoosek(n-1,k-1))/k;
-}
 
 void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res) {
     if (start > stop)

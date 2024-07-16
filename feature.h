@@ -11,6 +11,7 @@
 #include <wchar.h>
 
 #include "asymp.h"
+#include "measure.cpp"
 #include "graphio.h"
 #include "graphoutcome.h"
 #include "graphs.h"
@@ -18,6 +19,8 @@
 #include "workspace.h"
 #include "mantel.h"
 #include "thread_pool.cpp"
+#include "ameas.h"
+#include "meas.cpp"
 
 //default is to enumisomorphisms
 #define DEFAULTCMDLINESWITCH "i"
@@ -36,6 +39,7 @@
 //#define THREADED7
 
 #define THREADCHECKCRITERION
+
 
 class feature {
 protected:
@@ -1615,12 +1619,18 @@ public:
 
 };
 
+
 class abstractcheckcriterionfeature : public feature {
 protected:
-    std::vector<criterion*> crs {};
-    std::vector<criterion*(*)()> crsfactory;
-    std::vector<measure*> mss {};
-    std::vector<measure*(*)()> mssfactory {};
+
+    mrecords rec {};
+    std::vector<crit*> crs {};
+    std::vector<crit*(*)(mrecords*)> crsfactory {};
+    std::vector<meas*> mss {};
+    std::vector<meas*(*)(mrecords*)> mssfactory {};
+    std::vector<tally*> tys {};
+    std::vector<tally*(*)(mrecords*)> tysfactory {};
+
 public:
     virtual void listoptions() override {
         feature::listoptions();
@@ -1629,51 +1639,49 @@ public:
 
         // add any new criterion types to the list here...
 
-        auto (*c1)() = criterionfactory<truecriterion>;
-        auto (*cr1)() = criterionfactory<trianglefreecriterion>;
-        auto (*fc)() = criterionfactory<forestcriterion>;
-        auto (*tc)() = criterionfactory<treecriterion>;
-        auto (*kn)() = criterionfactory<knparameterizedcriterion>;
-        auto (*ltc)() = criterionfactory<legacyforestcriterion>;
-        auto (*cc)() = criterionfactory<connectedcriterion>;
-        auto (*rltc)() = criterionfactory<radiuscriterion>;
-        auto (*circc)() = criterionfactory<circumferencecriterion>;
-        auto (*diamc)() = criterionfactory<diametercriterion>;
+        auto (*c1) = *critfactory<truecrit>;
+        auto (*cr1) = *critfactory<trianglefreecrit>;
+        auto (*fc) = *critfactory<forestcrit>;
+        auto (*tc) = *critfactory<treecrit>;
+        auto (*kn) = *critfactory<knpcrit>;
+        // auto (*cc)() = critfactory<connectedcrit>;
+        // auto (*rltc)() = critfactory<radiuscrit>;
+        // auto (*circc)() = critfactory<circumferencecrit>;
+        // auto (*diamc)() = critfactory<diametercrit>;
 
         crsfactory.push_back(*c1);
         crsfactory.push_back(*cr1);
-        crsfactory.push_back(*tc);
         crsfactory.push_back(*fc);
+        crsfactory.push_back(*tc);
         crsfactory.push_back(*kn);
-        crsfactory.push_back(*ltc);
-        crsfactory.push_back(*cc);
-        crsfactory.push_back(*rltc);
-        crsfactory.push_back(*circc);
-        crsfactory.push_back(*diamc);
+        // crsfactory.push_back(*cc);
+        // crsfactory.push_back(*rltc);
+        // crsfactory.push_back(*circc);
+        // crsfactory.push_back(*diamc);
         // ...
 
 
 
         for (int n = 0; n < crsfactory.size(); ++n) {
-            crs.push_back((*crsfactory[n])());
+            crs.push_back((*crsfactory[n])(&rec));
         }
 
 
         // add any new measure types to the list here...
 
-        auto (*ms1)() = measurefactory<boolmeasure>;
-        auto (*ms2)() = measurefactory<dimmeasure>;
-        auto (*ms3)() = measurefactory<edgecntmeasure>;
-        auto (*ms4)() = measurefactory<avgdegreemeasure>;
-        auto (*ms5)() = measurefactory<mindegreemeasure>;
-        auto (*ms6)() = measurefactory<maxdegreemeasure>;
-        auto (*ms7)() = measurefactory<girthmeasure>;
-        auto (*mc)() = measurefactory<maxcliquemeasure>;
-        auto (*cnm)() = measurefactory<connectedmeasure>;
-        auto (*rm)() = measurefactory<radiusmeasure>;
-        auto (*circm)() = measurefactory<circumferencemeasure>;
-        auto (*lcircm)() = measurefactory<legacycircumferencemeasure>;
-        auto (*diamm)() = measurefactory<diametermeasure>;
+        auto (*ms1) = measfactory<boolmeas>;
+        auto (*ms2) = measfactory<dimmeas>;
+        auto (*ms3) = measfactory<edgecntmeas>;
+        auto (*ms4) = measfactory<avgdegreemeas>;
+        auto (*ms5) = measfactory<mindegreemeas>;
+        auto (*ms6) = measfactory<maxdegreemeas>;
+        auto (*ms7) = measfactory<legacygirthmeas>;
+        auto (*mc) = measfactory<maxcliquemeas>;
+        auto (*cnm) = measfactory<connectedmeas>;
+        auto (*rm) = measfactory<radiusmeas>;
+        auto (*circm) = measfactory<circumferencemeas>;
+        auto (*lcircm) = measfactory<legacycircumferencemeas>;
+        auto (*diamm) = measfactory<diametermeas>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1692,7 +1700,7 @@ public:
         // ,,,
 
         for (int n = 0; n < mssfactory.size(); ++n) {
-            mss.push_back((*mssfactory[n])());
+            mss.push_back((*mssfactory[n])(&rec));
         }
 
     }
@@ -1739,7 +1747,6 @@ inline void readfromfile( std::string ifname, std::vector<std::string>& out )
     }
 }
 
-enum measuretype { mtdiscrete, mtcontinuous };
 
 struct compactcmdline
 {
@@ -1769,59 +1776,188 @@ inline compactcmdline parsecompactcmdline( std::string& s )
         res.i = 0;
         return res;
     }
-    if (is_number(s.substr(j+1,s.size()-j-1)))
-        res.i = std::stoi( s.substr(j+1,s.size()-j-1));
+    if (is_number(s.substr(j,s.size()-j)))
+        res.i = std::stoi( s.substr(j,s.size()-j));
     else
         res.i = 0;
     return res;
 
 }
 
+
+
+
+unsigned const thread_count = std::thread::hardware_concurrency();
+//unsigned const thread_count = 1;
+
+
+template<typename T>
+void runthreads(const int iidx, const params& ps, thrrecords<T>& r )
+{
+    const double section = double(r.sz) / double(thread_count);
+    std::vector<std::future<void>> t;
+    t.resize(thread_count);
+    for (int m = 0; m < thread_count; ++m) {
+        const int startidx = int(m*section);
+        const int stopidx = int((m+1.0)*section);
+        t[m] = std::async(&thrrecords<T>::threadfetch,r,startidx,stopidx,iidx,ps);
+    }
+    for (int m = 0; m < thread_count; ++m)
+    {
+        t[m].get();
+    }
+}
+
+template<typename T>
+void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r, std::vector<bool>* todo )
+{
+    const double section = double(r.sz) / double(thread_count);
+    std::vector<std::future<void>> t;
+    t.resize(thread_count);
+    for (int m = 0; m < thread_count; ++m) {
+        const int startidx = int(m*section);
+        const int stopidx = int((m+1.0)*section);
+        t[m] = std::async(&thrrecords<T>::threadfetchpartial,r,startidx,stopidx,iidx,ps,todo);
+    }
+    for (int m = 0; m < thread_count; ++m)
+    {
+        t[m].get();
+    }
+}
+
+template<typename T>
+class threaddata
+{
+public:
+  std::vector<T> d {};
+};
+
+template<typename T>
+void populatewi(workspace* _ws, chkmeasaitem<T>* wi, std::vector<T>& threaddata, std::vector<int> items, std::vector<int>& eqclass,
+    std::vector<graphtype*>& glist, std::vector<neighborstype*>& nslist,
+    std::vector<bool>& todo ) {
+
+    wi->res.resize(eqclass.size());
+    wi->meas.resize(eqclass.size());
+    wi->parentbool.resize(eqclass.size());
+    wi->parentboolcnt = 0;
+    wi->fpslist = {};
+    wi->glist.resize(eqclass.size());
+    wi->sorted.resize(eqclass.size());
+    wi->gnames.resize(eqclass.size());
+    wi->nslist.resize(eqclass.size());
+
+
+    for (int m=0; m < eqclass.size(); ++m)
+    {
+        wi->parentbool[m] = todo[m];
+        wi->parentboolcnt += (todo[m] ? 1 : 0);
+        if (todo[m])
+        {
+            wi->res[m] = threaddata[m];
+            wi->glist[m] = glist[m];
+            wi->sorted[m] = m;
+            wi->nslist[m] = nslist[m];
+            wi->meas[m] = threaddata[m];
+            // if (k < res.size()) {
+            // recall all the sentence-level criteria were added after malloc
+            // if (l == 0)
+            // (res[k])[m] = wi->res[m];
+            // }
+            // if (l < resm.size())
+            // {
+            // if (threadbool[m])
+            // resm[l][m] = threaddouble[m];
+            // }
+            // wi->meas.resize(eqclass.size());
+            // if (wi->res[m]) {
+            // wi->meas[m] = threaddouble[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+            // if (!(done[m][l])) {
+            // gi->doubleitems.push_back( new abstractmeasureoutcome<double>(ms[l],gi,wi->meas[m]));
+            // done[m][l] = true;
+            // } // default for wi->meas[m] ?
+            // }
+        }
+    }
+    wi->name = _ws->getuniquename(wi->classname);
+    _ws->items.push_back(wi);
+}
+
+
+
+
+
+
+
 class checkcriterionfeature : public abstractcheckcriterionfeature {
 protected:
 
-    struct abstms
-    {
-        bool type;
-        criterion* cs;
-        measure* ms;
-    };
 
-    struct iteration
-    {
-        measuretype mt;
-        abstms a;
-        int round;
-    };
 
-    std::vector<iteration*> iter {};
+
+
+//    std::vector<iteration*> iter {};
+    std::vector<itn*> iter {};
+    std::vector<int> litnumps {};
+    std::vector<measuretype> littypes {};
 
     int lookupiter( const std::string sin )
     {
+        std::string sn;
+        valms res;
         for (auto i = 0; i < iter.size(); ++i)
         {
-            if (iter[i]->a.type)
-                if (iter[i]->a.cs->name == sin)
-                    return i;
-            if (!iter[i]->a.type)
-                if (iter[i]->a.ms->name == sin)
-                    return i;
+            if (auto search = rec.m.find(iter[i]->iidx); search != rec.m.end())
+            {
+                switch (search->second.first)
+                {
+                case measuretype::mtbool: sn = rec.lookup(search->second.second).a.cs->shortname;
+                    break;
+                case measuretype::mtdiscrete: sn = rec.lookup(search->second.second).a.ts->shortname;
+                    break;
+                case measuretype::mtcontinuous: sn = rec.lookup(search->second.second).a.ms->shortname;
+                    break;
+                }
+                if (sn == sin)
+                {
+                    return iter[i]->iidx;
+                }
+            }
 
         }
         return -1;
 
     }
 
-    iteration* newiteration( measuretype mtin, int roundin, const abstms ain )
+    itn* newiteration( measuretype mtin, int roundin, const ams ain, const bool hiddenin = false )
     {
-        auto resi = new iteration;
-        resi->mt = mtin;
+        int j;
+        auto resi = new itn;
+        switch (mtin)
+        {
+        case measuretype::mtbool:
+            j = rec.boolrecs.pmsv->size();
+            rec.boolrecs.pmsv->push_back(ain.a.cs);
+            break;
+        case measuretype::mtdiscrete:
+            j = rec.intrecs.pmsv->size();
+            rec.intrecs.pmsv->push_back(ain.a.ts);
+            break;
+        case measuretype::mtcontinuous:
+            j = rec.doublerecs.pmsv->size();
+            rec.doublerecs.pmsv->push_back(ain.a.ms);
+            break;
+        }
+
+        resi->t = mtin;
         resi->round = roundin;
-        resi->a = ain;
+        resi->iidx = rec.maxm()+1;
+        rec.addm(resi->iidx,resi->t,j);
+        resi->hidden = hiddenin;
+        resi->ps.clear();
         return resi;
 
     }
-
 
     int addmeas(const std::string sin, const measuretype mtin, const int roundin )
     {
@@ -1830,28 +1966,57 @@ protected:
             return li;
         for (int i = 0; i < crs.size(); ++i)
         {
-            if (sin == crs[i]->shortname())
+            if (sin == crs[i]->shortname)
             {
-                abstms a;
-                a.type = 0;
-                a.cs = crs[i];
-                iter.push_back(newiteration(mtin,roundin,a));
-                return (iter.size()-1);
+                ams a;
+                a.t = measuretype::mtbool;
+                a.a.cs = (*crsfactory[i])(&rec);
+                iter.push_back(newiteration(mtbool,roundin,a,crs[i]->pssz > 0));
+                int j = iter.size()-1;
+                litnumps.resize(j+1);
+                litnumps[j] = crs[i]->pssz;
+                littypes.resize(j+1);
+                littypes[j] = a.t;
+                return j;
             }
         }
         for (int i = 0; i < mss.size(); ++i)
         {
-            if (sin == mss[i]->shortname())
+            if (sin == mss[i]->shortname)
             {
-                abstms a;
-                a.type = 1;
-                a.ms = mss[i];
-                iter.push_back(newiteration(mtin,roundin,a));
-                return (iter.size()-1);
+                ams a;
+                a.t = measuretype::mtcontinuous;
+                a.a.ms = (*mssfactory[i])(&rec);
+                iter.push_back(newiteration(mtcontinuous,roundin,a,mss[i]->pssz > 0));
+                int j = iter.size()-1;
+                litnumps.resize(j+1);
+                littypes.resize(j+1);
+                litnumps[j] = mss[i]->pssz;
+                littypes[j] = a.t;
+                return j;
             }
         }
+        for (int i = 0; i < tys.size(); ++i)
+        {
+            if (sin == tys[i]->shortname)
+            {
+                ams a;
+                a.t = measuretype::mtdiscrete;
+                a.a.ts = (*tysfactory[i])(&rec);
+                iter.push_back(newiteration(mtdiscrete,roundin,a,tys[i]->pssz > 0));
+                int j = iter.size()-1;
+                litnumps.resize(j+1);
+                littypes.resize(j+1);
+                litnumps[j] = tys[i]->pssz;
+                littypes[j] = a.t;
+                return j;
+            }
+        }
+
         return -1;
     }
+
+
     std::string bindformula( std::string sin, const measuretype mtin, const int roundin )
     {
         const std::regex r {"\\[([[:alpha:]]\\w*)\\]"};
@@ -1867,14 +2032,15 @@ protected:
             int idx = lookupiter(out[i]);
             if (idx < 0)
             {
-                idx = addmeas( out[i],mtin, roundin);
+
+                idx = addmeas( out[i],mtin, roundin );
             }
             std::string replacement = "[" + std::to_string(idx) + "]";
             std::string pattern = "\\[" + out[i] + "\\]";
             std::regex reg(pattern);
             sin = std::regex_replace(sin,reg,replacement);
         }
-        //std::cout << sin << "\n";
+        // std::cout << sin << "\n";
         return sin;
     }
 
@@ -1882,9 +2048,9 @@ protected:
 
 public:
 
-    std::vector<criterion*> cs {};
-    std::vector<measure*> ms {};
-    std::vector<std::pair<int,std::string>> mscombinations {};
+    // std::vector<criterion*> cs {};
+    // std::vector<measure*> ms {};
+    // std::vector<std::pair<int,std::string>> mscombinations {};
     std::vector<std::string> sentences {};
     std::vector<std::string> formulae {};
 
@@ -1930,11 +2096,11 @@ public:
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
-            *_os << "\t\t\"" << crs[n]->shortname() << "\": " << crs[n]->name << "\n";
+            *_os << "\t\t\"" << crs[n]->shortname << "\": " << crs[n]->name << "\n";
         }
         *_os << "\t" << "m=<measure>:\t which measure to use, standard options are:\n";
         for (int n = 0; n < mss.size(); ++n) {
-            *_os << "\t\t\"" << mss[n]->shortname() << "\": " << mss[n]->name << "\n";
+            *_os << "\t\t\"" << mss[n]->shortname << "\": " << mss[n]->name << "\n";
         }
     }
 
@@ -1966,6 +2132,8 @@ public:
 
         std::vector<double*> variables;
 
+        //rec = new mrecords;
+
 
         for (int i = 0; i < parsedargs.size(); ++i) {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
@@ -1992,13 +2160,13 @@ public:
             }
             if (ccl.t == "s")
             {
-                std::string s = bindformula(parsedargs[i].second,mtdiscrete,ccl.i);
-                abstms a;
-                a.type = 0;
-                a.cs = new negatablecriterion( ccl.n, new sentenceofcriteria(&variables,0,s,s) );
-                auto it = newiteration(mtdiscrete,ccl.i,a);
+                std::string s = bindformula(parsedargs[i].second,mtbool,ccl.i);
+                ams a;
+                a.t = measuretype::mtbool;
+                a.a.cs = new sentofcrit(&rec,litnumps,littypes,s);
+                a.a.cs->negated = ccl.n;
+                auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
-
                 continue;
             }
             if (ccl.t == "a")
@@ -2007,12 +2175,11 @@ public:
                     std::cout << "No feature to negate here\n";
 
                 std::string s = bindformula(parsedargs[i].second,mtcontinuous,ccl.i);
-                abstms a;
-                a.type = 1;
-                a.ms = new formulameasure(&variables,0,s,s);
+                ams a;
+                a.t = measuretype::mtcontinuous;
+                a.a.ms = new formmeas(&rec,litnumps,littypes,s);
                 auto it = newiteration(mtcontinuous,ccl.i,a);
                 iter.push_back(it);
-
                 continue;
             }
             if (ccl.t == "c")
@@ -2023,21 +2190,39 @@ public:
                 for (int n = 0; !found && (n < crs.size()); ++n) {
                     for (int m = 0; !found && (m < parsedargs2.size()); ++m)
                     {
-                        if (parsedargs2[m].first == crs[n]->shortname())
+                        if (parsedargs2[m].first == crs[n]->shortname)
                         {
-                            abstms a;
-                            a.type = 0;
-                            a.cs = new negatablecriterion( ccl.n, (*crsfactory[n])() );
+                            ams a;
+                            a.t = mtbool;
                             if (lookupiter(parsedargs2[m].first) < 0)
-                                iter.push_back( newiteration(mtdiscrete,ccl.i,a));
+                            {
+                                a.a.cs = (*crsfactory[n])(&rec);
+                                a.a.cs->negated = ccl.n;
+                                iter.push_back( newiteration(mtbool,ccl.i,a));
+                                litnumps.resize(iter.size());
+                                litnumps[iter.size()-1] = a.a.cs->pssz;
+                                littypes.resize(iter.size());
+                                littypes[iter.size()-1] = mtbool;
 
-                            // ... add parameters
-
-                            // auto newcs = (*crsfactory[n])();
-                            // cs.push_back(newcs);
-                            // if (!parsedargs2[m].second.empty())
-                            // cs[cs.size()-1]->setparams(parsedargs2[m].second);
-                            // found = true;
+                                if (!parsedargs2[m].second.empty())
+                                {
+                                    // cs[cs.size()-1]->setparams(parsedargs2[m].second);
+                                    // found = true;
+                                    for (auto k = 0; k < parsedargs2[m].second.size(); ++k) {
+                                        switch (a.a.cs->ps[k].t)
+                                        {
+                                        case measuretype::mtbool: a.a.cs->ps[k].v.bv = stoi(parsedargs2[m].second[k]);
+                                            break;
+                                        case measuretype::mtdiscrete: a.a.cs->ps[k].v.iv = stoi(parsedargs2[m].second[k]);
+                                            break;
+                                        case measuretype::mtcontinuous: a.a.cs->ps[k].v.dv = stof(parsedargs2[m].second[k]);
+                                            break;
+                                        }
+                                    }
+                                    iter[iter.size()-1]->ps = a.a.cs->ps;
+                                }
+                            }
+                            found = true;
                         }
                     }
                 }
@@ -2055,21 +2240,36 @@ public:
                 for (int n = 0; !found && (n < mss.size()); ++n) {
                     for (int m = 0; !found && (m < parsedargs2.size()); ++m)
                     {
-                        if (parsedargs2[m].first == mss[n]->shortname())
+                        if (parsedargs2[m].first == mss[n]->shortname)
                         {
-                            abstms a;
-                            a.type = 1;
-                            a.ms = (*mssfactory[n])();  // for now no notion of negatable measure
+                            ams a;
+                            a.t = mtcontinuous;
                             if (lookupiter(parsedargs2[m].first) < 0)
+                            {
+                                a.a.ms = (*mssfactory[n])(&rec);
                                 iter.push_back( newiteration(mtcontinuous,ccl.i,a));
+                                litnumps.resize(iter.size());
+                                litnumps[iter.size()-1] = a.a.ms->pssz;
+                                littypes.resize(iter.size());
+                                littypes[iter.size()-1] = mtcontinuous;
 
-                            // ... add parameters
-
-                            // auto newcs = (*crsfactory[n])();
-                            // cs.push_back(newcs);
-                            // if (!parsedargs2[m].second.empty())
-                            // cs[cs.size()-1]->setparams(parsedargs2[m].second);
-                            // found = true;
+                                if (!parsedargs2[m].second.empty())
+                                {
+                                    for (auto k = 0; k < parsedargs2[m].second.size(); ++k) {
+                                        switch (a.a.ms->ps[k].t)
+                                        {
+                                        case measuretype::mtbool: a.a.ms->ps[k].v.bv = stoi(parsedargs2[m].second[k]);
+                                            break;
+                                        case measuretype::mtdiscrete: a.a.ms->ps[k].v.iv = stoi(parsedargs2[m].second[k]);
+                                            break;
+                                        case measuretype::mtcontinuous: a.a.ms->ps[k].v.dv = stof(parsedargs2[m].second[k]);
+                                            break;
+                                        }
+                                    }
+                                    iter[iter.size()-1]->ps = a.a.ms->ps;
+                                }
+                            }
+                            found = true;
                         }
                     }
                 }
@@ -2079,7 +2279,6 @@ public:
 
             if (ccl.t == "f")
             {
-
 
                 std::vector<std::string> flagv {};
                 flagv.push_back(parsedargs[i].second);
@@ -2107,14 +2306,16 @@ public:
                 nssc.push_back(gi->ns);
                 dimsc.push_back(dim);
 
-                abstms a;
-                a.type = 0;
-                a.cs = new negatablecriterion(ccl.n, new embedscriterion(gi->ns,fp) );
-                auto it = newiteration(mtdiscrete,ccl.i,a);
+                ams a;
+                a.t = mtbool;
+                a.a.cs = new embedscrit(&rec,gi->ns,fp);
+                a.a.cs->negated = ccl.n;
+                auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
                 continue;
 
             }
+
             if (ccl.t == "is")
             {
 
@@ -2124,15 +2325,17 @@ public:
 
                 for (auto q : filedata)
                 {
-                    std::string s = bindformula(q,mtdiscrete,ccl.i);
-                    abstms a;
-                    a.type = 0;
-                    a.cs = new negatablecriterion( ccl.n, new sentenceofcriteria(&variables,0,s,s) );
-                    auto it = newiteration(mtdiscrete,ccl.i,a);
+                    std::string s = bindformula(q,mtbool,ccl.i);
+                    ams a;
+                    a.t = measuretype::mtbool;
+                    a.a.cs = new sentofcrit(&rec,litnumps,littypes,s);
+                    a.a.cs->negated = ccl.n;
+                    auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
                 }
                 continue;
             }
+
             if (ccl.t == "ia")
             {
                 if (ccl.n)
@@ -2145,14 +2348,14 @@ public:
                 for (auto q : filedata)
                 {
                     std::string s = bindformula(q,mtcontinuous,ccl.i);
-                    abstms a;
-                    a.type = 1;
-                    a.ms = new formulameasure(&variables,0,s,s);
+                    ams a;
+                    a.t = measuretype::mtcontinuous;
+                    a.a.ms = new formmeas(&rec,litnumps,littypes,s);
                     auto it = newiteration(mtcontinuous,ccl.i,a);
                     iter.push_back(it);
                 }
-
                 continue;
+
             }
             if (ccl.t == "if")
             {
@@ -2195,15 +2398,15 @@ public:
 
                 for (int i = 0; i < fps.size(); ++i)
                 {
-                    abstms a;
-                    a.type = 0;
-                    a.cs = new negatablecriterion( ccl.n, new embedscriterion(nss[i],fps[i]) );
-                    auto it = newiteration(mtdiscrete,ccl.i,a);
+                    ams a;
+                    a.t = mtbool;
+                    a.a.cs = new embedscrit(&rec,gi->ns,fps[i]);
+                    a.a.cs->negated = ccl.n;
+                    auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
                 }
-
                 continue;
-            }
+           }
         }
 
         if (!takeallgraphitems) {
@@ -2232,7 +2435,7 @@ public:
                 return;
             }
 
-        std::vector<neighbors*> nslist {};
+        std::vector<neighborstype*> nslist {};
         nslist.resize(items.size());
         std::vector<graphtype*> glist {};
         glist.resize(items.size());
@@ -2282,56 +2485,19 @@ public:
                 std::cout << "Error dynamically casting to graphitem*\n";
         }
 
-
-        // if (ms.empty() && formulae.empty()) {
-            // auto newms = (*mssfactory[0])();
-            // ms.push_back(newms);
-        // }
-
-
-        // for (int l = 0; l < ms.size(); ++l) {
-            // ms[l]->setsize(eqclass.size());
-            // ms[l]->gptrs = &glist;
-            // ms[l]->nsptrs = &nslist;
-        // }
-        // std::vector<double*> resm {};
-        // for (auto m : ms)
-            // resm.push_back(m->res);
-
         if (iter.empty())
         {
-            abstms a;
-            a.type = 0;
-            a.cs = crs[0];
-            iter.push_back(newiteration(mtdiscrete,0,a));
+            ams a;
+            a.t = measuretype::mtbool;
+            a.a.cs = (*crsfactory[0])(&rec);
+            iter.push_back(newiteration(mtbool,0,a));
         }
 
-        for (auto i : iter)
-        {
-            if (i->a.type == 0)
-            {
-                i->a.cs->setsize(eqclass.size());
-                i->a.cs->gptrs = &glist;
-                i->a.cs->nsptrs = &nslist;
-                variables.push_back((double*)(i->a.cs->res));
-            }
-            if (i->a.type == 1)
-            {
-                i->a.ms->setsize(eqclass.size());
-                i->a.ms->gptrs = &glist;
-                i->a.ms->nsptrs = &nslist;
-                variables.push_back(i->a.ms->res);
-            }
-        }
+        rec.gptrs = &glist;
+        rec.nsptrs = &nslist;
+        rec.setsize(eqclass.size());
 
-        // for (auto a : formulae)
-        // {
-            // ms.push_back(new formulameasure(resm,eqclass.size(),a,a));
-            // ms[ms.size()-1]->setsize(eqclass.size());
-            // ms[ms.size()-1]->gptrs = &glist;
-            // ms[ms.size()-1]->nsptrs = &nslist;
-            // resm.push_back(ms[ms.size()-1]->res);
-        // }
+
 
         if (items.size() < 1)
         {
@@ -2339,89 +2505,8 @@ public:
             return;
         }
 
-        // if (cs.empty() && sentences.empty() && fps.empty() && fpsc.empty())
-            // cs.push_back((*crsfactory[0])());
-
 
         bool found = false;
-
-        // if (!fps.empty())
-            // for( auto n : neg )
-            // {
-                // found |= (n.first == cs.size() && n.second); // was the "if" file input negated
-            // }
-        // for (int i = 0; i < fps.size(); ++i)
-        // {
-            // if (i > 0)
-            // {
-                // for (int n=0; n < neg.size(); ++n)
-                    // if (neg[n].first >= cs.size())
-                        // neg[n].first++;
-                // if (found)
-                    // neg.push_back({cs.size(),true});
-            // }
-            // cs.push_back(new embedscriterion(nss[i],fps[i]));
-        // }
-
-        // for (int j = 0; j < fpsc.size(); ++j)
-            // cs.push_back(new embedscriterion(nssc[j],fpsc[j]));
-
-        // res.resize(cs.size());
-        // for (int i = 0; i < res.size(); ++i)
-            // res[i] = (bool*)malloc(eqclass.size()*sizeof(bool));
-
-        // std::vector<bool> negv {};
-        // negv.resize(cs.size());
-        // for (int i = 0; i < negv.size(); ++i)
-        // {
-            // negv[i] = false;
-        // }
-        // for (int i = 0; i < neg.size(); ++i)
-        // {
-            // if (neg[i].first < negv.size())
-                // negv[neg[i].first] = neg[i].second;
-        // }
-
-        // for (auto i = 0 ; i < negv.size(); ++i)
-            // cs[i] = new negatablecriterion(negv[i],cs[i]);
-
-        // int i = cs.size();
-        // if (!cs.empty() && andmode) {
-            // cs.push_back(new negatablecriterion(negv[i++], new andcriteria(res,eqclass.size())));
-        // }
-
-        // if (!cs.empty() && ormode) {
-            // cs.push_back(new negatablecriterion(negv[i++],new orcriteria(res,eqclass.size())));
-        // }
-
-        // for (auto s: sentences)
-            // cs.push_back(new negatablecriterion(negv[i++],
-                // new sentenceofcriteria(res,eqclass.size(),s,"Logical sentence " +s)));
-
-
-
-
-
-        // if (ms.empty())
-            // ms.push_back((*mssfactory[0])());
-
-
-        std::vector<std::vector<bool>> done {};
-        done.resize(eqclass.size());
-        for (int k = 0; k < done.size(); ++k) {
-            done[k].resize(iter.size());
-            for (int i = 0; i < done[k].size(); ++i) {
-                done[k][i] = false;
-            }
-        }
-
-
-
-
-        unsigned const thread_count = std::thread::hardware_concurrency();
-        //unsigned const thread_count = 1;
-
-
 
 
 
@@ -2432,260 +2517,129 @@ public:
             todo[m] = true;
         alltodo = true;
 
+        std::vector<bool> threadbool {};
+        std::vector<int> threadint {};
         std::vector<double> threaddouble {};
+        threadbool.resize(eqclass.size());
+        threadint.resize(eqclass.size());
         threaddouble.resize(eqclass.size());
         for (int k = 0; k < iter.size(); ++k)
         {
+            int ilookup = rec.intlookup(iter[k]->iidx);
+            ams alookup = rec.lookup(iter[k]->iidx);
             if (k > 0 && iter[k]->round > iter[k-1]->round)
             {
                 // ...add here support for andmode and ormode
-                for (int m = 0; m < threaddouble.size();++m)
-                    todo[m] = todo[m] && (bool)threaddouble[m];
+                for (int m = 0; m < threadbool.size();++m)
+                    todo[m] = todo[m] && threadbool[m];
                 alltodo = false;
 
             }
 
+            if (iter[k]->hidden)
+                continue;
 
-            std::vector<std::future<void>> t {};
-            //t.clear();
-            t.resize(thread_count);
-            // cs[k]->setsize(eqclass.size());
-            // cs[k]->gptrs = &glist;
-            // cs[k]->nsptrs = &nslist;
 
-            const double section = double(eqclass.size()) / double(thread_count);
-
-#ifdef THREADCHECKCRITERION
 
             if (alltodo)
             {
-                for (int m = 0; m < thread_count; ++m) {
-                    const int startidx = int(m*section);
-                    const int stopidx = int((m+1.0)*section);
 
+                if (iter[k]->t == mtbool)
+                    runthreads<bool>(ilookup,iter[k]->ps,rec.boolrecs);
+                if (iter[k]->t == mtdiscrete)
+                    runthreads<int>(ilookup,iter[k]->ps,rec.intrecs);
+                if (iter[k]->t == mtcontinuous)
+                    runthreads<double>(ilookup,iter[k]->ps,rec.doublerecs);
 
-                    if (iter[k]->a.type == 0)
-                        t[m] = std::async(&criterion::takemeasurethreadsection,iter[k]->a.cs,startidx,stopidx);
-                    else
-                        t[m] = std::async(&measure::takemeasurethreadsection,iter[k]->a.ms,startidx,stopidx);
-
-
-                    //std::cout << "startidx " << startidx << ", stopidx " << stopidx << "\n";
-                    //t[m] = pool->submit(std::bind(&abstractmemorymeasure<bool>::takemeasurethreadsection,cs[k],startidx, stopidx ));
-                    //t[m] = std::async(&criterion::takemeasurethreadsection,cs[k],startidx,stopidx);
-                    //t[m] = std::async(&abstractcriterion<bool>::checkcriterion,cs[k],glist[eqclass[m]],nslist[eqclass[m]]);
-                }
             } else
             {
-#endif
-                for (int m = 0; m < thread_count; ++m)
+                if (iter[k]->t == mtbool)
+                    runthreadspartial<bool>(ilookup,iter[k]->ps,rec.boolrecs,&todo);
+                if (iter[k]->t == mtdiscrete)
+                    runthreadspartial<int>(ilookup,iter[k]->ps,rec.intrecs,&todo);
+                if (iter[k]->t == mtcontinuous)
+                    runthreadspartial<double>(ilookup,iter[k]->ps,rec.doublerecs,&todo);
+
+            }
+
+            if (iter[k]->t == mtbool)
+                for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    const int startidx = int(m*section);
-                    const int stopidx = int((m+1.0)*section);
-
-
-                    if (iter[k]->a.type == 0)
-                        t[m] = std::async(&criterion::takemeasurethreadsectionportion,iter[k]->a.cs,startidx,stopidx, &todo);
-                    else
-                        t[m] = std::async(&measure::takemeasurethreadsectionportion,iter[k]->a.ms,startidx,stopidx, &todo);
+                    threadbool[m] = rec.boolrecs.fetch(m,ilookup, iter[k]->ps);
                 }
-            }
-            for (int m = 0; m < thread_count; ++m) {
 
-#ifdef THREADCHECKCRITERION
-                //                while (t[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
-                //                    pool->run_pending_task();
-                //                }
-                t[m].get();
-#else
-                threadbool[m] = cs[k]->takemeasureidxed(eqclass[m]);
-#endif
-            }
-            for (int m = 0; m < eqclass.size(); ++m) {
-                //t[m].join();
-                //t[m].detach();
-                if (iter[k]->a.type == 0)
-                    threaddouble[m] = iter[k]->a.cs->res[m];
-                else
-                    threaddouble[m] = iter[k]->a.ms->res[m];
-
-            }
-
-            if (iter[k]->a.type == 0)
-            {
-                auto wi = new checkdiscreteitem<bool>(*iter[k]->a.cs);
-                wi->res.resize(eqclass.size());
-                wi->parentbool.resize(eqclass.size());
-                wi->parentboolcnt = 0;
-                wi->fpslist = {};
-                wi->glist.resize(eqclass.size());
-                wi->sorted.resize(eqclass.size());
-                wi->gnames.resize(eqclass.size());
-                wi->nslist.resize(eqclass.size());
-
-
-
-                for (int m=0; m < eqclass.size(); ++m) {
-                    wi->parentbool[m] = todo[m];
-                    wi->parentboolcnt += (todo[m] ? 1 : 0);
-                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]])) {
-                        // if (l == 0) { // hokey way of saying "do it once", as if outside the nested loops
-                        if (todo[m])
-                        {
-                            gi->boolitems.push_back(new abstractmeasureoutcome<bool>(iter[k]->a.cs,gi,(bool)threaddouble[m]));
-                            // }
-                            wi->gnames[m] = gi->name;
-                            wi->res[m] = threaddouble[m];
-                            wi->glist[m] = glist[m];
-                            wi->sorted[m] = m;
-                            wi->nslist[m] = nslist[m];
-                            // if (k < res.size()) {
-                            // recall all the sentence-level criteria were added after malloc
-                            // if (l == 0)
-                            // (res[k])[m] = wi->res[m];
-                            // }
-                            // if (l < resm.size())
-                            // {
-                            // if (threadbool[m])
-                            // resm[l][m] = threaddouble[m];
-                            // }
-                            // wi->meas.resize(eqclass.size());
-                            // if (wi->res[m]) {
-                            // wi->meas[m] = threaddouble[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
-                            // if (!(done[m][l])) {
-                            // gi->doubleitems.push_back( new abstractmeasureoutcome<double>(ms[l],gi,wi->meas[m]));
-                            // done[m][l] = true;
-                            // } // default for wi->meas[m] ?
-                            // }
-                        }
-                    } else
-                        std::cout << "Dynamic cast error to graphitem*\n";
-                }
-                wi->name = _ws->getuniquename(wi->classname);
-                _ws->items.push_back(wi);
-
-
-
-
-
-
-
-            }
-            else
-            {
-                auto wi = new checkcontinuousitem<double>(*iter[k]->a.ms);
-                wi->parentbool.resize(eqclass.size());
-                wi->parentboolcnt = 0;
-                wi->fpslist = {};
-                wi->glist.resize(eqclass.size());
-                wi->sorted.resize(eqclass.size());
-                wi->gnames.resize(eqclass.size());
-                wi->nslist.resize(eqclass.size());
-
-
-
-                for (int m=0; m < eqclass.size(); ++m) {
-                    wi->parentbool[m] = todo[m];
-                    wi->parentboolcnt += todo[m] ? 1 : 0;
-                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]])) {
-                        // if (l == 0) { // hokey way of saying "do it once", as if outside the nested loops
-                        if (todo[m])
-                        {
-                            wi->glist[m] = glist[m];
-                            wi->sorted[m] = m;
-                            wi->nslist[m] = nslist[m];
-                            gi->doubleitems.push_back(new abstractmeasureoutcome<double>(iter[k]->a.ms,gi,threaddouble[m]));
-                            // }
-                            wi->gnames[m] = gi->name;
-                            wi->meas.resize(eqclass.size());
-                            wi->meas[m] = threaddouble[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
-                            // if (!(done[m][k])) {
-                            // gi->doubleitems.push_back( new abstractmeasureoutcome<double>(ms,gi,wi->meas[m]));
-                            // done[m][l] = true;
-                            // } // default for wi->meas[m] ?
-                        }
-                    } else
-                        std::cout << "Dynamic cast error to graphitem*\n";
-                }
-                wi->name = _ws->getuniquename(wi->classname);
-                _ws->items.push_back(wi);
-
-
-
-
-
-
-            }
-
-/*
-            for (int l = 0; l < k; ++l)
-            {
-                if (iter[l]->a.type == 0)
+            if (iter[k]->t == mtdiscrete)
+                for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    variables[l] = (double*)iter[l]->a.cs->res;
-                    for (int i = 0; i < iter[l]->a.cs->sz; ++i)
+                    threadint[m] = rec.intrecs.fetch(m,ilookup, iter[k]->ps);
+                }
+
+            if (iter[k]->t == mtcontinuous)
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    threaddouble[m] = rec.doublerecs.fetch(m,ilookup, iter[k]->ps);
+                }
+
+            if (iter[k]->t == mtbool)
+            {
+                auto wi = new checkdiscreteitem<bool>(*alookup.a.cs);
+                populatewi<bool>(_ws, wi, threadbool,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                     {
-                        std::cout << iter[l]->a.cs->res[i] << " ::: ";
-                        std::cout << ((bool*)variables[l])[i] << "\n";
+                        gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
+                        wi->gnames[m] = gi->name;
+                    }
+                    else
+                    {
+                        std::cout << "Dynamic cast error to graphitem*\n";
                     }
                 }
-                else
-                    variables[l] = iter[l]->a.ms->res;
             }
-*/
+            if (iter[k]->t == mtdiscrete)
+            {
+                auto wi = new checkdiscreteitem<int>(*alookup.a.ts);
+                populatewi<int>(_ws, wi, threadint,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                    {
+                        gi->intitems.push_back(new ameasoutcome<int>(alookup.a.ts,gi,threadint[m]));
+                        wi->gnames[m] = gi->name;
+                    }
+                    else
+                    {
+                        std::cout << "Dynamic cast error to graphitem*\n";
+                    }
+                }
+            }
+            if (iter[k]->t == mtcontinuous)
+            {
+                auto wi = new checkcontinuousitem<double>(*alookup.a.ms);
+                populatewi<double>(_ws, wi, threaddouble,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                    {
+                        gi->doubleitems.push_back(new ameasoutcome<double>(alookup.a.ms,gi,threaddouble[m]));
+                        wi->gnames[m] = gi->name;
+                    }
+                    else
+                    {
+                        std::cout << "Dynamic cast error to graphitem*\n";
+                    }
+                }
+            }
 
-#ifdef THREADCHECKCRITERION
-            // for (int m =  0; m < thread_count; ++m)
-            // {
-            // if (threadbool[m])
-            // {
-            // f[m] = pool->submit(std::bind(&abstractmeasure<double>::takemeasureidxed,ms[crmspairs[k][l]], m));
-            // f[m] = std::async(&abstractmeasure<double>::takemeasureidxed,ms[crmspairs[k][l]],eqclass[m]);
-            //                    }
-            // const int startidx = int(m*section);
-            // const int stopidx = int((m+1.0)*section);
-            // std::cout << "startidx " << startidx << ", stopidx " << stopidx << "\n";
-
-            // f[m] = std::async(&measure::takemeasurethreadsectionportion,ms[l],startidx,stopidx,todo);
-            // }
-#endif
-            // std::vector<double> threaddouble;
-            // threaddouble.resize(eqclass.size());
-
-            // for (int m = 0; m < thread_count; ++m) {
-#ifdef THREADCHECKCRITERION
-            //                    if (threadbool[m]) {
-            //                        while (f[m].wait_for(std::chrono::seconds(0)) == std::future_status::timeout) {
-            //                            pool->run_pending_task();
-            //                        }
-            // f[m].get();
-            //                  }
-#else
-            // if (threadbool[m])
-            // threaddouble[m] = ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
-#endif
-            // }
-
-            // for (int m = 0; m < eqclass.size(); ++m)
-            // {
-            // if (threadbool[m])
-            // {
-            // threaddouble[m] = ms[l]->res[m];
-            // }
-            // }
         }
 
-
-
-
-
-        // for (int j = 0; j < res.size(); ++j)
-            // free(res[j]);
-
-
-//#endif
 
         for (int i = 0; i < fps.size(); ++i) {
             freefps(fps[i],dims[i]);
@@ -2699,19 +2653,10 @@ public:
         for (auto gi : flaggraphitems)
             _ws->items.push_back(gi);
 
-        // for (auto m : ms)
-            // delete m;
-        // ms.clear();
-
-        // for (auto c : cs)
-            // if (c != crs[0])
-                // delete c;
-        // cs.clear();
-
-
         for (auto i : iter)
             delete i;
         iter.clear();
+
     }
 };
 

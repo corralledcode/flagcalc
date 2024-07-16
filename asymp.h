@@ -19,16 +19,40 @@
 #include <future>
 #include <signal.h>
 #include <thread>
+#include <map>
 
 #include "graphs.h"
 #include "prob.h"
 //#include "measure.cpp"
 //#include "workspace.h"
-#include "math.cpp"
-
+#include "math.h"
 #define KNMAXCLIQUESIZE 12
+#define GRAPH_PRECOMPUTECYCLESCNT 15
 
 class girthmeasure;
+
+class criterion;
+class measure;
+
+
+
+struct abstms
+{
+    bool type;
+    criterion* cs;
+    measure* ms;
+};
+
+struct iteration
+{
+    measuretype mt;
+    abstms a;
+    int round;
+    bool hidden;
+};
+
+
+
 
 template<typename T>
 class abstractmeasure {
@@ -62,12 +86,20 @@ public:
     T* res = nullptr;
     bool* computed = nullptr;
 
-    std::vector<std::string> ps {};
+    std::vector<double> ps {};
+    int pssz = 0;
 
-    virtual void setparams( const std::vector<std::string> pin ) {
+    std::map<std::vector<double>,std::pair<bool*, T*>> pres {};
+
+    virtual void setparams( const std::vector<double>& pin ) {
         ps = pin;
     }
 
+    virtual T pstakemeasureidxed( const int idx, const std::vector<double>& psin)
+    {
+        setparams(psin);
+        return takemeasureidxed(idx);
+    }
 
     void setsize(const int szin) override {
         abstractmeasure<T>::setsize(szin);
@@ -79,6 +111,7 @@ public:
         computed = (bool*)(malloc(szin*sizeof(bool)));
         for (int n = 0; n < szin; ++n)
             computed[n] = false;
+        pres.clear();
     }
 
     std::string shortname() override {return "_amc";}
@@ -87,6 +120,31 @@ public:
     {
         if (idx >= abstractmeasure<T>::sz)
             std::cout << "Error in size of abstractmemorymeasure\n";
+        if (pssz > 0 && ps.size()==pssz)
+        {
+            if ( auto search = pres.find(ps); search != pres.end())
+            {
+                if (search->second.first[idx])
+                    return search->second.second[idx];
+                else
+                {
+                    search->second.second[idx] = this->takemeasure((*this->gptrs)[idx],(*this->nsptrs)[idx]);
+                    search->second.first[idx] = true;
+                    res[idx] = search->second.second[idx];
+                    return search->second.second[idx];
+                }
+            } else
+            {
+                pres[ps].first = (bool*)malloc(this->sz*sizeof(bool));
+                for (int n = 0; n < this->sz; ++n)
+                    pres[ps].first[n] = false;
+                pres[ps].second = (T*)malloc(this->sz*sizeof(T));
+                pres[ps].second[idx] = this->takemeasure((*this->gptrs)[idx],(*this->nsptrs)[idx]);
+                pres[ps].first[idx] = true;
+                res[idx] = pres[ps].second[idx];
+                return pres[ps].second[idx];
+            }
+        }
         if (!computed[idx]) {
             res[idx] = this->takemeasure((*this->gptrs)[idx],(*this->nsptrs)[idx]);
             computed[idx] = true;
@@ -108,20 +166,76 @@ public:
     explicit abstractmemorymeasure( std::string namein ) : abstractmeasure<T>(namein) {}
     ~abstractmemorymeasure() override {
         delete res;
+        for (auto p : pres)
+        {
+            delete p.second.first;
+            delete p.second.second;
+        }
+
+        pres.clear();
         delete computed;
     }
 };
 
+
 class criterion : public abstractmemorymeasure<bool>
 {
 public:
+    bool negated;
 
     virtual std::string shortname() {return "_c";}
+
+    bool takemeasureidxed(const int idx) override
+    {
+        return negated != abstractmemorymeasure<bool>::takemeasureidxed(idx);
+    }
+    bool takemeasure(const graphtype* g, const neighbors* ns) override
+    {
+        return negated != abstractmemorymeasure<bool>::takemeasure(g,ns);
+    }
 
     criterion( const std::string namein )
         : abstractmemorymeasure<bool>(namein) {}
 
 };
+
+
+class measure : public abstractmemorymeasure<double>
+{
+public:
+    virtual std::string shortname() {return "_m";}
+    measure(const std::string namein)
+        : abstractmemorymeasure<double>(namein) {}
+};
+
+class evalidxedformula : public evalformula
+{
+public:
+
+    int idx;
+    const std::vector<iteration*>* iter;
+
+
+    virtual double evalpslit( int l, std::vector<double>& psin )
+    {
+        abstms a = (*iter)[l]->a;
+        if (a.type == 0)
+        {
+            return a.cs->pstakemeasureidxed(idx,psin);
+        } else
+        {
+            return a.ms->pstakemeasureidxed(idx,psin);
+        }
+    }
+
+    evalidxedformula( const std::vector<iteration*>* iterin ) : evalformula(), iter{iterin} {}
+
+};
+
+
+
+
+
 
 
 class truecriterion : public criterion{
@@ -187,7 +301,7 @@ public:
         int j = 0;
         while ((foundcnt < mincnt) && (j < (subsets.size()/n))) {
             found = true;
-            for (auto i = 0; found && (i < n-1); ++i) {
+            for (auto i = 0; found && (i < n); ++i) {
                 for (auto k = i+1; found && (k < n); ++k)
                     found = found && g->adjacencymatrix[dim*subsets[j*n + i] + subsets[j*n + k]];
             }
@@ -231,13 +345,13 @@ public:
     }
     bool takemeasure( const graphtype* g, const neighbors* ns ) override {
 
-        if (ps.size() >= 1 && is_number(ps[0])) {
-            int sz = stoi(ps[0]);
+        if (ps.size() >= 1) {
+            int sz = ps[0];
             int mincnt = 1;
-            if (ps.size() == 2 && is_number(ps[1]))
-                mincnt = stoi(ps[1]);
+            if (ps.size() == 2)
+                mincnt = ps[1];
             if (0<=sz && sz <= KNMAXCLIQUESIZE)
-                return kns[stoi(ps[0])]->takemeasure(g,ns,mincnt);
+                return kns[ps[0]]->takemeasure(g,ns,mincnt);
             else {
                 std::cout<< "Increase KNMAXCLIQUESIZE compiler define (current value " + std::to_string(KNMAXCLIQUESIZE) + ")";
                 return false;
@@ -248,6 +362,7 @@ public:
 
     knparameterizedcriterion() : criterion("Parameterized K_n criterion (parameter is complete set size)") {
         populatekns();
+        pssz = 2;
     }
     ~knparameterizedcriterion() {
         for (auto kn : kns)
@@ -289,40 +404,53 @@ public:
 };
 
 
+/*
+
 class sentenceofcriteria : public criterion {
 protected:
-    //std::vector<criterion*> cs;
     formulaclass* fc;
     std::vector<double*>* variables {};
+    const std::map<int,int> litnumps;
+    evalidxedformula* ef;
 
 public:
+
 
     std::string shortname() override {return "crSENTENCE";}
     bool takemeasureidxed( const int idx ) override {
         if (!computed[idx]) {
             std::vector<double> tmpres {};
+
             tmpres.resize(variables->size());
             for (int i = 0; i < variables->size(); ++i )
                 tmpres[i] = ((bool*)(*variables)[i])[idx];
-            // for (int i = 0; i < variables->size(); ++i)
-            // {
-                // std::cout << i << " == " << (bool)tmpres[i] << " , ";
-            // }
-            // std::cout << "\n";
-            res[idx] = evalformula(*fc,tmpres);  // check for speed cost
+               for (int i = 0; i < variables->size(); ++i)
+            {
+                std::cout << i << " == " << (bool)tmpres[i] << " , ";
+            }
+            std::cout << "\n";
+            ef->literals = tmpres;
+            ef->idx = idx;
+            res[idx] = (bool)ef->eval(*fc);  // check for speed cost
             computed[idx] = true;
         }
         return res[idx]; //abstractmemorymeasure::takemeasureidxed(idx);
     }
 
-    sentenceofcriteria( std::vector<double*>* variablesin, const int szin, std::string sentence,std::string stringin )
+    sentenceofcriteria( const std::vector<iteration*>* iter, const std::map<int,int>& litnumpsin, std::vector<double*>* variablesin, const int szin, std::string sentence,std::string stringin )
         : criterion(stringin == "" ? "logical sentence of several criteria" : stringin),
-            variables{variablesin}, fc{parseformula(sentence)} {
-        setsize(sz);
+            variables{variablesin}, ef{new evalidxedformula(iter)}, litnumps{litnumpsin}, fc{parseformula(sentence,litnumpsin)} {
+        setsize(szin);
+    }
+
+    ~sentenceofcriteria()
+    {
+        delete ef;
     }
 
 };
-
+*/
+/*
 class andcriteria : public sentenceofcriteria {
 public:
     std::string shortname() override {return "crAND";}
@@ -364,7 +492,7 @@ public:
     }
 
 };
-
+*/
 
 /*class notcriteria : public criterion {
 protected:
@@ -591,27 +719,6 @@ public:
 
 
 
-
-class negatablecriterion : public criterion
-{
-public:
-    bool negated;
-    criterion* cr;
-
-    negatablecriterion( bool negatedin, criterion* crin) : criterion((negatedin ? "NOT of " : "") + crin->name), negated{negatedin}, cr{crin} {}
-
-    bool takemeasure(const graphtype* g, const neighbors* ns) override
-    {
-        return negated != cr->takemeasure(g,ns);
-    }
-
-    ~negatablecriterion()
-    {
-        delete cr;
-    }
-
-
-};
 
 
 
