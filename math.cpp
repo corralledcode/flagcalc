@@ -365,8 +365,8 @@ inline bool equalityops( const formulaoperator fo)
             || fo == formulaoperator::fone);
 }
 
-template<typename T>
-T eval2ary(const T in1, const T in2, const formulaoperator fo)
+template<typename T, typename T1, typename T2>
+T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
 {
     T res;
     if (fo == formulaoperator::foplus) {
@@ -511,7 +511,7 @@ valms evalformula::eval(const formulaclass& fc)
 
         res.t = fc.v.t;
         if (!booleanops(fc.fo) && (res.t == mtbool))
-            res.t = mtdiscrete;
+            res.t = mtcontinuous;
         if (equalityops(fc.fo))
         {
             res.t = mtbool;
@@ -560,7 +560,7 @@ valms evalformula::eval(const formulaclass& fc)
             return res;
         case mtdiscrete: res.v.iv = eval2ary<int>(resleft.v.iv,resright.v.iv,fc.fo);
             return res;
-        case mtcontinuous: res.v.dv= eval2ary<double>(resleft.v.iv,resright.v.iv,fc.fo);
+        case mtcontinuous: res.v.dv= eval2ary<double>(resleft.v.dv,resright.v.dv,fc.fo);
             return res;
         }
     }
