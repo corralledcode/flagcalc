@@ -157,6 +157,9 @@ bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2, const int 
 bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt );
 
 
+int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
+
+
 
 //bool areisomorphic( graphtype g1, graphtype g2, neighbors ns1, neighbors ns2 );
 

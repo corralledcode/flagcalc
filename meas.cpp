@@ -112,7 +112,7 @@ public:
     neighbors* flagns;
     FP* fp;
     embedscrit( mrecords* recin , neighbors* flagnsin,FP* fpin)
-        : crit(recin , "embedsc","embeds flag criterion"),
+        : crit(recin , "embedsc","embeds type criterion"),
         flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeas( const int idx ) override {
         return negated != (embedsquick(flagns, fp, (*this->rec->nsptrs)[idx], 1));
@@ -1074,4 +1074,44 @@ template<typename T> meas* measfactory(mrecords* recin)
 {
     return new T(recin);
 }
+
+template<typename T> tally* tallyfactory(mrecords* recin)
+{
+    return new T(recin);
+}
+
+
+
+
+class embedstally : public tally {
+protected:
+
+public:
+    graphtype* flagg;
+    neighbors* flagns;
+    FP* fp;
+    embedstally( mrecords* recin , neighbors* flagnsin,FP* fpin)
+        : tally(recin , "embedst","embeds type tally"),
+        flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+    int takemeas( const int idx ) override {
+        return (embedscount(flagns, fp, (*this->rec->nsptrs)[idx]));
+    }
+
+    ~embedstally()
+    {
+        freefps(fp,flagg->dim);
+        delete fp;
+        delete flagg;
+        delete flagns;
+        flagg = nullptr;
+        flagns = nullptr;
+        fp = nullptr;
+    }
+
+};
+
+
+
+
+
 

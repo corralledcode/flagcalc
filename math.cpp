@@ -352,12 +352,16 @@ class formulaclass;
 inline bool booleanops( const formulaoperator fo)
 {
     return (fo == formulaoperator::foand
-            || fo == formulaoperator::foor
-            || fo == formulaoperator::foe
-            || fo == formulaoperator::folte
+            || fo == formulaoperator::foor);
+}
+
+inline bool equalityops( const formulaoperator fo)
+{
+    return (fo == formulaoperator::folte
             || fo == formulaoperator::folt
-            || fo == formulaoperator::fogte
+            || fo == formulaoperator::foe
             || fo == formulaoperator::fogt
+            || fo == formulaoperator::fogte
             || fo == formulaoperator::fone);
 }
 
@@ -386,6 +390,12 @@ T eval2ary(const T in1, const T in2, const formulaoperator fo)
     if (fo == formulaoperator::foor) {
         res = in1 || in2;
     }
+    return res;
+}
+
+template<typename T1, typename T2>
+bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
+    bool res;
     if (fo == formulaoperator::foe) {
         res = in1 == in2;
     }
@@ -502,6 +512,47 @@ valms evalformula::eval(const formulaclass& fc)
         res.t = fc.v.t;
         if (!booleanops(fc.fo) && (res.t == mtbool))
             res.t = mtdiscrete;
+        if (equalityops(fc.fo))
+        {
+            res.t = mtbool;
+            switch(resleft.t)
+            {
+            case mtbool:
+                switch (resright.t)
+                {
+                    case mtbool: res.v.bv = eval2aryeq<bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
+                            break;
+                    case mtdiscrete: res.v.bv = eval2aryeq<bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
+                            break;
+                    case mtcontinuous: res.v.bv = eval2aryeq<bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
+                            break;
+                }
+                break;
+            case mtdiscrete:
+                switch (resright.t)
+                {
+                    case mtbool: res.v.bv = eval2aryeq<int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+                            break;
+                    case mtdiscrete: res.v.bv = eval2aryeq<int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                            break;
+                    case mtcontinuous: res.v.bv = eval2aryeq<int,double>(resleft.v.iv,resright.v.dv,fc.fo);
+                            break;
+                }
+                break;
+            case mtcontinuous:
+                switch (resright.t)
+                {
+                    case mtbool: res.v.bv = eval2aryeq<double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+                            break;
+                    case mtdiscrete: res.v.bv = eval2aryeq<double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+                            break;
+                    case mtcontinuous: res.v.bv = eval2aryeq<double,double>(resleft.v.dv,resright.v.dv,fc.fo);
+                            break;
+                }
+                break;
+            }
+            return res;
+        }
 
         switch (res.t)
         {

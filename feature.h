@@ -1703,6 +1703,19 @@ public:
             mss.push_back((*mssfactory[n])(&rec));
         }
 
+
+        // add any new tally types to the list here...
+
+
+        // ,,,
+
+        for (int n = 0; n < tysfactory.size(); ++n) {
+            tys.push_back((*tysfactory[n])(&rec));
+        }
+
+
+
+
     }
 
     ~abstractcheckcriterionfeature() {
@@ -2277,6 +2290,53 @@ public:
                     continue;
             }
 
+            if (ccl.t == "t")
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+                bool found = false;
+                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2
+                            = cmdlineparseiterationthree(parsedargs[i].second);
+                for (int n = 0; !found && (n < tys.size()); ++n) {
+                    for (int m = 0; !found && (m < parsedargs2.size()); ++m)
+                    {
+                        if (parsedargs2[m].first == tys[n]->shortname)
+                        {
+                            ams a;
+                            a.t = mtdiscrete;
+                            if (lookupiter(parsedargs2[m].first) < 0)
+                            {
+                                a.a.ts = (*tysfactory[n])(&rec);
+                                iter.push_back( newiteration(mtdiscrete,ccl.i,a));
+                                litnumps.resize(iter.size());
+                                litnumps[iter.size()-1] = a.a.ts->pssz;
+                                littypes.resize(iter.size());
+                                littypes[iter.size()-1] = mtdiscrete;
+
+                                if (!parsedargs2[m].second.empty())
+                                {
+                                    for (auto k = 0; k < parsedargs2[m].second.size(); ++k) {
+                                        switch (a.a.ts->ps[k].t)
+                                        {
+                                        case measuretype::mtbool: a.a.ts->ps[k].v.bv = stoi(parsedargs2[m].second[k]);
+                                            break;
+                                        case measuretype::mtdiscrete: a.a.ts->ps[k].v.iv = stoi(parsedargs2[m].second[k]);
+                                            break;
+                                        case measuretype::mtcontinuous: a.a.ts->ps[k].v.dv = stof(parsedargs2[m].second[k]);
+                                            break;
+                                        }
+                                    }
+                                    iter[iter.size()-1]->ps = a.a.ts->ps;
+                                }
+                            }
+                            found = true;
+                        }
+                    }
+                }
+                if (found)
+                    continue;
+            }
+
             if (ccl.t == "f")
             {
 
@@ -2315,6 +2375,47 @@ public:
                 continue;
 
             }
+
+
+            if (ccl.t == "ft")
+            {
+
+                std::vector<std::string> flagv {};
+                flagv.push_back(parsedargs[i].second);
+
+
+
+                graphitem* gi = new graphitem();
+                gi->g = igraphstyle({parsedargs[i].second});
+                gi->ns = new neighbors(gi->g);
+                gi->name = _ws->getuniquename(gi->classname) + "FLAG";
+                flaggraphitems.push_back(gi);
+                //_ws->items.push_back(gi);
+                int dim = gi->ns->g->dim;
+                FP* fp = (FP*)malloc(dim*sizeof(FP));
+                for (int j = 0; j < dim; ++j) {
+                    fp[j].v=j;
+                    fp[j].ns = nullptr;
+                    fp[j].nscnt = dim;
+                    fp[j].parent = nullptr;
+                    fp[j].invert = gi->ns->degrees[j] >= int((dim+1)/2);
+                }
+                takefingerprint(gi->ns,fp,dim);
+
+                fpsc.push_back(fp);
+                nssc.push_back(gi->ns);
+                dimsc.push_back(dim);
+
+                ams a;
+                a.t = mtdiscrete;
+                a.a.ts = new embedstally(&rec,gi->ns,fp);
+                auto it = newiteration(mtdiscrete,ccl.i,a);
+                iter.push_back(it);
+                continue;
+
+            }
+
+
 
             if (ccl.t == "is")
             {
@@ -2530,8 +2631,16 @@ public:
             if (k > 0 && iter[k]->round > iter[k-1]->round)
             {
                 // ...add here support for andmode and ormode
-                for (int m = 0; m < threadbool.size();++m)
-                    todo[m] = todo[m] && threadbool[m];
+                if (iter[k-1]->t == mtbool)
+                    for (int m = 0; m < threadbool.size();++m)
+                        todo[m] = todo[m] && threadbool[m];
+                if (iter[k-1]->t == mtdiscrete)
+                    for (int m = 0; m < threadint.size();++m)
+                        todo[m] = todo[m] && (threadint[m] != 0);
+                if (iter[k-1]->t == mtcontinuous)
+                    for (int m = 0; m < threaddouble.size();++m)
+                        todo[m] = todo[m] && (abs(threaddouble[m]) > 0.00000001);
+
                 alltodo = false;
 
             }
@@ -2587,15 +2696,18 @@ public:
                     glist, nslist, todo );
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                    if (todo[m])
                     {
-                        gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
-                        wi->gnames[m] = gi->name;
-                    }
-                    else
-                    {
-                        std::cout << "Dynamic cast error to graphitem*\n";
+                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
                     }
                 }
             }
@@ -2606,15 +2718,18 @@ public:
                     glist, nslist, todo );
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                    if (todo[m])
                     {
-                        gi->intitems.push_back(new ameasoutcome<int>(alookup.a.ts,gi,threadint[m]));
-                        wi->gnames[m] = gi->name;
-                    }
-                    else
-                    {
-                        std::cout << "Dynamic cast error to graphitem*\n";
+                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->intitems.push_back(new ameasoutcome<int>(alookup.a.ts,gi,threadint[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
                     }
                 }
             }
@@ -2625,15 +2740,18 @@ public:
                     glist, nslist, todo );
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                    if (todo[m])
                     {
-                        gi->doubleitems.push_back(new ameasoutcome<double>(alookup.a.ms,gi,threaddouble[m]));
-                        wi->gnames[m] = gi->name;
-                    }
-                    else
-                    {
-                        std::cout << "Dynamic cast error to graphitem*\n";
+                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->doubleitems.push_back(new ameasoutcome<double>(alookup.a.ms,gi,threaddouble[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
                     }
                 }
             }
