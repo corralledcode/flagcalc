@@ -4,7 +4,6 @@
 
 #ifndef MANTEL_H
 #define MANTEL_H
-#include "asymp.h"
 #include "graphoutcome.h"
 
 

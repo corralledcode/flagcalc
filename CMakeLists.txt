@@ -33,4 +33,10 @@ add_executable(flagcalc main.cpp
         measure.h
         math.cpp
         mathfn.cpp
+        absmeas.h
+        ameas.cpp
+        mathfn.h
+        math.h
+        ameas.h
+        meas.cpp
 )

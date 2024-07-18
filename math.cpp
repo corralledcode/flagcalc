@@ -7,7 +7,8 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
-#include "mathfn.cpp"
+#include "mathfn.h"
+#include "math.h";
 
 inline bool is_number(const std::string& s)
 {
@@ -17,15 +18,12 @@ inline bool is_number(const std::string& s)
         s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 
-
-enum class logicalconnective {lcand, lcor};
-
-struct logicalsentence {
-    int item {};
-    std::vector<logicalsentence> ls {};
-    logicalconnective lc {logicalconnective::lcand};
-    bool negated {false};
-};
+inline bool is_real(const std::string& s)
+{
+    char* end = nullptr;
+    double val = strtod(s.c_str(), &end);
+    return end != s.c_str() && *end == '\0' && val != HUGE_VAL;
+}
 
 inline bool evalsentence( logicalsentence ls, std::vector<bool> literals ) {
 
@@ -70,30 +68,6 @@ inline logicalsentence lscombine( const logicalsentence ls1, const logicalsenten
     return res;
 }
 
-
-enum class formulaoperator
-{foliteral,fofunction, foconstant, foplus, fominus, fotimes, fodivide, foexponent,
-folte, folt, foe,fone,fogte,fogt,
-foand,foor,fonot,fotrue,fofalse};
-
-inline std::map<std::string,formulaoperator> operatorsmap
-    {{"^",formulaoperator::foexponent},
-        {"*",formulaoperator::fotimes},
-        {"/",formulaoperator::fodivide},
-        {"+",formulaoperator::foplus},
-        {"-",formulaoperator::fominus},
-        {"AND",formulaoperator::foand},
-        {"OR",formulaoperator::foor},
-        {"NOT",formulaoperator::fonot},
-        {"&&",formulaoperator::foand},
-        {"||",formulaoperator::foor},
-        {"!",formulaoperator::fonot},
-        {"==",formulaoperator::foe},
-        {"<=",formulaoperator::folte},
-        {"<",formulaoperator::folt},
-        {">=",formulaoperator::fogte},
-        {">",formulaoperator::fogt},
-        {"!=",formulaoperator::fone}};
 
 
 inline std::vector<std::string> parsecomponents( std::string str) {
@@ -375,129 +349,265 @@ inline logicalsentence parsesentence( std::string sentence ) {
 
 class formulaclass;
 
-struct fnstruct {
-    std::string fn;
-    std::vector<formulaclass*> ps;
-};
+inline bool booleanops( const formulaoperator fo)
+{
+    return (fo == formulaoperator::foand
+            || fo == formulaoperator::foor);
+}
 
-struct formulavalue {
-    double val;
-    bool bval;
-    int lit;
-    fnstruct fns;
-};
+inline bool equalityops( const formulaoperator fo)
+{
+    return (fo == formulaoperator::folte
+            || fo == formulaoperator::folt
+            || fo == formulaoperator::foe
+            || fo == formulaoperator::fogt
+            || fo == formulaoperator::fogte
+            || fo == formulaoperator::fone);
+}
 
-class formulaclass {
-public:
-    const formulavalue v;
-    const formulaclass* fcleft;
-    const formulaclass* fcright;
-    const formulaoperator fo;
-    formulaclass(const formulavalue vin, const formulaclass* fcleftin, const formulaclass* fcrightin, const formulaoperator foin)
-        : v{vin}, fcleft(fcleftin), fcright(fcrightin), fo(foin) {}
-    ~formulaclass() {
-        delete fcleft;
-        delete fcright;
-        if (fo == formulaoperator::fofunction) {
-            for (auto fnf : v.fns.ps)
-                delete fnf;
+template<typename T, typename T1, typename T2>
+T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
+{
+    T res;
+    if (fo == formulaoperator::foplus) {
+        res = in1 + in2;
+    }
+    if (fo == formulaoperator::fominus) {
+        res = in1 - in2;
+    }
+    if (fo == formulaoperator::fotimes) {
+        res = in1 * in2;
+    }
+    if (fo == formulaoperator::fodivide) {
+        res = in1 / in2;
+    }
+    if (fo == formulaoperator::foexponent) {
+        res = pow(in1, in2);
+    }
+    if (fo == formulaoperator::foand) {
+        res = in1 && in2;
+    }
+    if (fo == formulaoperator::foor) {
+        res = in1 || in2;
+    }
+    return res;
+}
+
+template<typename T1, typename T2>
+bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
+    bool res;
+    if (fo == formulaoperator::foe) {
+        res = in1 == in2;
+    }
+    if (fo == formulaoperator::folte) {
+        res = in1 <= in2;
+    }
+    if (fo == formulaoperator::folt) {
+        res = in1 < in2;
+    }
+    if (fo == formulaoperator::fogte) {
+        res = in1 >= in2;
+    }
+    if (fo == formulaoperator::fogt) {
+        res = in1 > in2;
+    }
+    if (fo == formulaoperator::fone) {
+        res = in1 != in2;
+    }
+    return res;
+}
+
+valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
+    {
+        valms res;
+        res.t = measuretype::mtbool;
+        res.v.bv = false;
+        return res;
+    }
+
+valms evalformula::eval(const formulaclass& fc)
+{
+    valms res;
+    if (fc.fo == formulaoperator::fotrue)
+    {
+        res.t = measuretype::mtbool;
+        res.v.bv = true;
+        return res;
+    }
+    if (fc.fo == formulaoperator::fofalse)
+    {
+        res.t = measuretype::mtbool;
+        res.v.bv = false;
+        return res;
+    }
+    if (fc.fo == formulaoperator::foconstant)
+    {
+        res.t = fc.v.t;
+        switch (res.t)
+        {
+        case measuretype::mtbool: res.v.bv = fc.v.v.bv;
+            return res;
+        case mtdiscrete: res.v.iv = fc.v.v.iv;
+            return res;
+        case mtcontinuous: res.v.dv = fc.v.v.dv;
+            return res;
         }
     }
-};
-
-
-inline double evalformula(
-    const formulaclass& fc,
-    const std::vector<double> literals,
-    const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs ) {
-    double res;
-    if (fc.fo == formulaoperator::fotrue)
-        return true;
-    if (fc.fo == formulaoperator::fofalse)
-        return false;
-    if (fc.fo == formulaoperator::foconstant)
-        return fc.v.val;
 
     if (fc.fo == formulaoperator::foliteral || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
-        if (fc.v.lit >= 0 && fc.v.lit < literals.size()) {
-            res = literals[fc.v.lit];
-        } else {
-            if (fc.v.lit < 0 && ((int)literals.size() + fc.v.lit >= 0))
-                res = literals[literals.size() + fc.v.lit];
-            else {
-                std::cout << "Error eval'ing formula\n";
-                return 0;
-            }
+       if (fc.v.lit.ps.empty())
+       {
+           if (fc.v.lit.l >= 0 && fc.v.lit.l < literals->size()) {
+               res = (*literals)[fc.v.lit.l];
+           } else {
+               if (fc.v.lit.l < 0 && ((int)literals->size() + fc.v.lit.l >= 0))
+               {
+                   res = (*literals)[literals->size() + fc.v.lit.l];
+               }
+               else {
+                   std::cout << "Error eval'ing formula\n";
+                   return res;
+               }
+           }
+       } else {
+           std::vector<valms> ps {};
+           for (auto f : fc.v.lit.ps) {
+               ps.push_back(eval(*f));
+           }
+           res = evalpslit(fc.v.lit.l,ps);
         }
+        return res;
     }
 
     if (fc.fo == formulaoperator::fofunction) {
         bool found = false;
-        double (*fn)(std::vector<double>&);
-        for (auto fnptr : *fnptrs) {
-            if ( fnptr.first == fc.v.fns.fn ) {
-                found = true;
-                fn = fnptr.second.first;
-            }
-        }
-        if (!found) {
-            std::cout << "Unknown function named " << fc.v.fns.fn << "\n";
-            return -1;
-        }
+        double (*fn)(std::vector<double>&) = fc.v.fns.fn;
+
         std::vector<double> ps;
         for (auto f : fc.v.fns.ps) {
-            ps.push_back(evalformula(*f,literals,fnptrs));
+            ps.push_back(eval(*f).v.dv);
         }
-        return fn(ps);
+        res.v.dv = fn(ps);
+        res.t = measuretype::mtcontinuous;
     }
 
-    if (fc.fo == formulaoperator::foplus) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) + evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::fominus) {
-        res = evalformula( *fc.fcleft, literals, fnptrs ) - evalformula( *fc.fcright, literals, fnptrs );
-    }
-    if (fc.fo == formulaoperator::fotimes) {
-        res = evalformula( *fc.fcleft, literals, fnptrs ) * evalformula( *fc.fcright, literals, fnptrs );
-    }
-    if (fc.fo == formulaoperator::fodivide) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) / evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::foexponent) {
-        res = pow(evalformula( *fc.fcleft, literals,fnptrs ), evalformula( *fc.fcright, literals,fnptrs ));
+    valms resright = eval(*fc.fcright);
+
+    if (fc.fo == formulaoperator::fonot)
+    {
+        res.t = measuretype::mtbool;
+        switch (resright.t) {
+        case mtbool: res.v.bv = !resright.v.bv;
+            return res;
+        case mtdiscrete: res.v.bv = !((bool)resright.v.iv);
+            return res;
+        case mtcontinuous: res.v.bv = (abs(resright.v.dv) < 0.0000001);
+            return res;
+        }
     }
 
-    if (fc.fo == formulaoperator::foand) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) && evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::foor) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) || evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::fonot) {
-        res = !evalformula( *fc.fcright, literals,fnptrs );
+    valms resleft = eval(*fc.fcleft);
+
+    res.t = fc.v.t;
+    // if (!booleanops(fc.fo) && (res.t == mtbool))
+        // res.t = mtcontinuous;
+    if (equalityops(fc.fo))
+    {
+        res.t = mtbool;
+        switch(resleft.t)
+        {
+        case mtbool:
+            switch (resright.t)
+            {
+        case mtbool: res.v.bv = eval2aryeq<bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
+                break;
+        case mtdiscrete: res.v.bv = eval2aryeq<bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
+                break;
+        case mtcontinuous: res.v.bv = eval2aryeq<bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
+                break;
+            }
+            break;
+        case mtdiscrete:
+            switch (resright.t)
+            {
+        case mtbool: res.v.bv = eval2aryeq<int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+                break;
+        case mtdiscrete: res.v.bv = eval2aryeq<int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                break;
+        case mtcontinuous: res.v.bv = eval2aryeq<int,double>(resleft.v.iv,resright.v.dv,fc.fo);
+                break;
+            }
+            break;
+        case mtcontinuous:
+            switch (resright.t)
+            {
+        case mtbool: res.v.bv = eval2aryeq<double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+                break;
+        case mtdiscrete: res.v.bv = eval2aryeq<double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+                break;
+        case mtcontinuous: res.v.bv = eval2aryeq<double,double>(resleft.v.dv,resright.v.dv,fc.fo);
+                break;
+            }
+            break;
+        }
+        return res;
     }
 
-    if (fc.fo == formulaoperator::foe) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) == evalformula( *fc.fcright, literals,fnptrs );
+    // switch (res.t)
+    // {
+    // case mtbool:
+    switch(resleft.t) {
+        case mtbool:
+            switch (resright.t)
+            {
+                case mtbool: res.v.bv = eval2ary<bool,bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
+                    res.t = mtbool;
+                    break;
+                case mtdiscrete: res.v.iv = eval2ary<int,bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
+                    res.t = mtdiscrete;
+                    break;
+                case mtcontinuous: res.v.dv = eval2ary<double,bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
+                    res.t = mtcontinuous;
+                    break;
+            }
+            break;
+        case mtdiscrete:
+            switch (resright.t)
+            {
+                case mtbool: res.v.bv = eval2ary<bool,int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+                    res.t = mtbool;
+                    break;
+                case mtdiscrete: res.v.iv = eval2ary<int,int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                    res.t = mtdiscrete;
+                    break;
+                case mtcontinuous: res.v.dv = eval2ary<double,int,double>(resleft.v.iv,resright.v.dv,fc.fo);
+                    res.t = mtcontinuous;
+                    break;
+            }
+            break;
+        case mtcontinuous:
+            switch (resright.t)
+            {
+                case mtbool: res.v.bv = eval2ary<bool,double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+                    res.t = mtbool;
+                    break;
+                case mtdiscrete: res.v.iv = eval2ary<int,double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+                    res.t = mtdiscrete;
+                    break;
+                case mtcontinuous: res.v.dv = eval2ary<double,double,double>(resleft.v.dv,resright.v.dv,fc.fo);
+                    res.t = mtcontinuous;
+                    break;
+            }
+            break;
     }
-    if (fc.fo == formulaoperator::folte) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) <= evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::folt) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) < evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::fogte) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) >= evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::fogt) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) > evalformula( *fc.fcright, literals,fnptrs );
-    }
-    if (fc.fo == formulaoperator::fone) {
-        res = evalformula( *fc.fcleft, literals,fnptrs ) != evalformula( *fc.fcright, literals,fnptrs );
-    }
-
     return res;
+
 }
+
+
+evalformula::evalformula() {}
+
+
 
 
 
@@ -505,24 +615,6 @@ inline formulaclass* fccombine( const formulavalue& item, const formulaclass* fc
     auto res = new formulaclass(item,fc1,fc2,fo);
     return res;
 }
-
-
-inline std::map<formulaoperator,int> precedencemap {
-                            {formulaoperator::foexponent,0},
-                            {formulaoperator::fotimes,1},
-                            {formulaoperator::fodivide,1},
-                            {formulaoperator::foplus,2},
-                            {formulaoperator::fominus,2},
-                            {formulaoperator::foe,3},
-                            {formulaoperator::folte,3},
-                            {formulaoperator::folt,3},
-                            {formulaoperator::fogte,3},
-                            {formulaoperator::fogt,3},
-                            {formulaoperator::fone,3},
-                            {formulaoperator::fonot,4},
-                            {formulaoperator::foand,5},
-                            {formulaoperator::foor,5}};
-
 
 
 inline bool is_operator( const std::string& tok ) {
@@ -580,7 +672,7 @@ inline int get_literal(std::string tok) {
     return 0;
 }
 
-inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> components) {
+inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> components, const std::vector<int>& litnumps) {
     std::vector<std::string> output {};
     std::vector<std::string> operatorstack {};
 
@@ -592,7 +684,10 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
             continue;
         }
         if (is_literal(tok)) {
-            output.push_back(tok);
+            if (litnumps[get_literal(tok)] > 0)
+                operatorstack.push_back(tok);
+            else
+                output.push_back(tok);
             continue;
         }
         if (is_truth(tok)) {
@@ -680,6 +775,8 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
 inline formulaclass* parseformulainternal(
     const std::vector<std::string>& q,
     int& pos,
+    const std::vector<int>& litnumps,
+    const std::vector<measuretype>& littypes,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs )
 {
     if (pos == -1)
@@ -690,11 +787,11 @@ inline formulaclass* parseformulainternal(
         if (is_operator(tok))
         {
             formulaoperator o = lookupoperator(tok);
-            formulaclass* fcright = parseformulainternal(q,pos,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,fnptrs);
             formulaclass* fcleft = nullptr;
             if (o != formulaoperator::fonot)
             {
-                fcleft = parseformulainternal(q,pos,fnptrs);
+                fcleft = parseformulainternal(q,pos,litnumps,littypes,fnptrs);
             }
             if (fcright)
                 return fccombine({0},fcleft,fcright,o);
@@ -708,31 +805,64 @@ inline formulaclass* parseformulainternal(
                     argcnt = f.second.second;
             std::vector<formulaclass*> psrev {};
             for (int i = 0; i < argcnt; ++i) {
-                psrev.push_back(parseformulainternal(q,pos,fnptrs));
+                psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,fnptrs));
             }
             for (int i = psrev.size()-1; i >= 0; --i)
                 ps.push_back(psrev[i]);
 
             formulavalue fv {};
-            fv.fns.fn = tok;
-            fv.fns.ps = ps;
-            return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
+            if (auto search = fnptrs->find(tok); search != fnptrs->end())
+            {
+                fv.fns.fn = search->second.first;
+                fv.fns.ps = ps;
+                fv.t = mtcontinuous;
+                return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
+            } else
+            {
+                std::cout << "Unknown function " << tok << " in parseformula internal\n";
+            }
         }
-        if (is_literal(tok)) {
+        if (is_literal(tok))
+        {
             formulavalue fv {};
-            fv.lit = get_literal(tok);
-            return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+            fv.lit.l = get_literal(tok);
+            fv.lit.ps.clear();
+            fv.t = littypes[fv.lit.l];
+            if (litnumps[fv.lit.l] == 0)
+                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+            else
+            {
+                int argcnt = litnumps[fv.lit.l];
+                std::vector<formulaclass*> psrev {};
+                for (int i = 0; i < argcnt; ++i) {
+                    psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,fnptrs));
+                }
+                for (int i = psrev.size()-1; i >= 0; --i)
+                    fv.lit.ps.push_back(psrev[i]);
+
+                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+            }
+
         }
-        if (is_number(tok)) {
+        if (is_number(tok)) { // integer
             formulavalue fv {};
-            fv.val = stoi(tok);
+            fv.v.iv = stoi(tok);
+            fv.t = mtdiscrete;
+            return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
+        }
+        if (is_real(tok))
+        {
+            formulavalue fv {};
+            fv.v.dv = stof(tok);
+            fv.t = mtcontinuous;
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
         }
         if (is_truth(tok))
         {
             formulavalue fv {};
+            fv.t = mtbool;
             formulaoperator t = lookuptruth(tok);
-            fv.bval = t == formulaoperator::fotrue;
+            fv.v.bv = t == formulaoperator::fotrue;
             return fccombine(fv,nullptr,nullptr,t);
         }
     }
@@ -741,14 +871,16 @@ inline formulaclass* parseformulainternal(
     return fc;
 }
 
-inline formulaclass* parseformula(
-    const std::string sentence,
-    const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs  )
+formulaclass* parseformula(
+    const std::string& sentence,
+    const std::vector<int>& litnumps,
+    const std::vector<measuretype>& littypes,
+    const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs )
 {
     if (sentence != "") {
-        std::vector<std::string> components = Shuntingyardalg(parsecomponents(sentence));
+        std::vector<std::string> components = Shuntingyardalg(parsecomponents(sentence),litnumps);
         int pos = components.size();
-        return parseformulainternal( components,pos,fnptrs);
+        return parseformulainternal( components,pos, litnumps, littypes, fnptrs);
     } else {
         auto fc = new formulaclass({0},nullptr,nullptr,formulaoperator::foconstant);
         return fc;

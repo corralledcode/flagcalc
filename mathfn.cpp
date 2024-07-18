@@ -8,8 +8,14 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "mathfn.h"
 
-#include "graphs.h"
+inline int nchoosek( const int n, const int k) {
+    if (k == 0)
+        return 1;
+    return (n* nchoosek(n-1,k-1))/k;
+}
+
 
 inline double floorfn( std::vector<double>& din )
 {
@@ -100,15 +106,3 @@ inline double expfn(std::vector<double>& din)
     }
     return exp(din[0]);
 }
-
-
-inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> global_fnptrs
-    {{"log", {&logfn,1}},
-     {"sin", {&sinfn,1}},
-     {"cos", {&cosfn,1}},
-     {"tan", {&tanfn,1}},
-     {"floor", {&floorfn,1}},
-     {"ceil", {&ceilfn,1}},
-     {"gamma", {&gammafn,1}},
-     {"nchoosek", {&nchoosekfn,2}},
-     {"exp",{&expfn,1}}};

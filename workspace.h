@@ -14,7 +14,8 @@
 #include "asymp.h"
 #include "graphio.h"
 #include "graphs.h"
-#include "measure.cpp"
+//#include "measure.cpp"
+#include "ameas.h"
 
 #define VERBOSE_CMPFINGERPRINTLEVEL "cmp"
 #define VERBOSE_ENUMISOMORPHISMSLEVEL "enum"
@@ -220,7 +221,9 @@ public:
                     if (pos > 0)
                         input.push_back(item.substr(0, pos));
                     comment = true;
-                    continue;
+                    item = item.substr(pos+2,item.size()-pos-2);
+
+                    //continue;
                 }
             }
             if (comment)
@@ -376,6 +379,8 @@ public:
     }
 };
 
+template<typename T>
+class abstractmeasure;
 
 template<typename Tc, typename Tm>
 class checkcriterionmeasureitem : public workitems {
@@ -447,6 +452,151 @@ public:
         return true;
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+class chkmeasaitem : public workitems
+{
+public:
+    std::vector<graphtype*> glist;
+    std::vector<neighborstype*> nslist;
+    std::vector<FP*> fpslist;
+    std::vector<std::string> gnames;
+    std::vector<T> res;
+    std::vector<T> meas;
+    std::vector<bool> parentbool;
+    int parentboolcnt;
+    pameas<T>& pam;
+    std::vector<int> sorted {};
+
+    chkmeasaitem( pameas<T>& pamin) : workitems(), pam{pamin} {}
+
+};
+
+
+
+template<typename Tm>
+class checkcontinuousitem : public chkmeasaitem<Tm> {
+public:
+    checkcontinuousitem( pameas<Tm>& pamin ) : chkmeasaitem<Tm>(pamin) {
+        this->classname = "APPLYCRITERION";
+        this->verbositylevel = VERBOSE_APPLYCRITERION;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+/*        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n]->nscnt > 0) {
+                freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                free(fpslist[n]->ns);
+            }
+        }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+
+        Tm sum = 0;
+        int cnt = 0;
+        double max = 0;
+        double min = std::numeric_limits<double>::infinity();
+        for (int i = 0; i < this->parentbool.size(); ++i ) {
+            if (this->parentbool[i]) {
+                min = this->meas[i] < min ? this->meas[i] : min;
+                sum += this->meas[i];
+                max = this->meas[i] > max ? this->meas[i] : max;
+                cnt++;
+            }
+        }
+        os << "Average, min, max of measure " << this->pam.name << ": " << (double)sum/(double)cnt << ", " << min << ", " << max << "\n";
+
+        return true;
+    }
+};
+
+
+
+
+
+
+
+
+
+
+template<typename Tc>
+class checkdiscreteitem : public chkmeasaitem<Tc> {
+public:
+    checkdiscreteitem(pameas<Tc>& pamin ) : chkmeasaitem<Tc>(pamin) {
+        this->classname = "APPLYDISCRETECRITERION";
+        this->verbositylevel = VERBOSE_APPLYCRITERION;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+/*        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n]->nscnt > 0) {
+                freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                free(fpslist[n]->ns);
+            }
+        }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        std::vector<std::pair<Tc,int>> count = {};
+        count.clear();
+        count.resize(0);
+        //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+            os << "Criterion "<< this->pam.getname() << " results of graphs:\n";
+        for (int n = 0; n < this->res.size(); ++n) {
+            if (!this->parentbool[n])
+                continue;
+            if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
+                os << this->gnames[n]<<", number " << n+1 << " out of " << this->parentboolcnt;
+                os << ": " << this->res[n] << "\n";
+            }
+            bool found = false;
+            for (int i = 0; !found && (i < count.size()); ++i)
+            {
+                if (count[i].first == this->res[n]) {
+                    count[i].second += 1;
+                    found = true;
+                }
+            }
+            if (!found)
+                count.push_back({this->res[n],1});
+        }
+
+        for (int i = 0; i < count.size(); ++i)
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << this->parentboolcnt << ", " << (double)count[i].second / (double)this->parentboolcnt << "\n";
+
+
+        return true;
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

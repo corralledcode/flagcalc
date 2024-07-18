@@ -1416,11 +1416,6 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
 
 }
 
-int nchoosek( const int n, const int k) {
-    if (k == 0)
-        return 1;
-    return (n* nchoosek(n-1,k-1))/k;
-}
 
 void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res) {
     if (start > stop)
@@ -1587,6 +1582,78 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
 
     //free(subsets);
     return resbool;
+}
+
+
+
+bool enumsizedsubsetsquicktally(int sizestart, int sizeend, int* seq, int start, int stop, int* cnt, embedsquicktest* test) {
+    if (start > stop)
+        return false;
+    if (sizestart >= sizeend) {
+        //for (int i = 0; i < sizeend; ++i) {
+        if (test->test(seq)) {
+            ++(*cnt);
+//            if (*cnt >= mincnt)
+//                return true;
+        }
+        //res->push_back(seq[i]);
+        return false;
+    }
+    // pseudo code:
+    //      for each n in [start,stop-1]
+    //          call enumsizedsubsets on (s + n), sizestart+1,sizeend, n+1,stop;
+    //          call enumsizedsubsets on s, sizestart,sizeend, n+1, stop
+
+    int newseq[sizestart+1];
+    for (int i = 0; i < sizestart; ++i) {
+        newseq[i] = seq[i];
+    }
+    newseq[sizestart] = start;
+    if (enumsizedsubsetsquicktally(sizestart+1,sizeend,newseq,start+1,stop,cnt,test))
+        return true;
+    if (enumsizedsubsetsquicktally(sizestart,sizeend,seq,start+1,stop,cnt,test))
+        return true;
+    return false;
+}
+
+
+
+
+
+int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2) {
+    //graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+    int numberofsubsets; // = nchoosek(dim2,dim1);
+    //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
+    //std::vector<int> subsets {};
+    //enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
+    //numberofsubsets = subsets.size()/dim1;
+    /*if (numberofsubsets*dim1 != subsets.size()) {
+        std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
+        return false;
+    }*/
+
+    int cnt = 0;
+    auto gtemp = new graphtype(dim1);
+    auto test = new embedsquicktest(gtemp,g2,ns1,fp,dim1,dim2);
+
+    enumsizedsubsetsquicktally(0,dim1,nullptr,0,dim2,&cnt,test);
+
+    // note this code obviously might be much faster
+    // when instead simply checking iso for the identity map
+    // (that is, allowing the subsets above to be a larger set
+    // that contains rearrangements of things already in the set)
+    //nstemp->computeneighborslist();
+
+    delete gtemp;
+    delete test;
+
+    //free(subsets);
+    return cnt;
 }
 
 

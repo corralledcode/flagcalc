@@ -12,6 +12,7 @@ template<typename T>
 class graphoutcome;
 
 
+
 class graphitem : public abstractgraphitem {
 public:
     std::vector<graphoutcome<int>*> intitems {};
@@ -115,9 +116,19 @@ class abstractmeasureoutcome : public graphoutcome<Tm> {
     std::string _shortname;
     std::string _name;
     public:
-//    abstractmeasure<Tm>* ms; // commented to allow it's deletion earlier
     abstractmeasureoutcome(abstractmeasure<Tm>* msin, const graphitem* giin, Tm newmvalue)
         : graphoutcome<Tm>(giin,newmvalue),_shortname{msin->shortname()}, _name{msin->name} {}
+    std::string name() override {return _shortname;}
+    std::string longname() override {return _name;}
+};
+
+template<typename Tm>
+class ameasoutcome : public graphoutcome<Tm> {
+    std::string _shortname;
+    std::string _name;
+public:
+    ameasoutcome(pameas<Tm>* pamin, const graphitem* giin, Tm newmvalue)
+        : graphoutcome<Tm>(giin,newmvalue),_shortname{pamin->shortname}, _name{pamin->name} {}
     std::string name() override {return _shortname;}
     std::string longname() override {return _name;}
 };
