@@ -638,6 +638,11 @@ public:
 
     double takemeas(const int idx) override
     {
+        std::vector<valms> literals;
+        literals.resize(rec->literals.size());
+        for (int i = 0; i < rec->literals.size(); ++i)
+            literals[i] = rec->literals[i][idx];
+        rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
         ef->idx = idx;
         valms r = ef->eval(*fc);
