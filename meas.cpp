@@ -103,6 +103,53 @@ public:
     }
 };
 
+class Kntally : public tally
+{
+public:
+    int takemeas( const int idx, const params& ps ) override
+    {
+        int ksz = 0;
+        if (ps.size() >= 1 && ps[0].t == mtdiscrete)
+        {
+            ksz = ps[0].v.iv;
+        }
+
+        if (ksz <= 0)
+            return true;
+
+        graphtype* g = (*rec->gptrs)[idx];
+        int dim = g->dim;
+
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,ksz,nullptr,0,dim,&subsets);
+
+        bool found = false;
+        int foundcnt = 0;
+        int j = 0;
+        while (j < (subsets.size()/ksz)) {
+            found = true;
+            for (auto i = 0; found && (i < ksz); ++i) {
+                for (auto k = i+1; found && (k < ksz); ++k)
+                    found = found && g->adjacencymatrix[dim*subsets[j*ksz + i] + subsets[j*ksz + k]];
+            }
+            foundcnt += (found ? 1 : 0);
+            ++j;
+        }
+        return foundcnt;
+    }
+
+    Kntally( mrecords* recin ) : tally( recin, "Knt", "K_n embeddings tally" )
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        p1.v.iv = 0;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+};
+
 
 class embedscrit : public crit {
 protected:

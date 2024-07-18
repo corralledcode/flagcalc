@@ -1706,6 +1706,10 @@ public:
 
         // add any new tally types to the list here...
 
+        auto (*Knt) = tallyfactory<Kntally>;
+
+        tysfactory.push_back(*Knt);
+
 
         // ,,,
 
