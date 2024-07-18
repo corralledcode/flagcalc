@@ -315,7 +315,7 @@ public:
                     for (int k = i+1; k < dim; ++k) {
                         if (g->adjacencymatrix[n*dim + k]
                             && g->adjacencymatrix[i*dim + k])
-                            return false;
+                            return negated != false;
                     }
                 }
             }
@@ -324,7 +324,7 @@ public:
         //std::cout << "Triangle free!\n";
         //osadjacencymatrix(std::cout, g);
         //std::cout << "\n";
-        return true;
+        return negated != true;
     }
 
     trianglefreecrit(mrecords* recin ) : crit(recin ,"cr1","Triangle-free crit") {}
