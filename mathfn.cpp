@@ -94,7 +94,7 @@ inline double nchoosekfn( std::vector<double>& din )
         std::cout << "Wrong number of arguments passed to nchoosekfn\n";
         return 1;
     }
-    return nchoosek(din[0],din[1]);
+    return (double)nchoosek((int)din[0],(int)din[1]);
 }
 
 inline double expfn(std::vector<double>& din)

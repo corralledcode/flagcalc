@@ -379,7 +379,7 @@ T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
         res = in1 * in2;
     }
     if (fo == formulaoperator::fodivide) {
-        res = in1 / in2;
+        res = (T)in1 / (T)in2;
     }
     if (fo == formulaoperator::foexponent) {
         res = pow(in1, in2);
@@ -454,7 +454,32 @@ valms evalformula::eval(const formulaclass& fc)
         }
     }
 
-    if (fc.fo == formulaoperator::foliteral || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
+    if (fc.fo == formulaoperator::fofunction) {
+        bool found = false;
+        double (*fn)(std::vector<double>&) = fc.v.fns.fn;
+
+        std::vector<double> ps;
+        for (auto f : fc.v.fns.ps) {
+            auto a = eval(*f);
+            valms r;
+            switch (a.t)
+            {
+            case mtbool: r.v.dv = (double)a.v.bv;
+                break;
+            case mtdiscrete: r.v.dv = (double)a.v.iv;
+                break;
+            case mtcontinuous: r.v.dv = a.v.dv;
+                break;
+            }
+            ps.push_back(r.v.dv);
+        }
+        res.v.dv = fn(ps);
+        res.t = measuretype::mtcontinuous;
+        return res;
+    }
+
+
+    if ((fc.fo == formulaoperator::foliteral) || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
        if (fc.v.lit.ps.empty())
        {
            if (fc.v.lit.l >= 0 && fc.v.lit.l < literals->size()) {
@@ -479,17 +504,6 @@ valms evalformula::eval(const formulaclass& fc)
         return res;
     }
 
-    if (fc.fo == formulaoperator::fofunction) {
-        bool found = false;
-        double (*fn)(std::vector<double>&) = fc.v.fns.fn;
-
-        std::vector<double> ps;
-        for (auto f : fc.v.fns.ps) {
-            ps.push_back(eval(*f).v.dv);
-        }
-        res.v.dv = fn(ps);
-        res.t = measuretype::mtcontinuous;
-    }
 
     valms resright = eval(*fc.fcright);
 
@@ -577,8 +591,15 @@ valms evalformula::eval(const formulaclass& fc)
                 case mtbool: res.v.bv = eval2ary<bool,int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
                     res.t = mtbool;
                     break;
-                case mtdiscrete: res.v.iv = eval2ary<int,int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                case mtdiscrete: if (fc.fo != formulaoperator::fodivide)
+                {
+                    res.v.iv = eval2ary<int,int,int>(resleft.v.iv,resright.v.iv,fc.fo);
                     res.t = mtdiscrete;
+                } else
+                {
+                    res.v.dv = eval2ary<double,int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                    res.t = mtcontinuous;
+                }
                     break;
                 case mtcontinuous: res.v.dv = eval2ary<double,int,double>(resleft.v.iv,resright.v.dv,fc.fo);
                     res.t = mtcontinuous;
