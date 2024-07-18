@@ -1929,23 +1929,6 @@ protected:
                 break;
             case mtcontinuous: sn = a.a.ms->shortname;
             }
-            // }
-            // if (auto search = rec.m.find(iter[i]->iidx); search != rec.m.end())
-            // {
-                // switch (search->second.first)
-                // {
-                // case measuretype::mtbool: sn = rec.lookup(search->second.second).a.cs->shortname;
-                    // break;
-                // case measuretype::mtdiscrete: sn = rec.lookup(search->second.second).a.ts->shortname;
-                    // break;
-                // case measuretype::mtcontinuous: sn = rec.lookup(search->second.second).a.ms->shortname;
-                    // break;
-                // }
-                // if (sn == sin)
-                // {
-                    // return iter[i]->iidx;
-                // }
-            // }
             if (sn == sin)
                 return iter[i]->iidx;
 
@@ -2384,6 +2367,10 @@ public:
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
+                litnumps.resize(iter.size());
+                litnumps[iter.size()-1] = a.a.cs->pssz;
+                littypes.resize(iter.size());
+                littypes[iter.size()-1] = mtbool;
                 continue;
 
             }
@@ -2423,6 +2410,11 @@ public:
                 a.a.ts = new embedstally(&rec,gi->ns,fp);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
+                litnumps.resize(iter.size());
+                litnumps[iter.size()-1] = a.a.ts->pssz;
+                littypes.resize(iter.size());
+                littypes[iter.size()-1] = mtdiscrete;
+
                 continue;
 
             }
@@ -2445,6 +2437,11 @@ public:
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
+                    litnumps.resize(iter.size());
+                    litnumps[iter.size()-1] = a.a.cs->pssz;
+                    littypes.resize(iter.size());
+                    littypes[iter.size()-1] = mtbool;
+
                 }
                 continue;
             }
@@ -2466,6 +2463,11 @@ public:
                     a.a.ms = new formmeas(&rec,litnumps,littypes,s);
                     auto it = newiteration(mtcontinuous,ccl.i,a);
                     iter.push_back(it);
+                    litnumps.resize(iter.size());
+                    litnumps[iter.size()-1] = a.a.ms->pssz;
+                    littypes.resize(iter.size());
+                    littypes[iter.size()-1] = mtcontinuous;
+
                 }
                 continue;
 
@@ -2517,6 +2519,11 @@ public:
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
+                    litnumps.resize(iter.size());
+                    litnumps[iter.size()-1] = a.a.cs->pssz;
+                    littypes.resize(iter.size());
+                    littypes[iter.size()-1] = mtbool;
+
                 }
                 continue;
            }
