@@ -2647,6 +2647,19 @@ public:
         {
             int ilookup = rec.intlookup(iter[k]->iidx);
             ams alookup = rec.lookup(iter[k]->iidx);
+            if (k > 0)
+            {
+                if (iter[k-1]->t == mtbool)
+                    for (int m = 0; m < eqclass.size(); ++m)
+                        rec.addliteralvalueb( iter[k-1]->iidx, m, threadbool[m]);
+                if (iter[k-1]->t == mtdiscrete)
+                    for (int m = 0; m < eqclass.size(); ++m)
+                        rec.addliteralvaluei( iter[k-1]->iidx, m, threadint[m]);
+                if (iter[k-1]->t == mtcontinuous)
+                    for (int m = 0; m < eqclass.size(); ++m)
+                        rec.addliteralvalued( iter[k-1]->iidx, m, threaddouble[m]);
+            }
+
             if (k > 0 && iter[k]->round > iter[k-1]->round)
             {
                 // ...add here support for andmode and ormode

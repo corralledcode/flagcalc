@@ -410,6 +410,7 @@ class mrecords
 {
 public:
     int sz = 0;
+    int msz = 0;
     std::vector<graphtype*>* gptrs;
     std::vector<neighborstype*>* nsptrs;
     thrrecords<bool> boolrecs;
@@ -418,6 +419,30 @@ public:
     std::map<int,std::pair<measuretype,int>> m;
     std::vector<evalmformula*> efv {};
     std::vector<valms*> literals {};
+
+    void addliteralvalueb( const int iidx, const int idx, bool v )
+    {
+        if (iidx >= msz)
+            setmsize(iidx + 1);
+        literals[iidx][idx].t = mtbool;
+        literals[iidx][idx].v.bv = v;
+    }
+    void addliteralvaluei( const int iidx, const int idx, int v )
+    {
+        if (iidx >= msz)
+            setmsize(iidx+1);
+        literals[iidx][idx].t = mtdiscrete;
+        literals[iidx][idx].v.iv = v;
+    }
+    void addliteralvalued( const int iidx, const int idx, double v )
+    {
+        if (iidx >= msz)
+            setmsize(iidx+1);
+        literals[iidx][idx].t = mtcontinuous;
+        literals[iidx][idx].v.dv = v;
+    }
+
+
 
     int maxm()
     {
@@ -464,13 +489,28 @@ public:
         for (int i = 0; i < sz; ++i)
         {
             efv[i] = new evalmformula(this);
+
         }
+    }
+
+    void setmsize( const int mszin )
+    {
+        int oldsz = literals.size();
+        if (oldsz < mszin)
+        {
+            literals.resize(mszin);
+            for (int i = oldsz; i < mszin; ++i )
+                literals[i] = (valms*)malloc(sz * sizeof(valms));
+        }
+        msz = mszin;
     }
 
     ~mrecords()
     {
         for (int i = 0; i < sz; ++i)
             delete efv[i];
+        for (int i = 0; i < msz; ++i)
+            delete literals[i];
     }
 };
 
@@ -554,6 +594,11 @@ public:
 
     bool takemeas(const int idx) override
     {
+        std::vector<valms> literals;
+        literals.resize(rec->literals.size());
+        for (int i = 0; i < rec->literals.size(); ++i)
+            literals[i] = rec->literals[i][idx];
+        rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
         ef->idx = idx;
         valms r = ef->eval(*fc);
