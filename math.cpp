@@ -426,144 +426,185 @@ valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
     }
 
 valms evalformula::eval(const formulaclass& fc)
+{
+    valms res;
+    if (fc.fo == formulaoperator::fotrue)
     {
-        valms res;
-        if (fc.fo == formulaoperator::fotrue)
-        {
-            res.t = measuretype::mtbool;
-            res.v.bv = true;
-            return res;
-        }
-        if (fc.fo == formulaoperator::fofalse)
-        {
-            res.t = measuretype::mtbool;
-            res.v.bv = false;
-            return res;
-        }
-        if (fc.fo == formulaoperator::foconstant)
-        {
-            res.t = fc.v.t;
-            switch (res.t)
-            {
-            case measuretype::mtbool: res.v.bv = fc.v.v.bv;
-                return res;
-            case mtdiscrete: res.v.iv = fc.v.v.iv;
-                return res;
-            case mtcontinuous: res.v.dv = fc.v.v.dv;
-                return res;
-            }
-        }
-
-        if (fc.fo == formulaoperator::foliteral || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
-     /*       if (fc.v.lit.ps.empty())
-            {
-                if (fc.v.lit.l >= 0 && fc.v.lit.l < literals->size()) {
-                    res = (*literals)[fc.v.lit.l];
-                } else {
-                    if (fc.v.lit.l < 0 && ((int)literals->size() + fc.v.lit.l >= 0))
-                    {
-                        res = (*literals)[literals->size() + fc.v.lit.l];
-                    }
-                    else {
-                        std::cout << "Error eval'ing formula\n";
-                        return res;
-                    }
-                }
-            } else
-            {*/
-                std::vector<valms> ps {};
-                for (auto f : fc.v.lit.ps) {
-                    ps.push_back(eval(*f));
-                }
-                res = evalpslit(fc.v.lit.l,ps);
-            //}
-            return res;
-        }
-
-        if (fc.fo == formulaoperator::fofunction) {
-            bool found = false;
-            double (*fn)(std::vector<double>&) = fc.v.fns.fn;
-
-            std::vector<double> ps;
-            for (auto f : fc.v.fns.ps) {
-                ps.push_back(eval(*f).v.dv);
-            }
-            res.v.dv = fn(ps);
-            res.t = measuretype::mtcontinuous;
-        }
-
-        valms resright = eval(*fc.fcright);
-
-        if (fc.fo == formulaoperator::fonot)
-        {
-            res.t = measuretype::mtbool;
-            switch (resright.t) {
-            case mtbool: res.v.bv = !resright.v.bv;
-                return res;
-            case mtdiscrete: res.v.bv = !((bool)resright.v.iv);
-                return res;
-            case mtcontinuous: res.v.bv = (abs(resright.v.dv) < 0.0000001);
-                return res;
-            }
-        }
-
-        valms resleft = eval(*fc.fcleft);
-
+        res.t = measuretype::mtbool;
+        res.v.bv = true;
+        return res;
+    }
+    if (fc.fo == formulaoperator::fofalse)
+    {
+        res.t = measuretype::mtbool;
+        res.v.bv = false;
+        return res;
+    }
+    if (fc.fo == formulaoperator::foconstant)
+    {
         res.t = fc.v.t;
-        if (!booleanops(fc.fo) && (res.t == mtbool))
-            res.t = mtcontinuous;
-        if (equalityops(fc.fo))
-        {
-            res.t = mtbool;
-            switch(resleft.t)
-            {
-            case mtbool:
-                switch (resright.t)
-                {
-                    case mtbool: res.v.bv = eval2aryeq<bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
-                            break;
-                    case mtdiscrete: res.v.bv = eval2aryeq<bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
-                            break;
-                    case mtcontinuous: res.v.bv = eval2aryeq<bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
-                            break;
-                }
-                break;
-            case mtdiscrete:
-                switch (resright.t)
-                {
-                    case mtbool: res.v.bv = eval2aryeq<int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
-                            break;
-                    case mtdiscrete: res.v.bv = eval2aryeq<int,int>(resleft.v.iv,resright.v.iv,fc.fo);
-                            break;
-                    case mtcontinuous: res.v.bv = eval2aryeq<int,double>(resleft.v.iv,resright.v.dv,fc.fo);
-                            break;
-                }
-                break;
-            case mtcontinuous:
-                switch (resright.t)
-                {
-                    case mtbool: res.v.bv = eval2aryeq<double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
-                            break;
-                    case mtdiscrete: res.v.bv = eval2aryeq<double,int>(resleft.v.dv,resright.v.iv,fc.fo);
-                            break;
-                    case mtcontinuous: res.v.bv = eval2aryeq<double,double>(resleft.v.dv,resright.v.dv,fc.fo);
-                            break;
-                }
-                break;
-            }
-            return res;
-        }
-
         switch (res.t)
         {
-        case mtbool: res.v.bv = eval2ary<bool>(resleft.v.bv,resright.v.bv,fc.fo);
+        case measuretype::mtbool: res.v.bv = fc.v.v.bv;
             return res;
-        case mtdiscrete: res.v.iv = eval2ary<int>(resleft.v.iv,resright.v.iv,fc.fo);
+        case mtdiscrete: res.v.iv = fc.v.v.iv;
             return res;
-        case mtcontinuous: res.v.dv= eval2ary<double>(resleft.v.dv,resright.v.dv,fc.fo);
+        case mtcontinuous: res.v.dv = fc.v.v.dv;
             return res;
         }
     }
+
+    if (fc.fo == formulaoperator::foliteral || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
+        /*       if (fc.v.lit.ps.empty())
+               {
+                   if (fc.v.lit.l >= 0 && fc.v.lit.l < literals->size()) {
+                       res = (*literals)[fc.v.lit.l];
+                   } else {
+                       if (fc.v.lit.l < 0 && ((int)literals->size() + fc.v.lit.l >= 0))
+                       {
+                           res = (*literals)[literals->size() + fc.v.lit.l];
+                       }
+                       else {
+                           std::cout << "Error eval'ing formula\n";
+                           return res;
+                       }
+                   }
+               } else
+               {*/
+        std::vector<valms> ps {};
+        for (auto f : fc.v.lit.ps) {
+            ps.push_back(eval(*f));
+        }
+        res = evalpslit(fc.v.lit.l,ps);
+        //}
+        return res;
+    }
+
+    if (fc.fo == formulaoperator::fofunction) {
+        bool found = false;
+        double (*fn)(std::vector<double>&) = fc.v.fns.fn;
+
+        std::vector<double> ps;
+        for (auto f : fc.v.fns.ps) {
+            ps.push_back(eval(*f).v.dv);
+        }
+        res.v.dv = fn(ps);
+        res.t = measuretype::mtcontinuous;
+    }
+
+    valms resright = eval(*fc.fcright);
+
+    if (fc.fo == formulaoperator::fonot)
+    {
+        res.t = measuretype::mtbool;
+        switch (resright.t) {
+        case mtbool: res.v.bv = !resright.v.bv;
+            return res;
+        case mtdiscrete: res.v.bv = !((bool)resright.v.iv);
+            return res;
+        case mtcontinuous: res.v.bv = (abs(resright.v.dv) < 0.0000001);
+            return res;
+        }
+    }
+
+    valms resleft = eval(*fc.fcleft);
+
+    res.t = fc.v.t;
+    // if (!booleanops(fc.fo) && (res.t == mtbool))
+        // res.t = mtcontinuous;
+    if (equalityops(fc.fo))
+    {
+        res.t = mtbool;
+        switch(resleft.t)
+        {
+        case mtbool:
+            switch (resright.t)
+            {
+        case mtbool: res.v.bv = eval2aryeq<bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
+                break;
+        case mtdiscrete: res.v.bv = eval2aryeq<bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
+                break;
+        case mtcontinuous: res.v.bv = eval2aryeq<bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
+                break;
+            }
+            break;
+        case mtdiscrete:
+            switch (resright.t)
+            {
+        case mtbool: res.v.bv = eval2aryeq<int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+                break;
+        case mtdiscrete: res.v.bv = eval2aryeq<int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                break;
+        case mtcontinuous: res.v.bv = eval2aryeq<int,double>(resleft.v.iv,resright.v.dv,fc.fo);
+                break;
+            }
+            break;
+        case mtcontinuous:
+            switch (resright.t)
+            {
+        case mtbool: res.v.bv = eval2aryeq<double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+                break;
+        case mtdiscrete: res.v.bv = eval2aryeq<double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+                break;
+        case mtcontinuous: res.v.bv = eval2aryeq<double,double>(resleft.v.dv,resright.v.dv,fc.fo);
+                break;
+            }
+            break;
+        }
+        return res;
+    }
+
+    // switch (res.t)
+    // {
+    // case mtbool:
+    switch(resleft.t) {
+        case mtbool:
+            switch (resright.t)
+            {
+                case mtbool: res.v.bv = eval2ary<bool,bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
+                    res.t = mtbool;
+                    break;
+                case mtdiscrete: res.v.iv = eval2ary<int,bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
+                    res.t = mtdiscrete;
+                    break;
+                case mtcontinuous: res.v.dv = eval2ary<double,bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
+                    res.t = mtcontinuous;
+                    break;
+            }
+            break;
+        case mtdiscrete:
+            switch (resright.t)
+            {
+                case mtbool: res.v.bv = eval2ary<bool,int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+                    res.t = mtbool;
+                    break;
+                case mtdiscrete: res.v.iv = eval2ary<int,int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                    res.t = mtdiscrete;
+                    break;
+                case mtcontinuous: res.v.dv = eval2ary<double,int,double>(resleft.v.iv,resright.v.dv,fc.fo);
+                    res.t = mtcontinuous;
+                    break;
+            }
+            break;
+        case mtcontinuous:
+            switch (resright.t)
+            {
+                case mtbool: res.v.bv = eval2ary<bool,double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+                    res.t = mtbool;
+                    break;
+                case mtdiscrete: res.v.iv = eval2ary<int,double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+                    res.t = mtdiscrete;
+                    break;
+                case mtcontinuous: res.v.dv = eval2ary<double,double,double>(resleft.v.dv,resright.v.dv,fc.fo);
+                    res.t = mtcontinuous;
+                    break;
+            }
+            break;
+    }
+    return res;
+
+}
+
 
 evalformula::evalformula() {}
 
