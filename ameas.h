@@ -479,48 +479,58 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
 {
     ams a = rec->lookup(l);
 
-    params newps {};
+    params tmpps {};
 
-    for (int i = 0; i < a.a.cs->ps.size(); ++i)
-        switch(a.a.cs->ps[i].t)
-        {
-            case measuretype::mtbool:
-                switch (psin[i].t)
-                {
-                    case measuretype::mtbool: break;
-                    case measuretype::mtcontinuous: psin[i].v.bv = !(abs(psin[i].v.dv) < 0.0000001);
-                        psin[i].t = mtbool;
-                        break;
-                    case mtdiscrete: psin[i].v.bv = (bool)psin[i].v.iv;
-                        psin[i].t = mtbool;
-                        break;
-                }
-                break;
-            case measuretype::mtdiscrete:
-                switch (psin[i].t)
-                {
-                    case measuretype::mtbool: psin[i].v.iv = (int)psin[i].v.bv;
-                        psin[i].t = mtdiscrete;
-                        break;
-                    case measuretype::mtcontinuous: psin[i].v.iv = std::lround(psin[i].v.dv);
-                        psin[i].t = mtdiscrete;
-                        break;
-                    case mtdiscrete: break;
-                }
-                break;
-            case measuretype::mtcontinuous:
-                switch (psin[i].t)
-                {
-                    case measuretype::mtbool: psin[i].v.dv = (double)psin[i].v.bv;
-                        psin[i].t = mtcontinuous;
-                        break;
-                    case measuretype::mtcontinuous: break;
-                    case mtdiscrete: psin[i].v.dv = (double)psin[i].v.iv;
-                        psin[i].t = mtcontinuous;
-                        break;
-                }
-                break;
-        }
+    switch (a.t)
+    {
+    case mtbool:
+        tmpps = a.a.cs->ps;
+    case mtdiscrete:
+        tmpps = a.a.ts->ps;
+    case mtcontinuous:
+        tmpps = a.a.ms->ps;
+    }
+
+    for (int i = 0; i < tmpps.size(); ++i)
+            switch(tmpps[i].t)
+            {
+                case measuretype::mtbool:
+                    switch (psin[i].t)
+                    {
+                        case measuretype::mtbool: break;
+                        case measuretype::mtcontinuous: psin[i].v.bv = !(abs(psin[i].v.dv) < 0.0000001);
+                            psin[i].t = mtbool;
+                            break;
+                        case mtdiscrete: psin[i].v.bv = (bool)psin[i].v.iv;
+                            psin[i].t = mtbool;
+                            break;
+                    }
+                   break;
+                case measuretype::mtdiscrete:
+                    switch (psin[i].t)
+                    {
+                        case measuretype::mtbool: psin[i].v.iv = (int)psin[i].v.bv;
+                            psin[i].t = mtdiscrete;
+                            break;
+                        case measuretype::mtcontinuous: psin[i].v.iv = std::lround(psin[i].v.dv);
+                            psin[i].t = mtdiscrete;
+                            break;
+                        case mtdiscrete: break;
+                    }
+                    break;
+                case measuretype::mtcontinuous:
+                    switch (psin[i].t)
+                    {
+                        case measuretype::mtbool: psin[i].v.dv = (double)psin[i].v.bv;
+                            psin[i].t = mtcontinuous;
+                            break;
+                        case measuretype::mtcontinuous: break;
+                        case mtdiscrete: psin[i].v.dv = (double)psin[i].v.iv;
+                            psin[i].t = mtcontinuous;
+                            break;
+                    }
+                    break;
+            }
 
     valms r;
     r.t = a.t;

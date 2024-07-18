@@ -92,7 +92,7 @@ public:
         ps.clear();
         valms p1;
         p1.t = measuretype::mtdiscrete;
-        p1.v.bv = 0;
+        p1.v.iv = 0;
         ps.push_back(p1);
         ps.push_back(p1);
         pssz = 2;

@@ -1920,22 +1920,34 @@ protected:
         valms res;
         for (auto i = 0; i < iter.size(); ++i)
         {
-            if (auto search = rec.m.find(iter[i]->iidx); search != rec.m.end())
+            auto a = rec.lookup(iter[i]->iidx);
+            switch (a.t)
             {
-                switch (search->second.first)
-                {
-                case measuretype::mtbool: sn = rec.lookup(search->second.second).a.cs->shortname;
-                    break;
-                case measuretype::mtdiscrete: sn = rec.lookup(search->second.second).a.ts->shortname;
-                    break;
-                case measuretype::mtcontinuous: sn = rec.lookup(search->second.second).a.ms->shortname;
-                    break;
-                }
-                if (sn == sin)
-                {
-                    return iter[i]->iidx;
-                }
+            case mtbool: sn = a.a.cs->shortname;
+                break;
+            case mtdiscrete: sn = a.a.ts->shortname;
+                break;
+            case mtcontinuous: sn = a.a.ms->shortname;
             }
+            // }
+            // if (auto search = rec.m.find(iter[i]->iidx); search != rec.m.end())
+            // {
+                // switch (search->second.first)
+                // {
+                // case measuretype::mtbool: sn = rec.lookup(search->second.second).a.cs->shortname;
+                    // break;
+                // case measuretype::mtdiscrete: sn = rec.lookup(search->second.second).a.ts->shortname;
+                    // break;
+                // case measuretype::mtcontinuous: sn = rec.lookup(search->second.second).a.ms->shortname;
+                    // break;
+                // }
+                // if (sn == sin)
+                // {
+                    // return iter[i]->iidx;
+                // }
+            // }
+            if (sn == sin)
+                return iter[i]->iidx;
 
         }
         return -1;
