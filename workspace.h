@@ -558,7 +558,7 @@ public:
         count.clear();
         count.resize(0);
         //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
-            os << "Criterion "<< this->pam.name << " results of graphs:\n";
+            os << "Criterion "<< this->pam.getname() << " results of graphs:\n";
         for (int n = 0; n < this->res.size(); ++n) {
             if (!this->parentbool[n])
                 continue;

@@ -98,6 +98,10 @@ class pameas : public ameas<T>
 public:
     params ps {};
     int pssz = 0;
+    virtual std::string getname()
+    {
+        return this->name;
+    }
     T takemeas(const int idx) override
     {
         return {};
@@ -117,6 +121,10 @@ class crit : public pameas<bool>
 {
 public:
     bool negated = false;
+    std::string getname() override
+    {
+        return (negated ? "NOT " : "") + name;
+    }
     crit( mrecords* recin , const std::string shortnamein, const std::string name)
         : pameas<bool>(recin,  shortnamein, name) {}
 };

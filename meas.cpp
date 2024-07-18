@@ -113,7 +113,10 @@ public:
     FP* fp;
     embedscrit( mrecords* recin , neighbors* flagnsin,FP* fpin)
         : crit(recin , "embedsc","embeds type criterion"),
-        flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+        flagg{flagnsin->g},flagns{flagnsin},fp{fpin}
+    {
+        pssz = 0;
+    }
     bool takemeas( const int idx ) override {
         return negated != (embedsquick(flagns, fp, (*this->rec->nsptrs)[idx], 1));
     }

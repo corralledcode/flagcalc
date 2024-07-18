@@ -2515,7 +2515,7 @@ public:
                 {
                     ams a;
                     a.t = mtbool;
-                    a.a.cs = new embedscrit(&rec,gi->ns,fps[i]);
+                    a.a.cs = new embedscrit(&rec,nss[i],fps[i]);
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
