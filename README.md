@@ -1,4 +1,4 @@
-﻿FlagCalc is intended to assist the theoretical mathematician at all levels of profession and expertise, including those in secondary school settings and those doing the most cutting edge research.
+FlagCalc is intended to assist the theoretical mathematician at all levels of profession and expertise, including those in secondary school settings and those doing the most cutting edge research.
 
 It arose from a simple curiosity around asymptotic extremal graph theory, namely to decipher the first pages of research and books on graph theory. Initially, that meant curiosity explored around computing isomorphisms between any two similarly-dimensioned graphs, which led to automorphism counts and a “fingerprinting” of any graph, done automatically, and leading to one suggestion of how one can order a set of graphs linearly. The early goal was simply a database of graphs unique up to isomorphism.
 
@@ -122,3 +122,62 @@ is a K_4 at the center, with edges ae be ce de af bf cf df ce cf cg de df dg.
 Each of these six are generous to existing structure: if one does a bipartite graph on abcd=efgh, it will not by default erase existing edges between say a and b. If one wishes to erase, use as just illustrated the !abcde. Finally, one will see earlier iterations of this input format that required naming all the vertices then ending that section with “END”. Here, to name say a b c is fine; each is a little K_1. And here, too, for backwards compatibility, after describing one graph, if one wishes to add a second or third, etc., graph to the file, punctuate each with two “END”s: “END END”.
 
 Please have fun and thank you for your time.
+
+CONTINUED…
+
+Features derivative of the “-a” FlagCalc command-line option are numerous, and some have a vision in this regard far exceeding what is written about in this README. That said, here are ten uses of “FlagCalc -a”, intended to serve as the best kind of user’s manual: one that starts just with illustrated uses rather than technical specifications.
+
+1.  -r 10 25 50000 -a nif=H.dat all -g o=out.dat passed
+
+The emphasis here on “-a” is surrounded first by a call to “-r” that populates the workspace with fifty-thousand random graphs according to random algorithm one, and with “-g” that outputs all those that pass the test administered by “-a” to a machine-readable file: therefore this invocation of FlagCalc serves to populate a “database” as in a text file, with those out of fifty thousand graphs that omit (the “n” prefix of “nif”) all the subgraphs featured in the file H.dat. To pass the test, the random graph must omit any subgraph isomorphic in adjacency as well as in non-adjacency, found in the data file H.dat.
+
+In that file, the convention is a graph followed by two “END”s: “END END”, and this repeated as many times as desired, for example:
+
+abcd END END
+-abcdea END END
+
+would omit any graphs having a K_4 (complete graph on four vertices) or a 5-cycle with no edges bridging the cycle at a stage less than five in length (i.e. no edge “ce” or “bd” or “be”, etc.)
+
+2. -a nc=cr1 m2=girthm all
+
+This will take the logical “NOT” of the triangle-free criterion and then iterate to stage two, here the measure “girthm”: so it computes the girth (smallest cycle), hence it returns “3” for everything that passes the first iteration. Again, these simple examples verify the correctness of the code to ensure accuracy for more inquisitive invocations.
+
+3.  -a s=”[connm] == 1” s2=”([forestc] AND NOT [treec]) OR (NOT [forestc] AND [treec])” all
+
+This will assess with graphs on the workspace have a measure of connected components equal to “1” (i.e., which are “connected” graphs), and of these it will evaluate which disagree as to the criteria of being a forest or of being a tree. Therefore we expect zero to pass the iteration two sentence criterion.
+
+Another form is to use C++-style logical statements:
+
+([forestc] && ![treec]) || (![forestc] && [treec])
+
+or, for that matter,
+
+[forestc] != [treec]
+
+4. -a s=”[Knc](5,6)” s2=”[cliquem] == 6” all
+
+This aims to give a computer-assisted answer the question: of all graphs in the workspace embedding at least six distinct copies of K_5 (the complete graph on five vertices), how many also embed a K_6?
+
+5. -a s=”[connm] <= 1” s2=”[radiusm] <= [Deltam]” all
+
+“Of all the connected graphs on the workspace, how many have a radius measure at most the highest degree of the graph”. (A result finding one out of five-hundred thousand dimension ten graphs of average twenty-five edges that passes.)
+
+6. -a c=cr1 a2=”[edgecm] > floor([dimm]^2/4)” all
+
+This is a computer-verification of Mantel’s theorem, that states that amongst triangle-free graphs the  edge count is at most the amount indicated in the above inequality.
+
+7. -a nc=cr1 c2=Knc(3,2) m3=diamm all
+
+This simply goes three iterations in, starting by eliminating any graphs without a triangle, then admitting all of those graphs that embed at least two triangles, and then measuring out of these the diameter min, max, and average for that set.
+
+8. -a ft=”abcd” all
+
+This is along the lines of “Turan numbers”: “ft” here tallies the number of distinct embeddings (not counting automorphisms of the embedded graph, here a complete graph on four vertices).
+
+9. -a ft=”abc” a=”[0]/nchoosek([dimm],3)” all
+
+This is the actual density of the type K_3 in the graphs, being the previous example divided by the maximum number of degree three subgraphs.
+
+10. -a is=sentence.dat f2=”abcde”
+
+“Of all graphs on the workspace that pass all the logical sentences in the file sentence.dat, how many embed a K_5 (complete graph on five vertices)?”
