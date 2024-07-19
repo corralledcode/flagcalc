@@ -579,7 +579,7 @@ public:
                         if (originated[i] != (n+1)) {
                             if (visited[n] > 0)
                             {
-                                visited[n] = visited[n] + visited[i] - 1;
+                                visited[n] = visited[n] + cyclesize - 1;
                                 originated[n] = i+1;
                                 mincyclesize = visited[n] < mincyclesize ? visited[n] : mincyclesize;
                             } else
@@ -592,17 +592,18 @@ public:
                 }
             }
             cyclesize++;
-            if (cyclesize > dim)
+            if (cyclesize >= mincyclesize)
             {
                 ++startvertex;
-                cyclesize = 1;
-                memset(visited,0,dim*sizeof(int));
-                memset(originated,0,dim*sizeof(int));
                 if (startvertex < dim)
                 {
+                    cyclesize = 1;
+                    memset(visited,0,dim*sizeof(int));
+                    memset(originated,0,dim*sizeof(int));
                     visited[startvertex] = cyclesize;
                     originated[startvertex] = startvertex+1;
-                }
+                } else
+                    break;
             }
         }
         if (mincyclesize <= dim)
