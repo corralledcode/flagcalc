@@ -116,3 +116,13 @@ inline double expfn(std::vector<double>& din)
     }
     return exp(din[0]);
 }
+
+inline double absfn(std::vector<double>& din)
+{
+    if (din.empty())
+    {
+        std::cout << "No arguments passed to absfn\n";
+        return 0;
+    }
+    return abs(din[0]);
+}

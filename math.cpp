@@ -700,6 +700,11 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
     int n = 0;
     while( n < components.size()) {
         const std::string tok = components[n++];
+        if (is_real(tok))
+        {
+            output.push_back(tok);
+            continue;
+        }
         if (is_number(tok)) {
             output.push_back(tok);
             continue;

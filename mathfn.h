@@ -30,6 +30,8 @@ inline double nchoosekfn( std::vector<double>& din );
 
 inline double expfn(std::vector<double>& din);
 
+inline double absfn(std::vector<double>& din);
+
 
 inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> global_fnptrs
     {{"log", {&logfn,1}},
@@ -41,6 +43,7 @@ inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> glo
      {"gamma", {&gammafn,1}},
      {"nchoosek", {&nchoosekfn,2}},
      {"exp",{&expfn,1}},
-     {"isinf",{&isinffn,1}}};
+     {"isinf",{&isinffn,1}},
+     {"abs",{&absfn,1}}};
 
 #endif //MATHFN_H
