@@ -48,19 +48,19 @@ will sample two graphs with the optional listed random algorithm “r1...r5” (
 
 6. The heart of the present uses of the tool, and coding work ongoing, is towards “-a”: compute the likelihood over say twenty-thousand graphs (random or manually entered, or automatically populated by some computer script) having any number of named criteria, and then amongst those that pass the criterion, compute the named “measure” of the graph, e.g. “girth”, “average edge count”, “diameter”, etc. I use terminology from the opening pages of Diestel’s 2017 graduate textbook “Graph Theory”.
 
-flagcalc <your commands here> -a connc girthm all
+flagcalc <your commands here> -a connc m2=girthm all
 
-will use criterion “connected criterion” and for those that are connected graphs, will apply “girth measure”. Note “all” is required, unless one has sorted previously using “-f all”, in which case “sorted” is possible in place of “all”; in the absence of either, it will just apply the criteria and measures to the last graph on the workplace stack.
+will use criterion “connected criterion” and for those that are connected graphs, will apply the round two measure “girth measure” (indicated by the “two” in “m2”). Note “all” is required, unless one has sorted previously using “-f all”, in which case “sorted” is possible in place of “all”; in the absence of either, it will just apply the criteria and measures to the last graph on the workplace stack.
 
 7. Continuing,
 
-flagcalc <your commands here> -a connc forestc radiusm s=”(NOT 0) AND 1” all
+flagcalc <your commands here> -a connc forestc radiusm s=”(NOT [0]) AND [1]” all
 
-will test “connected criterion” and “forest criterion”, accepting the logical “NOT” of the first and the positive truth of the second, i.e all forests that aren’t trees i.e. have more than one connected component (and here is the code I personally just used to confirm that “forest criterion” is different from “forest criterion AND connected criterion”, i.e. from “tree criterion”: 
+will test “connected criterion” and “forest criterion”, accepting the logical “NOT” of the first and the positive truth of the second, i.e all forests that aren’t trees i.e. have more than one connected component. One now can also use the both-way not-and of 
 
-“flagcalc -r 10 12 1000 -a connc forestc l=AND all -v i=minimal2.cfg min”
+s=”([connc] && [forestc]) != [treec]”
 
-)
+and use “-g o=<filename> overwrite passed” to get any stray graphs that fail to be equal under the two criteria named.)
 
 8. Referring to the tool’s name, one can input a test graph to induce an embedding in the graphs on the workplace, using
 
@@ -138,6 +138,8 @@ abcd END END
 
 would omit any graphs having a K_4 (complete graph on four vertices) or a 5-cycle with no edges bridging the cycle at a stage less than five in length (i.e. no edge “ce” or “bd” or “be”, etc.)
 
+Regarding the machine-readability, one uses “-d <filename>” in place or in addition to “-r” above, to read in the data in <filename> onto the workspace.
+
 2. -a nc=cr1 m2=girthm all
 
 This will take the logical “NOT” of the triangle-free criterion and then iterate to stage two, here the measure “girthm”: so it computes the girth (smallest cycle), hence it returns “3” for everything that passes the first iteration. Again, these simple examples verify the correctness of the code to ensure accuracy for more inquisitive invocations.
@@ -181,3 +183,5 @@ This is the actual density of the type K_3 in the graphs, being the previous exa
 10. -a is=sentence.dat f2=”abcde”
 
 “Of all graphs on the workspace that pass all the logical sentences in the file sentence.dat, how many embed a K_5 (complete graph on five vertices)?”
+
+Finally, the iterations to higher numbered rounds (we’ve seen above rounds “two” and “three”) always base their to-do list on the last item of the previous round. 
