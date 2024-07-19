@@ -541,14 +541,81 @@ public:
 
 };
 
-/* TO DO:
 class girthmeas : public meas
 {
+public:
+    girthmeas(mrecords* recin) : meas(recin, "girthm","Graph's girth") {}
 
+    double takemeas( const int idx, const params& ps ) override
+    {
+        int n = 3;
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
 
+        int* visited = (int*)malloc(g->dim*sizeof(int));
+        memset(visited,0,g->dim*sizeof(int));
+
+        int* originated = (int*)malloc(g->dim*sizeof(int));
+        memset(originated,0,g->dim*sizeof(int));
+
+        int mincyclesize = g->dim + 1;
+
+        int startvertex = 0;
+        int cyclesize = 1;
+        visited[startvertex] = cyclesize;
+        originated[startvertex] = startvertex+1;
+        bool changed = true;
+        while ((cyclesize <= g->dim) && (startvertex < g->dim) && changed)
+        {
+            changed = false;
+            for (int i = 0; i < g->dim; ++i)
+            {
+                if (visited[i] == cyclesize)
+                {
+                    for (int j = 0; j < ns->degrees[i]; ++j)
+                    {
+                        int n = ns->neighborslist[i*g->dim+j];
+                        if (originated[i] != (n+1)) {
+                            if (visited[n] > 0)
+                            {
+                                visited[n] = visited[n] + cyclesize - 1;
+                                mincyclesize = visited[n] < mincyclesize ? visited[n] : mincyclesize;
+                                changed = true;
+                            } else
+                            {
+                                visited[n] = cyclesize+1;
+                                originated[n] = i+1;
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+            }
+            if (!changed)
+            {
+                ++startvertex;
+                cyclesize = 1;
+                memset(visited,0,g->dim*sizeof(int));
+                memset(originated,0,g->dim*sizeof(int));
+                visited[startvertex] = cyclesize;
+                originated[startvertex] = startvertex+1;
+                changed = true;
+            } else
+                cyclesize++;
+        }
+        if (mincyclesize <= g->dim)
+        {
+            delete visited;
+            delete originated;
+            return mincyclesize;
+        }
+
+        delete visited;
+        delete originated;
+        return std::numeric_limits<double>::infinity();
+    }
 
 };
-*/
 
 
 class maxcliquemeas : public meas {

@@ -1682,6 +1682,7 @@ public:
         auto (*circm) = measfactory<circumferencemeas>;
         auto (*lcircm) = measfactory<legacycircumferencemeas>;
         auto (*diamm) = measfactory<diametermeas>;
+        auto (*gm) = measfactory<girthmeas>;
 
         mssfactory.push_back(*ms1);
         mssfactory.push_back(*ms2);
@@ -1696,6 +1697,7 @@ public:
         mssfactory.push_back(*circm);
         mssfactory.push_back(*lcircm);
         mssfactory.push_back(*diamm);
+        mssfactory.push_back(*gm);
 
         // ,,,
 
