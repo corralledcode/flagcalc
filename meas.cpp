@@ -731,22 +731,59 @@ public:
 
 };
 
-/*
-class connectedcrit : public measlessthancrit<double>
-{
+class connectedcrit : public crit {
 public:
-    std::string shortname() override {return "connc";}
 
-    connectedcrit() : measlessthancrit<double>(new connectedmeas())
+    connectedcrit( mrecords* recin ) : crit( recin, "connc", "Graph connected components less than criterion")
     {
-        setparams({2});
+        // the parameter is "less than" cutoff
+        params ps {};
+        ps.clear();
+        pssz = 1;
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        ps.push_back(p1);
     }
-    ~connectedcrit()
+
+    bool takemeas(const int idx, const params& ps) override
     {
-        delete am;
+        if (ps.size() < 1)
+            return false;
+        auto cm = new connectedmeas( rec );
+        bool res = cm->takemeas(idx,ps) < ps[0].v.iv;
+        delete cm;
+        return res;
     }
+
+
 };
-*/
+
+class connected1crit : public crit {
+public:
+
+    connected1crit( mrecords* recin ) : crit( recin, "conn1c", "Graph 1-connected ")
+    {
+        params ps {};
+        ps.clear();
+        pssz = 0;
+    }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        auto cm = new connectedmeas( rec );
+        params pslocal {};
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        p1.v.iv = 2;
+        pslocal.push_back(p1);
+        bool res = cm->takemeas(idx,pslocal) < 2;
+        delete cm;
+        return res;
+    }
+
+
+};
+
 
 
 class radiusmeas : public meas
@@ -867,16 +904,31 @@ public:
 
 };
 
-/*
-class radiuscrit : public measlessthancrit<double>
+class radiuscrit : public crit
 {
 public:
-    std::string shortname() override {return "radiusc";}
 
-    radiuscrit() : measlessthancrit<double>(new radiusmeas)
+    radiuscrit( mrecords* recin ) : crit( recin, "radiusc", "Radius less than criterion" )
     {
-        setparams({-1});
+        // the parameter is "less than" cutoff
+        params ps {};
+        ps.clear();
+        pssz = 1;
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        ps.push_back(p1);
     }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() < 1)
+            return false;
+        auto rc = new radiusmeas( rec );
+        bool res = rc->takemeas(idx,ps) > ps[0].v.iv;
+        delete rc;
+        return res;
+    }
+
 
     // bool takemeas(const int idx, const params& ps) override
     // {
@@ -887,12 +939,8 @@ public:
         // return (resf >= 0);
     // }
 
-    ~radiuscrit()
-    {
-        delete am;
-    }
 };
-*/
+
 
 inline int recursecircumferencemeas( int* path, int pathsize, bool* visited, const graphtype* g, const neighborstype* ns, const int breaksize ) {
     if (pathsize == 0) {
@@ -1034,27 +1082,45 @@ public:
     }
 };
 
-/*
 
-class circumferencecrit : public measgreaterthancrit<double>
+
+class circumferencecrit : public crit
 {
 public:
-    std::string shortname() override {return "circc";}
 
-    circumferencecrit() : measgreaterthancrit<double>(new circumferencemeas)
+    circumferencecrit( mrecords* recin )
+        : crit( recin, "circc", "Circumference greater than criterion" )
     {
-        setparams({-1});
+        // the parameter is "greater than" cutoff
+        params ps {};
+        ps.clear();
+        pssz = 1;
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        ps.push_back(p1);
     }
 
-    // return res > 3
-
-    ~circumferencecrit()
+    bool takemeas(const int idx, const params& ps) override
     {
-        delete am;
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        int breaksize = -1; // by default compute the largest circumference possible
+        if (ps.size() > 0)
+            breaksize = ps[0].v.iv;
+
+        int dim = g->dim;
+        if (dim <= 0)
+            return 0;
+
+        bool visited[g->dim];
+        for (int i = 0; i < g->dim; ++i)
+            visited[i] = false;
+        return recursecircumferencemeas(nullptr,0,visited,g,ns,breaksize) > breaksize;
     }
+
 };
 
-*/
 
 class diametermeas : public meas
 {
@@ -1172,23 +1238,34 @@ public:
 
 };
 
-/*
-class diametercrit : public measgreaterthancrit<double>
+
+class diametercrit : public crit
 {
 public:
-    std::string shortname() override {return "diamc";}
 
-    diametercrit() : measgreaterthancrit<double>(new diametermeas)
+    diametercrit( mrecords* recin ) : crit( recin, "diamc", "Diameter greater than criterion")
     {
-        am->setparams({-1});
+        // the parameter is "greater than" cutoff
+        params ps {};
+        ps.clear();
+        pssz = 1;
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        ps.push_back(p1);
     }
 
-    ~diametercrit()
+    bool takemeas(const int idx, const params& ps) override
     {
-        delete am;
+        if (ps.size() < 1)
+            return false;
+        auto dm = new diametermeas( rec );
+        bool res = dm->takemeas(idx,ps) > ps[0].v.iv;
+        delete dm;
+        return res;
     }
+
 };
-*/
+
 
 template<typename T> meas* measfactory(mrecords* recin)
 {

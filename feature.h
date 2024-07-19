@@ -1644,20 +1644,24 @@ public:
         auto (*fc) = *critfactory<forestcrit>;
         auto (*tc) = *critfactory<treecrit>;
         auto (*kn) = *critfactory<knpcrit>;
-        // auto (*cc)() = critfactory<connectedcrit>;
-        // auto (*rltc)() = critfactory<radiuscrit>;
-        // auto (*circc)() = critfactory<circumferencecrit>;
-        // auto (*diamc)() = critfactory<diametercrit>;
+        auto (*connc) = critfactory<connectedcrit>;
+        auto (*radiusc) = critfactory<radiuscrit>;
+        auto (*circc) = critfactory<circumferencecrit>;
+        auto (*diamc) = critfactory<diametercrit>;
+        auto (*conn1c) = critfactory<connected1crit>;
 
         crsfactory.push_back(*c1);
         crsfactory.push_back(*cr1);
         crsfactory.push_back(*fc);
         crsfactory.push_back(*tc);
         crsfactory.push_back(*kn);
-        // crsfactory.push_back(*cc);
-        // crsfactory.push_back(*rltc);
-        // crsfactory.push_back(*circc);
-        // crsfactory.push_back(*diamc);
+        crsfactory.push_back(*connc);
+        crsfactory.push_back(*radiusc);
+        crsfactory.push_back(*circc);
+        crsfactory.push_back(*diamc);
+        crsfactory.push_back(*conn1c);
+
+
         // ...
 
 
