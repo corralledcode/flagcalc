@@ -10,6 +10,7 @@
 
 inline int nchoosek( const int n, const int k);
 
+inline double isinffn( std::vector<double>& din );
 
 inline double floorfn( std::vector<double>& din );
 
@@ -39,6 +40,7 @@ inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> glo
      {"ceil", {&ceilfn,1}},
      {"gamma", {&gammafn,1}},
      {"nchoosek", {&nchoosekfn,2}},
-     {"exp",{&expfn,1}}};
+     {"exp",{&expfn,1}},
+     {"isinf",{&isinffn,1}}};
 
 #endif //MATHFN_H

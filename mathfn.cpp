@@ -16,6 +16,16 @@ inline int nchoosek( const int n, const int k) {
     return (n* nchoosek(n-1,k-1))/k;
 }
 
+inline double isinffn( std::vector<double>& din )
+{
+    if (din.empty())
+    {
+        std::cout << "No arguments passed to isinfn\n";
+        return 0;
+    }
+    return (double)(din[0] == std::numeric_limits<double>::infinity());
+}
+
 
 inline double floorfn( std::vector<double>& din )
 {

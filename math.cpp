@@ -158,7 +158,7 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         {
             if (partial != "")
             {
-                if (partial[partial.size()-1] == '<' || partial[partial.size()-1] == '>' || partial[partial.size()-1] == '=')
+                if (partial[partial.size()-1] == '<' || partial[partial.size()-1] == '>' || partial[partial.size()-1] == '=' || partial[partial.size()-1] == '!')
                 {
                     partial.push_back(ch);
                     if (partial.size() > 2)
