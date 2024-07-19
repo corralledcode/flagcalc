@@ -424,7 +424,7 @@ public:
             return -1;
         for (int i = 0; i < ns->dim; ++i)
             sum += ns->degrees[i];
-        return sum / ns->dim;
+        return (double)sum / (double)ns->dim;
     }
 
     avgdegreemeas(mrecords* recin) : meas(recin, "dm", "Graph's average degree") {}
