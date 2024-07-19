@@ -548,70 +548,72 @@ public:
 
     double takemeas( const int idx, const params& ps ) override
     {
-        int n = 3;
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
+        const int dim = g->dim;
 
-        int* visited = (int*)malloc(g->dim*sizeof(int));
-        memset(visited,0,g->dim*sizeof(int));
+        int* visited = (int*)malloc(dim*sizeof(int));
+        memset(visited,0,dim*sizeof(int));
 
-        int* originated = (int*)malloc(g->dim*sizeof(int));
-        memset(originated,0,g->dim*sizeof(int));
+        int* originated = (int*)malloc(dim*sizeof(int));
+        memset(originated,0,dim*sizeof(int));
 
-        int mincyclesize = g->dim + 1;
+        int mincyclesize = dim + 1;
+
+        if (dim == 0)
+            return 0;
 
         int startvertex = 0;
         int cyclesize = 1;
         visited[startvertex] = cyclesize;
-        originated[startvertex] = startvertex+1;
-        bool changed = true;
-        while ((cyclesize <= g->dim) && (startvertex < g->dim) && changed)
+        originated[startvertex] = startvertex + 1;
+        while ((cyclesize <= dim) && (startvertex < dim))
         {
-            changed = false;
-            for (int i = 0; i < g->dim; ++i)
+            for (int i = 0; i < dim; ++i)
             {
                 if (visited[i] == cyclesize)
                 {
                     for (int j = 0; j < ns->degrees[i]; ++j)
                     {
-                        int n = ns->neighborslist[i*g->dim+j];
+                        int n = ns->neighborslist[i*dim+j];
                         if (originated[i] != (n+1)) {
                             if (visited[n] > 0)
                             {
-                                visited[n] = visited[n] + cyclesize - 1;
+                                visited[n] = visited[n] + visited[i] - 1;
+                                originated[n] = i+1;
                                 mincyclesize = visited[n] < mincyclesize ? visited[n] : mincyclesize;
-                                changed = true;
                             } else
                             {
                                 visited[n] = cyclesize+1;
                                 originated[n] = i+1;
-                                changed = true;
                             }
                         }
                     }
                 }
             }
-            if (!changed)
+            cyclesize++;
+            if (cyclesize > dim)
             {
                 ++startvertex;
                 cyclesize = 1;
-                memset(visited,0,g->dim*sizeof(int));
-                memset(originated,0,g->dim*sizeof(int));
-                visited[startvertex] = cyclesize;
-                originated[startvertex] = startvertex+1;
-                changed = true;
-            } else
-                cyclesize++;
+                memset(visited,0,dim*sizeof(int));
+                memset(originated,0,dim*sizeof(int));
+                if (startvertex < dim)
+                {
+                    visited[startvertex] = cyclesize;
+                    originated[startvertex] = startvertex+1;
+                }
+            }
         }
-        if (mincyclesize <= g->dim)
+        if (mincyclesize <= dim)
         {
-            delete visited;
-            delete originated;
+            free( visited );
+            free( originated);
             return mincyclesize;
         }
 
-        delete visited;
-        delete originated;
+        free( visited );
+        free( originated );
         return std::numeric_limits<double>::infinity();
     }
 

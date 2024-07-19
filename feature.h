@@ -1732,6 +1732,9 @@ public:
         for (int i = 0; i < mss.size(); ++i) {
             delete mss[i];
         }
+        for (int i = 0; i < tys.size(); ++i) {
+            delete tys[i];
+        }
     }
 
 
@@ -1844,12 +1847,56 @@ void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r, std::
     }
 }
 
+
+
 template<typename T>
 class threaddata
 {
 public:
   std::vector<T> d {};
 };
+
+/* THIS SHOWS NO SPEED IMPROVEMENT
+template<typename T>
+void populatewithreaded(chkmeasaitem<T>* wi, std::vector<T>& threaddata,
+    std::vector<graphtype*>& glist, std::vector<neighborstype*>& nslist,
+    std::vector<bool>& todo,
+    const int startidx,
+    const int stopidx)
+{
+    for (int m=startidx; m < stopidx; ++m)
+    {
+        wi->parentbool[m] = todo[m];
+        wi->parentboolcnt += (todo[m] ? 1 : 0);
+        if (todo[m])
+        {
+            wi->res[m] = threaddata[m];
+            wi->glist[m] = glist[m];
+            wi->sorted[m] = m;
+            wi->nslist[m] = nslist[m];
+            wi->meas[m] = threaddata[m];
+            // if (k < res.size()) {
+            // recall all the sentence-level criteria were added after malloc
+            // if (l == 0)
+            // (res[k])[m] = wi->res[m];
+            // }
+            // if (l < resm.size())
+            // {
+            // if (threadbool[m])
+            // resm[l][m] = threaddouble[m];
+            // }
+            // wi->meas.resize(eqclass.size());
+            // if (wi->res[m]) {
+            // wi->meas[m] = threaddouble[m]; //ms[crmspairs[k][l]]->takemeasureidxed(eqclass[m]);
+            // if (!(done[m][l])) {
+            // gi->doubleitems.push_back( new abstractmeasureoutcome<double>(ms[l],gi,wi->meas[m]));
+            // done[m][l] = true;
+            // } // default for wi->meas[m] ?
+            // }
+        }
+    }
+}
+*/
 
 template<typename T>
 void populatewi(workspace* _ws, chkmeasaitem<T>* wi, std::vector<T>& threaddata, std::vector<int> items, std::vector<int>& eqclass,
@@ -1865,7 +1912,6 @@ void populatewi(workspace* _ws, chkmeasaitem<T>* wi, std::vector<T>& threaddata,
     wi->sorted.resize(eqclass.size());
     wi->gnames.resize(eqclass.size());
     wi->nslist.resize(eqclass.size());
-
 
     for (int m=0; m < eqclass.size(); ++m)
     {
@@ -1898,13 +1944,25 @@ void populatewi(workspace* _ws, chkmeasaitem<T>* wi, std::vector<T>& threaddata,
             // }
         }
     }
+
+
+   /* The following shows no speed improvement
+    const double section = double(eqclass.size()) / double(thread_count);
+    std::vector<std::future<void>> t;
+    t.resize(thread_count);
+    for (int m = 0; m < thread_count; ++m) {
+        const int startidx = int(m*section);
+        const int stopidx = int((m+1.0)*section);
+        t[m] = std::async(std::bind(&populatewithreaded<T>,wi,threaddata,glist,nslist,todo,startidx,stopidx));
+    }
+    for (int m = 0; m < thread_count; ++m)
+    {
+        t[m].get();
+    }*/
+
     wi->name = _ws->getuniquename(wi->classname);
     _ws->items.push_back(wi);
 }
-
-
-
-
 
 
 
