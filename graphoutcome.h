@@ -30,13 +30,13 @@ public:
     void osmachinereadablegraph(std::ostream &os);
     ~graphitem() {
         for (auto io : intitems) {
-            delete io;
+            delete &io;
         }
         for (auto bo : boolitems) {
-            delete bo;
+            delete &bo;
         }
         for (auto fo : doubleitems) {
-            delete fo;
+            delete &fo;
         }
     }
 
