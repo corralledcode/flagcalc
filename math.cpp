@@ -480,7 +480,7 @@ valms evalformula::eval(const formulaclass& fc)
 
 
     if ((fc.fo == formulaoperator::foliteral) || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
-       /*if (fc.v.lit.ps.empty())
+       if (fc.v.lit.ps.empty())
        {
            if (fc.v.lit.l >= 0 && fc.v.lit.l < literals->size()) {
                res = (*literals)[fc.v.lit.l];
@@ -494,13 +494,13 @@ valms evalformula::eval(const formulaclass& fc)
                    return res;
                }
            }
-       } else {*/
+       } else {
            std::vector<valms> ps {};
            for (auto f : fc.v.lit.ps) {
                ps.push_back(eval(*f));
            }
            res = evalpslit(fc.v.lit.l,ps);
-        //}
+        }
         return res;
     }
 
