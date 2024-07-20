@@ -368,7 +368,27 @@ public:
         }
         rgs[rgsidx]->setparams(rgparams);
 
-        int cnt = samplematchingrandomgraphs(rgs[rgsidx],dim,edgecnt, outof);
+
+        unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+        int cnt = 0;
+        const double section = double(outof) / double(thread_count);
+        std::vector<std::future<int>> t;
+        t.resize(thread_count);
+        for (int m = 0; m < thread_count; ++m) {
+            const int startidx = int(m*section);
+            const int stopidx = int((m+1.0)*section);
+            t[m] = std::async(&samplematchingrandomgraphs,rgs[rgsidx],dim,edgecnt,stopidx-startidx);
+        }
+        for (int m = 0; m < thread_count; ++m)
+        {
+            cnt += t[m].get();
+        }
+
+
+
+        // int cnt = samplematchingrandomgraphs(rgs[rgsidx],dim,edgecnt, outof);
             // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
             // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
             // vertices are obtained, is rather efficient too.
