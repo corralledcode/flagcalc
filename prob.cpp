@@ -38,7 +38,7 @@ int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int 
         auto ns6 = new neighbors(g6);
         //osneighbors(std::cout,ns5);
 
-        FP fps5[dim];
+        FP* fps5 = new FP[dim];
         for (vertextype n = 0; n < dim; ++n) {
             fps5[n].v = n;
             fps5[n].ns = nullptr;
@@ -50,7 +50,7 @@ int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int 
 
         //osfingerprint(std::cout,ns5,fps5,g5.dim);
 
-        FP fps6[g6->dim];
+        FP* fps6 = new FP[g6->dim];
         for (vertextype n = 0; n < dim; ++n) {
             fps6[n].v = n;
             fps6[n].ns = nullptr;
@@ -84,6 +84,8 @@ int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int 
         freefps(fps6, dim);
         delete ns5;
         delete ns6;
+        delete fps5;
+        delete fps6;
     }
     //verboseio vio;
     //verbosedbio vdbio(getenv("DBSERVER"), getenv("DBUSR"), getenv("DBPWD"), getenv("DBSCHEMA"));

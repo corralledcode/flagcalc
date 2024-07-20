@@ -573,7 +573,7 @@ inline int recursecircumferencemeasure( int* path, int pathsize, bool* visited, 
     }
 
     int respl = 0;
-    int newpath[pathsize+1];
+    int* newpath = new int[pathsize+1];
     for (int j = 0; j < pathsize; ++j) {
         newpath[j] = path[j];
     }
@@ -597,6 +597,7 @@ inline int recursecircumferencemeasure( int* path, int pathsize, bool* visited, 
             return newpl;
         respl = (respl < newpl ? newpl : respl);
     }
+    delete newpath;
     respl = respl == 2 ? 0 : respl;
     return respl;
 }
@@ -616,7 +617,7 @@ inline int legacyrecursecircumferencemeasure( int* path, int pathsize, const gra
     int respl = 0;
     for (int i = 0; i < ns->degrees[path[pathsize-1]]; ++i ) {
         int newpl = 0;
-        int newpath[pathsize+1];
+        int* newpath = new int[pathsize+1];
         int newv = ns->neighborslist[path[pathsize-1]*g->dim + i];
         bool found = false;
         int j = 0;
@@ -630,6 +631,7 @@ inline int legacyrecursecircumferencemeasure( int* path, int pathsize, const gra
         } else
             newpl = pathsize-j + 1;
         respl = (respl < newpl ? newpl : respl);
+        delete newpath;
     }
     respl = respl == 2 ? 0 : respl;
     if (breaksize >= 3 && respl >= breaksize)
@@ -654,10 +656,12 @@ public:
         if (dim <= 0)
             return 0;
 
-        bool visited[g->dim];
+        bool* visited = new bool[g->dim];
         for (int i = 0; i < g->dim; ++i)
             visited[i] = false;
-        return recursecircumferencemeasure(nullptr,0,visited,g,ns,breaksize);
+        auto res = recursecircumferencemeasure(nullptr,0,visited,g,ns,breaksize);
+        delete visited;
+        return res;
     }
 };
 

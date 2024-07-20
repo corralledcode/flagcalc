@@ -669,10 +669,6 @@ public:
 
 
 
-template<typename T> crit* critfactory(mrecords* recin )
-{
-    return new T(recin );
-}
 
 
 

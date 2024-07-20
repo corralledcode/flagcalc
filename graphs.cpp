@@ -47,6 +47,7 @@
 #include <iostream>
 #include <ranges>
 #include <vector>
+#include <string>
 #ifdef THREADPOOL
 #include "thread_pool.cpp"
 #endif
@@ -360,8 +361,8 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
     }
 
     const int dim = ns->g->dim;
-    FP sorted[dim];
-    FP sortedinverted[dim];
+    FP* sorted = new FP[dim];
+    FP* sortedinverted = new FP[dim];
     int halfdegree = (dim+1)/2;
     bool invert = false;
     int idx = 0;
@@ -372,8 +373,8 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
     if (ns->maxdegree < halfdegree)
         md = dim - ns->maxdegree;
     //md = dim-1;
-    int sizeofdegree[md+1];
-    int sizeofinverteddegree[md+1];
+    int* sizeofdegree = new int[md+1];
+    int* sizeofinverteddegree = new int[md+1];
     for (int d = 0; d <= md; ++d) {
         sizeofdegree[d] = 0;
         sizeofinverteddegree[d] = 0;
@@ -471,7 +472,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
     int startidxinverted = 0;
 
     for (int i = 0; i <= md; ++i) {
-        FP fps2[sizeofdegree[i]];
+        FP* fps2 = new FP[sizeofdegree[i]];
         //std::cout << "i, sizeofdegree[i] == " << i << ", " << sizeofdegree[i] << "\n";
         for (int j = 0; j < sizeofdegree[i]; ++j) {
             fps2[j] = sorted[startidx + j];
@@ -481,11 +482,11 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
             sorted[startidx+j] = fps2[j];
         }
         startidx = startidx + sizeofdegree[i];
-
+        delete fps2;
     }
     int startidx2 = 0;
     for (int i = 0; i<=md; ++i) {
-        FP fps2[sizeofinverteddegree[i]];
+        FP* fps2 = new FP[sizeofinverteddegree[i]];
         //std::cout << "i, sizeofinverteddegree[i] == " << i << ", " << sizeofinverteddegree[i] << "\n";
         for (int k = 0; k < sizeofinverteddegree[i]; ++k) {
             fps2[k] = sortedinverted[startidx2 + k];
@@ -495,6 +496,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
             sortedinverted[startidx2+j] = fps2[sizeofinverteddegree[i] - j - 1];
         }
         startidx2 = startidx2 + sizeofinverteddegree[i];
+        delete fps2;
     }
 
 
@@ -514,6 +516,10 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
         }
 
     }
+    delete sorted;
+    delete sortedinverted;
+    delete sizeofdegree;
+    delete sizeofinverteddegree;
 }
 
 void freefps( FP* fps, int fpscnt ) {
@@ -803,7 +809,7 @@ bool fastgetpermutations( const std::vector<vertextype>* targetset, const grapht
     tmppartialv.resize(targetset->size());
     std::vector<std::future<bool>> t {};
     t.resize(targetset->size());
-    bool tmpbool[targetset->size()];
+    bool* tmpbool = new bool[targetset->size()];
     std::vector<bool> boolres {};
     boolres.resize(targetset->size());
     std::vector<std::vector<graphmorphism>> tmpres {};
@@ -938,6 +944,7 @@ bool fastgetpermutations( const std::vector<vertextype>* targetset, const grapht
 
 #endif
 
+    delete tmpbool;
 
     return true;
 }
@@ -1001,8 +1008,8 @@ std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, cons
 
     int delcnt = 0;
     delptr[delcnt] = 0;
-    int delsizes[dim+2];
-    int delsortedbysize[dim+2];
+    int* delsizes = new int[dim+2];
+    int* delsortedbysize = new int[dim+2];
     for (int n = 0; n < dim+2; ++n)
         delsizes[n] = 0;
     delsizes[0] = 1;
@@ -1256,6 +1263,8 @@ std::vector<graphmorphism>* enumisomorphismscore( const neighborstype* ns1, cons
     //std::vector<graphmorphism>* tmp = new std::vector<graphmorphism>;
     //tmp->clear();
 
+    delete delsizes;
+    delete delsortedbysize;
     return maps;
 
 
@@ -1430,14 +1439,14 @@ void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop,
     //          call enumsizedsubsets on (s + n), sizestart+1,sizeend, n+1,stop;
     //          call enumsizedsubsets on s, sizestart,sizeend, n+1, stop
 
-    int newseq[sizestart+1];
+    int* newseq = new int[sizestart+1];
     for (int i = 0; i < sizestart; ++i) {
         newseq[i] = seq[i];
     }
     newseq[sizestart] = start;
     enumsizedsubsets(sizestart+1,sizeend,newseq,start+1,stop,res);
     enumsizedsubsets(sizestart,sizeend,seq,start+1,stop,res);
-
+    delete newseq;
 }
 
 
@@ -1535,15 +1544,20 @@ bool enumsizedsubsetsquick(int sizestart, int sizeend, int* seq, int start, int 
     //          call enumsizedsubsets on (s + n), sizestart+1,sizeend, n+1,stop;
     //          call enumsizedsubsets on s, sizestart,sizeend, n+1, stop
 
-    int newseq[sizestart+1];
+    int* newseq = new int[sizestart+1];
     for (int i = 0; i < sizestart; ++i) {
         newseq[i] = seq[i];
     }
     newseq[sizestart] = start;
-    if (enumsizedsubsetsquick(sizestart+1,sizeend,newseq,start+1,stop,cnt,mincnt,test))
+    if (enumsizedsubsetsquick(sizestart + 1, sizeend, newseq, start + 1, stop, cnt, mincnt, test)) {
+        delete newseq;
         return true;
-    if (enumsizedsubsetsquick(sizestart,sizeend,seq,start+1,stop,cnt,mincnt,test))
+    }
+    if (enumsizedsubsetsquick(sizestart, sizeend, seq, start + 1, stop, cnt, mincnt, test)) {
+        delete newseq;
         return true;
+    }
+    delete newseq;
     return false;
 }
 
@@ -1604,15 +1618,20 @@ bool enumsizedsubsetsquicktally(int sizestart, int sizeend, int* seq, int start,
     //          call enumsizedsubsets on (s + n), sizestart+1,sizeend, n+1,stop;
     //          call enumsizedsubsets on s, sizestart,sizeend, n+1, stop
 
-    int newseq[sizestart+1];
+    int* newseq = new int[sizestart+1];
     for (int i = 0; i < sizestart; ++i) {
         newseq[i] = seq[i];
     }
     newseq[sizestart] = start;
-    if (enumsizedsubsetsquicktally(sizestart+1,sizeend,newseq,start+1,stop,cnt,test))
+    if (enumsizedsubsetsquicktally(sizestart + 1, sizeend, newseq, start + 1, stop, cnt, test)) {
+        delete newseq;
         return true;
-    if (enumsizedsubsetsquicktally(sizestart,sizeend,seq,start+1,stop,cnt,test))
+    }
+    if (enumsizedsubsetsquicktally(sizestart, sizeend, seq, start + 1, stop, cnt, test)) {
+        delete newseq;
         return true;
+    }
+    delete newseq;
     return false;
 }
 
@@ -1733,7 +1752,7 @@ void osfingerprintminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt 
 
 
 void osadjacencymatrix( std::ostream &os, const graphtype* g ) {
-    int labelssize[g->dim];
+    int* labelssize = new int[g->dim];
     int maxlabelsize = 0;
     bool labels = g->vertexlabels.size() == g->dim;
     if (labels) {
@@ -1770,11 +1789,12 @@ void osadjacencymatrix( std::ostream &os, const graphtype* g ) {
         }
         os << "\n";
     }
+    delete labelssize;
 }
 
 void osneighbors( std::ostream &os, const neighborstype* ns ) {
     bool labels = ns->g->vertexlabels.size()==ns->g->dim;
-    int labelssize[ns->g->dim];
+    int* labelssize = new int[ns->g->dim];
     int maxlabelsize = 0;
     if (labels) {
         for (int n = 0; n < ns->g->dim; ++n) {
@@ -1814,10 +1834,11 @@ void osneighbors( std::ostream &os, const neighborstype* ns ) {
         }
         os << "\b\b\n";
     }*/
+    delete labelssize;
 }
 
 void osedges( std::ostream &os, const graphtype* g) {
-    int labelssize[g->dim];
+    int* labelssize = new int[g->dim];
     int maxlabelsize = 0;
     bool labels = g->vertexlabels.size() == g->dim;
     if (labels) {
@@ -1847,10 +1868,11 @@ void osedges( std::ostream &os, const graphtype* g) {
             found = false;
         }
     }
+    delete labelssize;
 }
 
 void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g2, const std::vector<graphmorphism>* maps ) {
-    int labelssize1[g1->dim];
+    int* labelssize1 = new int[g1->dim];
     int maxlabelsize1 = 0;
     bool labels1 = g1->vertexlabels.size() == g1->dim;
     if (labels1) {
@@ -1859,10 +1881,11 @@ void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g
             maxlabelsize1 = maxlabelsize1 >= labelssize1[n] ? maxlabelsize1 : labelssize1[n];
         }
         if (g1->adjacencymatrix == nullptr) {
+            delete labelssize1;
             return;
         }
     }
-    int labelssize2[g2->dim];
+    int* labelssize2 = new int[g2->dim];
     int maxlabelsize2 = 0;
     bool labels2 = g2->vertexlabels.size() == g2->dim;
     if (labels2) {
@@ -1871,6 +1894,8 @@ void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g
             maxlabelsize2 = maxlabelsize2 >= labelssize2[n] ? maxlabelsize2 : labelssize2[n];
         }
         if (g2->adjacencymatrix == nullptr) {
+            delete labelssize1;
+            delete labelssize2;
             return;
         }
     }
@@ -1889,6 +1914,8 @@ void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g
             os << "\n";
         }
     }
+    delete labelssize1;
+    delete labelssize2;
 }
 
 void osmachinereadablegraph(std::ostream &os, graphtype* g) {
