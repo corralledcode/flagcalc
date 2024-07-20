@@ -561,7 +561,11 @@ public:
         int mincyclesize = dim + 1;
 
         if (dim == 0)
+        {
+            free( visited );
+            free( originated );
             return 0;
+        }
 
         int startvertex = 0;
         int cyclesize = 1;
@@ -991,7 +995,10 @@ inline int recursecircumferencemeas( int* path, int pathsize, bool* visited, con
             newpl = pathsize-j + 1;
         }
         if (breaksize > 2 && newpl > breaksize)
+        {
+            delete newpath;
             return newpl;
+        }
         respl = (respl < newpl ? newpl : respl);
     }
     respl = respl == 2 ? 0 : respl;
