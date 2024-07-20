@@ -1,0 +1,140 @@
+/* #name=GRAPH0
+ * #embedsc=0
+ */
+a b c d e f g h END
+ab 
+bg 
+cf cg 
+df 
+gh 
+END
+
+/* #name=GRAPH1
+ * #embedsc=1
+ * #sn=0
+ * #connm=2
+ */
+a b c d e f g h END
+ac ae 
+cd cf ch 
+dh 
+ef eg eh 
+END
+
+/* #name=GRAPH2
+ * #embedsc=1
+ * #sn=1
+ * #sn=0
+ * #connm=1
+ * #diamm=4
+ * #fm=4
+ * #Deltam=4
+ * #deltam=1
+ * #fm=3
+ */
+a b c d e f g h END
+ab ad ag 
+bd 
+cg ch 
+ef 
+fg 
+gh 
+END
+
+/* #name=GRAPH3
+ * #embedsc=0
+ */
+a b c d e f g h END
+ag ah 
+bd 
+cg 
+df dg 
+fh 
+END
+
+/* #name=GRAPH4
+ * #embedsc=1
+ * #sn=0
+ * #connm=2
+ */
+a b c d e f g h END
+ab ah 
+cd cf 
+dg dh 
+fh 
+gh 
+END
+
+/* #name=GRAPH5
+ * #embedsc=1
+ * #sn=0
+ * #connm=4
+ */
+a b c d e f g h END
+bg 
+ce 
+de dh 
+eh 
+END
+
+/* #name=GRAPH6
+ * #embedsc=1
+ * #sn=1
+ * #sn=1
+ * #connm=1
+ * #diamm=6
+ * #fm=6
+ * #Deltam=3
+ * #deltam=1
+ * #fm=2
+ */
+a b c d e f g h END
+ab 
+bf 
+cd cg ch 
+dh 
+ef eg 
+gh 
+END
+
+/* #name=GRAPH7
+ * #embedsc=0
+ */
+a b c d e f g h END
+ac ah 
+bg 
+cg 
+df dg 
+gh 
+END
+
+/* #name=GRAPH8
+ * #embedsc=1
+ * #sn=0
+ * #connm=3
+ */
+a b c d e f g h END
+ad af 
+cd cf cg 
+dg 
+fg 
+gh 
+END
+
+/* #name=GRAPH9
+ * #embedsc=0
+ */
+a b c d e f g h END
+ac 
+bf bg 
+cg ch 
+dg 
+fh 
+END
+
+/* #name=GRAPH11FLAG
+ */
+a b c END
+ab ac 
+bc 
+END

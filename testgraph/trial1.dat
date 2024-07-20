@@ -1,0 +1,19 @@
+/* #name=GRAPH6
+ * #embedsc=1
+ * #sn=1
+ * #sn=1
+ * #connm=1
+ * #diamm=6
+ * #fm=6
+ * #Deltam=3
+ * #deltam=1
+ * #fm=2
+ */
+a b c d e f g h END
+ab 
+bf 
+cd cg ch 
+dh 
+ef eg 
+gh 
+END

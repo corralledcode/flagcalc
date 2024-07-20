@@ -753,8 +753,14 @@ public:
     {
         if (ps.size() < 1)
             return false;
+        double p;
+        switch (ps[0].t)
+        {
+        case mtcontinuous: p = ps[0].v.dv; break;
+        case mtdiscrete: p = (double)ps[0].v.iv; break;
+        }
         auto cm = new connectedmeas( rec );
-        bool res = cm->takemeas(idx,ps) < ps[0].v.iv;
+        bool res = cm->takemeas(idx,ps) < p;
         delete cm;
         return res;
     }
@@ -927,8 +933,14 @@ public:
     {
         if (ps.size() < 1)
             return false;
+        double p;
+        switch (ps[0].t)
+        {
+        case mtcontinuous: p = ps[0].v.dv; break;
+        case mtdiscrete: p = (double)ps[0].v.iv; break;
+        }
         auto rc = new radiusmeas( rec );
-        bool res = rc->takemeas(idx,ps) > ps[0].v.iv;
+        bool res = rc->takemeas(idx,ps) > p;
         delete rc;
         return res;
     }
@@ -1117,8 +1129,17 @@ public:
         neighborstype* ns = (*rec->nsptrs)[idx];
 
         int breaksize = -1; // by default compute the largest circumference possible
+        double p;
         if (ps.size() > 0)
-            breaksize = ps[0].v.iv;
+            switch (ps[0].t)
+         {
+         case mtcontinuous: p = ps[0].v.dv; break;
+         case mtdiscrete: p = (double)ps[0].v.iv; break;
+            }
+        else
+            p = 0;
+
+            breaksize = p;
 
         int dim = g->dim;
         if (dim <= 0)
@@ -1272,8 +1293,15 @@ public:
     {
         if (ps.size() < 1)
             return false;
+        double p;
+        if (ps.size() > 0)
+            switch (ps[0].t)
+            {
+        case mtcontinuous: p = ps[0].v.dv; break;
+        case mtdiscrete: p = (double)ps[0].v.iv; break;
+            }
         auto dm = new diametermeas( rec );
-        bool res = dm->takemeas(idx,ps) > ps[0].v.iv;
+        bool res = dm->takemeas(idx,ps) > p;
         delete dm;
         return res;
     }

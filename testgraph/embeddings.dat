@@ -1,15 +1,8 @@
 /* 0 */
-a b c d END
--abcda END
+-abca END END
 
 /* 1 */
-a b c d e END
--abcdea END
+-abcda END END
 
 /* 2 */
-a b c d END
-abcd END
-
-/* 3 */
-a b c END
--abc END
+-abcdea END END

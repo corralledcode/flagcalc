@@ -1,2 +1,3 @@
-0 OR 1 OR 2 END
-0 AND 1 AND NOT 3 END
+[connm] > 1 END
+[forestc] AND ([connm] <= 1) END
+[treec] END

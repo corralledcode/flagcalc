@@ -1,3 +1,6 @@
 /*This graph should have 2!*5 = 10 automorphisms,
- *and is included to test the new format for graph input*/
+ *and is included to test the new format for graph input.
+ *The second graph should have 2*2 = 4 automorphisms*/
 abcde -fghijf af bg ch di ej
+END END
+-abcdefghidjkla

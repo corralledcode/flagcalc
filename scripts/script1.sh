@@ -1,0 +1,1 @@
+-r 10 8 1000 -a forestc nif=embeddings.dat connc nc=treec s="[0] AND [1]" m2=girthm m2=radiusm m2=diamm a2="[diamm] / 2 <= [radiusm]" c2=treec all -g o=out4.dat all overwrite

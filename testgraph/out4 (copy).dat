@@ -1,0 +1,184 @@
+/* #name=GRAPH0
+ * #embedsc=0
+ * #sn=1
+ * #connm=2
+ * #diamm=inf
+ * #fm=inf
+ * #Deltam=3
+ * #deltam=0
+ * #fm=0
+ */
+a b c d e f g h END
+ab ae af 
+cd cf 
+de 
+eg 
+END
+
+/* #name=GRAPH1
+ * #embedsc=1
+ * #sn=1
+ * #connm=2
+ * #diamm=inf
+ * #fm=inf
+ * #Deltam=4
+ * #deltam=0
+ * #fm=0
+ */
+a b c d e f g h END
+ac af ah 
+bc bh 
+cf 
+dg dh 
+fh 
+END
+
+/* #name=GRAPH2
+ * #embedsc=1
+ * #sn=1
+ * #connm=1
+ * #diamm=4
+ * #fm=4
+ * #Deltam=4
+ * #deltam=1
+ * #fm=0
+ */
+a b c d e f g h END
+ab ae ah 
+be bh 
+cf cg 
+de dg dh 
+gh 
+END
+
+/* #name=GRAPH3
+ * #embedsc=1
+ * #sn=1
+ * #connm=2
+ * #diamm=inf
+ * #fm=inf
+ * #Deltam=4
+ * #deltam=0
+ * #fm=0
+ */
+a b c d e f g h END
+ab ad ag 
+bd bf bg 
+ch 
+df dg 
+fg fh 
+END
+
+/* #name=GRAPH4
+ * #embedsc=0
+ * #sn=1
+ * #connm=1
+ * #diamm=4
+ * #fm=4
+ * #Deltam=3
+ * #deltam=1
+ * #fm=0
+ */
+a b c d e f g h END
+ab ad ae 
+bh 
+cd cg 
+fg fh 
+END
+
+/* #name=GRAPH5
+ * #embedsc=1
+ * #sn=1
+ * #connm=1
+ * #diamm=4
+ * #fm=4
+ * #Deltam=4
+ * #deltam=1
+ * #fm=0
+ */
+a b c d e f g h END
+af ah 
+bc bd 
+cd 
+de dg 
+fg 
+gh 
+END
+
+/* #name=GRAPH6
+ * #embedsc=0
+ * #sn=1
+ * #connm=3
+ * #diamm=inf
+ * #fm=inf
+ * #Deltam=2
+ * #deltam=0
+ * #fm=0
+ */
+a b c d e f g h END
+af 
+bf 
+cd ce 
+dh 
+END
+
+/* #name=GRAPH7
+ * #embedsc=1
+ * #sn=1
+ * #connm=1
+ * #diamm=3
+ * #fm=3
+ * #Deltam=6
+ * #deltam=1
+ * #fm=0
+ */
+a b c d e f g h END
+ag 
+bg 
+cf cg 
+de dg 
+eg eh 
+fg fh 
+END
+
+/* #name=GRAPH8
+ * #embedsc=0
+ * #sn=1
+ * #connm=4
+ * #diamm=inf
+ * #fm=inf
+ * #Deltam=2
+ * #deltam=0
+ * #fm=0
+ */
+a b c d e f g h END
+bd 
+cd 
+ef eh 
+END
+
+/* #name=GRAPH9
+ * #embedsc=1
+ * #sn=1
+ * #connm=1
+ * #diamm=2
+ * #fm=2
+ * #Deltam=6
+ * #deltam=2
+ * #fm=0
+ */
+a b c d e f g h END
+ac ae af 
+bd be bf 
+cd ch 
+de 
+ef eg eh 
+gh 
+END
+
+/* #name=GRAPH11FLAG
+ */
+a b c END
+ab ac 
+bc 
+END

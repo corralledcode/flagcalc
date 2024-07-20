@@ -1,15 +1,1485 @@
-
-/* #name=GRAPH9752
- * #tc=1
- * #ltc=0
- * #crNOT=1
- * #crAND=1
- * #bm=1
+/* #name=GRAPH0
  */
-a b c d e f g h END
-ah 
-bg bh 
-cf 
-dh 
-ef 
+a b c d e f g h i j k l END
+ae af ag ai al 
+bc bh bi 
+cg ci cl 
+de df dg dh dk dl 
+ei ej 
+fg fh fi fj fl 
+hi hj hk 
+ij ik il 
+jk 
+kl 
+END
+
+/* #name=GRAPH1
+ */
+a b c d e f g h i j k l END
+ab ac af ag ak al 
+bd bf bg bi bk 
+cd ch ci cj ck 
+df dh di 
+eg eh ek el 
+fh fi fk 
+gh gj gl 
+ik 
+kl 
+END
+
+/* #name=GRAPH2
+ */
+a b c d e f g h i j k l END
+ac ae af ah al 
+be bf bh bi bj bk 
+cf ci cj ck cl 
+de df dh di dl 
+ei ej ek 
+fh fk fl 
+gh gj gl 
+hi hj hl 
+ij 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH3
+ */
+a b c d e f g h i j k l END
+ad ah ai aj ak 
+bd be bf bi 
+ch cj ck 
+de df dj dk dl 
+ef eh el 
+fg fh fj fl 
+gh gi gk 
+hi hj hk 
+jk jl 
+END
+
+/* #name=GRAPH4
+ */
+a b c d e f g h i j k l END
+ab ae af ag aj al 
+bc bd bf bg bl 
+cg ch cj cl 
+de dk dl 
+ef eh ei 
+fg fh fj fk 
+gi gj 
+hj 
+ij ik 
+jk 
+END
+
+/* #name=GRAPH5
+ */
+a b c d e f g h i j k l END
+ad ae ag al 
+bc be bj bl 
+cd ce cf ch cl 
+di 
+ef eg ei ek 
+gh gi gj gl 
+hl 
+ij ik il 
+kl 
+END
+
+/* #name=GRAPH6
+ */
+a b c d e f g h i j k l END
+ac ad ag ah 
+bh bi bj bk bl 
+cf ch ci cj cl 
+de dh di dl 
+eg ej ek el 
+fk 
+gi gk gl 
+hj hl 
+jk 
+END
+
+/* #name=GRAPH7
+ */
+a b c d e f g h i j k l END
+af aj al 
+bc be bf bg bi bj 
+ch cj cl 
+df dg di dl 
+eg ej ek 
+fg fh fj 
+gh gi gj gk gl 
+hk 
+ik 
+kl 
+END
+
+/* #name=GRAPH8
+ */
+a b c d e f g h i j k l END
+ae af ag ah aj al 
+bc bd be bf bh bi bl 
+cf ch cj ck 
+dg dh di 
+ef ej ek 
+fg fh fl 
+gh gj 
+hi hj hk 
+ij il 
+jk 
+kl 
+END
+
+/* #name=GRAPH9
+ */
+a b c d e f g h i j k l END
+ab ad ae af al 
+bc be bf bg bi bk bl 
+ce cg ch ck 
+de dg dl 
+ek 
+fh fi fk fl 
+gi gj 
+hk 
+il 
+END
+
+/* #name=GRAPH10
+ */
+a b c d e f g h i j k l END
+ac ad ag ai 
+bk 
+cd ce ck 
+dg dh dl 
+ef eg ei 
+fh fj fl 
+gh gi gj gl 
+hk hl 
+ij il 
+jk 
+kl 
+END
+
+/* #name=GRAPH11
+ */
+a b c d e f g h i j k l END
+ac ad ae ah aj 
+bc bj bk bl 
+cd ce cg ci cl 
+df dg dk dl 
+ef eh ej 
+fh 
+gl 
+hk hl 
+jk 
+kl 
+END
+
+/* #name=GRAPH12
+ */
+a b c d e f g h i j k l END
+ac ad ai 
+bf bg bj bl 
+cg ci 
+de dg dh di dj dk 
+eg ek el 
+fg 
+gj 
+ij ik 
+jl 
+kl 
+END
+
+/* #name=GRAPH13
+ */
+a b c d e f g h i j k l END
+ac ai ak al 
+bd bf bg bh bj bk 
+cd cg cj ck 
+dk 
+ef ej el 
+fg fh fk 
+gh gi gk gl 
+hi hj 
+ij ik 
+jk 
+END
+
+/* #name=GRAPH14
+ */
+a b c d e f g h i j k l END
+ab ac ad af ag aj ak al 
+bc bi bj bk 
+cd cg 
+de dg di 
+fh fk 
+gi gj gk gl 
+ij il 
+jl 
+END
+
+/* #name=GRAPH15
+ */
+a b c d e f g h i j k l END
+ac ad ae af ai aj ak 
+bd be bf bj bl 
+cf ch ck cl 
+de df dg 
+ef eg ek el 
+fg fh fi fl 
+gh gj gk 
+hi hj 
+kl 
+END
+
+/* #name=GRAPH16
+ */
+a b c d e f g h i j k l END
+ac ah ak 
+be bf bg bl 
+ce cg cj ck cl 
+dk 
+eg eh ei ej ek 
+fj fk 
+gj 
+hi hj 
+ij ik il 
+jk 
+END
+
+/* #name=GRAPH17
+ */
+a b c d e f g h i j k l END
+ad ae ah ai aj ak 
+bd bg bh bj bl 
+cd cf ci cj 
+df dl 
+eg ej el 
+fg fl 
+gh gj gl 
+hi 
+ij ik 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH18
+ */
+a b c d e f g h i j k l END
+ab af ag ah aj ak al 
+be bg bh bi bk 
+cd ce cg ch ci ck cl 
+df dj 
+eg ei ej el 
+fi fj fl 
+gh gi gj 
+hi 
+ij il 
+kl 
+END
+
+/* #name=GRAPH19
+ */
+a b c d e f g h i j k l END
+ac ad ae af ag ah aj ak 
+bc be bf bg bi bl 
+ce cf cj 
+de dh dj 
+ei ej ek el 
+fk 
+gh gl 
+ij 
+jl 
+kl 
+END
+
+/* #name=GRAPH20
+ */
+a b c d e f g h i j k l END
+ae ag 
+bc bd be bf bh bk bl 
+cg ch ck cl 
+df dh di dj 
+eg ei ek el 
+fh fi fj fk fl 
+gi 
+hj hl 
+ij il 
+jl 
+END
+
+/* #name=GRAPH21
+ */
+a b c d e f g h i j k l END
+ac ad ag ai 
+be bf bg bh bi bk bl 
+ce ci ck 
+dg dk dl 
+eg ej ek 
+fh fl 
+gh gi gj 
+hi hj 
+ij 
+END
+
+/* #name=GRAPH22
+ */
+a b c d e f g h i j k l END
+ad ae af ai ak 
+bd be bi bl 
+cd 
+dh di dj 
+eg eh ei ej 
+fg fi fj 
+gj gk 
+hj 
+jk 
+END
+
+/* #name=GRAPH23
+ */
+a b c d e f g h i j k l END
+ae ai aj ak al 
+bd bk 
+cd cg ci ck cl 
+df dg di dj dk 
+eg ei ej ek 
+fj fk fl 
+gi 
+hj hl 
+ik 
+jl 
+kl 
+END
+
+/* #name=GRAPH24
+ */
+a b c d e f g h i j k l END
+ab ad ah al 
+be bg 
+ce ch ci cj cl 
+de df dg dj 
+eg ej ek 
+fh 
+gj 
+hi hj hk 
+ij 
+jl 
+kl 
+END
+
+/* #name=GRAPH25
+ */
+a b c d e f g h i j k l END
+ab ag ah ai al 
+bf bg bk 
+ce cf cj cl 
+dg dh dj dk dl 
+eg ej el 
+fi fk fl 
+gi gj gk 
+hj hl 
+il 
+jl 
+END
+
+/* #name=GRAPH26
+ */
+a b c d e f g h i j k l END
+ae af ai aj ak al 
+be bf bi bl 
+ck 
+de di dj dk dl 
+ei ej el 
+fh fj fl 
+gj gk 
+hj hk 
+ij ik il 
+jk 
+END
+
+/* #name=GRAPH27
+ */
+a b c d e f g h i j k l END
+ac ad ae ag ah 
+bg bi 
+ce cf cj 
+dg dh dk dl 
+ef eg ej ek el 
+fg fi fj 
+gh gi gk 
+hi hk 
+ik 
+jk jl 
+END
+
+/* #name=GRAPH28
+ */
+a b c d e f g h i j k l END
+ab ae ag ah 
+bd be bh bi bj bk bl 
+ck 
+de dj dk 
+eg eh ek el 
+fl 
+gl 
+hl 
+ik 
+jl 
+END
+
+/* #name=GRAPH29
+ */
+a b c d e f g h i j k l END
+ac ad ag al 
+be bl 
+cd ck 
+di dj dk dl 
+eh ej ek el 
+fh fj fl 
+gh gi gk 
+hi hk hl 
+il 
+jk 
+kl 
+END
+
+/* #name=GRAPH30
+ */
+a b c d e f g h i j k l END
+ae ah ai aj al 
+bc bj bk bl 
+cf cg ch ci ck 
+dh dj dl 
+ei ej ek 
+fh fi fk 
+gj gk 
+hk 
+ij 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH31
+ */
+a b c d e f g h i j k l END
+ab ag aj ak 
+bd bh bj bl 
+cd cg ci 
+df dh dl 
+eg ej el 
+fh fi fk fl 
+gh gj 
+hj hl 
+ij 
+kl 
+END
+
+/* #name=GRAPH32
+ */
+a b c d e f g h i j k l END
+ab ah ai aj ak al 
+bd bg bh bi bk bl 
+cf cg ci cj ck 
+de df dg dh dl 
+eh ei 
+fg fh 
+gi gj 
+hj hk hl 
+ik il 
+kl 
+END
+
+/* #name=GRAPH33
+ */
+a b c d e f g h i j k l END
+ad af ah ai ak al 
+bc bg bj 
+cd ce cf ci ck cl 
+de df dk 
+eh ei ej ek el 
+fk 
+gj 
+hi hj hk 
+ik il 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH34
+ */
+a b c d e f g h i j k l END
+ag ai 
+bc bd be bh bj bl 
+ce ch ci ck cl 
+dg dh dl 
+eg ei ek el 
+fj fl 
+gh gj 
+hi hk 
+ik il 
+jk jl 
+END
+
+/* #name=GRAPH35
+ */
+a b c d e f g h i j k l END
+ac af ah aj al 
+bd bf bg bh bi bj bk 
+ce ch ck 
+de dj 
+eg eh ej 
+fg fh fj fk 
+gi gj gl 
+hj hk 
+il 
+jl 
+kl 
+END
+
+/* #name=GRAPH36
+ */
+a b c d e f g h i j k l END
+ac ad ai aj ak 
+bg bh bi bj bk bl 
+cf ci 
+dg di 
+eg el 
+fi fl 
+gh gl 
+hi hj 
+ij 
+END
+
+/* #name=GRAPH37
+ */
+a b c d e f g h i j k l END
+ab ad ag ai 
+bc bd bj bk 
+cd cf ci ck 
+dg dh di dk 
+ef eg ej 
+fh fl 
+gh gi gk gl 
+hi hj hk 
+ij ik 
+jk jl 
+END
+
+/* #name=GRAPH38
+ */
+a b c d e f g h i j k l END
+ag ai 
+bc bf bh bj bk 
+cf cg cj ck cl 
+dh dl 
+ef ei ej ek el 
+fh fi fj 
+gh gi gj 
+hj hk 
+ij ik 
+END
+
+/* #name=GRAPH39
+ */
+a b c d e f g h i j k l END
+ai ak al 
+bd be bf bh bj bl 
+cf cj ck 
+de df dg dh di dj 
+eg ei ej 
+fh fj 
+gh gi 
+hj hl 
+ij 
+END
+
+/* #name=GRAPH40
+ */
+a b c d e f g h i j k l END
+ab ad ah ak 
+bf bg bi 
+ce cf cg ch cj cl 
+dg di dj dl 
+eg el 
+fg fi fk 
+gk gl 
+hj 
+jl 
+END
+
+/* #name=GRAPH41
+ */
+a b c d e f g h i j k l END
+ac ae ag ai 
+bc bd bg bj bk bl 
+ch ci 
+df dj dl 
+ef eh ej ek el 
+fg fh fi fj fk fl 
+gi gk gl 
+hl 
+ik 
+jk jl 
+END
+
+/* #name=GRAPH42
+ */
+a b c d e f g h i j k l END
+ag 
+bf bi bj bk 
+ce cf cg cj ck 
+de df dg dh di dj dk dl 
+eg eh ei el 
+fh fk 
+gi gl 
+hi hj hk 
+kl 
+END
+
+/* #name=GRAPH43
+ */
+a b c d e f g h i j k l END
+ac ae af aj al 
+bc bd bh bi bj bk 
+ce cg ch ci cj ck cl 
+dh dj dk 
+ef ej el 
+fj 
+gh gi gk gl 
+hl 
+ik 
+jl 
+kl 
+END
+
+/* #name=GRAPH44
+ */
+a b c d e f g h i j k l END
+ab ac ad ae af aj ak al 
+bc bd be bf bg bh bi 
+cf cg ck cl 
+de dh di dl 
+ef eg ek 
+fg fh fk fl 
+hi hk hl 
+il 
+kl 
+END
+
+/* #name=GRAPH45
+ */
+a b c d e f g h i j k l END
+ac ah ai al 
+be bk bl 
+ce ci cj 
+di 
+ef eg eh 
+gi gk 
+hj hk hl 
+ik 
+kl 
+END
+
+/* #name=GRAPH46
+ */
+a b c d e f g h i j k l END
+ab ae af ag 
+bc be bf bh bi bj bl 
+cg cj ck 
+df 
+ef eh ei el 
+fg fh fi fl 
+gi gj 
+ik il 
+jk 
+END
+
+/* #name=GRAPH47
+ */
+a b c d e f g h i j k l END
+af ag ai ak al 
+bd bg bh bj bk 
+cd ce cg ci cj cl 
+de df dk dl 
+eg eh ei 
+fj 
+gh gj gk gl 
+hj 
+ik il 
+jk 
+kl 
+END
+
+/* #name=GRAPH48
+ */
+a b c d e f g h i j k l END
+ab ad ae ag ai 
+bc be bg bi bk 
+ce ci cj cl 
+dh dk 
+eg eh ei ej ek el 
+fg fh fk fl 
+gh gi gk 
+hi 
+END
+
+/* #name=GRAPH49
+ */
+a b c d e f g h i j k l END
+ac af ag ah aj ak 
+bd bg bh bi bj bl 
+cd ce ci cl 
+de dg dh di dl 
+ej el 
+fh fi fk 
+gk 
+hj hl 
+ij 
+jl 
+END
+
+/* #name=GRAPH50
+ */
+a b c d e f g h i j k l END
+ad af ag ah aj ak 
+bd be bh 
+cd ce 
+df dg dj dk dl 
+ef ei el 
+fg fh fi fk fl 
+gj gk gl 
+hi hk 
+il 
+jl 
+END
+
+/* #name=GRAPH51
+ */
+a b c d e f g h i j k l END
+ab af ah ak 
+bc bd be bh 
+ce cf cj ck cl 
+df dg di dk dl 
+ef eh ek 
+fh fi fk fl 
+gj gl 
+hk 
+END
+
+/* #name=GRAPH52
+ */
+a b c d e f g h i j k l END
+ab ac ad af ai ak 
+bc bg bj bk 
+ce cg ck cl 
+de dh di 
+eg eh ei ek 
+fh fj fk fl 
+gj 
+ij ik 
+jk 
+END
+
+/* #name=GRAPH53
+ */
+a b c d e f g h i j k l END
+ab ak al 
+bc bd be bg bh bi bk bl 
+ce cf cg ch ci 
+df dh di dj dk dl 
+ef eh ej 
+fg fj fk 
+gi gj gk gl 
+hi hk 
+ij 
+jk jl 
+END
+
+/* #name=GRAPH54
+ */
+a b c d e f g h i j k l END
+ab ac ae ah aj al 
+be bf bg bi bk bl 
+ch ci cj cl 
+de dg di dl 
+eh ei ek 
+fh fi fk fl 
+gh gk 
+hk 
+ij 
+jk 
+END
+
+/* #name=GRAPH55
+ */
+a b c d e f g h i j k l END
+ab ad ae af ag al 
+bc bd be bf bg 
+cd cf cg ch 
+df di dj dk 
+eh ei ek 
+fg fh fi fj 
+gh 
+hk hl 
+ij ik il 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH56
+ */
+a b c d e f g h i j k l END
+ac ae ai 
+bf bi bj 
+cd ce cg ck 
+de dg dh di 
+ef eg ej 
+fj fk fl 
+hl 
+ij il 
+jk 
+END
+
+/* #name=GRAPH57
+ */
+a b c d e f g h i j k l END
+ab ac af ah aj ak 
+be 
+cd ce ch ck 
+de df dg dj dk 
+eg ei el 
+fh fi fj fl 
+gk 
+ik 
+jk 
+END
+
+/* #name=GRAPH58
+ */
+a b c d e f g h i j k l END
+ab ad ae af ag aj 
+bc bd bh bi bk bl 
+ce ch ci cj ck cl 
+dg di dj dk 
+ef eg eh ei ej ek 
+fh fl 
+gi gk 
+hi hj 
+ij il 
+jk 
+END
+
+/* #name=GRAPH59
+ */
+a b c d e f g h i j k l END
+af ai aj ak 
+bi bl 
+cd ce cf ci 
+de dg di dj dk 
+ef eh ek el 
+fg fj fl 
+gh gk gl 
+hk 
+ij ik il 
+jk 
+kl 
+END
+
+/* #name=GRAPH60
+ */
+a b c d e f g h i j k l END
+ab ad af ag ah aj al 
+bd bf bg bj 
+ce cg ch cl 
+de dg dh dj dk 
+ei el 
+gh gj 
+hi hl 
+ij 
+jk jl 
+END
+
+/* #name=GRAPH61
+ */
+a b c d e f g h i j k l END
+ab ac af ai al 
+bd bi bj bl 
+cd ce ci ck cl 
+dg dj 
+eg eh ek el 
+fj fl 
+gh gj 
+hi 
+jk 
+END
+
+/* #name=GRAPH62
+ */
+a b c d e f g h i j k l END
+ab ag ai aj ak al 
+be bi bk 
+cd cf cg ci cl 
+de df dg dj dl 
+eg ei 
+fl 
+gj gk gl 
+hj hk 
+il 
+jk jl 
+END
+
+/* #name=GRAPH63
+ */
+a b c d e f g h i j k l END
+ab ad ai ak al 
+bd be bg bi bk bl 
+ce cf cg ch ci cj ck cl 
+de dj dk 
+ef ej ek el 
+fg fh fi fj fk 
+gh gi gj 
+hk hl 
+jk 
+END
+
+/* #name=GRAPH64
+ */
+a b c d e f g h i j k l END
+ab ac ad ae af ai aj ak 
+bc bd be bh bi bk 
+cg ch ci cj ck cl 
+de dg di 
+ef eg eh ej el 
+fg fh fi fj 
+gh gk gl 
+hi hj hk 
+ij 
+kl 
+END
+
+/* #name=GRAPH65
+ */
+a b c d e f g h i j k l END
+ah ak al 
+bf bj bk 
+cd cf ck cl 
+dg dj 
+ef eg ej el 
+fk 
+gh gi gk 
+hi hk hl 
+jk 
+END
+
+/* #name=GRAPH66
+ */
+a b c d e f g h i j k l END
+ac af ag aj al 
+bg bi bj bl 
+cd ce ch ci cj ck cl 
+de dg dj 
+ei 
+fi fl 
+gi gk 
+hj hk 
+il 
+jl 
+END
+
+/* #name=GRAPH67
+ */
+a b c d e f g h i j k l END
+ab ac ae 
+bc be bf bh bk bl 
+cf ch cj cl 
+de di dk dl 
+ef ei el 
+fg fh fi fj fk 
+gh gk 
+hi hk 
+ik 
+jk jl 
+END
+
+/* #name=GRAPH68
+ */
+a b c d e f g h i j k l END
+ab ad ag ah ai aj 
+bg bi 
+cd ce cf cg ch cj cl 
+de df dh dl 
+ef eh ek el 
+fh fl 
+gh gk gl 
+hi hl 
+ij ik 
+kl 
+END
+
+/* #name=GRAPH69
+ */
+a b c d e f g h i j k l END
+ac ad af ai al 
+bd be bf bl 
+cd ce cg ch ci ck 
+dj dk dl 
+ef ej ek 
+fh fj fk fl 
+gk gl 
+hi hj hl 
+ij ik 
+jk jl 
+END
+
+/* #name=GRAPH70
+ */
+a b c d e f g h i j k l END
+ab ac ad ae af ak al 
+bd bg bh bj bk bl 
+cd cf ch 
+df dj 
+ef eh ek 
+fg fk 
+gh gk gl 
+hi hk hl 
+ij ik il 
+jk 
+END
+
+/* #name=GRAPH71
+ */
+a b c d e f g h i j k l END
+af ak al 
+bc bd bg bh bk 
+ce cf ch ci ck 
+de 
+ef eh ej 
+fg fk 
+gi gj 
+hl 
+ij ik 
+kl 
+END
+
+/* #name=GRAPH72
+ */
+a b c d e f g h i j k l END
+ab ag aj al 
+be bf bi bj 
+cd ch ci cl 
+de dh dj 
+eg eh ej 
+fg fj fk 
+gi gl 
+hi hk hl 
+ik il 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH73
+ */
+a b c d e f g h i j k l END
+ab ad ae ah ak al 
+bh bj bk bl 
+cg ch cj 
+dh di 
+eh ej ek el 
+fg 
+gh gj gk gl 
+hl 
+ij ik 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH74
+ */
+a b c d e f g h i j k l END
+ab ac ah aj ak al 
+bc be bg bh bi bj 
+cf cg cl 
+dg 
+ef el 
+fg 
+hj hl 
+il 
+kl 
+END
+
+/* #name=GRAPH75
+ */
+a b c d e f g h i j k l END
+ac ae af ah ai aj 
+bc be bf bh 
+cg cj ck 
+df 
+ek 
+fg fi fl 
+gj gk gl 
+hl 
+jl 
+END
+
+/* #name=GRAPH76
+ */
+a b c d e f g h i j k l END
+ae af ag ai 
+bf bh bk bl 
+cd ce ch ci cl 
+de df dg dh di 
+ef ek el 
+fg fl 
+gh gj gl 
+hj hk hl 
+ij 
+jl 
+END
+
+/* #name=GRAPH77
+ */
+a b c d e f g h i j k l END
+ab ac ad aj ak al 
+bc bd bf bg bh bk 
+cd cg cj ck 
+de dk dl 
+eg ei ej ek 
+fj fl 
+gi gl 
+hk hl 
+ik il 
+jl 
+END
+
+/* #name=GRAPH78
+ */
+a b c d e f g h i j k l END
+ad ae ag ah ai aj ak al 
+bc be bf bh bi bl 
+cd cg ch ci 
+de dg dh di 
+ef eg ek el 
+fg fj 
+gi gj 
+hi hj 
+ik il 
+jk 
+kl 
+END
+
+/* #name=GRAPH79
+ */
+a b c d e f g h i j k l END
+ab ac ad ag ai al 
+be bg bj 
+cd ce cf cg cj ck 
+dg dh di dl 
+ef eg eh ej 
+fh fi fl 
+gh gi gj gk gl 
+hi hj 
+ij 
+jl 
+END
+
+/* #name=GRAPH80
+ */
+a b c d e f g h i j k l END
+af ag aj ak 
+bd bf bj 
+cf cj ck cl 
+de df dg dj 
+ef ei el 
+fh fj fk 
+gi 
+hi 
+ij 
+END
+
+/* #name=GRAPH81
+ */
+a b c d e f g h i j k l END
+ac ae af ag 
+bd bf bg bk bl 
+ce cf cg ch cj ck cl 
+df dh dk 
+eg ei ek el 
+fj fk 
+gh gi 
+hj hk 
+ij 
+jl 
+kl 
+END
+
+/* #name=GRAPH82
+ */
+a b c d e f g h i j k l END
+ac ai aj al 
+bk bl 
+cd cg ch cj ck cl 
+de df dg dh dk 
+eg ei el 
+fi fj fl 
+gh gi gj gk gl 
+hi hj hk hl 
+ik il 
+jk jl 
+END
+
+/* #name=GRAPH83
+ */
+a b c d e f g h i j k l END
+ab ac ad ak al 
+bd bf bg bj 
+ci ck 
+de dh dj dk 
+eg ek el 
+fj fl 
+gh gj gk gl 
+hk hl 
+jk 
+END
+
+/* #name=GRAPH84
+ */
+a b c d e f g h i j k l END
+ab af ag ah aj ak 
+bd bf bj bl 
+cf cj ck cl 
+df dh dj dk 
+ef eg eh ei ek 
+fg fi fl 
+gh gi gk gl 
+ij 
+jl 
+END
+
+/* #name=GRAPH85
+ */
+a b c d e f g h i j k l END
+ab af aj 
+bc bh bi bj bk 
+ce cg ch cj ck cl 
+de df di 
+eg eh ei el 
+fg fj fk 
+gh gi 
+hj hk hl 
+ij ik il 
+jk 
+kl 
+END
+
+/* #name=GRAPH86
+ */
+a b c d e f g h i j k l END
+ab ac ai aj al 
+be bf bj 
+ce cg ci cl 
+df dg dh di dj dk 
+ef eh ek 
+fi 
+gi 
+hi hj hk 
+il 
+jl 
+kl 
+END
+
+/* #name=GRAPH87
+ */
+a b c d e f g h i j k l END
+af al 
+bf bj bk 
+cd ce cf ci ck 
+de df dg 
+ef eh ei ej 
+fh fi fj 
+gj 
+hl 
+ik il 
+jk 
+END
+
+/* #name=GRAPH88
+ */
+a b c d e f g h i j k l END
+ab ac ae af ag ai ak al 
+bc bf bk 
+cd cf cg ci 
+df di dk dl 
+ef eg eh ei el 
+fh fi 
+gl 
+ij il 
+jl 
+END
+
+/* #name=GRAPH89
+ */
+a b c d e f g h i j k l END
+ad ae ag al 
+bf bg bi bk 
+cg ci cl 
+de dh di dj 
+ef eh ej 
+fi fk fl 
+gj 
+hk 
+il 
+jl 
+kl 
+END
+
+/* #name=GRAPH90
+ */
+a b c d e f g h i j k l END
+ab ac af al 
+bc bd be bi bj bl 
+cj ck 
+de df dg dh dk dl 
+ej 
+fh fk fl 
+gh gi gl 
+hk hl 
+ij 
+jl 
+END
+
+/* #name=GRAPH91
+ */
+a b c d e f g h i j k l END
+ab ac ad ae af ag ah ai 
+bc bf bj bk bl 
+cd ch cj cl 
+df dj 
+eg ei 
+fh fk 
+gh gi gl 
+hj hk hl 
+ij ik 
+jk 
+kl 
+END
+
+/* #name=GRAPH92
+ */
+a b c d e f g h i j k l END
+af ah aj 
+bh bj bk bl 
+cf ch cj 
+dh di dk 
+ef eg eh 
+fg fh fj fl 
+gi gj 
+hj 
+ij ik 
+jk jl 
+END
+
+/* #name=GRAPH93
+ */
+a b c d e f g h i j k l END
+ac ad af ag ah 
+bc bf bl 
+ch ci cj 
+dj dl 
+ef ek 
+fg fj 
+gh gl 
+hj hk 
+ik il 
+END
+
+/* #name=GRAPH94
+ */
+a b c d e f g h i j k l END
+ad ag ai aj ak al 
+bd be bf bg bh bi 
+ce ch 
+de dg di dk dl 
+eh ek 
+fh fi fj fl 
+gh gj 
+hi hl 
+ik il 
+jk 
+END
+
+/* #name=GRAPH95
+ */
+a b c d e f g h i j k l END
+ab ac ae ag ah ai al 
+bd be bg bh bi bk 
+ce cg ch cj ck cl 
+de di dk 
+eg 
+fi fk 
+hi 
+ij il 
+jl 
+END
+
+/* #name=GRAPH96
+ */
+a b c d e f g h i j k l END
+ab ad ae af aj 
+be bg bj bk bl 
+cg cj ck cl 
+df dh 
+eg eh ej el 
+fg fj 
+gk 
+hi hj hk hl 
+ik il 
+jk 
+END
+
+/* #name=GRAPH97
+ */
+a b c d e f g h i j k l END
+ab ac ad ah al 
+be bf bj 
+cf ck cl 
+de df 
+ef eh ek el 
+fg fk fl 
+gh gl 
+hk 
+ij il 
+jk 
+kl 
+END
+
+/* #name=GRAPH98
+ */
+a b c d e f g h i j k l END
+ab ad ah 
+bd bg bh bi bj bk bl 
+cd ce cf ch cj ck 
+dg dh di dk 
+ef el 
+fg fh fj fk fl 
+gi gj gk 
+hl 
+jk jl 
+kl 
+END
+
+/* #name=GRAPH99
+ */
+a b c d e f g h i j k l END
+ac ag aj 
+bf bh bl 
+cf cg ci cj ck cl 
+df dg di dj dk 
+eg ej ek el 
+fg fh fi 
+gh gi gj 
+hj 
+ij 
+jl 
 END

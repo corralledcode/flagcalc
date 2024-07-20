@@ -1,23 +1,80 @@
-GRAPH GRAPH0:
-GRAPH0, dim==10, edgecount==23
-GRAPH GRAPH1:
-GRAPH1, dim==10, edgecount==17
-GRAPH GRAPH2:
-GRAPH2, dim==10, edgecount==15
-GRAPH GRAPH3:
-GRAPH3, dim==10, edgecount==20
-GRAPH GRAPH4:
-GRAPH4, dim==10, edgecount==15
-GRAPH GRAPH5:
-GRAPH5, dim==10, edgecount==22
-GRAPH GRAPH6:
-GRAPH6, dim==10, edgecount==24
-GRAPH GRAPH7:
-GRAPH7, dim==10, edgecount==23
-GRAPH GRAPH8:
-GRAPH8, dim==10, edgecount==20
-GRAPH GRAPH9:
-GRAPH9, dim==10, edgecount==21
-CMPFINGERPRINTS CMPFINGERPRINTS0:
-Ordered, with pairwise results: GRAPH2 < GRAPH1 < GRAPH4 < GRAPH8 < GRAPH3 < GRAPH9 < GRAPH7 < GRAPH6 < GRAPH5 < GRAPH0 
-NO fingerprints match
+
+/* #name=GRAPH288
+ * #cr3=1
+ * #gm=3
+ * #adm=2
+ */
+a b c d e f g h i j k l END
+ag ak 
+bf bj bl 
+cl 
+de df di dl 
+eh 
+fi 
+gj gl 
+hk 
+kl 
+END
+
+/* #name=GRAPH356
+ * #cr3=1
+ * #gm=3
+ * #adm=2
+ */
+a b c d e f g h i j k l END
+ab af aj 
+bc bi bk 
+ce 
+dh di 
+eg ek el 
+fg fj 
+gj 
+hl 
+END
+
+/* #name=GRAPH548
+ * #cr3=1
+ * #gm=3
+ * #adm=2
+ */
+a b c d e f g h i j k l END
+ab af ah 
+bg 
+cd cg ck 
+dj dk 
+ef ei el 
+fh 
+gl 
+hi 
+ij 
+jk 
+END
+
+/* #name=GRAPH556
+ * #cr3=1
+ * #gm=3
+ * #adm=2
+ */
+a b c d e f g h i j k l END
+ab aj al 
+bf 
+ce cf 
+dh di dk dl 
+eg ek 
+gh 
+hi hk 
+END
+
+/* #name=GRAPH781
+ * #cr3=1
+ * #gm=4
+ * #adm=2
+ */
+a b c d e f g h i j k l END
+ah ak al 
+bf bi 
+cd cj cl 
+de dk 
+fh fl 
+ij il 
+END
