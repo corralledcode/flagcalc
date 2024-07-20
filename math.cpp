@@ -588,8 +588,8 @@ valms evalformula::eval(const formulaclass& fc)
         case mtdiscrete:
             switch (resright.t)
             {
-                case mtbool: res.v.bv = eval2ary<bool,int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
-                    res.t = mtbool;
+                case mtbool: res.v.iv = eval2ary<int,int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+                    res.t = mtdiscrete;
                     break;
                 case mtdiscrete: if (fc.fo != formulaoperator::fodivide)
                 {
@@ -609,11 +609,11 @@ valms evalformula::eval(const formulaclass& fc)
         case mtcontinuous:
             switch (resright.t)
             {
-                case mtbool: res.v.bv = eval2ary<bool,double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
-                    res.t = mtbool;
+                case mtbool: res.v.dv = eval2ary<double,double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+                    res.t = mtcontinuous;
                     break;
-                case mtdiscrete: res.v.iv = eval2ary<int,double,int>(resleft.v.dv,resright.v.iv,fc.fo);
-                    res.t = mtdiscrete;
+                case mtdiscrete: res.v.dv = eval2ary<double,double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+                    res.t = mtcontinuous;
                     break;
                 case mtcontinuous: res.v.dv = eval2ary<double,double,double>(resleft.v.dv,resright.v.dv,fc.fo);
                     res.t = mtcontinuous;
