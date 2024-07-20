@@ -480,7 +480,7 @@ valms evalformula::eval(const formulaclass& fc)
 
 
     if ((fc.fo == formulaoperator::foliteral) || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
-       if (fc.v.lit.ps.empty())
+       /*if (fc.v.lit.ps.empty())
        {
            if (fc.v.lit.l >= 0 && fc.v.lit.l < literals->size()) {
                res = (*literals)[fc.v.lit.l];
@@ -494,13 +494,13 @@ valms evalformula::eval(const formulaclass& fc)
                    return res;
                }
            }
-       } else {
+       } else {*/
            std::vector<valms> ps {};
            for (auto f : fc.v.lit.ps) {
                ps.push_back(eval(*f));
            }
            res = evalpslit(fc.v.lit.l,ps);
-        }
+        //}
         return res;
     }
 
@@ -763,7 +763,13 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
                     }
                     output.push_back(ostok);
                     operatorstack.resize(operatorstack.size()-1);
-                    ostok = operatorstack[operatorstack.size()-1];
+                    if (operatorstack.size() >= 1)
+                        ostok = operatorstack[operatorstack.size()-1];
+                    else
+                    {
+                        std::cout << "Error mismatched parentheses\n";
+                        return output;
+                    }
                 }
                 if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
                     std::cout << "Error mistmatched parentheses\n";
@@ -772,8 +778,11 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
                 operatorstack.resize(operatorstack.size()-1);
                 if (operatorstack.size() > 0) {
                     ostok = operatorstack[operatorstack.size()-1];
-                    output.push_back(ostok);
-                    operatorstack.resize(operatorstack.size()-1);
+                    if (is_function(ostok))
+                    {
+                        output.push_back(ostok);
+                        operatorstack.resize(operatorstack.size()-1);
+                    }
                 }
             }
             continue;
@@ -781,7 +790,7 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
     }
     while (operatorstack.size()> 0) {
         std::string ostok = operatorstack[operatorstack.size()-1];
-        if (ostok == "(" || ostok == ")") {
+        if (ostok == "(") {
             std::cout << "Error mismatched parentheses\n";
             return output;
         }

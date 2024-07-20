@@ -533,8 +533,10 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
     {
     case mtbool:
         tmpps = a.a.cs->ps;
+        break;
     case mtdiscrete:
         tmpps = a.a.ts->ps;
+        break;
     case mtcontinuous:
         tmpps = a.a.ms->ps;
     }
