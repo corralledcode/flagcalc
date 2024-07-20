@@ -1620,6 +1620,10 @@ public:
 };
 
 
+
+
+
+
 class abstractcheckcriterionfeature : public feature {
 protected:
 
@@ -1639,27 +1643,27 @@ public:
 
         // add any new criterion types to the list here...
 
-        auto (*c1) = *critfactory<truecrit>;
-        auto (*cr1) = *critfactory<trianglefreecrit>;
-        auto (*fc) = *critfactory<forestcrit>;
-        auto (*tc) = *critfactory<treecrit>;
-        auto (*kn) = *critfactory<knpcrit>;
-        auto (*connc) = critfactory<connectedcrit>;
-        auto (*radiusc) = critfactory<radiuscrit>;
-        auto (*circc) = critfactory<circumferencecrit>;
-        auto (*diamc) = critfactory<diametercrit>;
-        auto (*conn1c) = critfactory<connected1crit>;
+        auto (c1) = critfactory<truecrit>;
+        auto (cr1) = critfactory<trianglefreecrit>;
+        auto (fc) = critfactory<forestcrit>;
+        auto (tc) = critfactory<treecrit>;
+        auto (kn) = critfactory<knpcrit>;
+        auto (connc) = critfactory<connectedcrit>;
+        auto (radiusc) = critfactory<radiuscrit>;
+        auto (circc) = critfactory<circumferencecrit>;
+        auto (diamc) = critfactory<diametercrit>;
+        auto (conn1c) = critfactory<connected1crit>;
 
-        crsfactory.push_back(*c1);
-        crsfactory.push_back(*cr1);
-        crsfactory.push_back(*fc);
-        crsfactory.push_back(*tc);
-        crsfactory.push_back(*kn);
-        crsfactory.push_back(*connc);
-        crsfactory.push_back(*radiusc);
-        crsfactory.push_back(*circc);
-        crsfactory.push_back(*diamc);
-        crsfactory.push_back(*conn1c);
+        crsfactory.push_back(c1);
+        crsfactory.push_back(cr1);
+        crsfactory.push_back(fc);
+        crsfactory.push_back(tc);
+        crsfactory.push_back(kn);
+        crsfactory.push_back(connc);
+        crsfactory.push_back(radiusc);
+        crsfactory.push_back(circc);
+        crsfactory.push_back(diamc);
+        crsfactory.push_back(conn1c);
 
 
         // ...
@@ -1673,35 +1677,35 @@ public:
 
         // add any new measure types to the list here...
 
-        auto (*ms1) = measfactory<boolmeas>;
-        auto (*ms2) = measfactory<dimmeas>;
-        auto (*ms3) = measfactory<edgecntmeas>;
-        auto (*ms4) = measfactory<avgdegreemeas>;
-        auto (*ms5) = measfactory<mindegreemeas>;
-        auto (*ms6) = measfactory<maxdegreemeas>;
-        auto (*ms7) = measfactory<legacygirthmeas>;
-        auto (*mc) = measfactory<maxcliquemeas>;
-        auto (*cnm) = measfactory<connectedmeas>;
-        auto (*rm) = measfactory<radiusmeas>;
-        auto (*circm) = measfactory<circumferencemeas>;
-        auto (*lcircm) = measfactory<legacycircumferencemeas>;
-        auto (*diamm) = measfactory<diametermeas>;
-        auto (*gm) = measfactory<girthmeas>;
+        auto (ms1) = measfactory<boolmeas>;
+        auto (ms2) = measfactory<dimmeas>;
+        auto (ms3) = measfactory<edgecntmeas>;
+        auto (ms4) = measfactory<avgdegreemeas>;
+        auto (ms5) = measfactory<mindegreemeas>;
+        auto (ms6) = measfactory<maxdegreemeas>;
+        auto (ms7) = measfactory<legacygirthmeas>;
+        auto (mc) = measfactory<maxcliquemeas>;
+        auto (cnm) = measfactory<connectedmeas>;
+        auto (rm) = measfactory<radiusmeas>;
+        auto (circm) = measfactory<circumferencemeas>;
+        auto (lcircm) = measfactory<legacycircumferencemeas>;
+        auto (diamm) = measfactory<diametermeas>;
+        auto (gm) = measfactory<girthmeas>;
 
-        mssfactory.push_back(*ms1);
-        mssfactory.push_back(*ms2);
-        mssfactory.push_back(*ms3);
-        mssfactory.push_back(*ms4);
-        mssfactory.push_back(*ms5);
-        mssfactory.push_back(*ms6);
-        mssfactory.push_back(*ms7);
-        mssfactory.push_back(*mc);
-        mssfactory.push_back(*cnm);
-        mssfactory.push_back(*rm);
-        mssfactory.push_back(*circm);
-        mssfactory.push_back(*lcircm);
-        mssfactory.push_back(*diamm);
-        mssfactory.push_back(*gm);
+        mssfactory.push_back(ms1);
+        mssfactory.push_back(ms2);
+        mssfactory.push_back(ms3);
+        mssfactory.push_back(ms4);
+        mssfactory.push_back(ms5);
+        mssfactory.push_back(ms6);
+        mssfactory.push_back(ms7);
+        mssfactory.push_back(mc);
+        mssfactory.push_back(cnm);
+        mssfactory.push_back(rm);
+        mssfactory.push_back(circm);
+        mssfactory.push_back(lcircm);
+        mssfactory.push_back(diamm);
+        mssfactory.push_back(gm);
 
         // ,,,
 
@@ -1712,9 +1716,9 @@ public:
 
         // add any new tally types to the list here...
 
-        auto (*Knt) = tallyfactory<Kntally>;
+        auto (Knt) = tallyfactory<Kntally>;
 
-        tysfactory.push_back(*Knt);
+        tysfactory.push_back(Knt);
 
 
         // ,,,

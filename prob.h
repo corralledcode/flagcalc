@@ -8,6 +8,7 @@
 #include <iostream>
 #include <random>
 #include <iostream>
+#include <string>
 
 #include "asymp.h"
 #include "graphs.h"
@@ -267,7 +268,7 @@ public:
         while (v2 == v1) {
             v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         }
-        bool visited[gptr->dim];
+        bool* visited = new bool[gptr->dim];
         for (vertextype i = 0; i < (gptr->dim); ++i) {
             visited[i]=false;
         }
@@ -305,6 +306,7 @@ public:
                 cnt--;
             }
         }
+        delete visited;
     }
 };
 
@@ -333,7 +335,7 @@ public:
         while (v2 == v1) {
             v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         }
-        bool visited[gptr->dim];
+        bool* visited = new bool[gptr->dim];
         for (vertextype i = 0; i < (gptr->dim); ++i) {
             visited[i]=false;
         }
@@ -369,6 +371,7 @@ public:
                 gptr->adjacencymatrix[candidatev2*(gptr->dim) + candidatev1] = true;
             }
         }
+        delete visited;
     }
 };
 
@@ -419,7 +422,7 @@ public:
         while (v2 == v1) {
             v2 = (vertextype)((double)dist10000(rng) * (double)(gptr->dim)/RANDOMRANGEdouble);
         }
-        bool visited[gptr->dim];
+        bool* visited = new bool[gptr->dim];
         for (vertextype i = 0; i < (gptr->dim); ++i) {
             visited[i]=false;
         }
@@ -476,6 +479,7 @@ public:
 
             }
         }
+        delete visited;
     }
 
 };

@@ -44,14 +44,14 @@ void osadjacencymatrix( std::ostream &os, const graphtype* g );
 class neighbors {
 public:
     graphtype* g;
-    int dim;
+    const int dim;
     int* neighborslist;
     int* degrees;
     int maxdegree;
     int* nonneighborslist;
     bool computeneighborslist() {
         maxdegree = -1;
-        int nondegrees[dim];
+        int* nondegrees = new int[dim];
         for (int n = 0; n < dim; ++n) {
             degrees[n] = 0;
             for (int i = 0; i < dim; ++i) {
@@ -78,18 +78,19 @@ public:
                 return false;
             }
         }
+        delete nondegrees;
 
         return true;
     }
-    neighbors(graphtype* gin) {
+    neighbors(graphtype* gin) : dim{ gin->dim } {
         g = gin;
         if (g == nullptr) {
             std::cout << "Can't create a neighbor object with a null graph\n";
-            dim = 0;
+            //dim = 0;
             maxdegree=0;
             return;
         }
-        dim = g->dim;
+        //dim = g->dim;
         maxdegree = 0;
         neighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
         nonneighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));

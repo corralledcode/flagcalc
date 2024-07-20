@@ -970,7 +970,7 @@ inline int recursecircumferencemeas( int* path, int pathsize, bool* visited, con
     }
 
     int respl = 0;
-    int newpath[pathsize+1];
+    int* newpath = new int[pathsize+1];
     for (int j = 0; j < pathsize; ++j) {
         newpath[j] = path[j];
     }
@@ -995,6 +995,7 @@ inline int recursecircumferencemeas( int* path, int pathsize, bool* visited, con
         respl = (respl < newpl ? newpl : respl);
     }
     respl = respl == 2 ? 0 : respl;
+    delete newpath;
     return respl;
 }
 
@@ -1013,7 +1014,7 @@ inline int legacyrecursecircumferencemeas( int* path, int pathsize, const grapht
     int respl = 0;
     for (int i = 0; i < ns->degrees[path[pathsize-1]]; ++i ) {
         int newpl = 0;
-        int newpath[pathsize+1];
+        int* newpath = new int [pathsize+1];
         int newv = ns->neighborslist[path[pathsize-1]*g->dim + i];
         bool found = false;
         int j = 0;
@@ -1027,6 +1028,7 @@ inline int legacyrecursecircumferencemeas( int* path, int pathsize, const grapht
         } else
             newpl = pathsize-j + 1;
         respl = (respl < newpl ? newpl : respl);
+        delete newpath;
     }
     respl = respl == 2 ? 0 : respl;
     if (breaksize >= 3 && respl >= breaksize)
@@ -1052,10 +1054,12 @@ public:
         if (dim <= 0)
             return 0;
 
-        bool visited[g->dim];
+        bool* visited = new bool [g->dim];
         for (int i = 0; i < g->dim; ++i)
             visited[i] = false;
-        return recursecircumferencemeas(nullptr,0,visited,g,ns,breaksize);
+        auto res = recursecircumferencemeas(nullptr,0,visited,g,ns,breaksize);
+        delete visited;
+        return res;
     }
 };
 
@@ -1113,10 +1117,13 @@ public:
         if (dim <= 0)
             return 0;
 
-        bool visited[g->dim];
+        bool* visited = new bool[g->dim];
+//        memset(visited, false, g->dim * sizeof(bool)); NO TIME RIGHT NOW TO TEST THIS SPEEDIER ALTERNATIVE
         for (int i = 0; i < g->dim; ++i)
             visited[i] = false;
-        return recursecircumferencemeas(nullptr,0,visited,g,ns,breaksize) > breaksize;
+        auto res = recursecircumferencemeas(nullptr,0,visited,g,ns,breaksize) > breaksize;
+        delete visited;
+        return res;
     }
 
 };
@@ -1266,6 +1273,11 @@ public:
 
 };
 
+
+template<typename T> crit* critfactory(mrecords* recin)
+{
+    return new T(recin);
+}
 
 template<typename T> meas* measfactory(mrecords* recin)
 {

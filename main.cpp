@@ -58,10 +58,11 @@ int main(int argc, char* argv[]) {
             if (tmpv.size() > 0)
                 args.push_back(tmpv);
             tmpv.clear();
-            char longname[std::strlen(argv[i])];
+            char* longname = new char[std::strlen(argv[i])];
             std::strcpy( longname, &argv[i][2]);
             tmpv.push_back(longname);
             ++i;
+            delete longname;
         } else {
             if (std::strlen(argv[i])>0 && argv[i][0] == '-') {
                 if (tmpv.size() > 0)
