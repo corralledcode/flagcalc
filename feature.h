@@ -1737,8 +1737,10 @@ public:
         // add any new tally types to the list here...
 
         auto (Knt) = tallyfactory<Kntally>;
+        auto (cyclet) = tallyfactory<cycletally>;
 
         tysfactory.push_back(Knt);
+        tysfactory.push_back(cyclet);
 
 
         // ,,,

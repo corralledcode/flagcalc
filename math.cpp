@@ -754,8 +754,10 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
             operatorstack.push_back(tok);
         }
         if (tok == ")") {
-            if (operatorstack.size() >= 1) {
-                std::string ostok = operatorstack[operatorstack.size()-1];
+            std::string ostok;
+            if (operatorstack.size() >= 1)
+            {
+                ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "(") {
                     if (operatorstack.empty()) {
                         std::cout << "Error mismatched parentheses\n";
@@ -771,19 +773,29 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
                         return output;
                     }
                 }
-                if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
-                    std::cout << "Error mistmatched parentheses\n";
-                    return output;
+            }
+            if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
+                std::cout << "Error mistmatched parentheses\n";
+                return output;
+            }
+            operatorstack.resize(operatorstack.size()-1);
+            if (operatorstack.size() > 0) {
+                ostok = operatorstack[operatorstack.size()-1];
+                if (is_function(ostok))
+                {
+                    output.push_back(ostok);
+                    operatorstack.resize(operatorstack.size()-1);
+                    continue;
                 }
-                operatorstack.resize(operatorstack.size()-1);
-                if (operatorstack.size() > 0) {
-                    ostok = operatorstack[operatorstack.size()-1];
-                    if (is_function(ostok))
+                if (is_literal(ostok)) {
+                    if (litnumps[get_literal(ostok)] > 0)
                     {
                         output.push_back(ostok);
                         operatorstack.resize(operatorstack.size()-1);
+                        continue;
                     }
                 }
+
             }
             continue;
         }

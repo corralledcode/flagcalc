@@ -624,6 +624,75 @@ public:
 
 };
 
+class cycletally : public tally
+{
+public:
+    cycletally( mrecords* recin ) : tally (recin, "cyclet", "Number of cycles of length n")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        p1.v.iv = 0;
+        ps.push_back(p1);
+        pssz = 1;
+
+    }
+    int takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        int p;
+        if (ps.size() > 0)
+            switch (ps[0].t)
+            {
+        case mtcontinuous: p = (int)ps[0].v.dv; break;
+        case mtdiscrete: p = ps[0].v.iv; break;
+            }
+        else
+            p = 0;
+
+        int dim = g->dim;
+        if (dim < p)
+            return 0;
+
+        int numberofsubsets; // = nchoosek(dim2,dim1);
+        //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,p,nullptr,0,dim,&subsets);
+        numberofsubsets = subsets.size()/p;
+        /*if (numberofsubsets*dim1 != subsets.size()) {
+            std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
+            return false;
+        }*/
+        int cnt = 0;
+        for (int n = 0; n < numberofsubsets; ++n) {
+            bool res = true;
+            for (int i = 0; res && i < p-1; ++i) {
+                vertextype g2vertex1 = subsets[p*n + i];
+                vertextype g2vertex2 = subsets[p*n + i + 1];
+                res = res && g->adjacencymatrix[g2vertex1*dim + g2vertex2];
+            }
+            res = res && g->adjacencymatrix[subsets[p*n + 0]*dim + subsets[p*n + p-1]];
+            cnt += res ? 1 : 0;
+
+            // note this code obviously might be much faster
+            // when instead simply checking iso for the identity map
+            // (that is, allowing the subsets above to be a larger set
+            // that contains rearrangements of things already in the set)
+            //nstemp->computeneighborslist();
+
+            //res = res || existsiso( ns1, fp, nstemp );
+
+
+        }
+
+        //free(subsets);
+        return cnt;
+    }
+
+};
+
 
 class maxcliquemeas : public meas {
 public:
@@ -1139,7 +1208,7 @@ public:
         else
             p = 0;
 
-            breaksize = p;
+        breaksize = p;
 
         int dim = g->dim;
         if (dim <= 0)
