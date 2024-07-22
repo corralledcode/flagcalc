@@ -624,6 +624,50 @@ public:
 
 };
 
+
+
+inline int cyclesearch( const graphtype* g, const neighborstype* ns, int* path, bool* visited, int n, const int limit )
+{
+    // if (limit < 3)
+    // return;
+    const int dim = g->dim;
+
+    int res = 0;
+
+    if (n >= limit)
+    {
+        bool r = g->adjacencymatrix[path[0]*dim + path[n-1]];
+        // if (r)
+        // {
+            // for (int i = 0; i < n; ++i)
+                // std::cout << path[i] << "... ";
+            // std::cout << "\n";
+        // }
+        res = r ? 1 : 0;
+
+        return res;
+    }
+
+    int lastv = path[n-1];
+    int d = ns->degrees[lastv];
+    for (int i = 0; i < d; ++i )
+    {
+        int v = ns->neighborslist[lastv*dim + i];
+        if (!visited[v])
+        {
+            path[n] = v;
+            visited[v] = true;
+            int k = cyclesearch(g,ns,path,visited,n+1,limit);
+            res += k;
+            visited[v] = false;
+        }
+    }
+    return res;
+}
+
+
+
+
 class cycletally : public tally
 {
 public:
@@ -653,42 +697,25 @@ public:
             p = 0;
 
         int dim = g->dim;
-        if (dim < p)
+        if (dim < p || p < 3)
             return 0;
 
-        int numberofsubsets; // = nchoosek(dim2,dim1);
-        //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
-        std::vector<int> subsets {};
-        enumsizedsubsets(0,p,nullptr,0,dim,&subsets);
-        numberofsubsets = subsets.size()/p;
-        /*if (numberofsubsets*dim1 != subsets.size()) {
-            std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
-            return false;
-        }*/
-        int cnt = 0;
-        for (int n = 0; n < numberofsubsets; ++n) {
-            bool res = true;
-            for (int i = 0; res && i < p-1; ++i) {
-                vertextype g2vertex1 = subsets[p*n + i];
-                vertextype g2vertex2 = subsets[p*n + i + 1];
-                res = res && g->adjacencymatrix[g2vertex1*dim + g2vertex2];
-            }
-            res = res && g->adjacencymatrix[subsets[p*n + 0]*dim + subsets[p*n + p-1]];
-            cnt += res ? 1 : 0;
+        int* path = (int*)malloc(p*sizeof(int));
+        bool* visited = (bool*)malloc(dim*sizeof(bool));
+        memset(visited,0,dim*sizeof(bool));
 
-            // note this code obviously might be much faster
-            // when instead simply checking iso for the identity map
-            // (that is, allowing the subsets above to be a larger set
-            // that contains rearrangements of things already in the set)
-            //nstemp->computeneighborslist();
-
-            //res = res || existsiso( ns1, fp, nstemp );
-
-
+        int res = 0;
+        for (int startv = 0; startv < dim; ++startv)
+        {
+            path[0] = startv;
+            memset(visited,0,dim*sizeof(bool));
+            visited[startv] = true;
+            res += cyclesearch(g,ns,path,visited,1,p);
         }
 
-        //free(subsets);
-        return cnt;
+        delete path;
+        delete visited;
+        return res/(2*p);
     }
 
 };
