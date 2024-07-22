@@ -220,21 +220,16 @@ template<typename T>
 class precords : public records<T>
 {
 public:
-    struct Slookup
-    {
-        params* ps;
-        int* i;
-    };
     struct Sres
     {
-        int* i;
-        bool* b;
-        T* r;
+//        int* i; // params i
+        bool* b; // computed
+        T* r; // data
     };
 
-    int maxplookup = 0;
+    int* maxplookup;
     int blocksize = 25;
-    Slookup* plookup = nullptr;
+    params** plookup;
     Sres* pres = nullptr;
 
 
@@ -261,47 +256,41 @@ public:
     virtual void setsize(const int szin)
     {
 
-        plookup = {};
-        pres = {};
-        maxplookup = 0;
-
         this->sz = szin;
+        int s = pmsv->size();
+        plookup = (params**)malloc(s*szin*sizeof(params*));
+        pres = (Sres*)malloc(s*blocksize*sizeof(Sres));
+        maxplookup = (int*)malloc(s*szin*sizeof(int));
+        memset(maxplookup,0,s*szin*sizeof(int));
+        for (int i = 0; i < s; ++i)
+        {
+            for (int j = 0; j < szin; ++j) {
+                plookup[i*szin+j] = new params[blocksize]; //(params*)malloc(blocksize*sizeof(params));
 
-        if (plookup == nullptr)
-           setblocksize(blocksize);
+            }
+            if ((*pmsv)[i]->pssz > 0)
+            {
+                for (int k = 0; k < blocksize; ++k)
+                {
+                    pres[i*blocksize+k].b = (bool*)malloc(szin*sizeof(bool));
+                    pres[i*blocksize+k].r = (T*)malloc(szin*sizeof(T));
+                    memset(pres[i*blocksize+k].b,false,szin*sizeof(bool));
+                }
+            } else
+            {
+                pres[i].b = (bool*)malloc(szin*sizeof(bool));
+                pres[i].r = (T*)malloc(szin*sizeof(T));
+                memset(pres[i].b,false,szin*sizeof(bool));
+            }
+        }
     }
 
 
-    void setblocksize( const int newblocksize )
+    void setblocksize( const int iidx, const int newblocksize )
     {
 
         // add ability to copy existing data to the new blocks...
 
-        plookup = (Slookup*)malloc(pmsv->size()*sizeof(Slookup));
-        pres = (Sres*)malloc(pmsv->size()*sizeof(Sres));
-        for (int i = 0; i < pmsv->size(); ++i)
-        {
-            plookup[i].i = (int*)malloc(blocksize*sizeof(int));
-            plookup[i].ps = new params[blocksize]; //(params*)malloc(blocksize*sizeof(params));
-            memset(plookup[i].i,0,blocksize*sizeof(int));
-            pres[i].b = (bool*)malloc(this->sz*blocksize*sizeof(bool));
-            pres[i].r = (T*)malloc(this->sz*blocksize*sizeof(T));
-            pres[i].i = (int*)malloc(blocksize*sizeof(int));
-            memset(pres[i].b,false,this->sz*blocksize*sizeof(bool));
-            memset(pres[i].i, 0, blocksize*sizeof(int));
-        }
-    }
-
-    void addparams( const int iidx, const int m)
-    {
-        maxplookup = m;
-        int mult = 2;
-        if (m > blocksize)
-        {
-            while (blocksize*mult++ < m)
-                ;
-            setblocksize(blocksize*mult);
-        }
     }
 
     virtual T fetch(const int idx, const int iidx )
@@ -312,36 +301,56 @@ public:
     }
     virtual T fetch( const int idx, const int iidx, const params& ps)
     {
-        int i;
-        bool found = false;
-        for (i=1; !found && (i <= maxplookup); ++i)
-            found = found || (plookup[iidx].ps[i] == ps);
 
-        if (!found)
+        int i = 0;
+        bool found = false;
+        const int s = pmsv->size();
+        const int szin = this->sz;
+        if (ps.size() > 0)
+            for (i=1; !found && (i <= maxplookup[iidx * szin + idx]); ++i)
+                found = found || (plookup[iidx*szin + idx][i] == ps);
+        else
         {
-            i = ++maxplookup;
-            addparams(iidx,i);
-            plookup[iidx].ps[i] = ps;
-            plookup[iidx].i[i] = i;
-            // for (auto p : ps)
-            // {
-                // valms pcpy;
-                // pcpy.t = p.t;
-                // pcpy.v = p.v;
-                // plookup[iidx].ps[i].push_back(pcpy);
-            // }
+            i = 0;
+            found = true;
         }
-        found = false;
-        int j;
-        for( j = 0; !found && (j <= i); ++j)
-            found = found || (pres[iidx].i[j] == i);
-        if (!found || (found && !pres[iidx].b[j*this->sz + idx])) {
-            --j;
-            pres[iidx].i[j] = i;
-            pres[iidx].r[j*this->sz + idx] = (*this->pmsv)[iidx]->takemeas(idx,ps);
-            pres[iidx].b[j*this->sz + idx] = true;
+
+        if (i > 0)
+        {
+            if (!found)
+            {
+                i = (maxplookup[iidx * szin + idx])++;
+                if (i >= blocksize)
+                {
+                    std::cout << "Increase block size\n";
+                    return 0;
+                }
+                plookup[iidx*szin + idx]->resize(i+1);
+                plookup[iidx*szin + idx][i] = ps;
+                pres[iidx*blocksize + i].r[idx] = (*this->pmsv)[iidx]->takemeas(idx,ps);
+                pres[iidx*blocksize + i].b[idx] = true;
+            }
+            if (found)
+            {
+                if (!pres[iidx*blocksize + i].b[idx])
+                {
+                    pres[iidx*blocksize + i].r[idx] = (*this->pmsv)[iidx]->takemeas(idx,ps);
+                    pres[iidx*blocksize + i].b[idx] = true;
+                }
+
+            }
+            return pres[iidx*blocksize + i].r[idx];
+
+        } else
+        {
+            if (!pres[iidx].b[idx])
+            {
+                pres[iidx].r[idx] = (*this->pmsv)[iidx]->takemeas(idx,ps);
+                pres[iidx].b[idx] = true;
+            }
+            return pres[iidx].r[idx];
+
         }
-        return pres[iidx].r[j*this->sz + idx];
     }
 
     precords() : records<T>(), pmsv{new std::vector<pameas<T>*>} {}
@@ -349,18 +358,27 @@ public:
 
     ~precords()
     {
+
         // delete [] plookup;
-        // for (int i = 0; i < pmsv->size(); ++i)
+        // for (int s = 0; s < pmsv->size(); ++s)
         // {
-            // delete pres[i].b;
-            // delete pres[i].r;
-            // delete pres[i].i;
+            // for (int j = 0; j < blocksize; ++j) {
+                // delete pres[s*blocksize + j].b;
+                // delete pres[s*blocksize + j].r;
+            // }
+            // for (int m = 0; m < this->sz; ++m)
+            // {
+                // delete plookup[s*this->sz + m];
+            // }
         // }
         // delete pres;
+        // delete plookup;
+
+
 
         plookup = {};
         pres = {};
-        maxplookup = 0;
+        //maxplookup = 0;
         // for (auto m : *pmsv)
             // delete m;
         // delete pmsv;
@@ -374,21 +392,23 @@ class thrrecords : public precords<T>
 {
 public:
 
-    T fetch( const int idx, const int iidx ) override
-    {
-        return precords<T>::fetch(idx,iidx);
-    }
+    // T fetch( const int idx, const int iidx ) override
+    // {
+        // return precords<T>::fetch(idx,iidx);
+    // }
 
 
-    T fetch( const int idx, const int iidx, const params& ps) override
-    {
-        return precords<T>::fetch(idx,iidx,ps);
-    }
+    // T fetch( const int idx, const int iidx, const params& ps) override
+    // {
+        // return precords<T>::fetch(idx,iidx,ps);
+    // }
 
     virtual void threadfetch( const int startidx, const int stopidx, const int iidx, const params& ps)
     {
         for (int i = startidx; i < stopidx; ++i)
+        {
             this->fetch( i, iidx, ps);
+        }
     }
 
     virtual void threadfetchpartial( const int startidx, const int stopidx, const int iidx, const params& ps, std::vector<bool>* todo)
