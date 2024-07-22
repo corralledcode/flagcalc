@@ -837,7 +837,6 @@ public:
     connectedcrit( mrecords* recin ) : crit( recin, "connc", "Graph connected components less than criterion")
     {
         // the parameter is "less than" cutoff
-        params ps {};
         ps.clear();
         pssz = 1;
         valms p1;
@@ -869,7 +868,6 @@ public:
 
     connected1crit( mrecords* recin ) : crit( recin, "conn1c", "Graph 1-connected ")
     {
-        params ps {};
         ps.clear();
         pssz = 0;
     }
@@ -1017,7 +1015,6 @@ public:
     radiuscrit( mrecords* recin ) : crit( recin, "radiusc", "Radius less than criterion" )
     {
         // the parameter is "less than" cutoff
-        params ps {};
         ps.clear();
         pssz = 1;
         valms p1;
@@ -1036,7 +1033,7 @@ public:
         case mtdiscrete: p = (double)ps[0].v.iv; break;
         }
         auto rc = new radiusmeas( rec );
-        bool res = rc->takemeas(idx,ps) > p;
+        bool res = rc->takemeas(idx,ps) < p;
         delete rc;
         return res;
     }
@@ -1211,7 +1208,6 @@ public:
         : crit( recin, "circc", "Circumference greater than criterion" )
     {
         // the parameter is "greater than" cutoff
-        params ps {};
         ps.clear();
         pssz = 1;
         valms p1;
@@ -1377,7 +1373,6 @@ public:
     diametercrit( mrecords* recin ) : crit( recin, "diamc", "Diameter greater than criterion")
     {
         // the parameter is "greater than" cutoff
-        params ps {};
         ps.clear();
         pssz = 1;
         valms p1;
