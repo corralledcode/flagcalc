@@ -2218,6 +2218,7 @@ public:
         bool sortedverify = false;
         bool andmode = false;
         bool ormode = false;
+        bool takeallsubitems = false;
 
         sentences.clear();
         formulae.clear();
@@ -2247,6 +2248,12 @@ public:
             if ((parsedargs[i].first == "default") && (parsedargs[i].second == CMDLINE_ENUMISOSSORTED)) {
                 sortedbool = true;
                 takeallgraphitems = true;
+                continue;
+            }
+            if ((parsedargs[i].first == "default") && (parsedargs[i].second == CMDLINE_SUBOBJECTS)) {
+                sortedbool = false;
+                takeallgraphitems = false;
+                takeallsubitems = true;
                 continue;
             }
 
@@ -3135,9 +3142,12 @@ public:
                 std::vector<std::future<std::vector<workitems*>>> t;
                 t.resize(thread_count);
                 for (int m = 0; m < thread_count; ++m) {
+                    const int startidx = int(m*section);
+                    const int stopidx = int((m+1.0)*section);
+
                     t[m] = std::async(&populatesubobjectfeature::threadrandomgraphs,this,
                         rgs[rgsidx],i, gi,stoi(rgparams[0]),
-                        sois[i]->parentgi->g,&sois[i]->intvertices,section);
+                        sois[i]->parentgi->g,&sois[i]->intvertices,stopidx-startidx);
                 }
                 for (int m = 0; m < thread_count; ++m)
                 {
@@ -3321,7 +3331,10 @@ public:
         std::vector<std::future<int>> t;
         t.resize(thread_count);
         for (int m = 0; m < thread_count; ++m) {
-            t[m] = std::async(&samplerandomgraphsfeature::sampleobjectsrandom,this,&items,sm,section);
+            const int startidx = int(m*section);
+            const int stopidx = int((m+1.0)*section);
+
+            t[m] = std::async(&samplerandomgraphsfeature::sampleobjectsrandom,this,&items,sm,stopidx-startidx);
         }
         for (int m = 0; m < thread_count; ++m)
         {

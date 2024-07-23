@@ -44,6 +44,7 @@
 #define CMDLINE_ALL "all"
 #define CMDLINE_ENUMISOSSORTED "sorted"
 #define CMDLINE_ENUMISOSSORTEDVERIFY "sortedverify"
+#define CMDLINE_SUBOBJECTS "sub"
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
     std::string tmp2 = " " + s2 + " ";
