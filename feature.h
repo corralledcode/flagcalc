@@ -2973,6 +2973,8 @@ protected:
     std::vector<abstractsubobjectitem*> asois {};
     std::vector<abstractsubobjectitem*(*)(graphitem*,std::string)> asoifactory {};
     std::vector<abstractparameterizedsubrandomgraph*> rgs {};
+    std::vector<abstractsubobjectitem*> sois {};
+    std::vector<int> soistypes {};
 
 public:
     virtual void listoptions() override {
@@ -3022,12 +3024,25 @@ public:
         }
     }
 
+    std::vector<workitems*> threadrandomgraphs( abstractparameterizedsubrandomgraph* r, const int i, graphitem* gi, const int dim, graphtype* parentgi, std::vector<int>* subg, const int cnt)
+    {
+        std::vector<workitems*> res {};
+        auto g = r->randomgraphs(dim,parentgi,subg, cnt);
+        for (auto r : g)
+        {
+            auto s = (*asoifactory[soistypes[i]])(gi,sois[i]->str);
+            s->g = r;
+            s->ns = new neighborstype(r);
+            res.push_back(s);
+        }
+        return res;
+    }
+
 
     void execute(std::vector<std::string> args) override
     {
-        std::vector<abstractsubobjectitem*> sois {};
-        std::vector<int> soistypes {};
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+
 
         int rgsidx = -1;
         std::vector<std::string> rgparams {};
@@ -3110,14 +3125,27 @@ public:
         {
             for (int i = 0; i < sois.size(); ++i) {
                 rgs[rgsidx]->setparams(rgparams);
-                auto g =
-                    rgs[rgsidx]->randomgraphs(stoi(rgparams[0]),sois[i]->parentgi->g,&sois[i]->intvertices,stoi(rgparams[1]));
-                for (auto r : g)
+                int outof = stoi(rgparams[1]);
+
+                unsigned const thread_count = std::thread::hardware_concurrency();
+                //unsigned const thread_count = 1;
+
+                int cnt2 = 0;
+                const double section = double(outof) / double(thread_count);
+                std::vector<std::future<std::vector<workitems*>>> t;
+                t.resize(thread_count);
+                for (int m = 0; m < thread_count; ++m) {
+                    t[m] = std::async(&populatesubobjectfeature::threadrandomgraphs,this,
+                        rgs[rgsidx],i, gi,stoi(rgparams[0]),
+                        sois[i]->parentgi->g,&sois[i]->intvertices,section);
+                }
+                for (int m = 0; m < thread_count; ++m)
                 {
-                    auto s = (*asoifactory[soistypes[i]])(gi,sois[i]->str);
-                    s->g = r;
-                    s->ns = new neighborstype(r);
-                    _ws->items.push_back(s);
+                    auto w = t[m].get();
+                    for (auto r : w)
+                    {
+                        _ws->items.push_back(r);
+                    }
                 }
             }
         } else
@@ -3125,6 +3153,10 @@ public:
             for (int i = 0; i < sois.size(); ++i)
                 _ws->items.push_back(sois[i]);
         }
+        for (auto s : sois)
+            delete s;
+        sois.clear();
+        soistypes.clear();
     }
 };
 
