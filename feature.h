@@ -2631,9 +2631,24 @@ public:
            }
         }
 
-        if (!takeallgraphitems) {
+        if (takeallsubitems)
+        {
             int idx = _ws->items.size();
-            while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
+            while (idx > 0) {
+                idx--;
+                if (_ws->items[idx]->classname == "SUBOBJECT")  {
+                    items.push_back(idx);
+                    --numofitemstotake;
+
+                } else {
+                    //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
+                }
+            }
+        }
+
+        if (!takeallgraphitems && !takeallsubitems) {
+            int idx = _ws->items.size();
+            while (idx > 0 && (numofitemstotake > 0)) {
                 idx--;
                 if (_ws->items[idx]->classname == "GRAPH")  {
                     items.push_back(idx);
@@ -2644,9 +2659,12 @@ public:
                 }
             }
         } else {
-            for (int n = 0; n < _ws->items.size(); ++n) {
-                if (_ws->items[n]->classname == "GRAPH") {
-                    items.push_back(n);
+            if (!takeallsubitems) {
+                for (int n = 0; n < _ws->items.size(); ++n)
+                {
+                    if (_ws->items[n]->classname == "GRAPH") {
+                        items.push_back(n);
+                    }
                 }
             }
         }
@@ -2668,7 +2686,7 @@ public:
 
 
         std::vector<int> eqclass {};
-        if (sortedbool) {
+        if (sortedbool && !takeallsubitems) {
             if (items.size()==0) {
                 std::cout << "No graphs to check criterion over\n";
                 return;
@@ -2832,15 +2850,33 @@ public:
                 {
                     if (todo[m])
                     {
-                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
-                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        if (takeallsubitems)
                         {
-                            gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
-                            wi->gnames[m] = gi->name;
-                        }
-                        else
+                            auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                            if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                            {
+                                gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
+                                wi->gnames[m] = gi->name;
+                            }
+                            else
+                            {
+                                std::cout << "Dynamic cast error to graphitem*\n";
+                            }
+
+
+
+                        } else
                         {
-                            std::cout << "Dynamic cast error to graphitem*\n";
+                            auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                            if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                            {
+                                gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
+                                wi->gnames[m] = gi->name;
+                            }
+                            else
+                            {
+                                std::cout << "Dynamic cast error to graphitem*\n";
+                            }
                         }
                     }
                 }

@@ -205,7 +205,7 @@ inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
     os << "END\n";
 }
 
-class abstractsubobjectitem : public workitems
+class abstractsubobjectitem : public graphitem
 {
 public:
     graphitem* parentgi;
@@ -216,8 +216,8 @@ public:
 
     std::vector<int> intvertices {};
 
-    graphtype* g;
-    neighborstype* ns;
+    // graphtype* g;
+    // neighborstype* ns;
 
     virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
         os << classname << " " << name << ":\n";
@@ -228,7 +228,7 @@ public:
 
 
     abstractsubobjectitem( graphitem* parentgiin, std::string shortnamein, std::string strin )
-        : workitems(), parentgi{parentgiin}, shortname{shortnamein}, str{strin}
+        : graphitem(), parentgi{parentgiin}, shortname{shortnamein}, str{strin}
     {
         classname = "SUBOBJECT";
         verbositylevel = VERBOSE_SUBOBJECT;
