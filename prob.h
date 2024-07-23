@@ -41,8 +41,8 @@ class legacyabstractrandomgraph : public abstractrandomgraph {
 public:
     std::vector<graphtype*> randomgraphsinternal(const int dim, const double edgecnt, const int cnt) {
         std::vector<graphtype*> res {};
-        res.resize(cnt+1);
-        for (int i = 0; i < cnt+1; ++i) {
+        res.resize(cnt);
+        for (int i = 0; i < cnt; ++i) {
             graphtype* rg = new graphtype(dim);
             randomgraph(rg,edgecnt);;
             res[i] = rg;
@@ -66,7 +66,10 @@ public:
         std::vector<std::future<std::vector<graphtype*>>> t {};
         t.resize(thread_count);
         for (int j = 0; j < thread_count; ++j) {
-            t[j] = std::async(&legacyabstractrandomgraph::randomgraphsinternal,this,dim,edgecnt,section);
+            const int startidx = int(j*section);
+            const int stopidx = int((j+1.0)*section);
+
+            t[j] = std::async(&legacyabstractrandomgraph::randomgraphsinternal,this,dim,edgecnt,stopidx - startidx);
         }
         std::vector<std::vector<graphtype*>> gvv {};
         gvv.resize(thread_count);
