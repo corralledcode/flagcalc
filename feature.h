@@ -3034,6 +3034,9 @@ public:
     std::vector<workitems*> threadrandomgraphs( abstractparameterizedsubrandomgraph* r, const int i, graphitem* gi, const int dim, graphtype* parentgi, std::vector<int>* subg, const int cnt)
     {
         std::vector<workitems*> res {};
+        if (cnt <= 0)
+            return res;
+
         auto g = r->randomgraphs(dim,parentgi,subg, cnt);
         for (auto r : g)
         {
