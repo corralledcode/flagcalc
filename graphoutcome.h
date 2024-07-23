@@ -205,6 +205,129 @@ inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
     os << "END\n";
 }
 
+class abstractsubobjectitem : public workitems
+{
+public:
+    graphitem* parentgi;
+
+    std::string shortname;
+
+    std::string str; // used to pass vertex labels, edges, etc.
+
+    std::vector<int> intvertices {};
+
+    graphtype* g;
+    neighborstype* ns;
+
+    virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
+        os << classname << " " << name << ":\n";
+        return true;
+    }
+    virtual bool isitem( std::istream& is ) {return true;}
+    virtual void freemem() {}
+
+
+    abstractsubobjectitem( graphitem* parentgiin, std::string shortnamein, std::string strin )
+        : workitems(), parentgi{parentgiin}, shortname{shortnamein}, str{strin}
+    {
+        classname = "SUBOBJECT";
+        verbositylevel = VERBOSE_SUBOBJECT;
+    }
+
+};
+
+
+class inducedsubgraphitem : public abstractsubobjectitem
+{
+public:
+
+    virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
+        os << classname << " " << name << ":\n";
+        os << "Subgraph of parent " << parentgi->name << ":\n";
+        osadjacencymatrix(os,g);
+        osneighbors(os,ns);
+        return true;
+    }
+
+
+    inducedsubgraphitem( graphitem* parentgraphin, std::string strin )
+        : abstractsubobjectitem(parentgraphin, "n", strin)
+    {
+        auto vgs = new verticesforgraphstyle;
+        auto workingv = vgs->getvertices(str); // allow unsorted and allow repeats
+        getintvertices(workingv);
+        induce();
+        delete vgs;
+    }
+
+    void getintvertices( std::vector<std::string> strvertices )
+    {
+        intvertices.clear();
+        for (auto s : strvertices)
+        {
+            bool found = false;
+            for (auto i = 0; !found && (i < parentgi->g->vertexlabels.size()); ++i)
+            {
+                if (s==parentgi->g->vertexlabels[i])
+                {
+                    found = true;
+                    intvertices.push_back(i);
+                }
+            }
+        }
+    }
+
+    void induce()
+    {
+        if (!parentgi)
+            return;
+        auto pg = parentgi->g;
+        //auto pns = parentgraph->ns;
+        auto pdim = pg->dim;
+        g = new graphtype(intvertices.size());
+        int dim = g->dim;
+        for (int i = 0; i < dim; ++i)
+        {
+            g->adjacencymatrix[i*dim + i] = false;
+            for (int j = i+1; j < dim; ++j)
+            {
+                bool b = pg->adjacencymatrix[intvertices[i]*pdim + intvertices[j]];
+                g->adjacencymatrix[i*dim + j] = b;
+                g->adjacencymatrix[j*dim + i] = b;
+            }
+        }
+        ns = new neighborstype(g);
+    }
+
+};
+
+class vertexsetsubobjectitem : public abstractsubobjectitem
+{
+public:
+
+    vertexsetsubobjectitem( graphitem* parentgraphin, std::string strin )
+        : abstractsubobjectitem(parentgraphin, "v", strin) {}
+
+};
+
+class edgesetsubobjectitem : public abstractsubobjectitem
+{
+public:
+
+    edgesetsubobjectitem( graphitem* parentgraphin, std::string strin )
+        : abstractsubobjectitem(parentgraphin, "e", strin) {}
+
+};
+
+
+
+template<typename T> abstractsubobjectitem* abstractsubobjectitemfactory(graphitem* parentgi, std::string strin)
+{
+    return new T(parentgi, strin);
+}
+
+
+
 
 
 #endif //GRAPHOUTCOMEITEM_H

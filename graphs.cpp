@@ -1426,6 +1426,69 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
 }
 
 
+
+bool existsiso2(const graphtype* g1, const neighbors* ns1, const graphtype* g2, const neighbors* ns2)
+{
+    int dim1 = g1->dim;
+    int dim2 = g2->dim;
+
+    bool res;
+
+    FP* fps1 = new FP[dim1];
+    for (vertextype n = 0; n < dim1; ++n) {
+        fps1[n].v = n;
+        fps1[n].ns = nullptr;
+        fps1[n].nscnt = 0;
+        fps1[n].parent = nullptr;
+    }
+
+    takefingerprint(ns1,fps1,dim1);
+
+    //osfingerprint(std::cout,ns5,fps5,g5.dim);
+
+    FP* fps2 = new FP[dim2];
+    for (vertextype n = 0; n < dim2; ++n) {
+        fps2[n].v = n;
+        fps2[n].ns = nullptr;
+        fps2[n].nscnt = 0;
+        fps2[n].parent = nullptr;
+    }
+
+    takefingerprint(ns2,fps2,dim2);
+
+    /*
+    FP fpstmp5;
+    fpstmp5.parent = nullptr;
+    fpstmp5.ns = fps5;
+    fpstmp5.nscnt = dim;
+
+    FP fpstmp6;
+    fpstmp6.parent = nullptr;
+    fpstmp6.ns = fps6;
+    fpstmp6.nscnt = dim;
+    */
+    //osfingerprint(std::cout,ns6,fps6,g6.dim);
+    //if (FPcmp(ns5,ns6,&fpstmp5,&fpstmp6) == 0) {
+
+    if (FPcmp(ns1,ns2,fps1,fps2) == 0) {
+        //std::cout << "Fingerprints MATCH\n";
+        res = true;
+    } else {
+        //std::cout << "Fingerprints DO NOT MATCH\n";
+        res = false;
+    }
+    freefps(fps1, dim1);
+    freefps(fps2, dim2);
+    delete fps1;
+    delete fps2;
+    return res;
+}
+
+
+
+
+
+
 void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res) {
     if (start > stop)
         return;

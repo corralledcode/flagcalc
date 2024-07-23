@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
     auto rg = new readgraphsfeature(&std::cin, &std::cout,ws);
     auto ei = new enumisomorphismsfeature(&std::cin, &std::cout,ws);
     auto cf = new cmpfingerprintsfeature(&std::cin, &std::cout,ws);
+    auto lsr = new legacysamplerandomgraphsfeature(&std::cin, &std::cout,ws);
     auto sr = new samplerandomgraphsfeature(&std::cin, &std::cout,ws);
     auto mt = new mantelstheoremfeature(&std::cin,&std::cout,ws);
     auto mv = new mantelsverifyfeature(&std::cin,&std::cout, ws);
@@ -27,12 +28,14 @@ int main(int argc, char* argv[]) {
     auto cw = new clearworkspacefeature(&std::cin, &std::cout,ws);
     auto cc = new checkcriterionfeature(&std::cin, &std::cout,ws);
     auto wg = new writegraphsfeature(&std::cin, &std::cout,ws);
+    auto sbg = new populatesubobjectfeature(&std::cin, &std::cout,ws);
 
     std::vector<feature*> featureslist {};
     featureslist.push_back(ug);
     featureslist.push_back(rg);
     featureslist.push_back(ei);
     featureslist.push_back(cf);
+    featureslist.push_back(lsr);
     featureslist.push_back(sr);
     featureslist.push_back(mt);
     featureslist.push_back(mv);
@@ -42,6 +45,7 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(cw);
     featureslist.push_back(cc);
     featureslist.push_back(wg);
+    featureslist.push_back(sbg);
 
     ug->featureslist = featureslist;
 

@@ -21,6 +21,7 @@
 #include "thread_pool.cpp"
 #include "ameas.h"
 #include "meas.cpp"
+#include "probsub.cpp"
 
 //default is to enumisomorphisms
 #define DEFAULTCMDLINESWITCH "i"
@@ -292,14 +293,14 @@ public:
 };
 
 
-class samplerandomgraphsfeature : public abstractrandomgraphsfeature {
+class legacysamplerandomgraphsfeature : public abstractrandomgraphsfeature {
 public:
     double percent = -1;
     std::string cmdlineoption() {
-        return "R";
+        return "L";
     }
     std::string cmdlineoptionlong() {
-        return "samplerandomgraphsforpairwiseequiv";
+        return "legacysamplerandomgraphsforpairwiseequiv";
     }
     void listoptions() override {
         abstractrandomgraphsfeature::listoptions();
@@ -312,7 +313,7 @@ public:
         }
     }
 
-    samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
+    legacysamplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
 
     void execute(std::vector<std::string> args) override {
         int outof = 1000;
@@ -397,7 +398,7 @@ public:
 
 
 
-        auto wi = new samplerandommatchinggraphsitem;
+        auto wi = new legacysamplerandommatchinggraphsitem;
         wi->dim = dim;
         wi->cnt = cnt;
         wi->outof = outof;
@@ -2963,6 +2964,364 @@ public:
         delete ei;
     }
 };
+
+
+
+class populatesubobjectfeature : public feature
+{
+protected:
+    std::vector<abstractsubobjectitem*> asois {};
+    std::vector<abstractsubobjectitem*(*)(graphitem*,std::string)> asoifactory {};
+    std::vector<abstractparameterizedsubrandomgraph*> rgs {};
+
+public:
+    virtual void listoptions() override {
+        feature::listoptions();
+
+        *_os << "\t" << "<name>: \t\t\t first give the name of the graph to take subobjects from\n";
+        *_os << "\t" << "n=\"vertices\": \t\t use the subgraph induced by the vertices listed\n";
+        *_os << "\t" << "r=<rgs>(<params>): \t randomly extend the subobjects up to the parameters provided\n";
+        *_os << "\t\t\t\t\t where <rgs> is one of:\n";
+        for (int n = 0; n < rgs.size(); ++n)
+        {
+            *_os << "\t\t\"" << rgs[n]->shortname() << "\": \t" << rgs[n]->name << "\n";
+        }
+    }
+
+    std::vector<abstractsubobjectitem*> subobjs {};
+    std::string cmdlineoption() override {return "u";}
+    std::string cmdlineoptionlong() override { return "subobject"; }
+    populatesubobjectfeature( std::istream* is, std::ostream* os, workspace* ws )
+        : feature( is, os, ws )
+    {
+
+
+        // add any new abstractrandomgraph types to the list here...
+
+        auto rs1 = new legacyrandomsubgraph<legacystdrandomsubgraph>;
+        rgs.push_back(rs1);
+
+        // add any new abstract subobject types to the list here...
+
+        auto (asoi1) = abstractsubobjectitemfactory<inducedsubgraphitem>;
+
+        asoifactory.push_back(asoi1);
+
+        for (int n = 0; n < asoifactory.size(); ++n)
+        {
+            asois.push_back(asoifactory[n](nullptr,""));
+        }
+    }
+
+    ~populatesubobjectfeature()
+    {
+        for (auto a : asois)
+            delete a;
+        for (int i = 0; i < rgs.size();++i) {
+            delete rgs[i];
+        }
+    }
+
+
+    void execute(std::vector<std::string> args) override
+    {
+        std::vector<abstractsubobjectitem*> sois {};
+        std::vector<int> soistypes {};
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+
+        int rgsidx = -1;
+        std::vector<std::string> rgparams {};
+
+
+        std::string giname;
+        if (parsedargs.size() > 0)
+            if (parsedargs[0].first == "default" || parsedargs[0].first == "g")
+                giname = parsedargs[0].second;
+            else
+            {
+                std::cout << "Error: use -u along with a graph name\n";
+                return;
+            }
+        else
+        {
+            std::cout << "Error: use -u along with a graph name\n";
+            return;
+        }
+
+        bool found = false;
+        int i;
+        for (i = 0; !found && (i < _ws->items.size()); ++i)
+        {
+            found = found || _ws->items[i]->name == giname;
+
+        }
+        graphitem* gi;
+        if (found)
+        {
+            if (gi = dynamic_cast<graphitem*>(_ws->items[--i]))
+            {
+                for (int j = 1; j < parsedargs.size(); ++j)
+                {
+                    found = false;
+                    for (int k = 0; k < asois.size(); ++k)
+                    {
+                        if (parsedargs[j].first == asois[k]->shortname)
+                        {
+                            auto soi = (*asoifactory[k])(gi,parsedargs[j].second);
+                            sois.push_back(soi);
+                            soistypes.resize(sois.size());
+                            soistypes[sois.size()-1] = k;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found)
+                        continue;
+
+                    if (parsedargs[j].first == "r")
+                    {
+                        auto parsedargs2 = cmdlineparseiterationthree(parsedargs[j].second);
+
+                        for (int r = 0; r < parsedargs2.size(); ++r)
+                        {
+                            for (int l = 0; l < rgs.size(); ++l)
+                            {
+                                if (parsedargs2[r].first == rgs[l]->shortname())
+                                {
+                                    rgsidx = l;
+                                    rgparams = parsedargs2[r].second;
+                                    //for (int k = 0; k < rgparams.size(); ++k)
+                                    //    std::cout << "rgparam " << rgparams[k] << ", ";
+                                    //std::cout << "\n";
+                                }
+                            }
+                        }
+                    }
+                }
+                //
+            } else
+                std::cout << "Error dynamically casting to graphitem*\n";
+        } else
+        {
+            std::cout << "Unknown graph item named " << giname << "\n";
+            return;
+        }
+        if (rgsidx >= 0)
+        {
+            for (int i = 0; i < sois.size(); ++i) {
+                rgs[rgsidx]->setparams(rgparams);
+                auto g =
+                    rgs[rgsidx]->randomgraphs(stoi(rgparams[0]),sois[i]->parentgi->g,&sois[i]->intvertices,stoi(rgparams[1]));
+                for (auto r : g)
+                {
+                    auto s = (*asoifactory[soistypes[i]])(gi,sois[i]->str);
+                    s->g = r;
+                    s->ns = new neighborstype(r);
+                    _ws->items.push_back(s);
+                }
+            }
+        } else
+        {
+            for (int i = 0; i < sois.size(); ++i)
+                _ws->items.push_back(sois[i]);
+        }
+    }
+};
+
+
+
+
+
+class samplerandomgraphsfeature : public abstractrandomgraphsfeature {
+public:
+    double percent = -1;
+    std::string cmdlineoption() {
+        return "R";
+    }
+    std::string cmdlineoptionlong() {
+        return "samplerandomgraphsforpairwiseequiv";
+    }
+    void listoptions() override {
+        abstractrandomgraphsfeature::listoptions();
+
+        *_os << "\t" << "all: \t\t\t\t sample the graphs on the workspace pairwise for isomorphism\n";
+        *_os << "\t" << "sub: \t\t\t\t sample the subgraphs on the workspace pairwise for isomporphism\n";
+        *_os << "\t" << "cnt=<n>: \t\t\t sample the last n graphs on the workspace pairwise for isomporphism\n";
+        *_os << "\t" << "<outof>: \t\t\t how many samples to take\n";
+    }
+
+    samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
+
+    enum samplerandomgraphsmodes {small, smsub, smcnt };
+
+    int sampleobjectsrandom( std::vector<int>* items, samplerandomgraphsmodes sm, const int cnt)
+    {
+        int res = 0;
+        int sz = items->size();
+
+        std::random_device dev;
+        std::mt19937 rng(dev());
+        std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
+
+        if (sm == smsub)
+        {
+            for (int j = 0; j < cnt; ++j)
+            {
+                int i1 = int((double)dist10000(rng)*((double)sz)/(RANDOMRANGEdouble));
+                int i2 = int((double)dist10000(rng)*((double)sz)/(RANDOMRANGEdouble));
+
+                auto w1 = _ws->items[(*items)[i1]];
+                auto w2 = _ws->items[(*items)[i2]];
+                if (abstractsubobjectitem* a1 = dynamic_cast<abstractsubobjectitem*>(w1))
+                    if (abstractsubobjectitem* a2 = dynamic_cast<abstractsubobjectitem*>(w2))
+                        if (existsiso2( a1->g, a1->ns, a2->g, a2->ns))
+                            res++;
+            }
+        }
+        if (sm == small || sm == smcnt)
+        {
+            for (int j = 0; j < cnt; ++j)
+            {
+
+                int i1 = int((double)dist10000(rng)*((double)sz)/(RANDOMRANGEdouble));
+                int i2 = int((double)dist10000(rng)*((double)sz)/(RANDOMRANGEdouble));
+
+                auto w1 = _ws->items[(*items)[i1]];
+                auto w2 = _ws->items[(*items)[i2]];
+                if (graphitem* a1 = dynamic_cast<graphitem*>(w1))
+                    if (graphitem* a2 = dynamic_cast<graphitem*>(w2))
+                    {
+                        if (existsiso2( a1->g, a1->ns, a2->g, a2->ns))
+                            res++;
+                    } else
+                    {
+                        std::cout << "Dynamic cast error \n";
+                    }
+                else
+                {
+                    std::cout << "Dynamic cast error \n";
+                }
+            }
+        }
+        return res;
+    };
+
+
+    void execute(std::vector<std::string> args) override {
+
+        samplerandomgraphsmodes sm = small;
+        int cnt = 1;
+        int outof = 0;
+
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+        for (int i = 0; i < parsedargs.size(); ++i)
+        {
+            if (parsedargs[i].first == "all" || (parsedargs[i].first == "default" && parsedargs[i].second == "all")) {
+                sm = small;
+                continue;
+            }
+            if (parsedargs[i].first == "sub" || (parsedargs[i].first == "default" && parsedargs[i].second == "sub")) {
+                sm = smsub;
+                continue;
+            }
+
+            if (parsedargs[i].first == "cnt" && is_number(parsedargs[i].second)) {
+                sm = smcnt;
+                cnt = stoi(parsedargs[i].second);
+                continue;
+            }
+
+            if (is_number(parsedargs[i].first))
+            {
+                outof = stoi(parsedargs[i].first);
+                continue;
+            }
+
+            if (parsedargs[i].first == "c" && is_number(parsedargs[i].second))
+            {
+                outof = stoi(parsedargs[i].second);
+                continue;
+            }
+        }
+
+        std::vector<int> items {};
+        if (sm == small)
+        {
+            for (int i = 0; i < _ws->items.size(); ++i)
+            {
+                if (_ws->items[i]->classname == "GRAPH")
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[i]))
+                        items.push_back(i); // default to working with all graphitems
+            }
+        }
+        if (sm == smsub) {
+            for (int i = 0; i < _ws->items.size(); ++i)
+            {
+                if (_ws->items[i]->classname == "SUBOBJECT")
+                    if (abstractsubobjectitem* asoi = dynamic_cast<abstractsubobjectitem*>(_ws->items[i]))
+                        items.push_back(i); // default to working with all graphitems
+            }
+        }
+        if (sm == smcnt)
+        {
+            int j = _ws->items.size();
+            int i = j-1;
+            int c = 0;
+            while (c < cnt && i >= 0) {
+                if (_ws->items[i]->classname == "GRAPH")
+                {
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[i]))
+                        items.push_back(i); // default to working with all graphitems
+                    ++c;
+                }
+                --i;
+            }
+        }
+
+        if (outof == 0)
+            outof = items.size();
+
+        unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+        int cnt2 = 0;
+        const double section = double(outof) / double(thread_count);
+        std::vector<std::future<int>> t;
+        t.resize(thread_count);
+        for (int m = 0; m < thread_count; ++m) {
+            t[m] = std::async(&samplerandomgraphsfeature::sampleobjectsrandom,this,&items,sm,section);
+        }
+        for (int m = 0; m < thread_count; ++m)
+        {
+            auto i = t[m].get();
+            cnt2 = cnt2 + i;
+        }
+
+
+
+        // int cnt = samplematchingrandomgraphs(rgs[rgsidx],dim,edgecnt, outof);
+            // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
+            // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
+            // vertices are obtained, is rather efficient too.
+            // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
+            //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
+
+
+
+
+        auto wi = new samplerandommatchinggraphsitem;
+        wi->cnt = cnt2;
+        wi->outof = outof;
+        wi->name = _ws->getuniquename(wi->classname);
+
+        wi-> percent = ((double)wi->cnt / (double)wi->outof);
+        _ws->items.push_back(wi);
+
+    }
+
+};
+
+
 
 
 

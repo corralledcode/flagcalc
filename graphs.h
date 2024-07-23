@@ -151,6 +151,9 @@ bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, c
 
 bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2);
 
+bool existsiso2( const graphtype* g1, const neighbors* ns1, const graphtype* g2, const neighbors* ns2);
+// the only difference being that the latter has a different input set, and is more general
+
 void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res);
 
 bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2, const int mincnt );

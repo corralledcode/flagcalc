@@ -101,6 +101,16 @@ int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int 
 
 
 
+
+
+
+
+
+
+
+
+
+
 /* PRE-threading variant
 std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const double edgecnt, const int cnt ) {
     std::vector<graph> gv {};

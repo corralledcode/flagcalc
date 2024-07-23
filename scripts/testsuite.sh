@@ -1,6 +1,6 @@
 /home/peterglenn/CLionProjects/flagcalc/cmake-build-debug
 PTH='../cmake-build-debug'
-$PTH/flagcalc -R 10 18 1000
+$PTH/flagcalc -L 10 18 1000
 $PTH/flagcalc -d testbip12.dat -f all -i sorted
 $PTH/flagcalc -d testgraph23.dat -i all
 $PTH/flagcalc -r 6 8 200 -f all -i sortedverify -v i=minimal3.cfg
@@ -19,4 +19,8 @@ $PTH/flagcalc -r 10 18 100 -a a="[radiusm]" s="[connc]([radiusm])" all -v i=mini
 $PTH/flagcalc -r 10 18 100 -a a="[radiusm]" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 12 50000 -a c=cr1 s2="[cyclet](5) <= 2^5" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 20 5000 -a nc=forestc s2="[girthm] <= (2*[diamm] + 1)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 20 50000 -a s="[deltam] >= 3" s2="[girthm] < 2*log([dimm])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 25 50000 -a c=conn1c s2="[treec] == ([edgecm] == [dimm]-1)" all -v i=minimal3.cfg
+
+
 

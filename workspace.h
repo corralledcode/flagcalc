@@ -34,9 +34,10 @@
 #define VERBOSE_FPMINIMAL "FpMin"
 #define VERBOSE_FPNONE "fpnone"
 #define VERBOSE_APPLYCRITERION "crit"
+#define VERBOSE_SUBOBJECT "subobj"
 
-#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin"
-#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt"
+#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj"
+#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj"
 
 #define VERBOSE_FORDB "db"
 
@@ -637,15 +638,15 @@ public:
 };
 
 
-class samplerandommatchinggraphsitem : public workitems {
+class legacysamplerandommatchinggraphsitem : public workitems {
 public:
     double percent = -1;
     int cnt = 0;
     int outof = 0;
     int dim = 0;
     std::string rgname {};
-    samplerandommatchinggraphsitem() : workitems() {
-        classname = "SAMPLEGRAPHS";
+    legacysamplerandommatchinggraphsitem() : workitems() {
+        classname = "LEGACYSAMPLEGRAPHS";
         verbositylevel = VERBOSE_SAMPLERANDOMMATCHING;
     }
 
@@ -660,6 +661,27 @@ public:
 
 };
 
+class samplerandommatchinggraphsitem : public workitems {
+public:
+    double percent = -1;
+    int cnt = 0;
+    int outof = 0;
+    //abstractsubobjectitem* asoi {};
+    samplerandommatchinggraphsitem() : workitems() {
+        classname = "SAMPLEGRAPHS";
+        verbositylevel = VERBOSE_SAMPLERANDOMMATCHING;
+    }
+
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem( os, verbositylevel );
+        percent = double(cnt)/double(outof);
+        os << "Probability ";
+        os << "of fingerprints matching is " << cnt << " out of " << outof << " == " << percent << "\n";
+        return true;
+    }
+
+
+};
 
 
 

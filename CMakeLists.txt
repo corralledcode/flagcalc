@@ -39,4 +39,6 @@ add_executable(flagcalc main.cpp
         math.h
         ameas.h
         meas.cpp
+        probsub.cpp
+        probsub.h
 )
