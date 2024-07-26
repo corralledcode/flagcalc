@@ -241,6 +241,9 @@ class inducedsubgraphitem : public abstractsubobjectitem
 {
 public:
 
+    graphtype* typeg;
+    neighborstype* typens;
+
     virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
         os << classname << " " << name << ":\n";
         os << "Subgraph of parent " << parentgi->name << ":\n";
@@ -284,19 +287,19 @@ public:
         auto pg = parentgi->g;
         //auto pns = parentgraph->ns;
         auto pdim = pg->dim;
-        g = new graphtype(intvertices.size());
-        int dim = g->dim;
+        typeg = new graphtype(intvertices.size());
+        int dim = typeg->dim;
         for (int i = 0; i < dim; ++i)
         {
-            g->adjacencymatrix[i*dim + i] = false;
+            typeg->adjacencymatrix[i*dim + i] = false;
             for (int j = i+1; j < dim; ++j)
             {
                 bool b = pg->adjacencymatrix[intvertices[i]*pdim + intvertices[j]];
-                g->adjacencymatrix[i*dim + j] = b;
-                g->adjacencymatrix[j*dim + i] = b;
+                typeg->adjacencymatrix[i*dim + j] = b;
+                typeg->adjacencymatrix[j*dim + i] = b;
             }
         }
-        ns = new neighborstype(g);
+        typens = new neighborstype(typeg);
     }
 
 };

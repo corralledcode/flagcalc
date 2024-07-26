@@ -90,111 +90,14 @@ int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == 
 
 int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) { // acts without consideration of self or parents; looks only downwards
 
-    //std::cout << "FPcmp checking in: w1.v == " << w1.v << ", w2.v == " << w2.v << "\n";
-/* take out part that checks parents
-    if (ns.degrees[w1.v] < ns.degrees[w2.v])
-        return 1;
-    if (ns.degrees[w1.v] > ns.degrees[w2.v])
-        return -1;
-*/
-    // ... and otherwise ...
-/*
-    int tmpnscnt1;
-    int tmpnscnt2;
-
-    if (w1->invert)
-        tmpnscnt1 = ns1->g->dim - w1->nscnt - 1;
-    else
-        tmpnscnt1 = w1->nscnt;
-    if (w2->invert)
-        tmpnscnt2 = ns2->g->dim - w2->nscnt - 1;
-    else
-        tmpnscnt2 = w2->nscnt;
-
-    if (tmpnscnt1 > tmpnscnt2) {
-        return -1;
-    } else {
-        if (tmpnscnt1 < tmpnscnt2) {
-            return 1;
-        }
-    }
-
-
-    if (!w1->invert)
-        if (ns1->degrees[w1->v] < ns2->degrees[w2->v])
-            return 1;
-        else
-            if (ns1->degrees[w1->v] > ns2->degrees[w2->v])
-                return -1;
-
-    if (w1->invert)
-        if (ns1->degrees[w1->v] < ns2->degrees[w2->v])
-            return 1;
-        else
-            if (ns1->degrees[w1->v] > ns2->degrees[w2->v])
-                return -1;
-
-    int n = 0;
-    int res = 0;
-    while ((res == 0) && (n < w1->nscnt)) {
-        res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
-        n++;
-    }
-    return res;
-*/
-    /*
-
-    for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
-        if (w1->ns[n].invert != w2->ns[n].invert) {
-            return (w1->ns[n].invert ? -1 : 1);
-        }
-        if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
-            return 1;
-        } else {
-            if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
-                return -1;
-            }
-        }
-    }
-
-
-    int n = 0;
-    int res = 0;
-    while ((res == 0) && (n < w1->nscnt)) {
-        res = FPcmp(ns1,ns2,&w1->ns[n],&w2->ns[n]);
-        n++;
-    }
-    return res;
-*/
-
-
-/*    if (w1->invert != w2->invert) {
-        return (w1->invert ? -1 : 1);
-    }
-*/
-
     if (ns1->g->dim != ns2->g->dim)
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
 
-    /*
-    if (w1->nscnt == 0)
-        if (w2->nscnt > 0)
-            return (w1->invert ? -1 : 1);
-    if (w2->nscnt == 0)
-        if (w1->nscnt > 0)
-            return (w2->invert ? 1 : -1);
-*/
     int multiplier = (w1->invert ? -1 : 1);
     //multiplier = 1;
     if (w1->invert != w2->invert)
         return multiplier;
 
-    /*
-    if (ns1->degrees[w1->v] > ns2->degrees[w2->v])
-        return -1;
-    if (ns1->degrees[w1->v] < ns2->degrees[w2->v])
-        return 1;
-*/
     if (w1->nscnt > w2->nscnt) {
         return (-1)*multiplier;
     } else {
@@ -225,6 +128,59 @@ int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w
     }
     return res * multiplier;
 }
+
+
+int FPcmpextends( const graphmorphism* m, const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) { // acts without consideration of self or parents; looks only downwards
+
+    if (ns1->g->dim != ns2->g->dim)
+        return ns1->g->dim < ns2->g->dim ? 1 : -1;
+
+    int multiplier = (w1->invert ? -1 : 1);
+    //multiplier = 1;
+    if (w1->invert != w2->invert)
+        return multiplier;
+
+    if (w1->nscnt > w2->nscnt) {
+        return (-1)*multiplier;
+    } else {
+        if (w1->nscnt < w2->nscnt) {
+            return multiplier;
+        }
+    }
+
+
+    for (int n = 0; (n < w1->nscnt) && (n < w2->nscnt); ++n) {
+        if (w1->ns[n].invert != w2->ns[n].invert) {
+            return (w1->ns[n].invert ? -1 : 1);
+        }
+        if (ns1->degrees[w1->ns[n].v] < ns2->degrees[w2->ns[n].v]) {
+            return 1;
+        } else {
+            if (ns1->degrees[w1->ns[n].v] > ns2->degrees[w2->ns[n].v]) {
+                return (-1);
+            }
+        }
+    }
+
+
+    int n = 0;
+    int res = 0;
+
+    while ((res == 0) && (n < w1->nscnt)) {
+        res = FPcmpextends(m,ns1,ns2,&w1->ns[n],&w2->ns[n]);
+
+        if (res == 0)
+            for (int i = 0; i < m->size(); ++i) {
+                if ((*m)[i].first == w1->ns[n].v)
+                    res = ((*m)[i].second == w2->ns[n].v) ? res : -1;
+                if ((*m)[i].second == w2->ns[n].v)
+                    res = ((*m)[i].first == w1->ns[n].v) ? res : -1;
+            }
+        n++;
+    }
+    return res * multiplier;
+}
+
 
 inline int partition2( std::vector<int> &arr, int start, int end, const neighbors* ns, FP* fpslist ) {
     int pivot = arr[start];
@@ -1427,7 +1383,7 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
 
 
 
-bool existsiso2(const graphtype* g1, const neighbors* ns1, const graphtype* g2, const neighbors* ns2)
+bool existsiso2(const graphmorphism* m, const graphtype* g1, const neighbors* ns1, const graphtype* g2, const neighbors* ns2 )
 {
     int dim1 = g1->dim;
     int dim2 = g2->dim;
@@ -1470,7 +1426,7 @@ bool existsiso2(const graphtype* g1, const neighbors* ns1, const graphtype* g2, 
     //osfingerprint(std::cout,ns6,fps6,g6.dim);
     //if (FPcmp(ns5,ns6,&fpstmp5,&fpstmp6) == 0) {
 
-    if (FPcmp(ns1,ns2,fps1,fps2) == 0) {
+    if (FPcmpextends(m,ns1,ns2,fps1,fps2) == 0) {
         //std::cout << "Fingerprints MATCH\n";
         res = true;
     } else {

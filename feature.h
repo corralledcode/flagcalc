@@ -3077,6 +3077,7 @@ public:
         for (auto r : g)
         {
             auto s = (*asoifactory[soistypes[i]])(gi,sois[i]->str);
+            s->intvertices = *subg;
             s->g = r;
             s->ns = new neighborstype(r);
             res.push_back(s);
@@ -3169,6 +3170,7 @@ public:
         }
         if (rgsidx >= 0)
         {
+
             for (int i = 0; i < sois.size(); ++i) {
                 rgs[rgsidx]->setparams(rgparams);
                 int outof = stoi(rgparams[1]);
@@ -3254,9 +3256,15 @@ public:
                 auto w1 = _ws->items[(*items)[i1]];
                 auto w2 = _ws->items[(*items)[i2]];
                 if (abstractsubobjectitem* a1 = dynamic_cast<abstractsubobjectitem*>(w1))
-                    if (abstractsubobjectitem* a2 = dynamic_cast<abstractsubobjectitem*>(w2))
-                        if (existsiso2( a1->g, a1->ns, a2->g, a2->ns))
-                            res++;
+                    if (abstractsubobjectitem* a2 = dynamic_cast<abstractsubobjectitem*>(w2)) {
+                        graphmorphism m {};
+                        if (a1->intvertices.size() == a2->intvertices.size()) {
+                            for (int i = 0; i < a1->intvertices.size(); ++i)
+                                m.push_back( {a1->intvertices[i],a2->intvertices[i]});
+                            if (existsiso2( &m, a1->g, a1->ns, a2->g, a2->ns ))
+                                res++;
+                        }
+                    }
             }
         }
         if (sm == small || sm == smcnt)
@@ -3272,7 +3280,8 @@ public:
                 if (graphitem* a1 = dynamic_cast<graphitem*>(w1))
                     if (graphitem* a2 = dynamic_cast<graphitem*>(w2))
                     {
-                        if (existsiso2( a1->g, a1->ns, a2->g, a2->ns))
+                        graphmorphism m {};
+                        if (existsiso2( &m, a1->g, a1->ns, a2->g, a2->ns ))
                             res++;
                     } else
                     {
