@@ -212,6 +212,8 @@ public:
 
     std::string shortname;
 
+    int* m = nullptr;
+
     std::string str; // used to pass vertex labels, edges, etc.
 
     std::vector<int> intvertices {};
@@ -232,6 +234,10 @@ public:
     {
         classname = "SUBOBJECT";
         verbositylevel = VERBOSE_SUBOBJECT;
+    }
+
+    ~abstractsubobjectitem() {
+        delete m;
     }
 
 };

@@ -3257,12 +3257,35 @@ public:
                 auto w2 = _ws->items[(*items)[i2]];
                 if (abstractsubobjectitem* a1 = dynamic_cast<abstractsubobjectitem*>(w1))
                     if (abstractsubobjectitem* a2 = dynamic_cast<abstractsubobjectitem*>(w2)) {
-                        graphmorphism m {};
                         if (a1->intvertices.size() == a2->intvertices.size()) {
-                            for (int i = 0; i < a1->intvertices.size(); ++i)
-                                m.push_back( {a1->intvertices[i],a2->intvertices[i]});
-                            if (existsiso2( &m, a1->g, a1->ns, a2->g, a2->ns ))
+                            if (!a1->m) {
+                                int dim = a1->g->dim;
+                                a1->m = (int*)malloc(dim*sizeof(int));
+                                memset(a1->m,0,dim*sizeof(int));
+                                for (int i = 0; i < a1->intvertices.size(); ++i) {
+                                    for (int j = 0; j < dim; ++j) {
+                                        if (a1->intvertices[i] == j)
+                                            a1->m[j] = a2->intvertices[i] + 1;
+                                    }
+                                }
+                            }
+                            if (!a2->m) {
+                                int dim = a2->g->dim;
+                                a2->m = (int*)malloc(dim*sizeof(int));
+                                memset(a2->m,0,dim*sizeof(int));
+                                for (int i = 0; i < a2->intvertices.size(); ++i) {
+                                    for (int j = 0; j < dim; ++j) {
+                                        if (a2->intvertices[i] == j)
+                                            a2->m[j] = a1->intvertices[i] + 1;
+                                    }
+                                }
+                            }
+                            // if (a1->intvertices.size() == a2->intvertices.size()) {
+                            // for (int i = 0; i < a1->intvertices.size(); ++i)
+                            // m.push_back( {a1->intvertices[i],a2->intvertices[i]});
+                            if (existsiso2( a1->m, a2->m, a1->g, a1->ns, a2->g, a2->ns ))
                                 res++;
+
                         }
                     }
             }
@@ -3280,8 +3303,7 @@ public:
                 if (graphitem* a1 = dynamic_cast<graphitem*>(w1))
                     if (graphitem* a2 = dynamic_cast<graphitem*>(w2))
                     {
-                        graphmorphism m {};
-                        if (existsiso2( &m, a1->g, a1->ns, a2->g, a2->ns ))
+                        if (existsiso2( nullptr, nullptr, a1->g, a1->ns, a2->g, a2->ns ))
                             res++;
                     } else
                     {

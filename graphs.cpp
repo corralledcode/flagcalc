@@ -42,6 +42,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <functional>
 #include <future>
 #include <iostream>
@@ -130,7 +131,7 @@ int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w
 }
 
 
-int FPcmpextends( const graphmorphism* m, const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) { // acts without consideration of self or parents; looks only downwards
+int FPcmpextends( const vertextype* m1, const vertextype* m2, const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) { // acts without consideration of self or parents; looks only downwards
 
     if (ns1->g->dim != ns2->g->dim)
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
@@ -167,15 +168,23 @@ int FPcmpextends( const graphmorphism* m, const neighbors* ns1, const neighbors*
     int res = 0;
 
     while ((res == 0) && (n < w1->nscnt)) {
-        res = FPcmpextends(m,ns1,ns2,&w1->ns[n],&w2->ns[n]);
+        res = FPcmpextends(m1,m2,ns1,ns2,&w1->ns[n],&w2->ns[n]);
 
-        if (res == 0)
-            for (int i = 0; i < m->size(); ++i) {
-                if ((*m)[i].first == w1->ns[n].v)
-                    res = ((*m)[i].second == w2->ns[n].v) ? res : -1;
-                if ((*m)[i].second == w2->ns[n].v)
-                    res = ((*m)[i].first == w1->ns[n].v) ? res : -1;
-            }
+        if (res == 0) {
+            if (m1[w1->ns[n].v] != 0)
+                if (m1[w1->ns[n].v] != (w2->ns[n].v +1) )
+                    res = -1;
+            if (m2[w2->ns[n].v] != 0)
+                if (m2[w2->ns[n].v] != (w1->ns[n].v +1) )
+                    res = -1;
+        }
+
+            // for (int i = 0; i < m->size(); ++i) {
+                // if ((*m)[i].first == w1->ns[n].v)
+                    // res = ((*m)[i].second == w2->ns[n].v) ? res : -1;
+                // if ((*m)[i].second == w2->ns[n].v)
+                    // res = ((*m)[i].first == w1->ns[n].v) ? res : -1;
+            // }
         n++;
     }
     return res * multiplier;
@@ -1383,10 +1392,14 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
 
 
 
-bool existsiso2(const graphmorphism* m, const graphtype* g1, const neighbors* ns1, const graphtype* g2, const neighbors* ns2 )
+bool existsiso2(const int* m1, const int* m2, const graphtype* g1, const neighbors* ns1, const graphtype* g2, const neighbors* ns2 )
 {
     int dim1 = g1->dim;
     int dim2 = g2->dim;
+
+    if (dim1 != dim2)
+        return false;
+
 
     bool res;
 
@@ -1426,13 +1439,23 @@ bool existsiso2(const graphmorphism* m, const graphtype* g1, const neighbors* ns
     //osfingerprint(std::cout,ns6,fps6,g6.dim);
     //if (FPcmp(ns5,ns6,&fpstmp5,&fpstmp6) == 0) {
 
-    if (FPcmpextends(m,ns1,ns2,fps1,fps2) == 0) {
-        //std::cout << "Fingerprints MATCH\n";
-        res = true;
-    } else {
-        //std::cout << "Fingerprints DO NOT MATCH\n";
-        res = false;
-    }
+
+
+    if (m1 != nullptr)
+        if (FPcmpextends(m1,m2,ns1,ns2,fps1,fps2) == 0) {
+            //std::cout << "Fingerprints MATCH\n";
+            res = true;
+        } else {
+            //std::cout << "Fingerprints DO NOT MATCH\n";
+            res = false;
+        }
+    else
+        if (FPcmp(ns1,ns2,fps1,fps2) == 0) {
+            res = true;
+        } else {
+            res = false;
+        }
+
     freefps(fps1, dim1);
     freefps(fps2, dim2);
     delete fps1;
