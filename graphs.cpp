@@ -1542,7 +1542,7 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
 
 class quicktest {
 public:
-    virtual bool test(int* testseq) {}
+    virtual bool test(int* testseq) {return false;}
 };
 
 class embedsquicktest : public quicktest {
