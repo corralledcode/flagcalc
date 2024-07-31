@@ -1774,6 +1774,7 @@ public:
         auto c = connectedcount(gptr,nsptr,2);
         free(nsptr);
         free(gptr);
+        delete subsetv;
         return (c > 1 ? false : true);
     }
     kconnectedtest( graphtype* gtempin, neighborstype* nsin, const int seqsizein)
@@ -2139,6 +2140,7 @@ int connectedcount(graphtype *g, neighborstype *ns, const int breaksize) {
             changed = true;
         }
     }
+    return res;
 }
 
 bool kconnectedfn( graphtype* g, neighborstype* ns, const int k ) {
