@@ -1,4 +1,3 @@
-#cd /home/peterglenn/CLionProjects/flagcalc/testgraph
 PTH='../cmake-build-debug'
 $PTH/flagcalc -L 10 18 1000
 $PTH/flagcalc -d testbip12.dat -f all -i sorted
@@ -26,6 +25,7 @@ $PTH/flagcalc -r 12 20 15 -v i=minimal3.cfg
 $PTH/flagcalc -r 20 25 1 -u GRAPH0 n="a b c" 'r=rs1(10,10000)' -a m=girthm c=conn1c c2=forestc c2=treec sub -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a "c=kconnc(6)" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a "c=kconnc(5)" all -v i=minimal3.cfg
+
 
 
 

@@ -1741,9 +1741,10 @@ public:
 
         auto (Knt) = tallyfactory<Kntally>;
         auto (cyclet) = tallyfactory<cycletally>;
-
+        auto (kappat) = tallyfactory<kappatally>;
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
+        tysfactory.push_back(kappat);
 
 
         // ,,,

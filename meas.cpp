@@ -1414,4 +1414,32 @@ public:
 };
 
 
+class kappatally : public tally {
+public:
+
+    kappatally( mrecords* recin ) : tally( recin, "kappat", "kappa: max k-connectedness")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        int k = g->dim;
+        bool res = false;
+        while (!res && k >= 0)
+            res = kconnectedfn( g, ns, k-- );
+
+        return k+1;
+    }
+
+
+
+
+};
+
+
 
