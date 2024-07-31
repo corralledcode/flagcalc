@@ -228,7 +228,7 @@ public:
     };
 
     int* maxplookup;
-    int blocksize = 100;
+    int blocksize = 25;
     params** plookup;
     Sres* pres = nullptr;
 

@@ -1384,7 +1384,9 @@ public:
 
 
 class kconnectedcrit : public crit {
-public:
+// Diestel, Grath Theory, p. 6-7
+
+    public:
 
     kconnectedcrit( mrecords* recin ) : crit( recin, "kconnc", "Graph k-connected ")
     {
@@ -1415,6 +1417,8 @@ public:
 
 
 class kappatally : public tally {
+// Diestel, Graph Theory, page 7
+
 public:
 
     kappatally( mrecords* recin ) : tally( recin, "kappat", "kappa: max k-connectedness")
