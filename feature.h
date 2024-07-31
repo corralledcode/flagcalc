@@ -1674,6 +1674,7 @@ public:
         auto (circc) = critfactory<circumferencecrit>;
         auto (diamc) = critfactory<diametercrit>;
         auto (conn1c) = critfactory<connected1crit>;
+        auto (kconnc) = critfactory<kconnectedcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1685,6 +1686,7 @@ public:
         crsfactory.push_back(circc);
         crsfactory.push_back(diamc);
         crsfactory.push_back(conn1c);
+        crsfactory.push_back(kconnc);
 
 
         // ...

@@ -756,8 +756,7 @@ class connectedmeas : public meas
 public:
     connectedmeas(mrecords* recin) : meas(recin, "connm", "Connected components") {}
 
-    double takemeas( const int idx, const params& ps ) override
-    {
+    double takemeas( const int idx, const params& ps ) override {
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
 
@@ -765,70 +764,8 @@ public:
         if (ps.size() > 0)
             breaksize = ps[0].v.iv;
 
-        int dim = g->dim;
-        if (dim <= 0)
-            return 0;
-
-
-        int* visited = (int*)malloc(dim*sizeof(int));
-
-        for (int i = 0; i < dim; ++i)
-        {
-            visited[i] = -1;
-        }
-
-        visited[0] = 0;
-        int res = 1;
-        bool allvisited = false;
-        while (!allvisited)
-        {
-            bool changed = false;
-            for ( int i = 0; i < dim; ++i)
-            {
-                if (visited[i] >= 0)
-                {
-                    for (int j = 0; j < ns->degrees[i]; ++j)
-                    {
-                        vertextype nextv = ns->neighborslist[i*dim+j];
-                        // loop = if a neighbor of vertex i is found in visited
-                        // and that neighbor is not the origin of vertex i
-
-                        if (visited[nextv] < 0)
-                        {
-                            visited[nextv] = i;
-                            changed = true;
-                        }
-                    }
-                }
-            }
-            if (!changed) {
-                allvisited = true;
-                int firstunvisited = 0;
-                while( allvisited && (firstunvisited < dim))
-                {
-                    allvisited = allvisited && (visited[firstunvisited] != -1);
-                    ++firstunvisited;
-                }
-                if (allvisited)
-                {
-                    free (visited);
-                    return res;
-                }
-                res++;
-                if (breaksize >=0 && res >= breaksize)
-                {
-                    free (visited);
-                    return res;
-                }
-                visited[firstunvisited-1] = firstunvisited-1;
-                changed = true;
-            }
-
-        }
-
+        return connectedcount( g, ns, breaksize );
     }
-
-
 };
 
 class connectedcrit : public crit {
@@ -1446,7 +1383,35 @@ public:
 };
 
 
+class kconnectedcrit : public crit {
+public:
 
+    kconnectedcrit( mrecords* recin ) : crit( recin, "kconnc", "Graph k-connected ")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        p1.v.iv = 1;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        int k = 0;
+        if (ps.size() > 0 && ps[0].t == mtdiscrete)
+            k = ps[0].v.iv;
+
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        return kconnectedfn( g, ns, k);
+    }
+
+
+
+
+};
 
 
 

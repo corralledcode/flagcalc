@@ -49,6 +49,8 @@
 #include <ranges>
 #include <vector>
 #include <string>
+
+#include "mathfn.cpp"
 #ifdef THREADPOOL
 #include "thread_pool.cpp"
 #endif
@@ -1538,7 +1540,12 @@ bool embeds( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincn
     return cnt >= mincnt;
 }
 
-class embedsquicktest {
+class quicktest {
+public:
+    virtual bool test(int* testseq) {}
+};
+
+class embedsquicktest : public quicktest {
 public:
     graphtype* gtemp;
     const graphtype* g2;
@@ -1546,7 +1553,7 @@ public:
     FP* fp;
     const int dim1;
     const int dim2;
-    bool test(int* testseq) {
+    bool test(int* testseq) override {
         for (int i = 0; i < dim1; ++i) {
             vertextype g2vertex1 = testseq[i];
             for (int j = 0; j < dim1; ++j) {
@@ -1568,7 +1575,7 @@ public:
 
 
 
-bool enumsizedsubsetsquick(int sizestart, int sizeend, int* seq, int start, int stop, int* cnt, const int mincnt, embedsquicktest* test) {
+bool enumsizedsubsetsquick(int sizestart, int sizeend, int* seq, int start, int stop, int* cnt, const int mincnt, quicktest* test) {
     if (start > stop)
         return false;
     if (sizestart >= sizeend) {
@@ -1642,7 +1649,7 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
 
 
 
-bool enumsizedsubsetsquicktally(int sizestart, int sizeend, int* seq, int start, int stop, int* cnt, embedsquicktest* test) {
+bool enumsizedsubsetsquicktally(int sizestart, int sizeend, int* seq, int start, int stop, int* cnt, quicktest* test) {
     if (start > stop)
         return false;
     if (sizestart >= sizeend) {
@@ -1716,6 +1723,63 @@ int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2) {
     //free(subsets);
     return cnt;
 }
+
+
+
+class kconnectedtest : public quicktest {
+public:
+    graphtype* gtemp;
+    neighborstype* nstemp;
+    const int seqsize;
+    bool test(int* testseq) {
+        int dim = gtemp->dim;
+        bool* subsetv = (bool*)malloc(dim*sizeof(bool));
+        memset(subsetv,true,dim*sizeof(bool));
+        int idx = 0;
+        if (seqsize > 0)
+            subsetv[testseq[idx++]] = false;
+        while (idx < seqsize) {
+            subsetv[testseq[idx]] = false;
+            ++idx;
+        }
+        int dim2 = dim - seqsize;
+        auto gptr = new graphtype(dim2);
+        int offseti = 0;
+        int offsetj = 0;
+        for (int i = 0; i < dim2; ++i) {
+            while (!subsetv[offseti])
+                ++offseti;
+            if (offseti < dim) {
+                offsetj = offseti + 1;
+                for (int j = i+1; j < dim2; ++j) {
+                    while (!subsetv[offsetj])
+                        ++offsetj;
+                    if (offsetj < dim) {
+                        gptr->adjacencymatrix[i*dim2 + j] = gtemp->adjacencymatrix[offseti*dim + offsetj];
+                        gptr->adjacencymatrix[j*dim2 + i] = gtemp->adjacencymatrix[offsetj*dim + offseti];
+                    }
+                    ++offsetj;
+                }
+            }
+            ++offseti;
+        }
+
+        for (int i = 0; i < dim2; ++i)
+            gptr->adjacencymatrix[i*dim2 + i] = false;
+
+        bool resbool;
+        auto nsptr = new neighbors(gptr);
+        // osadjacencymatrix(std::cout, gtemp);
+        // osadjacencymatrix(std::cout, gptr);
+        auto c = connectedcount(gptr,nsptr,2);
+        free(nsptr);
+        free(gptr);
+        return (c > 1 ? false : true);
+    }
+    kconnectedtest( graphtype* gtempin, neighborstype* nsin, const int seqsizein)
+        : gtemp{gtempin},  nstemp{nsin}, seqsize{seqsizein} {}
+
+};
 
 
 
@@ -2016,3 +2080,77 @@ graphtype* cyclegraph( const int dim ) {
 }
 
 
+int connectedcount(graphtype *g, neighborstype *ns, const int breaksize) {
+    int dim = g->dim;
+    if (dim <= 0)
+        return 0;
+
+    int* visited = (int*)malloc(dim*sizeof(int));
+
+    for (int i = 0; i < dim; ++i)
+    {
+        visited[i] = -1;
+    }
+
+    visited[0] = 0;
+    int res = 1;
+    bool allvisited = false;
+    while (!allvisited)
+    {
+        bool changed = false;
+        for ( int i = 0; i < dim; ++i)
+        {
+            if (visited[i] >= 0)
+            {
+                for (int j = 0; j < ns->degrees[i]; ++j)
+                {
+                    vertextype nextv = ns->neighborslist[i*dim+j];
+                    // loop = if a neighbor of vertex i is found in visited
+                    // and that neighbor is not the origin of vertex i
+
+                    if (visited[nextv] < 0)
+                    {
+                        visited[nextv] = i;
+                        changed = true;
+                    }
+                }
+            }
+        }
+        if (!changed) {
+            allvisited = true;
+            int firstunvisited = 0;
+            while( allvisited && (firstunvisited < dim))
+            {
+                allvisited = allvisited && (visited[firstunvisited] != -1);
+                ++firstunvisited;
+            }
+            if (allvisited)
+            {
+                free (visited);
+                return res;
+            }
+            res++;
+            if (breaksize >=0 && res >= breaksize)
+            {
+                free (visited);
+                return res;
+            }
+            visited[firstunvisited-1] = firstunvisited-1;
+            changed = true;
+        }
+    }
+}
+
+bool kconnectedfn( graphtype* g, neighborstype* ns, const int k ) {
+
+    bool res = true;
+    for (int i = 0; res && (i < k); ++i) {
+        int cnt = 0;
+        auto test = new kconnectedtest(g,ns,i);
+        int c = nchoosek(g->dim,i);
+        res = res && enumsizedsubsetsquick(0,i,nullptr, 0,g->dim,&cnt,c, test);
+    }
+
+    return res;
+
+}

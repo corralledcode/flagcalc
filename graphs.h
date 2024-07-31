@@ -144,6 +144,7 @@ std::vector<graphmorphism>* enumisomorphisms( neighbors* ns1, neighbors* ns2 );
 
 int edgecnt( const graphtype* g );
 
+int connectedcount( graphtype* g, neighborstype* ns, const int breaksize);
 
 
 
@@ -162,6 +163,8 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
 
 
 int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
+
+bool kconnectedfn( graphtype* g, neighborstype* ns, int k );
 
 
 

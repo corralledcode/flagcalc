@@ -41,4 +41,5 @@ add_executable(flagcalc main.cpp
         meas.cpp
         probsub.cpp
         probsub.h
+        mathfn.cpp
 )
