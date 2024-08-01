@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
     auto cc = new checkcriterionfeature(&std::cin, &std::cout,ws);
     auto wg = new writegraphsfeature(&std::cin, &std::cout,ws);
     auto sbg = new populatesubobjectfeature(&std::cin, &std::cout,ws);
+    auto pd = new pairwisedisjointrandomfeature(&std::cin,&std::cout, ws);
 
     std::vector<feature*> featureslist {};
     featureslist.push_back(ug);
@@ -46,6 +47,7 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(cc);
     featureslist.push_back(wg);
     featureslist.push_back(sbg);
+    featureslist.push_back(pd);
 
     ug->featureslist = featureslist;
 

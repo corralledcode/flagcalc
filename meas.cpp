@@ -1409,10 +1409,6 @@ class kconnectedcrit : public crit {
 
         return kconnectedfn( g, ns, k);
     }
-
-
-
-
 };
 
 

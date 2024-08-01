@@ -3012,6 +3012,269 @@ public:
 };
 
 
+class pairwisedisjointrandomfeature : public feature {
+protected:
+    std::vector<pairwisedisjointrandomgraph*> rgs {};
+    public:
+    virtual void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "<name>: \t\t\t first give the name of the graph to take subobjects from\n";
+        *_os << "\t" << "t=\"vertices\": \t\t use the subgraph induced by the vertices \"type\" listed\n";
+        *_os << "\t" << "fn=\"graph\": \t\t where fn is f1, f2, etc.: specify the given \"flags\"\n";
+        *_os << "\t" << "r=<rgs>(<params>): \t randomly extend the subobjects up to the parameters provided\n";
+        *_os << "\t\t\t\t\t where <rgs> is one of:\n";
+        for (int n = 0; n < rgs.size(); ++n)
+        {
+            *_os << "\t\t\"" << rgs[n]->shortname() << "\": \t" << rgs[n]->name << "\n";
+        }
+
+    }
+
+
+    std::string cmdlineoption() override {return "p";}
+    std::string cmdlineoptionlong() override { return "pairwisedisjoint"; }
+    pairwisedisjointrandomfeature( std::istream* is, std::ostream* os, workspace* ws )
+        : feature( is, os, ws )
+    {
+
+        // add any new abstractrandomgraph types to the list here...
+
+        auto rs1 = new uniformpairwisedisjointrandomgraph;
+        rgs.push_back(rs1);
+
+        // add any new abstract subobject types to the list here...
+
+    }
+
+    ~pairwisedisjointrandomfeature()
+    {
+
+    }
+
+
+    std::vector<std::vector<graphtype*>> threadrandomgraphs( pairwisedisjointrandomgraph* r,
+        std::vector<int> dims, graphtype* parentgi, std::vector<int>* subg, const int cnt)
+    {
+        std::vector<std::vector<graphtype*>> res {};
+        if (cnt <= 0)
+            return res;
+
+        auto g = r->randomgraphs(dims,parentgi,subg, cnt);
+        for (auto r : g)
+        {
+            res.push_back(r);
+        }
+        return res;
+    }
+
+
+
+
+
+    void execute(std::vector<std::string> args) override {
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+
+
+        int rgsidx = -1;
+        std::vector<std::string> rgparams {};
+        std::vector<graphitem*> flags {};
+        std::vector<std::string> workingv {};
+        std::vector<int> subg {};
+
+        std::string giname;
+        if (parsedargs.size() > 0)
+            if (parsedargs[0].first == "default" || parsedargs[0].first == "g")
+                giname = parsedargs[0].second;
+            else
+            {
+                std::cout << "Error: use -p along with a graph name\n";
+                return;
+            }
+        else
+        {
+            std::cout << "Error: use -p along with a graph name\n";
+            return;
+        }
+
+        bool found = false;
+        int i;
+        for (i = 0; !found && (i < _ws->items.size()); ++i)
+        {
+            found = found || _ws->items[i]->name == giname;
+
+        }
+        graphitem* gi;
+        if (found)
+        {
+            if (gi = dynamic_cast<graphitem*>(_ws->items[--i]))
+            {
+                for (int j = 1; j < parsedargs.size(); ++j)
+                {
+                    found = false;
+
+                    if (parsedargs[j].first == "t") {
+                        auto vgs = new verticesforgraphstyle;
+                        workingv = vgs->getvertices(parsedargs[j].second); // allow unsorted and allow repeats
+
+
+                        // "getintvertices"
+                        subg.clear();
+                        for (auto s : workingv)
+                        {
+                            bool found = false;
+                            for (auto i = 0; !found && (i < gi->g->vertexlabels.size()); ++i)
+                            {
+                                if (s==gi->g->vertexlabels[i])
+                                {
+                                    found = true;
+                                    subg.push_back(i);
+                                }
+                            }
+                        }
+
+
+                        delete vgs;
+                    }
+
+
+                    if (parsedargs[j].first.size() > 1 && parsedargs[j].first[0] == 'f' && is_number(parsedargs[j].first.substr(1, parsedargs[j].first.size()-1))) {
+                        int fn = stoi(parsedargs[j].first.substr(1, parsedargs[j].first.size()-1));
+                        graphitem* gi = new graphitem();
+                        gi->g = igraphstyle({parsedargs[j].second});
+                        gi->ns = new neighbors(gi->g);
+                        gi->name = _ws->getuniquename(gi->classname);
+                        _ws->items.push_back(gi);
+                        flags.resize(fn < flags.size() ? flags.size() : fn);
+                        flags[fn-1] = gi;
+                        continue;
+                    }
+
+                    if (parsedargs[j].first == "r")
+                    {
+                        auto parsedargs2 = cmdlineparseiterationthree(parsedargs[j].second);
+
+                        for (int r = 0; r < parsedargs2.size(); ++r)
+                        {
+                            for (int l = 0; l < rgs.size(); ++l)
+                            {
+                                if (parsedargs2[r].first == rgs[l]->shortname())
+                                {
+                                    rgsidx = l;
+                                    rgparams = parsedargs2[r].second;
+                                    //for (int k = 0; k < rgparams.size(); ++k)
+                                    //    std::cout << "rgparam " << rgparams[k] << ", ";
+                                    //std::cout << "\n";
+                                }
+                            }
+                        }
+                    }
+                }
+                //
+            } else
+                std::cout << "Error dynamically casting to graphitem*\n";
+        } else
+        {
+            std::cout << "Unknown graph item named " << giname << "\n";
+            return;
+        }
+        if (rgsidx >= 0)
+        {
+            std::vector<std::vector<graphtype*>> pdrg {};
+            std::vector<std::vector<neighborstype*>> pdrns {};
+            std::vector<int> dims;
+            dims.resize(flags.size());
+            for (int i = 0; i < flags.size(); ++i) {
+                dims[i] = flags[i]->g->dim;
+            }
+
+            int outof = 0;
+            if (rgparams.size() > 0)
+                outof = stoi(rgparams[0]);
+
+            unsigned const thread_count = std::thread::hardware_concurrency();
+            //unsigned const thread_count = 1;
+
+            int cnt2 = 0;
+            const double section = double(outof) / double(thread_count);
+            std::vector<std::future<std::vector<std::vector<graphtype*>>>> t;
+            t.resize(thread_count);
+            for (int m = 0; m < thread_count; ++m) {
+                const int startidx = int(m*section);
+                const int stopidx = int((m+1.0)*section);
+
+                t[m] = std::async(&pairwisedisjointrandomfeature::threadrandomgraphs,this,
+                    rgs[rgsidx], dims, gi->g, &subg, stopidx-startidx);
+
+            }
+            for (int m = 0; m < thread_count; ++m)
+            {
+                auto w = t[m].get();
+                for (auto r : w)
+                {
+                    pdrg.push_back(r);
+                }
+            }
+
+            int cnt = 0;
+            std::vector<int*> m1s;
+            std::vector<int*> m2s;
+            m1s.resize(flags.size());
+            for (int j = 0; j < flags.size(); ++j) {
+                int dim = flags[j]->g->dim;
+                m1s[j] = (int*)malloc(dim*sizeof(int));
+                memset(m1s[j],0,dim*sizeof(int));
+                for (int i = 0; i < subg.size(); ++i) {
+                    for (int k = 0; k < dim; ++k) {
+                        if (subg[i] == k)
+                            m1s[j][k] = subg[i] + 1;
+                    }
+                }
+            }
+            m2s.resize(flags.size());
+            for (int j = 0; j < flags.size(); ++j) {
+                int dim = flags[j]->g->dim;
+                m2s[j] = (int*)malloc(dim*sizeof(int));
+                memset(m2s[j],0,dim*sizeof(int));
+                for (int i = 0; i < subg.size(); ++i) {
+                    for (int k = 0; k < dim; ++k) {
+                        if (subg[i] == k)
+                            m2s[j][k] = subg[i] + 1;
+                    }
+                }
+            }
+            pdrns.resize(pdrg.size());
+            for (int i = 0; i < pdrg.size(); ++i) {
+                pdrns[i].resize(pdrg[i].size());
+                for (int k = 0; k < pdrg[i].size(); ++k) {
+                    pdrns[i][k] = new neighborstype(pdrg[i][k]);
+                }
+                bool match = true;
+                for (int j = 0; match && (j < flags.size()); ++j) {
+                    match = match && existsiso2(m1s[j],m2s[j],flags[j]->g,flags[j]->ns,pdrg[i][j],pdrns[i][j]);
+                }
+                cnt += match ? 1 : 0;
+            }
+
+            auto wi = new pairwisedisjointitem();
+            wi->cnt = cnt;
+            wi->total = pdrg.size();
+            _ws->items.push_back(wi);
+
+
+            for (auto p : pdrg)
+                for (auto g : p)
+                    delete g;
+            for (auto n : pdrns )
+                for (auto ns : n)
+                    delete ns;
+            pdrg.clear();
+            pdrns.clear();
+        }
+    }
+
+
+};
+
 
 class populatesubobjectfeature : public feature
 {

@@ -337,6 +337,30 @@ template<typename T> abstractsubobjectitem* abstractsubobjectitemfactory(graphit
 
 
 
+class pairwisedisjointitem : public workitems {
+public:
+    int cnt = 0;
+    int total = 1;
+
+    virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
+        os << classname << " " << name << ":\n";
+        os << cnt << " out of " << total << ": " << (double)cnt / (double)total << "\n";
+        return true;
+    }
+
+
+    pairwisedisjointitem() : workitems() {
+        classname = "PAIRWISEDISJOINT";
+        verbositylevel = VERBOSE_PAIRWISEDISJOINT;
+
+    }
+};
+
+
+
+
+
+
 
 
 #endif //GRAPHOUTCOMEITEM_H

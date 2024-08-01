@@ -35,9 +35,10 @@
 #define VERBOSE_FPNONE "fpnone"
 #define VERBOSE_APPLYCRITERION "crit"
 #define VERBOSE_SUBOBJECT "subobj"
+#define VERBOSE_PAIRWISEDISJOINT "pd"
 
-#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj"
-#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj"
+#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj pd"
+#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj pd"
 
 #define VERBOSE_FORDB "db"
 
