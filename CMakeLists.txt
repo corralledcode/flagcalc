@@ -29,8 +29,6 @@ add_executable(flagcalc main.cpp
         graphoutcome.cpp
         graphoutcome.h
         mantel.h
-        measure.cpp
-        measure.h
         math.cpp
         mathfn.cpp
         absmeas.h

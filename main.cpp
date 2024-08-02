@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
     auto cf = new cmpfingerprintsfeature(&std::cin, &std::cout,ws);
     auto lsr = new legacysamplerandomgraphsfeature(&std::cin, &std::cout,ws);
     auto sr = new samplerandomgraphsfeature(&std::cin, &std::cout,ws);
-    auto mt = new mantelstheoremfeature(&std::cin,&std::cout,ws);
-    auto mv = new mantelsverifyfeature(&std::cin,&std::cout, ws);
+    // auto mt = new mantelstheoremfeature(&std::cin,&std::cout,ws);
+    // auto mv = new mantelsverifyfeature(&std::cin,&std::cout, ws);
     auto vb = new verbosityfeature(&std::cin,&std::cout, ws);
     auto _sb = new _sandboxfeature(&std::cin,&std::cout, ws);
     auto pr = new randomgraphsfeature(&std::cin,&std::cout, ws);
@@ -38,8 +38,8 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(cf);
     featureslist.push_back(lsr);
     featureslist.push_back(sr);
-    featureslist.push_back(mt);
-    featureslist.push_back(mv);
+    // featureslist.push_back(mt);
+    // featureslist.push_back(mv);
     featureslist.push_back(vb);
     featureslist.push_back(_sb);
     featureslist.push_back(pr);

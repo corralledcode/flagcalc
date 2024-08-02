@@ -25,7 +25,8 @@ $PTH/flagcalc -r 12 20 15 -v i=minimal3.cfg
 $PTH/flagcalc -r 20 25 1 -u GRAPH0 n="a b c" 'r=rs1(10,10000)' -a m=girthm c=conn1c c2=forestc c2=treec sub -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a "c=kconnc(6)" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a "c=kconnc(5)" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 12 1000 -a s="[kappat] <= [deltam]" all -v i=minimal2.cfg min subobj srm
+$PTH/flagcalc -r 10 12 1000 -a s="[kappat] <= [deltam]" all -v i=minimal3.cfg min subobj srm
+$PTH/flagcalc -r 10 12 10000 -a s="([kappat] > 0) == [conn1c]" all -v i=minimal3.cfg min subobj srm
 
 
 

@@ -126,3 +126,13 @@ inline double absfn(std::vector<double>& din)
     }
     return abs(din[0]);
 }
+
+inline double modfn(std::vector<double>& din) {
+    if (din.size() != 2)
+    {
+        std::cout << "Wrong number of arguments passed to modfn\n";
+        return 0;
+    }
+    return (int)din[0] % (int)din[1];
+
+}

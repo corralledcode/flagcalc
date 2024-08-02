@@ -8,6 +8,7 @@
 #define KNMAXCLIQUESIZE 12
 
 #include <cstring>
+#include <functional>
 #include <stdexcept>
 #include "math.h"
 #include "graphs.h"
@@ -433,6 +434,36 @@ public:
 
 };
 
+inline void populatevariables( graphtype* g, std::vector<qclass*>* variables ) {
+    auto Vv = new qclass;
+    auto Ev = new qclass;
+    auto NEv = new qclass;
+
+    Vv->qs.v.iset = (bool*)malloc(g->dim * sizeof(bool));
+    memset(Vv->qs.v.iset,true,g->dim * sizeof(bool));
+    Vv->qs.setsize = g->dim;
+    Vv->name = "V";
+    Vv->qs.t = mtset;
+    Ev->qs.v.iset = (bool*)malloc(g->dim*g->dim * sizeof(bool));
+    for (int i = 0; i < g->dim*g->dim; ++i)
+        Ev->qs.v.iset[i] = g->adjacencymatrix[i];
+    Ev->qs.setsize = g->dim*g->dim;
+    Ev->name = "E";
+    Ev->qs.t = mtset;
+    NEv->qs.v.iset = (bool*)malloc(g->dim * g->dim * sizeof(bool));
+    for (int i = 0; i < g->dim*g->dim; ++i)
+        NEv->qs.v.iset[i] = !g->adjacencymatrix[i];
+    for (int i = 0; i < g->dim; ++i)
+        NEv->qs.v.iset[i*g->dim + i] = false;
+    NEv->name = "NE";
+    NEv->qs.setsize = g->dim*g->dim;
+    NEv->qs.t = mtset;
+    variables->push_back(Vv);
+    variables->push_back(Ev);
+    variables->push_back(NEv);
+}
+
+
 
 class mrecords
 {
@@ -617,10 +648,12 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
 }
 
 
+
 class sentofcrit : public crit
 {
 public:
-    const formulaclass* fc;
+    std::vector<qclass*> variables {};
+    formulaclass* fc;
 
     bool takemeas(const int idx) override
     {
@@ -631,6 +664,10 @@ public:
         rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
         ef->idx = idx;
+        ef->variables = &variables;
+        ef->populated = false;
+        auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&variables));
+        ef->populatevariablesbound = &pv;
         valms r = ef->eval(*fc);
         switch (r.t)
         {
@@ -647,16 +684,23 @@ public:
 
 
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin, const std::string& fstr )
-        : crit( recin,  "sn", "Sentence " + fstr),
-            fc{parseformula(fstr,litnumpsin,littypesin,&global_fnptrs)}
-    {};
+        : crit( recin,  "sn", "Sentence " + fstr) {
+        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+    };
+
+    ~sentofcrit() {
+        delete fc;
+    }
 
 };
+
+
 
 class formmeas : public meas
 {
 public:
-    const formulaclass* fc;
+    formulaclass* fc;
+    std::vector<qclass*> variables {};
 
     double takemeas(const int idx) override
     {
@@ -667,6 +711,10 @@ public:
         rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
         ef->idx = idx;
+        ef->variables = &variables;
+        ef->populated = false;
+        auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&variables));
+        ef->populatevariablesbound = &pv;
         valms r = ef->eval(*fc);
         switch (r.t)
         {
@@ -683,9 +731,14 @@ public:
 
 
     formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin, const std::string& fstr )
-        : meas( recin,  "fm", "Formula " + fstr),
-            fc{parseformula(fstr,litnumpsin,littypesin,&global_fnptrs)}
-    {};
+        : meas( recin,  "fm", "Formula " + fstr) {
+        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+    }
+
+    ~formmeas() {
+        delete fc;
+    }
+
 
 };
 

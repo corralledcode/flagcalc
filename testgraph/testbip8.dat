@@ -12,6 +12,6 @@ a b c d
 e f g h
 END
 *abcdefgh
-!abcd
-!efgh
+!*abcd
+!*efgh
 END

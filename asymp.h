@@ -200,6 +200,7 @@ public:
 };
 
 
+/*
 class measure : public abstractmemorymeasure<double>
 {
 public:
@@ -231,7 +232,7 @@ public:
     evalidxedformula( const std::vector<iteration*>* iterin ) : evalformula(), iter{iterin} {}
 
 };
-
+*/
 
 
 

@@ -10,6 +10,14 @@
 #include "mathfn.h"
 #include "math.h";
 
+#include <cstring>
+
+#include "feature.h"
+#include "graphs.h"
+
+#define QUANTIFIER_FORALL "FORALL"
+#define QUANTIFIER_EXISTS "EXISTS"
+
 inline bool is_number(const std::string& s)
 {
     if (!s.empty() && s[0] == '-')
@@ -336,7 +344,7 @@ inline logicalsentence parsesentenceinternal (std::vector<std::string> component
     return ls;
 }
 
-inline logicalsentence parsesentence( std::string sentence ) {
+inline logicalsentence parsesentence( const std::string sentence ) {
     if (sentence != "")
         return parsesentenceinternal( parsecomponents(sentence), 0 );
     else {
@@ -418,15 +426,50 @@ bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
 }
 
 valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
-    {
-        valms res;
-        res.t = measuretype::mtbool;
-        res.v.bv = false;
-        return res;
-    }
-
-valms evalformula::eval(const formulaclass& fc)
 {
+    valms res;
+    res.t = measuretype::mtbool;
+    res.v.bv = false;
+    return res;
+}
+
+inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables) {
+    bool found = false;
+    int i = 0;
+    while (!found && i < variables.size()) {
+        found = variables[i]->name == tok;
+        ++i;
+    }
+    if (!found)
+        return -1;
+    return i-1;
+}
+
+
+valms evalformula::evalvariable( std::string& vname ) {
+    if (!populated && (vname == "E" || vname == "V" || vname == "NE")) {
+        if (populated) {
+            variables->erase(variables->begin()+ lookup_variable("E",*variables));
+            variables->erase(variables->begin()+ lookup_variable("V",*variables));
+            variables->erase(variables->begin()+ lookup_variable("NE",*variables));
+        }
+        (*populatevariablesbound)();
+        populated = true;
+    }
+    int i = lookup_variable(vname, *variables);
+    valms res;
+    if (i < 0) {
+        res.t = mtdiscrete;
+        res.v.iv = 0;
+    } else {
+        res = (*variables)[i]->qs;
+    }
+    return res;
+}
+
+valms evalformula::eval( formulaclass& fc)
+{
+
     valms res;
     if (fc.fo == formulaoperator::fotrue)
     {
@@ -454,6 +497,7 @@ valms evalformula::eval(const formulaclass& fc)
         }
     }
 
+
     if (fc.fo == formulaoperator::fofunction) {
         bool found = false;
         double (*fn)(std::vector<double>&) = fc.v.fns.fn;
@@ -475,6 +519,75 @@ valms evalformula::eval(const formulaclass& fc)
         }
         res.v.dv = fn(ps);
         res.t = measuretype::mtcontinuous;
+        return res;
+    }
+
+
+    if (fc.fo == formulaoperator::fovariable) {
+        res = evalvariable(fc.v.qc->name);
+        return res;
+    }
+
+    if (fc.fo == formulaoperator::foqforall) {
+        res.v.bv = true;
+        res.t = mtbool;
+        switch (fc.v.qc->qs.t) {
+            case mtset: {
+
+                valms v = eval(*fc.v.qc->superset);
+
+                std::vector<int> subset {};
+                for (int i = 0; i < v.setsize; ++i) {
+                    if (v.v.iset[i])
+                        subset.push_back(i);
+                }
+                std::vector<int> subsets;
+                fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
+                fc.v.qc->qs.setsize = v.setsize;
+                for (int i = 1; res.v.bv && (i < subset.size()); ++i) {
+                    subsets.clear();
+                    enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
+                    int numberofsubsets = subsets.size()/i;
+                    for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
+                        memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
+                        for (int j = 0; (j < i); ++j) {
+                            fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
+                        }
+                        res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                    }
+                }
+                // delete fc.v.qc->qs.v.iset;
+                break;
+            }
+            case mtdiscrete: {
+                valms v = eval(*fc.v.qc->superset);
+                int maxint = -1;
+                switch (v.t) {
+                    case mtbool: maxint = (int)v.v.bv; break;
+                    case mtdiscrete: maxint = v.v.iv; break;
+                    case mtcontinuous: maxint = (int)v.v.dv; break;
+                }
+                auto superset = v.v.iset;
+                auto supersetsize = v.setsize;
+                bool* ss = nullptr;
+                if (maxint >= 0) {
+                    ss = (bool*)malloc(maxint*sizeof(bool));
+                    memset(ss,true,maxint*sizeof(bool));
+                    superset = ss;
+                    supersetsize = maxint;
+                }
+
+                for (fc.v.qc->qs.v.iv = 0; fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
+                    if (superset[fc.v.qc->qs.v.iv]) {
+                        res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                        // std::cout << fc.v.qc->qs.v.iv << " iv \n";
+                    }
+                }
+                delete ss;
+                break;
+            }
+
+        }
         return res;
     }
 
@@ -632,7 +745,7 @@ evalformula::evalformula() {}
 
 
 
-inline formulaclass* fccombine( const formulavalue& item, const formulaclass* fc1, const formulaclass* fc2, const formulaoperator fo ) {
+inline formulaclass* fccombine( const formulavalue& item, formulaclass* fc1, formulaclass* fc2, formulaoperator fo ) {
     auto res = new formulaclass(item,fc1,fc2,fo);
     return res;
 }
@@ -687,13 +800,29 @@ inline bool is_literal(std::string tok) {
     return tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']';
 }
 
+inline bool is_variable(std::string tok) {
+    bool res = tok.size() > 0 && isalpha(tok[0]);
+    for (int i = 1; res && (i < tok.size()); ++i) {
+        res = res && isalnum(tok[i]);
+    }
+    return res;
+}
+
 inline int get_literal(std::string tok) {
     if (is_literal(tok))
         return stoi(tok.substr(1,tok.size()-2));
     return 0;
 }
 
-inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> components, const std::vector<int>& litnumps) {
+
+inline bool is_quantifier( std::string tok ) {
+    return tok == QUANTIFIER_FORALL || tok == QUANTIFIER_EXISTS;
+}
+
+
+
+
+inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>& components, const std::vector<int>& litnumps) {
     std::vector<std::string> output {};
     std::vector<std::string> operatorstack {};
 
@@ -702,29 +831,33 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
         const std::string tok = components[n++];
         if (is_real(tok))
         {
-            output.push_back(tok);
+            output.insert(output.begin(),tok);
             continue;
         }
         if (is_number(tok)) {
-            output.push_back(tok);
+            output.insert(output.begin(),tok);
             continue;
         }
         if (is_literal(tok)) {
             if (litnumps[get_literal(tok)] > 0)
                 operatorstack.push_back(tok);
             else
-                output.push_back(tok);
+                output.insert(output.begin(),tok);
             continue;
         }
         if (is_truth(tok)) {
-            output.push_back(tok);
+            output.insert(output.begin(),tok);
+            continue;
+        }
+        if (is_quantifier(tok)) {
+            operatorstack.push_back(tok);
             continue;
         }
         if (is_operator(tok)) {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
-                while (is_operator(ostok) && ostok != "(" && operatorprecedence(ostok,tok) >= 0) {
-                    output.push_back(ostok);
+                while ((ostok != "(") && (operatorprecedence(ostok,tok) >= 0)) {
+                    output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     if (operatorstack.size() >= 1)
                         ostok = operatorstack[operatorstack.size()-1];
@@ -739,11 +872,15 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
             operatorstack.push_back(tok);
             continue;
         }
+        if (is_variable(tok)) {
+            operatorstack.push_back(tok);
+            continue;
+        }
         if (tok == ",") {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "(") {
-                    output.push_back(ostok);
+                    output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     ostok = operatorstack[operatorstack.size()-1];
                 }
@@ -752,6 +889,7 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
         }
         if (tok == "(") {
             operatorstack.push_back(tok);
+            continue;
         }
         if (tok == ")") {
             std::string ostok;
@@ -763,7 +901,7 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
                         std::cout << "Error mismatched parentheses\n";
                         return output;
                     }
-                    output.push_back(ostok);
+                    output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     if (operatorstack.size() >= 1)
                         ostok = operatorstack[operatorstack.size()-1];
@@ -783,22 +921,34 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
                 ostok = operatorstack[operatorstack.size()-1];
                 if (is_function(ostok))
                 {
-                    output.push_back(ostok);
+                    output.insert(output.begin(),ostok);
+                    operatorstack.resize(operatorstack.size()-1);
+                    continue;
+                }
+                if (is_quantifier(ostok)) {
+                    output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     continue;
                 }
                 if (is_literal(ostok)) {
                     if (litnumps[get_literal(ostok)] > 0)
                     {
-                        output.push_back(ostok);
+                        output.insert(output.begin(),ostok);
                         operatorstack.resize(operatorstack.size()-1);
                         continue;
                     }
                 }
-
+                if (is_variable(ostok))
+                {
+                    output.insert(output.begin(),ostok);
+                    operatorstack.resize(operatorstack.size()-1);
+                    continue;
+                }
             }
             continue;
         }
+
+
     }
     while (operatorstack.size()> 0) {
         std::string ostok = operatorstack[operatorstack.size()-1];
@@ -806,42 +956,74 @@ inline std::vector<std::string> Shuntingyardalg( std::vector<std::string> compon
             std::cout << "Error mismatched parentheses\n";
             return output;
         }
-        output.push_back(ostok);
+        output.insert(output.begin(),ostok);
         operatorstack.resize(operatorstack.size()-1);
     }
 
-    // for (auto o : output)
-        // std::cout << o << ", ";
-    // std::cout << "\n";
+    for (auto o : output)
+        std::cout << o << ", ";
+    std::cout << "\n";
 
     return output;
 
 }
 
 
+
+
 inline formulaclass* parseformulainternal(
-    const std::vector<std::string>& q,
+    std::vector<std::string>& q,
     int& pos,
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
+    std::vector<qclass*>* variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs )
 {
-    if (pos == -1)
-        pos = q.size();
-    while( pos > 0) {
-        --pos;
+    while( pos+1 < q.size()) {
+        ++pos;
         std::string tok = q[pos];
+        if (is_quantifier(tok)) {
+            auto qc = new qclass;
+            qc->eval( q, ++pos);
+            qc->superset = parseformulainternal(q, pos, litnumps,littypes,variables,fnptrs);
+            variables->push_back( qc );
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
+            formulaclass* fcleft = nullptr;
+            formulaoperator o = lookupoperator(tok);
+            formulavalue fv {};
+            fv.qc = qc;
+            auto fc = fccombine(fv,fcleft,fcright,o);
+            return fc;
+        }
         if (is_operator(tok))
         {
             formulaoperator o = lookupoperator(tok);
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes, variables,fnptrs);
             formulaclass* fcleft = nullptr;
             if (o != formulaoperator::fonot)
             {
-                fcleft = parseformulainternal(q,pos,litnumps,littypes,fnptrs);
+                fcleft = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
             }
             if (fcright)
                 return fccombine({0},fcleft,fcright,o);
+        }
+        int v = lookup_variable(tok,*variables);
+        if (v >= 0) {
+            formulavalue fv {};
+
+            fv.t = (*variables)[v]->qs.t;
+            fv.v = (*variables)[v]->qs.v;
+            auto fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+            fc->v.qc = (*variables)[v];
+            return fc;
+        }
+        if (tok == "V" || tok == "E" || tok == "NE") {
+            formulavalue fv {};
+            fv.t = mtset;
+            auto fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+            fc->v.qc = new qclass;
+            fc->v.qc->name = tok;
+            return fc;
         }
         if (is_function(tok)) {
             std::vector<formulaclass*> ps {};
@@ -852,7 +1034,7 @@ inline formulaclass* parseformulainternal(
                     argcnt = f.second.second;
             std::vector<formulaclass*> psrev {};
             for (int i = 0; i < argcnt; ++i) {
-                psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,fnptrs));
+                psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
             }
             for (int i = psrev.size()-1; i >= 0; --i)
                 ps.push_back(psrev[i]);
@@ -882,7 +1064,7 @@ inline formulaclass* parseformulainternal(
                 int argcnt = litnumps[fv.lit.l];
                 std::vector<formulaclass*> psrev {};
                 for (int i = 0; i < argcnt; ++i) {
-                    psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,fnptrs));
+                    psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
                 }
                 for (int i = psrev.size()-1; i >= 0; --i)
                     fv.lit.ps.push_back(psrev[i]);
@@ -918,57 +1100,22 @@ inline formulaclass* parseformulainternal(
     return fc;
 }
 
+
 formulaclass* parseformula(
     const std::string& sentence,
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
+    std::vector<qclass*>& variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs )
 {
     if (sentence != "") {
         std::vector<std::string> components = Shuntingyardalg(parsecomponents(sentence),litnumps);
-        int pos = components.size();
-        return parseformulainternal( components,pos, litnumps, littypes, fnptrs);
+        int pos = -1;
+        variables.clear();
+        return parseformulainternal( components,pos, litnumps, littypes, &variables, fnptrs);
     } else {
         auto fc = new formulaclass({0},nullptr,nullptr,formulaoperator::foconstant);
         return fc;
     }
 }
 
-
-/*
-inline void parseequation( std::string* equation, std::string* lhs, std::string* rhs, int* eqtype) {
-
-    int pos0 = equation->find ("==");
-    int pos1 = equation->find(">=");
-    int pos2 = equation->find( ">");
-    int posn1 = equation->find( "<=");
-    int posn2 = equation->find( "<");
-
-    int pos;
-
-    if (pos0 != std::string::npos) {
-        pos = pos0;
-        *eqtype = 0;
-    }
-    if (pos1 != std::string::npos) {
-        pos = pos1;
-        *eqtype = 1;
-    }
-    if (pos2 != std::string::npos && pos1 == std::string::npos) {
-        pos = pos2;
-        *eqtype = 2;
-    }
-    if (posn1 != std::string::npos) {
-        pos = posn1;
-        *eqtype = -1;
-    }
-    if (posn2 != std::string::npos && posn1 == std::string::npos) {
-        pos = posn2;
-        *eqtype = -2;
-    }
-    *lhs = equation->substr(0,pos-1);
-    *rhs = equation->substr(pos+2,equation->size()-pos-2);
-    //std::cout << *lhs << " === " << *rhs << " , " << *eqtype << "\n";
-
-}
-*/

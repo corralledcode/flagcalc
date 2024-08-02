@@ -1,0 +1,16 @@
+
+NOT FORALL
+    (FORALL
+        (NOT FORALL
+            (FORALL
+                (FORALL
+                    (FORALL
+                        ([cc](l,r) AND NOT [cc](l,l2) AND NOT [cc](r,r2)
+                         AND ([st](left) + [st](right) == [dimm]),
+                    l2 IN left),
+                r2 IN right),
+            l IN left),
+        r IN right),
+    right SUBSETEQ V),
+left SUBSETEQ V)
+END

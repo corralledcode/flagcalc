@@ -1443,3 +1443,87 @@ public:
 
 
 
+class vdtally : public tally {
+
+public:
+
+    vdtally( mrecords* recin ) : tally( recin, "vdt", "vertex degree")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        p1.v.iv = 0;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        // graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        vertextype v = 0;
+        if (ps.size() > 0)
+            v = ps[0].v.iv;
+        return ns->degrees[v];
+    }
+
+};
+
+
+class ccrit : public crit {
+
+public:
+
+    ccrit( mrecords* recin ) : crit( recin, "cc", "vertices connected")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        p1.v.iv = 0;
+        ps.push_back(p1);
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        vertextype v1 = 0;
+        vertextype v2 = 0;
+        if (ps.size() == 2) {
+            v1 = ps[0].v.iv;
+            v2 = ps[1].v.iv;
+        }
+        return g->adjacencymatrix[v1*g->dim + v2];
+    }
+
+};
+
+class sizetally : public tally {
+
+public:
+
+    sizetally( mrecords* recin ) : tally( recin, "st", "set size tally")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() == 1) {
+            int res = 0;
+            for (int i = 0; i < ps[0].setsize; ++i)
+                if (ps[0].v.iset[i])
+                    ++res;
+            return res;
+        }
+        return 0;
+    }
+
+};
+

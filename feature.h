@@ -11,7 +11,7 @@
 #include <wchar.h>
 
 #include "asymp.h"
-#include "measure.cpp"
+// #include "measure.cpp"
 #include "graphio.h"
 #include "graphoutcome.h"
 #include "graphs.h"
@@ -1675,6 +1675,7 @@ public:
         auto (diamc) = critfactory<diametercrit>;
         auto (conn1c) = critfactory<connected1crit>;
         auto (kconnc) = critfactory<kconnectedcrit>;
+        auto (cc) = critfactory<ccrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1687,7 +1688,7 @@ public:
         crsfactory.push_back(diamc);
         crsfactory.push_back(conn1c);
         crsfactory.push_back(kconnc);
-
+        crsfactory.push_back(cc);
 
         // ...
 
@@ -1742,9 +1743,14 @@ public:
         auto (Knt) = tallyfactory<Kntally>;
         auto (cyclet) = tallyfactory<cycletally>;
         auto (kappat) = tallyfactory<kappatally>;
+        auto (vdt) = tallyfactory<vdtally>;
+        auto (st) = tallyfactory<sizetally>;
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
         tysfactory.push_back(kappat);
+        tysfactory.push_back(vdt);
+        tysfactory.push_back(st);
+
 
 
         // ,,,
@@ -2952,7 +2958,7 @@ public:
 };
 
 
-
+/*
 class mantelstheoremfeature : public feature {
 public:
     std::string cmdlineoption() { return "m"; }
@@ -3010,7 +3016,7 @@ public:
         delete ei;
     }
 };
-
+*/
 
 class pairwisedisjointrandomfeature : public feature {
 protected:
