@@ -1488,7 +1488,7 @@ public:
     bool takemeas(const int idx, const params& ps) override
     {
         graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+        // neighborstype* ns = (*rec->nsptrs)[idx];
         vertextype v1 = 0;
         vertextype v2 = 0;
         if (ps.size() == 2) {
@@ -1521,6 +1521,30 @@ public:
                 if (ps[0].v.iset[i])
                     ++res;
             return res;
+        }
+        return 0;
+    }
+
+};
+
+class vconntally : public tally {
+
+public:
+
+    vconntally( mrecords* recin ) : tally( recin, "vct", "vertices paths tally")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        ps.push_back(p1);
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() == 2) {
+            // ...
         }
         return 0;
     }

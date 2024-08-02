@@ -536,6 +536,17 @@ valms evalformula::eval( formulaclass& fc)
 
                 valms v = eval(*fc.v.qc->superset);
 
+                if (v.t == mtcontinuous) {
+                    v.v.iv = (int)v.v.dv;
+                    v.t = mtdiscrete;
+                }
+                if (v.t == mtdiscrete) {
+                    v.t = mtset;
+                    v.setsize = v.v.iv;
+                    v.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
+                    memset(v.v.iset,true,v.setsize*sizeof(bool));
+                }
+
                 std::vector<int> subset {};
                 for (int i = 0; i < v.setsize; ++i) {
                     if (v.v.iset[i])
