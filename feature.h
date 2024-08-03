@@ -1675,7 +1675,7 @@ public:
         auto (diamc) = critfactory<diametercrit>;
         auto (conn1c) = critfactory<connected1crit>;
         auto (kconnc) = critfactory<kconnectedcrit>;
-        auto (cc) = critfactory<ccrit>;
+        auto (ac) = critfactory<acrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1688,7 +1688,7 @@ public:
         crsfactory.push_back(diamc);
         crsfactory.push_back(conn1c);
         crsfactory.push_back(kconnc);
-        crsfactory.push_back(cc);
+        crsfactory.push_back(ac);
 
         // ...
 
@@ -1745,12 +1745,14 @@ public:
         auto (kappat) = tallyfactory<kappatally>;
         auto (vdt) = tallyfactory<vdtally>;
         auto (st) = tallyfactory<sizetally>;
+        auto (pct) = tallyfactory<pctally>;
+
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
         tysfactory.push_back(kappat);
         tysfactory.push_back(vdt);
         tysfactory.push_back(st);
-
+        tysfactory.push_back(pct);
 
 
         // ,,,

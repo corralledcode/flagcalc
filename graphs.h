@@ -187,6 +187,8 @@ void osmachinereadablegraph(std::ostream &os, graphtype* g);
 
 void zerograph(graphtype* g);
 
+int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2);
+
 graphtype* cyclegraph( const int dim );
 
 #endif //GRAPHS_H

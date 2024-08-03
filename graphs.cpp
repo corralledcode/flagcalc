@@ -2156,3 +2156,32 @@ bool kconnectedfn( graphtype* g, neighborstype* ns, const int k ) {
     return res;
 
 }
+
+void copygraph( graphtype* g1, graphtype* g2 ) {
+    if (g1->dim != g2->dim) {
+        std::cout << "Mismatched dimensions in copygraph\n";
+        return;
+    }
+    for (int i = 0; i < g1->dim * g1->dim; ++i)
+        g2->adjacencymatrix[i] = g1->adjacencymatrix[i];
+}
+
+int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
+    if (v1 == v2)
+        return 1;
+    auto g2 = new graphtype(g->dim);
+    //copygraph( g, g2 );
+    int res = 0;
+    for (int i = 0; i < ns->degrees[v1]; ++i) {
+        copygraph( g, g2 );
+        vertextype v = ns->neighborslist[v1*g->dim + i];
+        g2->adjacencymatrix[v1*g->dim + v] = false;
+        g2->adjacencymatrix[v*g->dim + v1] = false;
+        auto ns2 = new neighborstype(g2);
+        res += pathsbetweentally(g2,ns2, v,v2);
+        delete ns2;
+    }
+    delete g2;
+    return res;
+}
+

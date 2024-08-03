@@ -986,9 +986,9 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         operatorstack.resize(operatorstack.size()-1);
     }
 
-    // for (auto o : output)
-        // std::cout << o << ", ";
-    // std::cout << "\n";
+    for (auto o : output)
+        std::cout << o << ", ";
+    std::cout << "\n";
 
     return output;
 

@@ -1470,11 +1470,11 @@ public:
 };
 
 
-class ccrit : public crit {
+class acrit : public crit {
 
 public:
 
-    ccrit( mrecords* recin ) : crit( recin, "cc", "vertices connected")
+    acrit( mrecords* recin ) : crit( recin, "ac", "vertices adjacent")
     {
         ps.clear();
         valms p1;
@@ -1527,11 +1527,11 @@ public:
 
 };
 
-class vconntally : public tally {
+class pctally : public tally {
 
 public:
 
-    vconntally( mrecords* recin ) : tally( recin, "vct", "vertices paths tally")
+    pctally( mrecords* recin ) : tally( recin, "pct", "vertices path connected tally")
     {
         ps.clear();
         valms p1;
@@ -1543,8 +1543,12 @@ public:
 
     int takemeas(const int idx, const params& ps) override
     {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        osadjacencymatrix(std::cout, g);
         if (ps.size() == 2) {
-            // ...
+            // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
+            return pathsbetweentally(g,ns,ps[0].v.iv, ps[1].v.iv);
         }
         return 0;
     }
