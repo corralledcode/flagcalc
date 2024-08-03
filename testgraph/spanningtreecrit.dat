@@ -1,8 +1,8 @@
 
-NOT FORALL
-    (NOT (([st](v) == [dimm]-1) AND
+EXISTS
+    (([st](v) == [dimm]-1) AND
         FORALL ([cc](x/[dimm],mod(x,[dimm])),
-    x IN v)),
+    x IN v),
 v SUBSETEQ ([dimm]*[dimm]))
 
 END

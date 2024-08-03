@@ -528,14 +528,16 @@ valms evalformula::eval( formulaclass& fc)
         return res;
     }
 
-    if (fc.fo == formulaoperator::foqforall) {
+    if (fc.fo == formulaoperator::foqforall || fc.fo == formulaoperator::foqexists) {
         res.v.bv = true;
+
         res.t = mtbool;
         switch (fc.v.qc->qs.t) {
             case mtset: {
 
                 valms v = eval(*fc.v.qc->superset);
 
+                bool responsibletodelete = false;
                 if (v.t == mtcontinuous) {
                     v.v.iv = (int)v.v.dv;
                     v.t = mtdiscrete;
@@ -545,6 +547,7 @@ valms evalformula::eval( formulaclass& fc)
                     v.setsize = v.v.iv;
                     v.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
                     memset(v.v.iset,true,v.setsize*sizeof(bool));
+                    responsibletodelete = true;
                 }
 
                 std::vector<int> subset {};
@@ -564,9 +567,16 @@ valms evalformula::eval( formulaclass& fc)
                         for (int j = 0; (j < i); ++j) {
                             fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
                         }
-                        res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                        if (fc.fo == formulaoperator::foqexists)
+                            res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                        if (fc.fo == formulaoperator::foqforall)
+                            res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
                     }
                 }
+                if (fc.fo == formulaoperator::foqexists)
+                    res.v.bv = !res.v.bv;
+                if (responsibletodelete)
+                    delete v.v.iset;
                 // delete fc.v.qc->qs.v.iset;
                 break;
             }
@@ -588,12 +598,17 @@ valms evalformula::eval( formulaclass& fc)
                     supersetsize = maxint;
                 }
 
-                for (fc.v.qc->qs.v.iv = 0; fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
+                for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
                     if (superset[fc.v.qc->qs.v.iv]) {
-                        res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                        if (fc.fo == formulaoperator::foqexists)
+                            res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                        if (fc.fo == formulaoperator::foqforall)
+                            res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
                         // std::cout << fc.v.qc->qs.v.iv << " iv \n";
                     }
                 }
+                if (fc.fo == formulaoperator::foqexists)
+                    res.v.bv = !res.v.bv;
                 delete ss;
                 break;
             }
@@ -971,9 +986,9 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         operatorstack.resize(operatorstack.size()-1);
     }
 
-    for (auto o : output)
-        std::cout << o << ", ";
-    std::cout << "\n";
+    // for (auto o : output)
+        // std::cout << o << ", ";
+    // std::cout << "\n";
 
     return output;
 

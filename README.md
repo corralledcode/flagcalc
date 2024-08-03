@@ -115,9 +115,9 @@ abcd+efg
 
 is a K_4 at the center, with edges ae be ce de af bf cf df ce cf cg de df dg.
 
-6. Finally, the “!” does the NOT of whatever immediately follows
+6. Finally, the “!” does the NOT of whatever immediately follows, requiring "*" if negating a complete set
 
-!abcde is five outlier vertices with no edges (it being the inverse of the complete graph K_5).
+!*abcde is five outlier vertices with no edges (it being the inverse of the complete graph K_5).
 
 Each of these six are generous to existing structure: if one does a bipartite graph on abcd=efgh, it will not by default erase existing edges between say a and b. If one wishes to erase, use as just illustrated the !abcde. Finally, one will see earlier iterations of this input format that required naming all the vertices then ending that section with “END”. Here, to name say a b c is fine; each is a little K_1. And here, too, for backwards compatibility, after describing one graph, if one wishes to add a second or third, etc., graph to the file, punctuate each with two “END”s: “END END”.
 
