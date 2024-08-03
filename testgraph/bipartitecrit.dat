@@ -5,7 +5,7 @@ NOT FORALL
             (FORALL
                 (FORALL
                     (FORALL
-                        ([cc](l,r) AND NOT [cc](l,l2) AND NOT [cc](r,r2)
+                        ([ac](l,r) AND NOT [ac](l,l2) AND NOT [ac](r,r2)
                          AND ([st](left) == floor([dimm]/2))
                          AND ([st](right) == ceil([dimm]/2)),
                     l2 IN left),

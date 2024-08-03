@@ -1,7 +1,7 @@
 
 EXISTS
     (([st](v) == [dimm]-1) AND
-        FORALL ([cc](x/[dimm],mod(x,[dimm])),
+        FORALL ([ac](x/[dimm],mod(x,[dimm])),
     x IN v),
 v SUBSETEQ ([dimm]*[dimm]))
 
