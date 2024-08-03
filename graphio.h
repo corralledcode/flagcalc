@@ -116,6 +116,7 @@ public:
 
     void applytograph(std::string sin, std::vector<std::string> vertices,  std::vector<std::pair<bool,std::pair<std::string,std::string>>>* moves) override
     {
+        moves->clear();
         for (int i = 0; i < vertices.size()-1; ++i)
         {
             if (vertices[i] != vertices[i+1])
@@ -144,6 +145,8 @@ public:
 
         if (pos == std::string::npos)
             return;
+
+        moves->clear();
 
         auto vgs = new verticesforgraphstyle();
         std::vector<std::string> v0 = vgs->getvertices(sin);
@@ -196,6 +199,7 @@ public:
         std::vector<std::pair<bool, std::pair<std::string, std::string>>>* moves) override {
         std::vector<int> posv {};
         int pos = 0;
+        moves->clear();
         posv.push_back(0);
         std::string news = sin.substr(pos,sin.size()-pos);
         pos = news.find("=");
@@ -274,7 +278,7 @@ inline void graphstylerecurse( std::vector<std::pair<bool,std::pair<std::string,
         //    return;
 
     }
-    if (!repeated) // && !sin.empty())
+    // if (!repeated) // && !sin.empty())
         (*gsv)[defaultgsidx]->applytograph( sin, vertices, moves );
 }
 
