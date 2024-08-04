@@ -447,22 +447,40 @@ inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variab
 
 
 valms evalformula::evalvariable( std::string& vname ) {
-    if (!populated && (vname == "E" || vname == "V" || vname == "NE")) {
-        if (populated) {
-            variables->erase(variables->begin()+ lookup_variable("E",*variables));
-            variables->erase(variables->begin()+ lookup_variable("V",*variables));
-            variables->erase(variables->begin()+ lookup_variable("NE",*variables));
+    // if (!populated && (vname == "E" || vname == "V" || vname == "NE")) {
+/*
+        int e = lookup_variable("E",*variables);
+        int v = lookup_variable("V",*variables);
+        int ne = lookup_variable("NE",*variables);
+        if (e >= 0)
+        {
+            delete (*variables)[e];
+            variables->erase(variables->begin()+ e);
         }
-        (*populatevariablesbound)();
-        populated = true;
-    }
-    int i = lookup_variable(vname, *variables);
+        if (v >= 0)
+        {
+            delete (*variables)[v];
+            variables->erase(variables->begin()+ v);
+        }
+        if (ne >= 0)
+        {
+            delete (*variables)[ne];
+            variables->erase(variables->begin() + ne);
+        }
+*/
+        // (*populatevariablesbound)();
+        // populated = true;
+    // }
+
+    int i = lookup_variable(vname,variables);
     valms res;
-    if (i < 0) {
+    if (i < 0)
+    {
         res.t = mtdiscrete;
         res.v.iv = 0;
-    } else {
-        res = (*variables)[i]->qs;
+    } else
+    {
+        res = variables[i]->qs;
     }
     return res;
 }
@@ -556,16 +574,21 @@ valms evalformula::eval( formulaclass& fc)
                         subset.push_back(i);
                 }
                 std::vector<int> subsets;
-                fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
-                fc.v.qc->qs.setsize = v.setsize;
+                int m = lookup_variable(fc.v.qc->name, variables);
+                variables[m]->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
+                variables[m]->qs.setsize = v.setsize;
+                // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
+                // fc.v.qc->qs.setsize = v.setsize;
                 for (int i = 1; res.v.bv && (i < subset.size()); ++i) {
                     subsets.clear();
                     enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
                     int numberofsubsets = subsets.size()/i;
                     for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
-                        memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
+                        memset(variables[m]->qs.v.iset,false,v.setsize*sizeof(bool));
+                        // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
                         for (int j = 0; (j < i); ++j) {
-                            fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
+                            variables[m]->qs.v.iset[subset[subsets[k*i+j]]] = true;
+                            // fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
                         }
                         if (fc.fo == formulaoperator::foqexists)
                             res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
@@ -598,8 +621,10 @@ valms evalformula::eval( formulaclass& fc)
                     supersetsize = maxint;
                 }
 
-                for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
-                    if (superset[fc.v.qc->qs.v.iv]) {
+                int i = lookup_variable(fc.v.qc->name, variables);
+                for (variables[i]->qs.v.iv = 0; (res.v.bv) && variables[i]->qs.v.iv < supersetsize; ++variables[i]->qs.v.iv) {
+                // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
+                    if (superset[variables[i]->qs.v.iv]) {
                         if (fc.fo == formulaoperator::foqexists)
                             res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
                         if (fc.fo == formulaoperator::foqforall)
@@ -766,6 +791,7 @@ valms evalformula::eval( formulaclass& fc)
 
 
 evalformula::evalformula() {}
+
 
 
 
@@ -986,9 +1012,9 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         operatorstack.resize(operatorstack.size()-1);
     }
 
-    for (auto o : output)
-        std::cout << o << ", ";
-    std::cout << "\n";
+    // for (auto o : output)
+        // std::cout << o << ", ";
+    // std::cout << "\n";
 
     return output;
 
@@ -1012,7 +1038,7 @@ inline formulaclass* parseformulainternal(
             auto qc = new qclass;
             qc->eval( q, ++pos);
             qc->superset = parseformulainternal(q, pos, litnumps,littypes,variables,fnptrs);
-            variables->push_back( qc );
+            variables->push_back(qc);
             formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
             formulaclass* fcleft = nullptr;
             formulaoperator o = lookupoperator(tok);
@@ -1126,6 +1152,15 @@ inline formulaclass* parseformulainternal(
     return fc;
 }
 
+int preprocessforquantifiers( const std::vector<std::string>& components )
+{
+    int res = 0;
+    for (auto c : components)
+        if (is_quantifier(c))
+            ++res;
+    return res;
+}
+
 
 formulaclass* parseformula(
     const std::string& sentence,
@@ -1135,10 +1170,12 @@ formulaclass* parseformula(
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs )
 {
     if (sentence != "") {
-        std::vector<std::string> components = Shuntingyardalg(parsecomponents(sentence),litnumps);
-        int pos = -1;
         variables.clear();
-        return parseformulainternal( components,pos, litnumps, littypes, &variables, fnptrs);
+        std::vector<std::string> c = parsecomponents(sentence);
+        
+        std::vector<std::string> components = Shuntingyardalg(c,litnumps);
+        int pos = -1;
+        return parseformulainternal( components,pos, litnumps, littypes, &variables,fnptrs);
     } else {
         auto fc = new formulaclass({0},nullptr,nullptr,formulaoperator::foconstant);
         return fc;

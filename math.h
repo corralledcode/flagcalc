@@ -13,6 +13,7 @@
 
 #include "graphs.h"
 
+class qclass;
 class evalformula;
 
 inline bool is_number(const std::string& s);
@@ -112,6 +113,8 @@ inline bool operator==(const valms& a1, const valms& a2)
     }
 }
 
+
+inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables);
 
 
 inline bool operator<(const valms& a1, const valms& a2)
@@ -241,10 +244,8 @@ public:
     std::vector<valms>* literals {};
     std::vector<measuretype>* littypes {};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
-    std::function<void()>* populatevariablesbound {};
-    bool populated {false};
-    std::vector<qclass*>* variables {};
-
+    //std::function<void()>* populatevariablesbound {};
+    std::vector<qclass*> variables {};
 
     virtual valms evalpslit( const int idx, std::vector<valms>& psin );
     virtual valms evalvariable( std::string& vname );

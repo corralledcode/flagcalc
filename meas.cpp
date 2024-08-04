@@ -1545,7 +1545,7 @@ public:
     {
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        osadjacencymatrix(std::cout, g);
+        //osadjacencymatrix(std::cout, g);
         if (ps.size() == 2) {
             // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
             return pathsbetweentally(g,ns,ps[0].v.iv, ps[1].v.iv);

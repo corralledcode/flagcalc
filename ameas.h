@@ -420,48 +420,51 @@ public:
     }
 };
 
+inline void populatevariables(std::vector<qclass*>* variables ) {
+    auto Vv = new qclass;
+    auto Ev = new qclass;
+    auto NEv = new qclass;
+
+    // Vv->qs.v.iset = (bool*)malloc(g->dim * sizeof(bool));
+    // memset(Vv->qs.v.iset,true,g->dim * sizeof(bool));
+    // Vv->qs.setsize = g->dim;
+    Vv->name = "V";
+    Vv->qs.t = mtset;
+    // Ev->qs.v.iset = (bool*)malloc(g->dim*g->dim * sizeof(bool));
+    // for (int i = 0; i < g->dim*g->dim; ++i)
+        // Ev->qs.v.iset[i] = g->adjacencymatrix[i];
+    // Ev->qs.setsize = g->dim*g->dim;
+    Ev->name = "E";
+    Ev->qs.t = mtset;
+    // NEv->qs.v.iset = (bool*)malloc(g->dim * g->dim * sizeof(bool));
+    // for (int i = 0; i < g->dim*g->dim; ++i)
+        // NEv->qs.v.iset[i] = !g->adjacencymatrix[i];
+    // for (int i = 0; i < g->dim; ++i)
+        // NEv->qs.v.iset[i*g->dim + i] = false;
+    NEv->name = "NE";
+    // NEv->qs.setsize = g->dim*g->dim;
+    NEv->qs.t = mtset;
+    variables->push_back(Vv);
+    variables->push_back(Ev);
+    variables->push_back(NEv);
+}
+
 
 class evalmformula : public evalformula
 {
 public:
 
     int idx;
+    //std::vector<qclass*> variables {};
     mrecords* rec;
 
     valms evalpslit( const int l, params& psin ) override;
+    valms evalvariable(std::string& vname) override;
 
-    evalmformula( mrecords* recin ) : evalformula(), rec{recin} {}
+    evalmformula( mrecords* recin );
 
 };
 
-inline void populatevariables( graphtype* g, std::vector<qclass*>* variables ) {
-    auto Vv = new qclass;
-    auto Ev = new qclass;
-    auto NEv = new qclass;
-
-    Vv->qs.v.iset = (bool*)malloc(g->dim * sizeof(bool));
-    memset(Vv->qs.v.iset,true,g->dim * sizeof(bool));
-    Vv->qs.setsize = g->dim;
-    Vv->name = "V";
-    Vv->qs.t = mtset;
-    Ev->qs.v.iset = (bool*)malloc(g->dim*g->dim * sizeof(bool));
-    for (int i = 0; i < g->dim*g->dim; ++i)
-        Ev->qs.v.iset[i] = g->adjacencymatrix[i];
-    Ev->qs.setsize = g->dim*g->dim;
-    Ev->name = "E";
-    Ev->qs.t = mtset;
-    NEv->qs.v.iset = (bool*)malloc(g->dim * g->dim * sizeof(bool));
-    for (int i = 0; i < g->dim*g->dim; ++i)
-        NEv->qs.v.iset[i] = !g->adjacencymatrix[i];
-    for (int i = 0; i < g->dim; ++i)
-        NEv->qs.v.iset[i*g->dim + i] = false;
-    NEv->name = "NE";
-    NEv->qs.setsize = g->dim*g->dim;
-    NEv->qs.t = mtset;
-    variables->push_back(Vv);
-    variables->push_back(Ev);
-    variables->push_back(NEv);
-}
 
 
 
@@ -478,6 +481,8 @@ public:
     std::map<int,std::pair<measuretype,int>> m;
     std::vector<evalmformula*> efv {};
     std::vector<valms*> literals {};
+    std::vector<qclass*> variables {};
+
 
     void addliteralvalueb( const int iidx, const int idx, bool v )
     {
@@ -548,8 +553,8 @@ public:
         for (int i = 0; i < sz; ++i)
         {
             efv[i] = new evalmformula(this);
-
         }
+
     }
 
     void setmsize( const int mszin )
@@ -570,8 +575,16 @@ public:
             delete efv[i];
         for (int i = 0; i < msz; ++i)
             delete literals[i];
+        // for (int i = 0; i < sz; ++i)
+            // delete variablesv[i];
     }
 };
+
+inline evalmformula::evalmformula( mrecords* recin ) : evalformula(), rec{recin}
+{
+
+    populatevariables(&variables);
+}
 
 
 inline valms evalmformula::evalpslit( const int l, params& psin )
@@ -647,13 +660,42 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
 
 }
 
+inline valms evalmformula::evalvariable(std::string& vname)
+{
+    valms res;
+    graphtype* g = (*rec->gptrs)[idx];
+
+    int i = (lookup_variable(vname,variables));
+    if (i >= 0)
+        return evalformula::evalvariable(vname);
+    if (vname == "V") {
+        res.setsize = g->dim;
+        res.t = mtset;
+        res.v.iset = (bool*)malloc(g->dim*sizeof(bool));
+        memset(res.v.iset,true,g->dim*sizeof(bool));
+        //rec->variables[i]->qs = res;
+        return res;
+    }
+    if (vname == "E") {
+        res.setsize = g->dim*g->dim;
+        res.t = mtset;
+        res.v.iset = (bool*)malloc((g->dim*(g->dim-1)/2)*sizeof(bool));
+        memset(res.v.iset,true,(g->dim*(g->dim-1)/2)*sizeof(bool));
+        //rec->variables[i]->qs = res;
+        return res;
+    }
+    if (vname == "NE")
+    {
+        // ...
+    }
+}
 
 
 class sentofcrit : public crit
 {
 public:
-    std::vector<qclass*> variables {};
     formulaclass* fc;
+    std::vector<qclass*> variables;
 
     bool takemeas(const int idx) override
     {
@@ -663,11 +705,17 @@ public:
             literals[i] = rec->literals[i][idx];
         rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
+        ef->variables.resize(this->variables.size());
+        for (int i = 0; i < variables.size(); ++i)
+        {
+            ef->variables[i] = new qclass;
+            ef->variables[i]->name = this->variables[i]->name;
+            ef->variables[i]->qs = this->variables[i]->qs;
+            ef->variables[i]->superset = this->variables[i]->superset;
+        }
         ef->idx = idx;
-        ef->variables = &variables;
-        ef->populated = false;
-        auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&variables));
-        ef->populatevariablesbound = &pv;
+        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
+        // ef->populatevariablesbound = &pv;
         valms r = ef->eval(*fc);
         switch (r.t)
         {
@@ -683,13 +731,20 @@ public:
     }
 
 
-    sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin, const std::string& fstr )
+    sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
+                const std::vector<measuretype>& littypesin, const std::string& fstr )
         : crit( recin,  "sn", "Sentence " + fstr) {
         fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
     };
 
     ~sentofcrit() {
         delete fc;
+        // for (int i = 0; i < rec->sz; ++i)
+        // {
+            // for (int j = 0; j < variables.size(); ++j)
+                // delete rec->variablesv[i][j];
+            // delete variables[i];
+        // }
     }
 
 };
@@ -711,10 +766,6 @@ public:
         rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
         ef->idx = idx;
-        ef->variables = &variables;
-        ef->populated = false;
-        auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&variables));
-        ef->populatevariablesbound = &pv;
         valms r = ef->eval(*fc);
         switch (r.t)
         {
