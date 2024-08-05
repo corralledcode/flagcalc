@@ -264,6 +264,16 @@ public:
     virtual valms eval( formulaclass& fc );
     evalformula();
 
+    ~evalformula()
+    {
+        for (auto q : variables)
+        {
+            if (q->qs.t == mtset)
+                delete q->qs.v.iset;
+            delete q;
+        }
+    }
+
 };
 
 
