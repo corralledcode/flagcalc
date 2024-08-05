@@ -268,8 +268,9 @@ public:
     {
         for (auto q : variables)
         {
-            if (q->qs.t == mtset)
-                delete q->qs.v.iset;
+            if (!(q->name == "V" || q->name == "E" || q->name == "NE"))
+                if (q->qs.t == mtset)
+                    delete q->qs.v.iset;
             delete q;
         }
     }

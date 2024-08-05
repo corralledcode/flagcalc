@@ -27,6 +27,11 @@ $PTH/flagcalc -d testbip10.dat -a "c=kconnc(6)" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a "c=kconnc(5)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 12 1000 -a s="[kappat] <= [deltam]" all -v i=minimal3.cfg min subobj srm
 $PTH/flagcalc -r 10 12 10000 -a s="([kappat] > 0) == [conn1c]" all -v i=minimal3.cfg min subobj srm
+$PTH/flagcalc -r 8 7 1000 -a is=quantforestcrit.dat all
+$PTH/flagcalc -d testbip10.dat -a is=bipartitecrit2.dat all
+$PTH/flagcalc -r 10 12 1000 -a c=cr1 s2="FORALL (FORALL (FORALL (NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)), z IN V) ,y IN V) , x IN V)" all
+$PTH/flagcalc -r 10 12 1000 -a s="[cr1] != FORALL (FORALL (FORALL (NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)), z IN V) ,y IN V) , x IN V)" all
+
 
 
 
