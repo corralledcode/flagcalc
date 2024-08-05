@@ -2172,8 +2172,8 @@ int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextyp
     auto g2 = new graphtype(g->dim);
     //copygraph( g, g2 );
     int res = 0;
-    copygraph( g, g2 );
     for (int i = 0; i < ns->degrees[v1]; ++i) {
+        copygraph( g, g2 );
         vertextype v = ns->neighborslist[v1*g->dim + i];
         g2->adjacencymatrix[v1*g->dim + v] = false;
         g2->adjacencymatrix[v*g->dim + v1] = false;

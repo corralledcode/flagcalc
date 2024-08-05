@@ -114,7 +114,6 @@ inline bool operator==(const valms& a1, const valms& a2)
 }
 
 
-int lookup_variable( const std::string& tok, std::vector<qclass*>& variables);
 
 
 inline bool operator<(const valms& a1, const valms& a2)
@@ -168,6 +167,19 @@ public:
                         std::cout << "unknown quantifier variable";
                 }
 };
+
+inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables) {
+    bool found = false;
+    int i = 0;
+    while (!found && i < variables.size()) {
+        found = variables[i]->name == tok;
+        ++i;
+    }
+    if (!found)
+        return -1;
+    return i-1;
+}
+
 
 struct formulavalue {
     vals v;

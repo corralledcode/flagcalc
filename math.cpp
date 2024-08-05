@@ -433,17 +433,6 @@ valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
     return res;
 }
 
-inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables) {
-    bool found = false;
-    int i = 0;
-    while (!found && i < variables.size()) {
-        found = variables[i]->name == tok;
-        ++i;
-    }
-    if (!found)
-        return -1;
-    return i-1;
-}
 
 
 valms evalformula::evalvariable( std::string& vname ) {
