@@ -114,7 +114,7 @@ inline bool operator==(const valms& a1, const valms& a2)
 }
 
 
-inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables);
+int lookup_variable( const std::string& tok, std::vector<qclass*>& variables);
 
 
 inline bool operator<(const valms& a1, const valms& a2)

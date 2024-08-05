@@ -765,6 +765,14 @@ public:
             literals[i] = rec->literals[i][idx];
         rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
+        ef->variables.resize(this->variables.size());
+        for (int i = 0; i < variables.size(); ++i)
+        {
+            ef->variables[i] = new qclass;
+            ef->variables[i]->name = this->variables[i]->name;
+            ef->variables[i]->qs = this->variables[i]->qs;
+            ef->variables[i]->superset = this->variables[i]->superset;
+        }
         ef->idx = idx;
         valms r = ef->eval(*fc);
         switch (r.t)
