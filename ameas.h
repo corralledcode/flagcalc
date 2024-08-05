@@ -430,12 +430,14 @@ inline void populatevariables(std::vector<qclass*>* variables ) {
     // Vv->qs.setsize = g->dim;
     Vv->name = "V";
     Vv->qs.t = mtset;
+    Vv->qs.v.iset = nullptr;
     // Ev->qs.v.iset = (bool*)malloc(g->dim*g->dim * sizeof(bool));
     // for (int i = 0; i < g->dim*g->dim; ++i)
         // Ev->qs.v.iset[i] = g->adjacencymatrix[i];
     // Ev->qs.setsize = g->dim*g->dim;
     Ev->name = "E";
     Ev->qs.t = mtset;
+    Ev->qs.v.iset = nullptr;
     // NEv->qs.v.iset = (bool*)malloc(g->dim * g->dim * sizeof(bool));
     // for (int i = 0; i < g->dim*g->dim; ++i)
         // NEv->qs.v.iset[i] = !g->adjacencymatrix[i];
@@ -444,6 +446,7 @@ inline void populatevariables(std::vector<qclass*>* variables ) {
     NEv->name = "NE";
     // NEv->qs.setsize = g->dim*g->dim;
     NEv->qs.t = mtset;
+    NEv->qs.v.iset = nullptr;
     variables->push_back(Vv);
     variables->push_back(Ev);
     variables->push_back(NEv);
