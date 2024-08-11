@@ -586,7 +586,7 @@ public:
 inline evalmformula::evalmformula( mrecords* recin ) : evalformula(), rec{recin}
 {
 
-    populatevariables(&variables);
+    // populatevariables(&variables);
 }
 
 
@@ -647,6 +647,21 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
                             break;
                     }
                     break;
+                case measuretype::mtpair:
+                    switch (psin[i].t)
+                    {
+                    case measuretype::mtbool: psin[i].v.ip.i = 1;
+                        psin[i].v.ip.j = 1;
+                        break;
+                    case measuretype::mtcontinuous: psin[i].v.ip.i = (int)psin[i].v.dv;
+                        psin[i].v.ip.j = (int)psin[i].v.dv;
+                        break;
+                    case mtdiscrete: psin[i].v.ip.i = psin[i].v.iv;
+                        psin[i].v.ip.j = psin[i].v.iv;
+                        break;
+                    case mtpair:
+                        break;
+                    }
             }
 
     valms r;
@@ -680,8 +695,8 @@ inline valms evalmformula::evalvariable(std::string& vname)
         return res;
     }
     if (vname == "E") {
-        res.setsize = g->dim*g->dim;
-        res.t = mtset;
+        res.setsize = g->dim; //g->dim*(g->dim-1)/2;
+        res.t = mtpairset;
         res.v.iset = (bool*)malloc((g->dim*(g->dim-1)/2)*sizeof(bool));
         memset(res.v.iset,true,(g->dim*(g->dim-1)/2)*sizeof(bool));
         //rec->variables[i]->qs = res;

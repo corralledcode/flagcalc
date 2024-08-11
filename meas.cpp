@@ -1555,3 +1555,60 @@ public:
 
 };
 
+class ecrit : public crit
+{
+public:
+    ecrit( mrecords* recin ) : crit( recin, "ec", "Edge holds in graph")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtpair;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    bool takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 1)
+            return false;
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return g->adjacencymatrix[g->dim*ps[0].v.ip.i + ps[0].v.ip.j];
+    }
+};
+
+class pairfirsttally : public tally
+{
+public:
+    pairfirsttally( mrecords* recin ) : tally( recin, "pfirstt", "Pair first")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtpair;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas( const int idx, const params& ps) override
+    {
+        return ps[0].v.ip.i;
+    }
+};
+
+class pairsecondtally : public tally
+{
+public:
+    pairsecondtally( mrecords* recin ) : tally( recin, "psecondt", "Pair second")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtpair;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas( const int idx, const params& ps) override
+    {
+        return ps[0].v.ip.j;
+    }
+};

@@ -592,6 +592,63 @@ valms evalformula::eval( formulaclass& fc)
                 // delete fc.v.qc->qs.v.iset;
                 break;
             }
+
+
+            case mtpairset: {
+
+                valms v = eval(*fc.v.qc->superset);
+
+                bool responsibletodelete = false;
+                if (v.t == mtcontinuous) {
+                    v.v.iv = (int)v.v.dv;
+                    v.t = mtdiscrete;
+                }
+                if (v.t == mtdiscrete) {
+                    v.t = mtset;
+                    v.setsize = v.v.iv;
+                    v.v.iset = (bool*)malloc((v.setsize*(v.setsize-1)/2) * sizeof(bool));
+                    memset(v.v.iset,true,(v.setsize*(v.setsize-1)/2)*sizeof(bool));
+                    responsibletodelete = true;
+                }
+
+                std::vector<int> subset {};
+                for (int i = 0; i < (v.setsize*(v.setsize-1)/2); ++i) {
+                    if (v.v.iset[i])
+                        subset.push_back(i);
+                }
+                std::vector<int> subsets;
+                int m = lookup_variable(fc.v.qc->name, variables);
+                variables[m]->qs.v.iset = (bool*)malloc((v.setsize*(v.setsize-1)/2)*sizeof(bool));
+                variables[m]->qs.setsize = v.setsize;
+                // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
+                // fc.v.qc->qs.setsize = v.setsize;
+                for (int i = 1; res.v.bv && (i < subset.size()); ++i) {
+                    subsets.clear();
+                    enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
+                    int numberofsubsets = subsets.size()/i;
+                    for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
+                        memset(variables[m]->qs.v.iset,false,(v.setsize*(v.setsize-1)/2)*sizeof(bool));
+                        // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
+                        for (int j = 0; (j < i); ++j) {
+                            variables[m]->qs.v.iset[subset[subsets[k*i+j]]] = true;
+                            // fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
+                        }
+                        if (fc.fo == formulaoperator::foqexists)
+                            res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                        if (fc.fo == formulaoperator::foqforall)
+                            res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                    }
+                }
+                if (fc.fo == formulaoperator::foqexists)
+                    res.v.bv = !res.v.bv;
+                if (responsibletodelete)
+                    delete v.v.iset;
+                // delete fc.v.qc->qs.v.iset;
+                break;
+            }
+
+
+
             case mtdiscrete: {
                 valms v = eval(*fc.v.qc->superset);
                 int maxint = -1;
@@ -626,6 +683,51 @@ valms evalformula::eval( formulaclass& fc)
                 delete ss;
                 break;
             }
+
+
+            case mtpair: {
+                valms v = eval(*fc.v.qc->superset);
+                int maxint = -1;
+                switch (v.t) {
+                    case mtbool: maxint = (int)v.v.bv; break;
+                    case mtdiscrete: maxint = v.v.iv; break;
+                    case mtcontinuous: maxint = (int)v.v.dv; break;
+                }
+                auto superset = v.v.iset;
+                auto supersetsize = v.setsize;
+                bool* ss = nullptr;
+                if (maxint >= 0) {
+                    ss = (bool*)malloc((maxint*(maxint-1)/2)*sizeof(bool));
+                    memset(ss,true,(maxint*(maxint-1)/2)*sizeof(bool));
+                    superset = ss;
+                    supersetsize = maxint;
+                }
+
+                int i = lookup_variable(fc.v.qc->name, variables);
+                int gapidx = v.setsize;
+                int idx = gapidx;
+                for (variables[i]->qs.v.ip.i = 0; (res.v.bv) && variables[i]->qs.v.ip.i < supersetsize; ++variables[i]->qs.v.ip.i)
+                {
+                    for (variables[i]->qs.v.ip.j = variables[i]->qs.v.ip.i + 1; (res.v.bv) && variables[i]->qs.v.ip.j < supersetsize; ++variables[i]->qs.v.ip.j) {
+                        // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
+                        if (superset[idx - variables[i]->qs.v.ip.j]) {
+                            if (fc.fo == formulaoperator::foqexists)
+                                res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                            if (fc.fo == formulaoperator::foqforall)
+                                res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                            // std::cout << fc.v.qc->qs.v.iv << " iv \n";
+                        }
+                    }
+                    --gapidx;
+                    idx = idx + gapidx;
+                }
+                if (fc.fo == formulaoperator::foqexists)
+                    res.v.bv = !res.v.bv;
+                delete ss;
+                break;
+            }
+
+
 
         }
         return res;

@@ -79,12 +79,19 @@ struct litstruct
     std::vector<formulaclass*> ps;
 };
 
+struct intpair
+{
+    int i;
+    int j;
+};
+
 union vals
 {
     bool bv;
     double dv;
     int iv;
     bool* iset;
+    intpair ip;
     // std::pair<int,int> pv {};
 };
 
@@ -95,7 +102,7 @@ struct valms
 {
     measuretype t;
     vals v;
-    int setsize;
+    int setsize; // using setsize = sqrt(setsize) when using pairs
 };
 
 inline bool operator==(const valms& a1, const valms& a2)
