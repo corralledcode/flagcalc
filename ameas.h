@@ -647,6 +647,7 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
                             break;
                     }
                     break;
+                /*
                 case measuretype::mtpair:
                     switch (psin[i].t)
                     {
@@ -661,7 +662,7 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
                         break;
                     case mtpair:
                         break;
-                    }
+                    }*/
             }
 
     valms r;
@@ -698,13 +699,34 @@ inline valms evalmformula::evalvariable(std::string& vname)
         res.setsize = g->dim; //g->dim*(g->dim-1)/2;
         res.t = mtpairset;
         res.v.iset = (bool*)malloc((g->dim*(g->dim-1)/2)*sizeof(bool));
-        memset(res.v.iset,true,(g->dim*(g->dim-1)/2)*sizeof(bool));
+        int gapidx = g->dim-1;
+        int idx = gapidx;
+        for (int i = 0; i < g->dim; ++i)
+        {
+            for (int j = i+1; j < g->dim; ++j)
+                res.v.iset[idx + i - j] = g->adjacencymatrix[i*g->dim + j];
+            --gapidx;
+            idx += gapidx;
+        }
         //rec->variables[i]->qs = res;
         return res;
     }
     if (vname == "NE")
     {
-        // ...
+        res.setsize = g->dim; //g->dim*(g->dim-1)/2;
+        res.t = mtpairset;
+        res.v.iset = (bool*)malloc((g->dim*(g->dim-1)/2)*sizeof(bool));
+        int gapidx = g->dim-1;
+        int idx = gapidx;
+        for (int i = 0; i < g->dim; ++i)
+        {
+            for (int j = i+1; j < g->dim; ++j)
+                res.v.iset[idx - j] = !g->adjacencymatrix[i*g->dim + j];
+            --gapidx;
+            idx += gapidx;
+        }
+        //rec->variables[i]->qs = res;
+        return res;
     }
 }
 

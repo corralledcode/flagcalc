@@ -1500,6 +1500,34 @@ public:
 
 };
 
+class eadjcrit : public crit {
+
+public:
+
+    eadjcrit( mrecords* recin ) : crit( recin, "eadjc", "edges adjacent")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtpair;
+        ps.push_back(p1);
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() == 2) {
+            bool imatch = ps[0].v.ip.i == ps[1].v.ip.i || ps[0].v.ip.i == ps[1].v.ip.j;
+            bool jmatch = ps[0].v.ip.j == ps[1].v.ip.i || ps[0].v.ip.j == ps[1].v.ip.j;
+            return (imatch || jmatch) && !(imatch && jmatch);
+        }
+        return false;
+    }
+
+};
+
+
+
 class sizetally : public tally {
 
 public:
@@ -1526,6 +1554,34 @@ public:
     }
 
 };
+
+class psizetally : public tally {
+
+public:
+
+    psizetally( mrecords* recin ) : tally( recin, "pst", "pair set size tally")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtpairset;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() == 1) {
+            int res = 0;
+            for (int i = 0; i < (ps[0].setsize*(ps[0].setsize-1)/2); ++i)
+                if (ps[0].v.iset[i])
+                    ++res;
+            return res;
+        }
+        return 0;
+    }
+
+};
+
 
 class pctally : public tally {
 

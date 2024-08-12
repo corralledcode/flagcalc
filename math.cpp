@@ -568,7 +568,7 @@ valms evalformula::eval( formulaclass& fc)
                 variables[m]->qs.setsize = v.setsize;
                 // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
                 // fc.v.qc->qs.setsize = v.setsize;
-                for (int i = 1; res.v.bv && (i < subset.size()); ++i) {
+                for (int i = 1; res.v.bv && (i < subset.size() +1); ++i) {
                     subsets.clear();
                     enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
                     int numberofsubsets = subsets.size()/i;
@@ -622,7 +622,7 @@ valms evalformula::eval( formulaclass& fc)
                 variables[m]->qs.setsize = v.setsize;
                 // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
                 // fc.v.qc->qs.setsize = v.setsize;
-                for (int i = 1; res.v.bv && (i < subset.size()); ++i) {
+                for (int i = 1; res.v.bv && (i < subset.size()+1); ++i) {
                     subsets.clear();
                     enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
                     int numberofsubsets = subsets.size()/i;
@@ -704,13 +704,13 @@ valms evalformula::eval( formulaclass& fc)
                 }
 
                 int i = lookup_variable(fc.v.qc->name, variables);
-                int gapidx = v.setsize;
+                int gapidx = v.setsize-1;
                 int idx = gapidx;
                 for (variables[i]->qs.v.ip.i = 0; (res.v.bv) && variables[i]->qs.v.ip.i < supersetsize; ++variables[i]->qs.v.ip.i)
                 {
                     for (variables[i]->qs.v.ip.j = variables[i]->qs.v.ip.i + 1; (res.v.bv) && variables[i]->qs.v.ip.j < supersetsize; ++variables[i]->qs.v.ip.j) {
                         // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
-                        if (superset[idx - variables[i]->qs.v.ip.j]) {
+                        if (superset[idx + variables[i]->qs.v.ip.i - variables[i]->qs.v.ip.j]) {
                             if (fc.fo == formulaoperator::foqexists)
                                 res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
                             if (fc.fo == formulaoperator::foqforall)
