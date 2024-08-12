@@ -1,0 +1,7 @@
+
+FORALL
+    (FORALL ([pct](u,v) > 0,
+     u IN V),
+v IN V) != [conn1c]
+
+END
