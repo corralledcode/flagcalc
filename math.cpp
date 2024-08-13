@@ -785,6 +785,24 @@ valms evalformula::eval( formulaclass& fc)
         res.t = mtbool;
         switch(resleft.t)
         {
+        case mtpair:
+            switch (resright.t)
+            {
+        case mtpair:
+                {
+                    if (fc.fo == formulaoperator::foe || fc.fo == formulaoperator::fone)
+                        res.v.bv = (resleft.v.ip.i == resright.v.ip.i
+                                    && resleft.v.ip.j == resright.v.ip.j) != (fc.fo == formulaoperator::fone);
+                    else
+                        if (resleft.v.ip.i == resright.v.ip.i)
+                            res.v.bv = eval2aryeq<int,int>(resleft.v.ip.j, resright.v.ip.j,fc.fo);
+                        else
+                            res.v.bv = eval2aryeq<int,int>(resleft.v.ip.i, resright.v.ip.i, fc.fo);
+                    break;
+                }
+                std::cout << "Error in evalformula::eval comparing int pair to non-int-pair\n";
+            }
+            break;
         case mtbool:
             switch (resright.t)
             {
