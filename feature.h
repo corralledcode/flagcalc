@@ -1678,6 +1678,7 @@ public:
         auto (ac) = critfactory<acrit>;
         auto (ec) = critfactory<ecrit>;
         auto (eadjc) = critfactory<eadjcrit>;
+        auto (bipc) = critfactory<bipcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1693,6 +1694,7 @@ public:
         crsfactory.push_back(ac);
         crsfactory.push_back(ec);
         crsfactory.push_back(eadjc);
+        crsfactory.push_back(bipc);
 
         // ...
 
@@ -1753,6 +1755,7 @@ public:
         auto (firstt) = tallyfactory<pairfirsttally>;
         auto (secondt) = tallyfactory<pairsecondtally>;
         auto (pst) = tallyfactory<psizetally>;
+        auto (Nt) = tallyfactory<Ntally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
@@ -1763,7 +1766,7 @@ public:
         tysfactory.push_back(firstt);
         tysfactory.push_back(secondt);
         tysfactory.push_back(pst);
-
+        tysfactory.push_back(Nt);
 
 
         // ,,,

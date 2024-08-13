@@ -1671,3 +1671,92 @@ public:
         return ps[0].v.ip.j;
     }
 };
+
+
+class bipcrit : public crit
+{
+public:
+    bipcrit( mrecords* recin ) : crit( recin, "bipc", "Bipartite")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    bool takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 2)
+            return false;
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        bool all = true;
+        for (int i = 0; i < ps[0].setsize; ++i)
+            if (ps[0].v.iset[i])
+            {
+                int j = 0;
+                while (all && j < ps[1].setsize)
+                {
+                    all = all && (!ps[1].v.iset[j] || g->adjacencymatrix[i*g->dim + j]);
+                    ++j;
+                }
+            }
+        for (int j = 0; all && (j < ps[1].setsize); ++j)
+            if (ps[1].v.iset[j])
+            {
+                int i = 0;
+                while (all && i < ps[0].setsize)
+                {
+                    all = all && (!ps[0].v.iset[i] || g->adjacencymatrix[i*g->dim + j]);
+                    ++i;
+                }
+            }
+        for (int i = 0; all && (i < ps[0].setsize); ++i)
+            for (int j = i+1; all && (j < ps[0].setsize); ++j)
+                all = !ps[0].v.iset[i] || !ps[0].v.iset[j] || !(g->adjacencymatrix[i*g->dim + j]);
+        for (int i = 0; all && (i < ps[1].setsize); ++i)
+            for (int j = i+1; all && (j < ps[1].setsize); ++j)
+                all = !ps[1].v.iset[i] || !ps[1].v.iset[j] || !(g->adjacencymatrix[i*g->dim + j]);
+        return all;
+    }
+};
+
+class Ntally : public tally {
+// Diestel p. ??
+public:
+
+    Ntally( mrecords* recin ) : tally( recin, "Nt", "Neighbors of a vertex set")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        if (ps.size() == 1) {
+            bool* S = ps[0].v.iset;
+            bool* N = (bool*)malloc(g->dim * sizeof(bool));
+            memset(N,false,g->dim * sizeof(bool));
+            int cnt = 0;
+            for (int i = 0; i < ps[0].setsize; ++i)
+                if (S[i])
+                    for (int j = 0; j < ns->degrees[i]; ++j)
+                    {
+                        vertextype nbr = ns->neighborslist[i*g->dim + j];
+                        cnt += (!N[nbr] && !S[nbr]) ? 1 : 0;
+                        N[nbr] = true;
+                    }
+            delete N;
+            return cnt;
+        }
+        return 0;
+    }
+
+};

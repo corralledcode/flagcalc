@@ -36,7 +36,7 @@ logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2,
 enum class formulaoperator
 {foliteral,fofunction, foconstant, foqforall, foqexists, foplus, fominus, fotimes, fodivide, foexponent,
 folte, folt, foe,fone,fogte,fogt,
-foand,foor,fonot,fotrue,fofalse,fovariable};
+foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable};
 
 inline std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -49,7 +49,11 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {"NOT",formulaoperator::fonot},
         {"&&",formulaoperator::foand},
         {"||",formulaoperator::foor},
+        {"XOR",formulaoperator::foxor},
         {"!",formulaoperator::fonot},
+        {"IMPLIES",formulaoperator::foimplies},
+        {"IFF",formulaoperator::foiff},
+        {"IF",formulaoperator::foif},
         {"==",formulaoperator::foe},
         {"<=",formulaoperator::folte},
         {"<",formulaoperator::folt},
@@ -240,7 +244,11 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::fone,4},
                             {formulaoperator::fonot,5},
                             {formulaoperator::foand,6},
-                            {formulaoperator::foor,6}};
+                            {formulaoperator::foor,6},
+                            {formulaoperator::foxor,6},
+                            {formulaoperator::foimplies,6},
+                            {formulaoperator::foiff,6},
+                            {formulaoperator::foif,6}};
 
 
 

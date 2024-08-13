@@ -360,7 +360,11 @@ class formulaclass;
 inline bool booleanops( const formulaoperator fo)
 {
     return (fo == formulaoperator::foand
-            || fo == formulaoperator::foor);
+            || fo == formulaoperator::foor
+            || fo == formulaoperator::foimplies
+            || fo == formulaoperator::foiff
+            || fo == formulaoperator::foxor
+            || fo == formulaoperator::foif);
 }
 
 inline bool equalityops( const formulaoperator fo)
@@ -397,6 +401,18 @@ T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
     }
     if (fo == formulaoperator::foor) {
         res = in1 || in2;
+    }
+    if (fo == formulaoperator::foxor) {
+        res = in1 != in2;
+    }
+    if (fo == formulaoperator::foimplies) {
+        res = (!in1) || in2;
+    }
+    if (fo == formulaoperator::foif) {
+        res = in1 || (!in2);
+    }
+    if (fo == formulaoperator::foiff) {
+        res = in1 == in2;
     }
     return res;
 }
