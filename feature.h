@@ -2227,6 +2227,10 @@ public:
         for (int n = 0; n < mss.size(); ++n) {
             *_os << "\t\t\"" << mss[n]->shortname << "\": " << mss[n]->name << "\n";
         }
+        *_os << "\t" << "<tally>:\t which tally to use, standard options are:\n";
+        for (int n = 0; n < tys.size(); ++n) {
+            *_os << "\t\t\"" << tys[n]->shortname << "\": " << tys[n]->name << "\n";
+        }
     }
 
     void execute(std::vector<std::string> args) override

@@ -1548,6 +1548,7 @@ public:
             for (int i = 0; i < ps[0].setsize; ++i)
                 if (ps[0].v.iset[i])
                     ++res;
+            // std::cout << "st == " << res << "\n";
             return res;
         }
         return 0;
@@ -1575,7 +1576,9 @@ public:
             for (int i = 0; i < (ps[0].setsize*(ps[0].setsize-1)/2); ++i)
                 if (ps[0].v.iset[i])
                     ++res;
+            // std::cout << "pst == " << res << "\n";
             return res;
+
         }
         return 0;
     }
