@@ -1,0 +1,3 @@
+EXISTS (EXISTS ( [bipc](a,b) && [st](a) + [st](b) == [dimm],b SUBSETEQ V), a SUBSETEQ V)
+
+END

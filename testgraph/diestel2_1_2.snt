@@ -1,0 +1,18 @@
+FORALL
+    (FORALL
+        (([bipc](a,b) AND ([st](a) + [st](b) == [dimm]))
+
+         IMPLIES (
+
+           EXISTS (FORALL (EXISTS ( [pfirstt](e) == v || [psecondt](e) == v, e INP m), v IN a)
+                   AND FORALL (FORALL (NOT [eadjc](e1,e2), e2 INP m), e1 INP m),
+            m SUBSETEQP E)
+
+            IFF
+
+           FORALL ([Nt](s) >= [st](s), s SUBSETEQ a))
+
+     b SUBSETEQ V),
+a SUBSETEQ V)
+
+END
