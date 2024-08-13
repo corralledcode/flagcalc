@@ -9,9 +9,9 @@ FORALL
                 e3 INP n),
             e4 INP n),
      n SUBSETEQP E))
-     OR EXISTS
+     OR FORALL
         ([st](c) == [pst](m)
-           AND (FORALL
+           OR NOT (FORALL
               (EXISTS ([pfirstt](e5) == a1 OR [psecondt](e5) == a1,
                a1 IN c),
             e5 INP E)
@@ -26,3 +26,5 @@ FORALL
  m SUBSETEQP E)
 
 END
+
+

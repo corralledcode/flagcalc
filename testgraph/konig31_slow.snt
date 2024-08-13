@@ -1,0 +1,29 @@
+
+FORALL
+    (NOT (FORALL
+             (EXISTS ([pfirstt](e5) == a1 OR [psecondt](e5) == a1,
+              a1 IN c),
+            e5 INP E)
+            AND FORALL
+              ([st](c) <= [st](d)
+                 OR NOT FORALL
+                     (EXISTS ([pfirstt](e6) == a2 OR [psecondt](e6) == a2,
+                      a2 IN d),
+                  e6 INP E),
+            d SUBSETEQ V))
+    OR FORALL
+        ([st](c) == [pst](m)
+           OR NOT (FORALL
+             (FORALL (NOT [eadjc](e1,e2),
+              e1 INP m),
+           e2 INP m)
+           AND FORALL ([pst](m) >= [pst](n)
+              OR NOT FORALL
+                  (FORALL (NOT [eadjc](e3,e4),
+                   e3 INP n),
+               e4 INP n),
+            n SUBSETEQP E)),
+     m SUBSETEQP E),
+ c SUBSETEQ V)
+
+END
