@@ -568,10 +568,10 @@ valms evalformula::eval( formulaclass& fc)
 
     if (fc.fo == formulaoperator::foelt)
     {
-        if (fc.fcleft->v.t == mtdiscrete)
+        valms set = eval(*fc.fcright );
+        valms itm = eval( *fc.fcleft );
+        if (itm.t == mtdiscrete && set.t == mtset)
         {
-            valms set = eval(*fc.fcright );
-            valms itm = eval( *fc.fcleft );
             if (itm.v.iv >= set.setsize)
             {
                 std::cout << "Set size exceeded in call to ELT\n";
@@ -583,10 +583,8 @@ valms evalformula::eval( formulaclass& fc)
 
             res.v.bv = set.v.iset[itm.v.iv];
             return res;
-        } else if (fc.fcleft->v.t == mtpair)
+        } else if (itm.t == mtpair && set.t == mtpairset)
         {
-            valms set = eval(*fc.fcright );
-            valms itm = eval( *fc.fcleft );
             int dim = set.setsize;
             int idx = pairlookup( itm.v.ip, dim);
             if (idx >= (dim * (dim-1))/2)
@@ -597,69 +595,61 @@ valms evalformula::eval( formulaclass& fc)
             }
             res.v.bv = set.v.iset[idx];
             return res;
+        } else
+        {
+            res.v.bv = false;
+            std::cout << "Non-matching types in use of ELT\n";
+            return res;
         }
     }
 
-    if (fc.fo == formulaoperator::founion)
+    if (fc.fo == formulaoperator::founion || fc.fo == formulaoperator::fointersection)
     {
-        if (fc.fcleft->v.t == mtset && fc.fcright->v.t == mtset)
+        valms set1 = eval(*fc.fcright );
+        valms set2 = eval( *fc.fcleft );
+        if (set1.t == mtset && set2.t == mtset)
         {
-            valms set1 = eval(*fc.fcright );
-            valms set2 = eval( *fc.fcleft );
             int L = set1.setsize;
             int R = set2.setsize;
+            res.t = mtset;
             res.setsize = L <= R ? R : L;
             res.v.iset = (bool*)malloc(res.setsize*sizeof(bool));
-            for (int i = 0; i < res.setsize; ++i)
-            {
-                res.v.iset[i] = (i < L && set1.v.iset[i]) || (i < R && set2.v.iset[i]);
-            }
+            if (fc.fo == formulaoperator::founion)
+                for (int i = 0; i < res.setsize; ++i)
+                {
+                    res.v.iset[i] = (i < L && set1.v.iset[i]) || (i < R && set2.v.iset[i]);
+                } else // fointersection
+                    for (int i = 0; i < res.setsize; ++i)
+                    {
+                        res.v.iset[i] = (i < L && set1.v.iset[i]) && (i < R && set2.v.iset[i]);
+                    }
+
         }
-        else if (fc.fcleft->v.t == mtpairset && fc.fcright->v.t == mtpairset)
+        else if (set1.t == mtpairset && set2.t == mtpairset)
         {
-            valms set1 = eval(*fc.fcright );
-            valms set2 = eval( *fc.fcleft );
             int L = set1.setsize;
             int R = set2.setsize;
+            res.t = mtpairset;
             res.setsize = L <= R ? R : L;
             res.v.iset = (bool*)malloc((res.setsize*(res.setsize-1))/2*sizeof(bool));
 
-            for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
-                res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) || (i < (R*(R-1))/2 && set2.v.iset[i]);
+            if (fc.fo == formulaoperator::founion)
+                for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
+                {
+                    res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) || (i < (R*(R-1))/2 && set2.v.iset[i]);
+                } else // fointersection
+                    for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
+                    {
+                        res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) && (i < (R*(R-1))/2 && set2.v.iset[i]);
+                    }
+        } else
+        {
+            std::cout << "Non-matching types in call to CUP \n";
+            res.v.iset = nullptr;
+            res.setsize = 0;
         }
-        //else ;  ...default behavior
         return res;
     }
-
-    if (fc.fo == formulaoperator::fointersection)
-    {
-        if (fc.fcleft->v.t == mtset && fc.fcright->v.t == mtset)
-        {
-            valms set1 = eval(*fc.fcright );
-            valms set2 = eval( *fc.fcleft );
-            int L = set1.setsize;
-            int R = set2.setsize;
-            res.setsize = L <= R ? R : L;
-            res.v.iset = (bool*)malloc(res.setsize*sizeof(bool));
-            for (int i = 0; i < res.setsize; ++i)
-                res.v.iset[i] = (i < L && set1.v.iset[i]) && (i < R && set2.v.iset[i]);
-        }
-        else if (fc.fcleft->v.t == mtpairset && fc.fcright->v.t == mtpairset)
-        {
-            valms set1 = eval(*fc.fcright );
-            valms set2 = eval( *fc.fcleft );
-            int L = set1.setsize;
-            int R = set2.setsize;
-            res.setsize = L <= R ? R : L;
-            res.v.iset = (bool*)malloc((res.setsize*(res.setsize-1))/2*sizeof(bool));
-
-            for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
-                res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) && (i < (R*(R-1))/2 && set2.v.iset[i]);
-        }
-        //else ;  ...default behavior
-        return res;
-    }
-
 
     if (fc.fo == formulaoperator::foqforall || fc.fo == formulaoperator::foqexists) {
         res.v.bv = true;

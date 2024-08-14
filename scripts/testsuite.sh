@@ -31,7 +31,8 @@ $PTH/flagcalc -r 8 7 1000 -a is=quantforestcrit.dat all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a is=bipartitecrit2.dat all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 12 1000 -a c=cr1 s2="FORALL (FORALL (FORALL (NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)), z IN V) ,y IN V) , x IN V)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 12 1000 -a s="[cr1] != FORALL (FORALL (FORALL (NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)), z IN V) ,y IN V) , x IN V)" all -v i=minimal3.cfg
-
+$PTH/flagcalc -r 8 10 10 -a s="FORALL (FORALL ((s CUP t) == V IMPLIES FORALL (x ELT (s CUP t), x IN V), t SUBSETEQ V), s SUBSETEQ V)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 10 5 -a s="FORALL (FORALL ((s CUP t) != V IMPLIES EXISTS (NOT (x ELT (s CUP t)), x IN V), t SUBSETEQ V), s SUBSETEQ V)" all -v i=minimal3.cfg
 
 
 
