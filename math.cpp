@@ -490,6 +490,21 @@ valms evalformula::evalvariable( std::string& vname ) {
     return res;
 }
 
+inline int pairlookup( const intpair p, const int dim)
+{
+    int gapidx = dim;
+    int idx = gapidx;
+    int i;
+    for (i = 0; (i != p.i) && (i < dim); ++i)
+    {
+        --gapidx;
+        idx += gapidx;
+    }
+    if (i == p.i)
+        return idx + i - p.j;
+    return 0;
+}
+
 valms evalformula::eval( formulaclass& fc)
 {
 
@@ -551,6 +566,101 @@ valms evalformula::eval( formulaclass& fc)
         return res;
     }
 
+    if (fc.fo == formulaoperator::foelt)
+    {
+        if (fc.fcleft->v.t == mtdiscrete)
+        {
+            valms set = eval(*fc.fcright );
+            valms itm = eval( *fc.fcleft );
+            if (itm.v.iv >= set.setsize)
+            {
+                std::cout << "Set size exceeded in call to ELT\n";
+                res.v.bv = false;
+                return res;
+            }
+            // for (int i = 0; i < set.setsize; ++i)
+                // std::cout << "set " << i << " == " << set.v.iset[i] << "\n";
+
+            res.v.bv = set.v.iset[itm.v.iv];
+            return res;
+        } else if (fc.fcleft->v.t == mtpair)
+        {
+            valms set = eval(*fc.fcright );
+            valms itm = eval( *fc.fcleft );
+            int dim = set.setsize;
+            int idx = pairlookup( itm.v.ip, dim);
+            if (idx >= (dim * (dim-1))/2)
+            {
+                std::cout << "Pair set size exceeded in call to ELT\n";
+                res.v.bv = false;
+                return res;
+            }
+            res.v.bv = set.v.iset[idx];
+            return res;
+        }
+    }
+
+    if (fc.fo == formulaoperator::founion)
+    {
+        if (fc.fcleft->v.t == mtset && fc.fcright->v.t == mtset)
+        {
+            valms set1 = eval(*fc.fcright );
+            valms set2 = eval( *fc.fcleft );
+            int L = set1.setsize;
+            int R = set2.setsize;
+            res.setsize = L <= R ? R : L;
+            res.v.iset = (bool*)malloc(res.setsize*sizeof(bool));
+            for (int i = 0; i < res.setsize; ++i)
+            {
+                res.v.iset[i] = (i < L && set1.v.iset[i]) || (i < R && set2.v.iset[i]);
+            }
+        }
+        else if (fc.fcleft->v.t == mtpairset && fc.fcright->v.t == mtpairset)
+        {
+            valms set1 = eval(*fc.fcright );
+            valms set2 = eval( *fc.fcleft );
+            int L = set1.setsize;
+            int R = set2.setsize;
+            res.setsize = L <= R ? R : L;
+            res.v.iset = (bool*)malloc((res.setsize*(res.setsize-1))/2*sizeof(bool));
+
+            for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
+                res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) || (i < (R*(R-1))/2 && set2.v.iset[i]);
+        }
+        //else ;  ...default behavior
+        return res;
+    }
+
+    if (fc.fo == formulaoperator::fointersection)
+    {
+        if (fc.fcleft->v.t == mtset && fc.fcright->v.t == mtset)
+        {
+            valms set1 = eval(*fc.fcright );
+            valms set2 = eval( *fc.fcleft );
+            int L = set1.setsize;
+            int R = set2.setsize;
+            res.setsize = L <= R ? R : L;
+            res.v.iset = (bool*)malloc(res.setsize*sizeof(bool));
+            for (int i = 0; i < res.setsize; ++i)
+                res.v.iset[i] = (i < L && set1.v.iset[i]) && (i < R && set2.v.iset[i]);
+        }
+        else if (fc.fcleft->v.t == mtpairset && fc.fcright->v.t == mtpairset)
+        {
+            valms set1 = eval(*fc.fcright );
+            valms set2 = eval( *fc.fcleft );
+            int L = set1.setsize;
+            int R = set2.setsize;
+            res.setsize = L <= R ? R : L;
+            res.v.iset = (bool*)malloc((res.setsize*(res.setsize-1))/2*sizeof(bool));
+
+            for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
+                res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) && (i < (R*(R-1))/2 && set2.v.iset[i]);
+        }
+        //else ;  ...default behavior
+        return res;
+    }
+
+
     if (fc.fo == formulaoperator::foqforall || fc.fo == formulaoperator::foqexists) {
         res.v.bv = true;
 
@@ -584,10 +694,16 @@ valms evalformula::eval( formulaclass& fc)
                 variables[m]->qs.setsize = v.setsize;
                 // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
                 // fc.v.qc->qs.setsize = v.setsize;
-                for (int i = 1; res.v.bv && (i < subset.size() +1); ++i) {
+                for (int i = 0; res.v.bv && (i < subset.size() +1); ++i) {
                     subsets.clear();
-                    enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
-                    int numberofsubsets = subsets.size()/i;
+                    int numberofsubsets;
+                    if (i > 0)
+                    {
+                        enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
+                        numberofsubsets = subsets.size()/i;
+                    }
+                    else
+                        numberofsubsets = 1;
                     for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
                         memset(variables[m]->qs.v.iset,false,v.setsize*sizeof(bool));
                         // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
@@ -638,10 +754,16 @@ valms evalformula::eval( formulaclass& fc)
                 variables[m]->qs.setsize = v.setsize;
                 // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
                 // fc.v.qc->qs.setsize = v.setsize;
-                for (int i = 1; res.v.bv && (i < subset.size()+1); ++i) {
+                for (int i = 0; res.v.bv && (i < subset.size()+1); ++i) {
                     subsets.clear();
-                    enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
-                    int numberofsubsets = subsets.size()/i;
+                    int numberofsubsets;
+                    if (i > 0)
+                    {
+                        enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
+                        numberofsubsets = subsets.size()/i;
+                    }
+                    else
+                        numberofsubsets = 1;
                     for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
                         memset(variables[m]->qs.v.iset,false,(v.setsize*(v.setsize-1)/2)*sizeof(bool));
                         // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
