@@ -1655,6 +1655,8 @@ protected:
     std::vector<meas*(*)(mrecords*)> mssfactory {};
     std::vector<tally*> tys {};
     std::vector<tally*(*)(mrecords*)> tysfactory {};
+    std::vector<set*> sts {};
+    std::vector<set*(*)(mrecords*)> stsfactory {};
 
 public:
     virtual void listoptions() override {
@@ -1775,6 +1777,17 @@ public:
             tys.push_back((*tysfactory[n])(&rec));
         }
 
+        auto (Vs) = setfactory<Vset>;
+        auto (Ps) = setfactory<Pset>;
+
+        stsfactory.push_back(Vs);
+        stsfactory.push_back(Ps);
+
+        for (int n = 0; n < stsfactory.size(); ++n) {
+            sts.push_back((*stsfactory[n])(&rec));
+        }
+
+        // ...
 
 
 
@@ -2048,6 +2061,8 @@ protected:
             case mtdiscrete: sn = a.a.ts->shortname;
                 break;
             case mtcontinuous: sn = a.a.ms->shortname;
+                break;
+            case mtset: sn = a.a.ss->shortname;
             }
             if (sn == sin)
                 return iter[i]->iidx;
@@ -2075,6 +2090,10 @@ protected:
             j = rec.doublerecs.pmsv->size();
             rec.doublerecs.pmsv->push_back(ain.a.ms);
             break;
+        case measuretype::mtset:
+            j = rec.setrecs.pmsv->size();
+            rec.setrecs.pmsv->push_back(ain.a.ss);
+            break;
         }
 
         resi->t = mtin;
@@ -2092,6 +2111,22 @@ protected:
         int li = lookupiter(sin);
         if (li >= 0)
             return li;
+        for (int i = 0; i < sts.size(); ++i)
+        {
+            if (sin == sts[i]->shortname)
+            {
+                ams a;
+                a.t = measuretype::mtset;
+                a.a.ss = (*stsfactory[i])(&rec);
+                iter.push_back(newiteration(mtset,roundin,a,sts[i]->pssz > 0));
+                int j = iter.size()-1;
+                litnumps.resize(j+1);
+                litnumps[j] = sts[i]->pssz;
+                littypes.resize(j+1);
+                littypes[j] = a.t;
+                return j;
+            }
+        }
         for (int i = 0; i < crs.size(); ++i)
         {
             if (sin == crs[i]->shortname)
@@ -2136,6 +2171,22 @@ protected:
                 litnumps.resize(j+1);
                 littypes.resize(j+1);
                 litnumps[j] = tys[i]->pssz;
+                littypes[j] = a.t;
+                return j;
+            }
+        }
+        for (int i = 0; i < sts.size(); ++i)
+        {
+            if (sin == sts[i]->shortname)
+            {
+                ams a;
+                a.t = measuretype::mtset;
+                a.a.ss = (*stsfactory[i])(&rec);
+                iter.push_back(newiteration(mtset,roundin,a,sts[i]->pssz > 0));
+                int j = iter.size()-1;
+                litnumps.resize(j+1);
+                litnumps[j] = sts[i]->pssz;
+                littypes.resize(j+1);
                 littypes[j] = a.t;
                 return j;
             }
@@ -2789,9 +2840,11 @@ public:
         std::vector<bool> threadbool {};
         std::vector<int> threadint {};
         std::vector<double> threaddouble {};
+        std::vector<setitr*> threadset {};
         threadbool.resize(eqclass.size());
         threadint.resize(eqclass.size());
         threaddouble.resize(eqclass.size());
+        threadset.resize(eqclass.size());
         for (int k = 0; k < iter.size(); ++k)
         {
             int ilookup = rec.intlookup(iter[k]->iidx);
@@ -2807,6 +2860,9 @@ public:
                 if (iter[k-1]->t == mtcontinuous)
                     for (int m = 0; m < eqclass.size(); ++m)
                         rec.addliteralvalued( iter[k-1]->iidx, m, threaddouble[m]);
+                if (iter[k-1]->t == mtset)
+                    for (int m = 0; m < eqclass.size(); ++m)
+                        rec.addliteralvalues( iter[k-1]->iidx, m, threadset[m]);
             }
 
             if (k > 0 && iter[k]->round > iter[k-1]->round)
@@ -2840,6 +2896,8 @@ public:
                     runthreads<int>(ilookup,iter[k]->ps,rec.intrecs);
                 if (iter[k]->t == mtcontinuous)
                     runthreads<double>(ilookup,iter[k]->ps,rec.doublerecs);
+                if (iter[k]->t == mtset)
+                    runthreads<setitr*>(ilookup,iter[k]->ps,rec.setrecs);
 
             } else
             {
@@ -2849,6 +2907,8 @@ public:
                     runthreadspartial<int>(ilookup,iter[k]->ps,rec.intrecs,&todo);
                 if (iter[k]->t == mtcontinuous)
                     runthreadspartial<double>(ilookup,iter[k]->ps,rec.doublerecs,&todo);
+                if (iter[k]->t == mtset)
+                    runthreadspartial<setitr*>(ilookup,iter[k]->ps,rec.setrecs,&todo);
 
             }
 
@@ -2869,6 +2929,13 @@ public:
                 {
                     threaddouble[m] = rec.doublerecs.fetch(m,ilookup, iter[k]->ps);
                 }
+
+            if (iter[k]->t == mtset)
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    threadset[m] = rec.setrecs.fetch(m,ilookup, iter[k]->ps);
+                }
+
 
             if (iter[k]->t == mtbool)
             {

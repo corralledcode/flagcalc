@@ -377,6 +377,8 @@ inline bool equalityops( const formulaoperator fo)
             || fo == formulaoperator::fone);
 }
 
+
+
 template<typename T, typename T1, typename T2>
 T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
 {
@@ -523,14 +525,14 @@ valms evalformula::eval( formulaclass& fc)
     }
     if (fc.fo == formulaoperator::foconstant)
     {
-        res.t = fc.v.t;
+        res.t = fc.v.v.t;
         switch (res.t)
         {
-        case measuretype::mtbool: res.v.bv = fc.v.v.bv;
+        case measuretype::mtbool: res.v.bv = fc.v.v.v.bv;
             return res;
-        case mtdiscrete: res.v.iv = fc.v.v.iv;
+        case mtdiscrete: res.v.iv = fc.v.v.v.iv;
             return res;
-        case mtcontinuous: res.v.dv = fc.v.v.dv;
+        case mtcontinuous: res.v.dv = fc.v.v.v.dv;
             return res;
         }
     }
@@ -568,35 +570,42 @@ valms evalformula::eval( formulaclass& fc)
 
     if (fc.fo == formulaoperator::foelt)
     {
+        res.t = measuretype::mtbool;
         valms set = eval(*fc.fcright );
         valms itm = eval( *fc.fcleft );
-        if (itm.t == mtdiscrete && set.t == mtset)
+        if (set.t == mtset)
         {
-            if (itm.v.iv >= set.setsize)
-            {
-                std::cout << "Set size exceeded in call to ELT\n";
-                res.v.bv = false;
-                return res;
-            }
+            auto pos = set.seti->getitrpos();
+            bool match = false;
+            while ( !match && !pos->ended())
+                match = match || itm == pos->getnext();
+            res.v.bv = match;
+
+                // if (itm.v.iv >= set.setsize)
+            // {
+                // std::cout << "Set size exceeded in call to ELT\n";
+                // res.v.bv = false;
+                // return res;
+            // }
             // for (int i = 0; i < set.setsize; ++i)
                 // std::cout << "set " << i << " == " << set.v.iset[i] << "\n";
 
-            res.v.bv = set.v.iset[itm.v.iv];
             return res;
-        } else if (itm.t == mtpair && set.t == mtpairset)
-        {
-            int dim = set.setsize;
-            int idx = pairlookup( itm.v.ip, dim);
-            if (idx >= (dim * (dim-1))/2)
-            {
-                std::cout << "Pair set size exceeded in call to ELT\n";
-                res.v.bv = false;
-                return res;
-            }
-            res.v.bv = set.v.iset[idx];
-            return res;
-        } else
-        {
+        }
+        // else if (itm.t == mtpair && set.t == mtpairset)
+        // {
+            // int dim = set.setsize;
+            // int idx = pairlookup( itm.v.ip, dim);
+            // if (idx >= (dim * (dim-1))/2)
+            // {
+                // std::cout << "Pair set size exceeded in call to ELT\n";
+                // res.v.bv = false;
+                // return res;
+            // }
+            // res.v.bv = set.v.iset[idx];
+            // return res;
+        // }
+        else {
             res.v.bv = false;
             std::cout << "Non-matching types in use of ELT\n";
             return res;
@@ -609,43 +618,35 @@ valms evalformula::eval( formulaclass& fc)
         valms set2 = eval( *fc.fcleft );
         if (set1.t == mtset && set2.t == mtset)
         {
-            int L = set1.setsize;
-            int R = set2.setsize;
-            res.t = mtset;
-            res.setsize = L <= R ? R : L;
-            res.v.iset = (bool*)malloc(res.setsize*sizeof(bool));
             if (fc.fo == formulaoperator::founion)
-                for (int i = 0; i < res.setsize; ++i)
-                {
-                    res.v.iset[i] = (i < L && set1.v.iset[i]) || (i < R && set2.v.iset[i]);
-                } else // fointersection
-                    for (int i = 0; i < res.setsize; ++i)
-                    {
-                        res.v.iset[i] = (i < L && set1.v.iset[i]) && (i < R && set2.v.iset[i]);
-                    }
+                res.seti = new setitrunion(set1.seti,set2.seti);
+            else
+                res.seti = new setitrintersection(set1.seti,set2.seti);
+            res.t = mtset;
+            res.setsize = res.seti->getsize();
 
         }
-        else if (set1.t == mtpairset && set2.t == mtpairset)
-        {
-            int L = set1.setsize;
-            int R = set2.setsize;
-            res.t = mtpairset;
-            res.setsize = L <= R ? R : L;
-            res.v.iset = (bool*)malloc((res.setsize*(res.setsize-1))/2*sizeof(bool));
+        // else if (set1.t == mtpairset && set2.t == mtpairset)
+        // {
+            // int L = set1.setsize;
+            // int R = set2.setsize;
+            // res.t = mtpairset;
+            // res.setsize = L <= R ? R : L;
+            // res.v.iset = (bool*)malloc((res.setsize*(res.setsize-1))/2*sizeof(bool));
 
-            if (fc.fo == formulaoperator::founion)
-                for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
-                {
-                    res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) || (i < (R*(R-1))/2 && set2.v.iset[i]);
-                } else // fointersection
-                    for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
-                    {
-                        res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) && (i < (R*(R-1))/2 && set2.v.iset[i]);
-                    }
-        } else
-        {
+            // if (fc.fo == formulaoperator::founion)
+                // for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
+                // {
+                    // res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) || (i < (R*(R-1))/2 && set2.v.iset[i]);
+                // } else // fointersection
+                    // for (int i = 0; i < (res.setsize*(res.setsize-1)/2); ++i)
+                    // {
+                        // res.v.iset[i] = (i < (L*(L-1))/2 && set1.v.iset[i]) && (i < (R*(R-1))/2 && set2.v.iset[i]);
+                    // }
+        // }
+        else {
             std::cout << "Non-matching types in call to CUP \n";
-            res.v.iset = nullptr;
+            res.seti = nullptr;
             res.setsize = 0;
         }
         return res;
@@ -655,129 +656,140 @@ valms evalformula::eval( formulaclass& fc)
         res.v.bv = true;
 
         res.t = mtbool;
-        switch (fc.v.qc->qs.t) {
-            case mtset: {
-
-                valms v = eval(*fc.v.qc->superset);
-
-                bool responsibletodelete = false;
-                if (v.t == mtcontinuous) {
-                    v.v.iv = (int)v.v.dv;
-                    v.t = mtdiscrete;
-                }
-                if (v.t == mtdiscrete) {
-                    v.t = mtset;
-                    v.setsize = v.v.iv;
-                    v.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
-                    memset(v.v.iset,true,v.setsize*sizeof(bool));
-                    responsibletodelete = true;
-                }
-
-                std::vector<int> subset {};
-                for (int i = 0; i < v.setsize; ++i) {
-                    if (v.v.iset[i])
-                        subset.push_back(i);
-                }
-                std::vector<int> subsets;
-                int m = lookup_variable(fc.v.qc->name, variables);
-                variables[m]->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
-                variables[m]->qs.setsize = v.setsize;
-                // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
-                // fc.v.qc->qs.setsize = v.setsize;
-                for (int i = 0; res.v.bv && (i < subset.size() +1); ++i) {
-                    subsets.clear();
-                    int numberofsubsets;
-                    if (i > 0)
-                    {
-                        enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
-                        numberofsubsets = subsets.size()/i;
+        switch (fc.v.qc->secondorder) {
+            case true: {
+                    valms v = eval(*fc.v.qc->superset);
+                    bool responsibletodelete = false;
+                    if (v.t == mtcontinuous) {
+                        v.v.iv = (int)v.v.dv;
+                        v.t = mtdiscrete;
                     }
-                    else
-                        numberofsubsets = 1;
+                    if (v.t == mtdiscrete) {
+                        v.seti = new setitrint(v.v.iv);
+                        responsibletodelete = true;
+                    }
+
+                    std::vector<valms> subset {};
+                    // for (int i = 0; i < v.setsize; ++i) {
+                        // if (v.v.iset[i])
+                            // subset.push_back(i);
+                    // }
+                    std::vector<int> subsets;
+                    int m = lookup_variable(fc.v.qc->name, variables);
+                    // variables[m]->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
+                    // variables[m]->qs.setsize = v.setsize;
+                    // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
+                    // fc.v.qc->qs.setsize = v.setsize;
+
+                    auto itr = new setitrsubset(v.seti->getitrpos());
+                    memset(itr->elts,false,itr->maxint*sizeof(bool));
+                    int numberofsubsets = 1;
+                    variables[m]->qs.seti = itr;
+                    itr->t = v.seti->t;
                     for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
-                        memset(variables[m]->qs.v.iset,false,v.setsize*sizeof(bool));
+                        // memset(variables[m]->qs.v.iset,false,v.setsize*sizeof(bool));
                         // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
-                        for (int j = 0; (j < i); ++j) {
-                            variables[m]->qs.v.iset[subset[subsets[k*i+j]]] = true;
-                            // fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
-                        }
                         if (fc.fo == formulaoperator::foqexists)
                             res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
                         if (fc.fo == formulaoperator::foqforall)
                             res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
                     }
+                    while (!v.seti->ended())
+                    {
+                        subset.push_back(v.seti->getnext());
+                        for (int i = 0; i < subset.size();++i)
+                        {
+                            subsets.clear();
+                            enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
+                            numberofsubsets = subsets.size()/i;
+                            for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
+                                memset(itr->elts,false,v.setsize*sizeof(bool));
+                                // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
+                                for (int j = 0; (j < i); ++j) {
+                                    itr->elts[subsets[k*i+j]] = true;
+                                    // fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
+                                }
+                                if (fc.fo == formulaoperator::foqexists)
+                                    res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                                if (fc.fo == formulaoperator::foqforall)
+                                    res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                            }
+                        }
+
+
+                    }
+
+                    if (fc.fo == formulaoperator::foqexists)
+                        res.v.bv = !res.v.bv;
+                    if (responsibletodelete)
+                        delete v.seti;
+                    // delete fc.v.qc->qs.v.iset;
+                    break;
                 }
-                if (fc.fo == formulaoperator::foqexists)
-                    res.v.bv = !res.v.bv;
-                if (responsibletodelete)
-                    delete v.v.iset;
-                // delete fc.v.qc->qs.v.iset;
-                break;
-            }
 
 
-            case mtpairset: {
+            // case mtpairset: {
 
-                valms v = eval(*fc.v.qc->superset);
+                // valms v = eval(*fc.v.qc->superset);
 
-                bool responsibletodelete = false;
-                if (v.t == mtcontinuous) {
-                    v.v.iv = (int)v.v.dv;
-                    v.t = mtdiscrete;
-                }
-                if (v.t == mtdiscrete) {
-                    v.t = mtset;
-                    v.setsize = v.v.iv;
-                    v.v.iset = (bool*)malloc((v.setsize*(v.setsize-1)/2) * sizeof(bool));
-                    memset(v.v.iset,true,(v.setsize*(v.setsize-1)/2)*sizeof(bool));
-                    responsibletodelete = true;
-                }
+                // bool responsibletodelete = false;
+                // if (v.t == mtcontinuous) {
+                    // v.v.iv = (int)v.v.dv;
+                    // v.t = mtdiscrete;
+                // }
+                // if (v.t == mtdiscrete) {
+                    // v.t = mtset;
+                    // v.setsize = v.v.iv;
+                    // v.v.iset = (bool*)malloc((v.setsize*(v.setsize-1)/2) * sizeof(bool));
+                    // memset(v.v.iset,true,(v.setsize*(v.setsize-1)/2)*sizeof(bool));
+                    // responsibletodelete = true;
+                // }
 
-                std::vector<int> subset {};
-                for (int i = 0; i < (v.setsize*(v.setsize-1)/2); ++i) {
-                    if (v.v.iset[i])
-                        subset.push_back(i);
-                }
-                std::vector<int> subsets;
-                int m = lookup_variable(fc.v.qc->name, variables);
-                variables[m]->qs.v.iset = (bool*)malloc((v.setsize*(v.setsize-1)/2)*sizeof(bool));
-                variables[m]->qs.setsize = v.setsize;
+                // std::vector<int> subset {};
+                // for (int i = 0; i < (v.setsize*(v.setsize-1)/2); ++i) {
+                    // if (v.v.iset[i])
+                        // subset.push_back(i);
+                // }
+                // std::vector<int> subsets;
+                // int m = lookup_variable(fc.v.qc->name, variables);
+                // variables[m]->qs.v.iset = (bool*)malloc((v.setsize*(v.setsize-1)/2)*sizeof(bool));
+                // variables[m]->qs.setsize = v.setsize;
                 // fc.v.qc->qs.v.iset = (bool*)malloc(v.setsize*sizeof(bool));
                 // fc.v.qc->qs.setsize = v.setsize;
-                for (int i = 0; res.v.bv && (i < subset.size()+1); ++i) {
-                    subsets.clear();
-                    int numberofsubsets;
-                    if (i > 0)
-                    {
-                        enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
-                        numberofsubsets = subsets.size()/i;
-                    }
-                    else
-                        numberofsubsets = 1;
-                    for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
-                        memset(variables[m]->qs.v.iset,false,(v.setsize*(v.setsize-1)/2)*sizeof(bool));
+                // for (int i = 0; res.v.bv && (i < subset.size()+1); ++i) {
+                    // subsets.clear();
+                    // int numberofsubsets;
+                    // if (i > 0)
+                    // {
+                        // enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
+                        // numberofsubsets = subsets.size()/i;
+                    // }
+                    // else
+                        // numberofsubsets = 1;
+                    // for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
+                        // memset(variables[m]->qs.v.iset,false,(v.setsize*(v.setsize-1)/2)*sizeof(bool));
                         // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
-                        for (int j = 0; (j < i); ++j) {
-                            variables[m]->qs.v.iset[subset[subsets[k*i+j]]] = true;
+                        // for (int j = 0; (j < i); ++j) {
+                            // variables[m]->qs.v.iset[subset[subsets[k*i+j]]] = true;
                             // fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
-                        }
-                        if (fc.fo == formulaoperator::foqexists)
-                            res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
-                        if (fc.fo == formulaoperator::foqforall)
-                            res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
-                    }
-                }
-                if (fc.fo == formulaoperator::foqexists)
-                    res.v.bv = !res.v.bv;
-                if (responsibletodelete)
-                    delete v.v.iset;
+                        // }
+                        // if (fc.fo == formulaoperator::foqexists)
+                            // res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                        // if (fc.fo == formulaoperator::foqforall)
+                            // res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                    // }
+                // }
+                // if (fc.fo == formulaoperator::foqexists)
+                    // res.v.bv = !res.v.bv;
+                // if (responsibletodelete)
+                    // delete v.v.iset;
                 // delete fc.v.qc->qs.v.iset;
-                break;
-            }
+                // break;
+            // }
 
 
 
-            case mtdiscrete: {
+            case false: {
                 valms v = eval(*fc.v.qc->superset);
                 int maxint = -1;
                 switch (v.t) {
@@ -785,26 +797,27 @@ valms evalformula::eval( formulaclass& fc)
                     case mtdiscrete: maxint = v.v.iv; break;
                     case mtcontinuous: maxint = (int)v.v.dv; break;
                 }
-                auto superset = v.v.iset;
-                auto supersetsize = v.setsize;
-                bool* ss = nullptr;
+                auto supersetpos = v.seti->getitrpos();
+                auto supersetsize = supersetpos->getsize();
+                setitrint* ss = nullptr;
                 if (maxint >= 0) {
-                    ss = (bool*)malloc(maxint*sizeof(bool));
-                    memset(ss,true,maxint*sizeof(bool));
-                    superset = ss;
+                    ss = new setitrint(maxint);
+                    memset(ss->elts,true,maxint*sizeof(bool));
+                    supersetpos = ss->getitrpos();
                     supersetsize = maxint;
                 }
 
                 int i = lookup_variable(fc.v.qc->name, variables);
-                for (variables[i]->qs.v.iv = 0; (res.v.bv) && variables[i]->qs.v.iv < supersetsize; ++variables[i]->qs.v.iv) {
+                supersetpos->reset();
+                variables[i]->qs.t = v.seti->t;
+                while ((!supersetpos->ended()) && res.v.bv) {
+                    variables[i]->qs = supersetpos->getnext();
                 // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
-                    if (superset[variables[i]->qs.v.iv]) {
-                        if (fc.fo == formulaoperator::foqexists)
-                            res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
-                        if (fc.fo == formulaoperator::foqforall)
-                            res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
-                        // std::cout << fc.v.qc->qs.v.iv << " iv \n";
-                    }
+                    if (fc.fo == formulaoperator::foqexists)
+                        res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                    if (fc.fo == formulaoperator::foqforall)
+                        res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                    // std::cout << fc.v.qc->qs.v.iv << " iv \n";
                 }
                 if (fc.fo == formulaoperator::foqexists)
                     res.v.bv = !res.v.bv;
@@ -813,47 +826,47 @@ valms evalformula::eval( formulaclass& fc)
             }
 
 
-            case mtpair: {
-                valms v = eval(*fc.v.qc->superset);
-                int maxint = -1;
-                switch (v.t) {
-                    case mtbool: maxint = (int)v.v.bv; break;
-                    case mtdiscrete: maxint = v.v.iv; break;
-                    case mtcontinuous: maxint = (int)v.v.dv; break;
-                }
-                auto superset = v.v.iset;
-                auto supersetsize = v.setsize;
-                bool* ss = nullptr;
-                if (maxint >= 0) {
-                    ss = (bool*)malloc((maxint*(maxint-1)/2)*sizeof(bool));
-                    memset(ss,true,(maxint*(maxint-1)/2)*sizeof(bool));
-                    superset = ss;
-                    supersetsize = maxint;
-                }
+            // case mtpair: {
+                // valms v = eval(*fc.v.qc->superset);
+                // int maxint = -1;
+                // switch (v.t) {
+                    // case mtbool: maxint = (int)v.v.bv; break;
+                    // case mtdiscrete: maxint = v.v.iv; break;
+                    // case mtcontinuous: maxint = (int)v.v.dv; break;
+                // }
+                // auto superset = v.v.iset;
+                // auto supersetsize = v.setsize;
+                // bool* ss = nullptr;
+                // if (maxint >= 0) {
+                    // ss = (bool*)malloc((maxint*(maxint-1)/2)*sizeof(bool));
+                    // memset(ss,true,(maxint*(maxint-1)/2)*sizeof(bool));
+                    // superset = ss;
+                    // supersetsize = maxint;
+                // }
 
-                int i = lookup_variable(fc.v.qc->name, variables);
-                int gapidx = v.setsize-1;
-                int idx = gapidx;
-                for (variables[i]->qs.v.ip.i = 0; (res.v.bv) && variables[i]->qs.v.ip.i < supersetsize; ++variables[i]->qs.v.ip.i)
-                {
-                    for (variables[i]->qs.v.ip.j = variables[i]->qs.v.ip.i + 1; (res.v.bv) && variables[i]->qs.v.ip.j < supersetsize; ++variables[i]->qs.v.ip.j) {
+                // int i = lookup_variable(fc.v.qc->name, variables);
+                // int gapidx = v.setsize-1;
+                // int idx = gapidx;
+                // for (variables[i]->qs.v.ip.i = 0; (res.v.bv) && variables[i]->qs.v.ip.i < supersetsize; ++variables[i]->qs.v.ip.i)
+                // {
+                    // for (variables[i]->qs.v.ip.j = variables[i]->qs.v.ip.i + 1; (res.v.bv) && variables[i]->qs.v.ip.j < supersetsize; ++variables[i]->qs.v.ip.j) {
                         // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
-                        if (superset[idx + variables[i]->qs.v.ip.i - variables[i]->qs.v.ip.j]) {
-                            if (fc.fo == formulaoperator::foqexists)
-                                res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
-                            if (fc.fo == formulaoperator::foqforall)
-                                res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                        // if (superset[idx + variables[i]->qs.v.ip.i - variables[i]->qs.v.ip.j]) {
+                            // if (fc.fo == formulaoperator::foqexists)
+                                // res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                            // if (fc.fo == formulaoperator::foqforall)
+                                // res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
                             // std::cout << fc.v.qc->qs.v.iv << " iv \n";
-                        }
-                    }
-                    --gapidx;
-                    idx = idx + gapidx;
-                }
-                if (fc.fo == formulaoperator::foqexists)
-                    res.v.bv = !res.v.bv;
-                delete ss;
-                break;
-            }
+                        // }
+                    // }
+                    // --gapidx;
+                    // idx = idx + gapidx;
+                // }
+                // if (fc.fo == formulaoperator::foqexists)
+                    // res.v.bv = !res.v.bv;
+                // delete ss;
+                // break;
+            // }
 
 
 
@@ -903,9 +916,109 @@ valms evalformula::eval( formulaclass& fc)
         }
     }
 
+
+    // switch (res.t)
+    // {
+    // case mtbool:
+    if (booleanops(fc.fo))
+    {
+        res.t = mtbool;
+        switch(resright.t)
+        {
+        case mtbool:
+            if ((fc.fo == formulaoperator::foand && resright.v.bv)
+                || (fc.fo == formulaoperator::foor && !resright.v.bv)
+                || (fc.fo == formulaoperator::foif && resright.v.bv)
+                || (fc.fo == formulaoperator::foimplies && !resright.v.bv))
+            {
+                valms resleft = eval(*fc.fcleft);
+                switch (resleft.t)
+                {
+                case mtbool: res.v.bv = eval2ary<bool,bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
+                    break;
+                case mtdiscrete: res.v.bv = eval2ary<bool,int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+                    break;
+                case mtcontinuous: res.v.bv = eval2ary<bool,double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+                    break;
+                }
+            } else
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::foand: res.v.bv = false; break;
+                case formulaoperator::foor: res.v.bv = true; break;
+                case formulaoperator::foif: res.v.bv = true; break;
+                case formulaoperator::foimplies: res.v.bv = true; break;
+                }
+            }
+            break;
+        case mtdiscrete:
+            if ((fc.fo == formulaoperator::foand && resright.v.iv)
+                || (fc.fo == formulaoperator::foor && !resright.v.iv)
+                || (fc.fo == formulaoperator::foif && resright.v.iv)
+                || (fc.fo == formulaoperator::foimplies && !resright.v.iv))
+            {
+                valms resleft = eval(*fc.fcleft);
+
+                switch (resleft.t)
+                {
+                case mtbool: res.v.bv = eval2ary<bool,bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
+                    break;
+                case mtdiscrete: res.v.bv = eval2ary<bool,int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+                    break;
+                case mtcontinuous: res.v.bv = eval2ary<bool,double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+                    break;
+                }
+            } else
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::foand: res.v.bv = false; break;
+                case formulaoperator::foor: res.v.bv = true; break;
+                case formulaoperator::foif: res.v.bv = true; break;
+                case formulaoperator::foimplies: res.v.bv = true; break;
+                }
+            }
+
+            break;
+        case mtcontinuous:
+            if ((fc.fo == formulaoperator::foand && resright.v.dv)
+                || (fc.fo == formulaoperator::foor && !resright.v.dv)
+                || (fc.fo == formulaoperator::foif && resright.v.dv)
+                || (fc.fo == formulaoperator::foimplies && !resright.v.dv))
+            {
+                valms resleft = eval(*fc.fcleft);
+
+                switch (resleft.t)
+                {
+                case mtbool: res.v.bv = eval2ary<bool,bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
+                    break;
+                case mtdiscrete: res.v.bv = eval2ary<bool,int,double>(resleft.v.iv,resright.v.dv,fc.fo);
+                    break;
+                case mtcontinuous: res.v.bv = eval2ary<bool,double,double>(resleft.v.dv,resright.v.dv,fc.fo);
+                    break;
+                }
+            }
+            else
+                {
+                    switch (fc.fo)
+                    {
+                    case formulaoperator::foand: res.v.bv = false; break;
+                    case formulaoperator::foor: res.v.bv = true; break;
+                    case formulaoperator::foif: res.v.bv = true; break;
+                    case formulaoperator::foimplies: res.v.bv = true; break;
+                    }
+
+                }
+            break;
+        }
+        return res;
+    }
+
+
     valms resleft = eval(*fc.fcleft);
 
-    res.t = fc.v.t;
+    res.t = fc.v.v.t;
     // if (!booleanops(fc.fo) && (res.t == mtbool))
         // res.t = mtcontinuous;
     if (equalityops(fc.fo))
@@ -916,16 +1029,16 @@ valms evalformula::eval( formulaclass& fc)
         case mtpair:
             switch (resright.t)
             {
-        case mtpair:
+                case mtpair:
                 {
                     if (fc.fo == formulaoperator::foe || fc.fo == formulaoperator::fone)
-                        res.v.bv = (resleft.v.ip.i == resright.v.ip.i
-                                    && resleft.v.ip.j == resright.v.ip.j) != (fc.fo == formulaoperator::fone);
+                        res.v.bv = (resleft.v.p->i == resright.v.p->i
+                                    && resleft.v.p->j == resright.v.p->j) != (fc.fo == formulaoperator::fone);
                     else
-                        if (resleft.v.ip.i == resright.v.ip.i)
-                            res.v.bv = eval2aryeq<int,int>(resleft.v.ip.j, resright.v.ip.j,fc.fo);
+                        if (resleft.v.p->i == resright.v.p->i)
+                            res.v.bv = eval2aryeq<valms,valms>(resleft.v.p->j, resright.v.p->j,fc.fo);
                         else
-                            res.v.bv = eval2aryeq<int,int>(resleft.v.ip.i, resright.v.ip.i, fc.fo);
+                            res.v.bv = eval2aryeq<valms,valms>(resleft.v.p->i, resright.v.p->i, fc.fo);
                     break;
                 }
                 std::cout << "Error in evalformula::eval comparing int pair to non-int-pair\n";
@@ -934,33 +1047,35 @@ valms evalformula::eval( formulaclass& fc)
         case mtbool:
             switch (resright.t)
             {
-        case mtbool: res.v.bv = eval2aryeq<bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
+            case mtbool: res.v.bv = eval2aryeq<bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
                 break;
-        case mtdiscrete: res.v.bv = eval2aryeq<bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
+            case mtdiscrete: res.v.bv = eval2aryeq<bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
                 break;
-        case mtcontinuous: res.v.bv = eval2aryeq<bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
+            case mtcontinuous: res.v.bv = eval2aryeq<bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
                 break;
             }
+
             break;
         case mtdiscrete:
             switch (resright.t)
             {
-        case mtbool: res.v.bv = eval2aryeq<int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
+            case mtbool: res.v.bv = eval2aryeq<int,bool>(resleft.v.iv,resright.v.bv,fc.fo);
                 break;
-        case mtdiscrete: res.v.bv = eval2aryeq<int,int>(resleft.v.iv,resright.v.iv,fc.fo);
+            case mtdiscrete: res.v.bv = eval2aryeq<int,int>(resleft.v.iv,resright.v.iv,fc.fo);
                 break;
-        case mtcontinuous: res.v.bv = eval2aryeq<int,double>(resleft.v.iv,resright.v.dv,fc.fo);
+            case mtcontinuous: res.v.bv = eval2aryeq<int,double>(resleft.v.iv,resright.v.dv,fc.fo);
                 break;
             }
+
             break;
         case mtcontinuous:
             switch (resright.t)
             {
-        case mtbool: res.v.bv = eval2aryeq<double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
+            case mtbool: res.v.bv = eval2aryeq<double,bool>(resleft.v.dv,resright.v.bv,fc.fo);
                 break;
-        case mtdiscrete: res.v.bv = eval2aryeq<double,int>(resleft.v.dv,resright.v.iv,fc.fo);
+            case mtdiscrete: res.v.bv = eval2aryeq<double,int>(resleft.v.dv,resright.v.iv,fc.fo);
                 break;
-        case mtcontinuous: res.v.bv = eval2aryeq<double,double>(resleft.v.dv,resright.v.dv,fc.fo);
+            case mtcontinuous: res.v.bv = eval2aryeq<double,double>(resleft.v.dv,resright.v.dv,fc.fo);
                 break;
             }
             break;
@@ -968,9 +1083,10 @@ valms evalformula::eval( formulaclass& fc)
         return res;
     }
 
-    // switch (res.t)
-    // {
-    // case mtbool:
+
+
+
+
     switch(resleft.t) {
         case mtbool:
             switch (resright.t)
@@ -1275,6 +1391,8 @@ inline formulaclass* parseformulainternal(
             auto qc = new qclass;
             qc->eval( q, ++pos);
             qc->superset = parseformulainternal(q, pos, litnumps,littypes,variables,fnptrs);
+            // qc->qs.t = qc->superset->v.v.seti->t;
+
             variables->push_back(qc);
             formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
             formulaclass* fcleft = nullptr;
@@ -1294,26 +1412,26 @@ inline formulaclass* parseformulainternal(
                 fcleft = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
             }
             if (fcright)
-                return fccombine({0},fcleft,fcright,o);
+                return fccombine({},fcleft,fcright,o);
         }
         int v = lookup_variable(tok,*variables);
         if (v >= 0) {
             formulavalue fv {};
 
-            fv.t = (*variables)[v]->qs.t;
-            fv.v = (*variables)[v]->qs.v;
+            fv.v.t = (*variables)[v]->qs.t;
+            fv.v = (*variables)[v]->qs;
             auto fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
             fc->v.qc = (*variables)[v];
             return fc;
         }
-        if (tok == "V" || tok == "E" || tok == "NE") {
-            formulavalue fv {};
-            fv.t = mtset;
-            auto fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
-            fc->v.qc = new qclass;
-            fc->v.qc->name = tok;
-            return fc;
-        }
+        // if (tok == "V" || tok == "E" || tok == "NE") {
+            // formulavalue fv {};
+            // fv.v.t = mtset;
+            // auto fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+            // fc->v.qc = new qclass;
+            // fc->v.qc->name = tok;
+            // return fc;
+        // }
         if (is_function(tok)) {
             std::vector<formulaclass*> ps {};
             // double (*f2)(std::vector<double>&);
@@ -1333,7 +1451,7 @@ inline formulaclass* parseformulainternal(
             {
                 fv.fns.fn = search->second.first;
                 fv.fns.ps = ps;
-                fv.t = mtcontinuous;
+                fv.v.t = mtcontinuous;
                 return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
             } else
             {
@@ -1345,7 +1463,7 @@ inline formulaclass* parseformulainternal(
             formulavalue fv {};
             fv.lit.l = get_literal(tok);
             fv.lit.ps.clear();
-            fv.t = littypes[fv.lit.l];
+            fv.v.t = littypes[fv.lit.l];
             if (litnumps[fv.lit.l] == 0)
                 return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
             else
@@ -1364,28 +1482,28 @@ inline formulaclass* parseformulainternal(
         }
         if (is_number(tok)) { // integer
             formulavalue fv {};
-            fv.v.iv = stoi(tok);
-            fv.t = mtdiscrete;
+            fv.v.v.iv = stoi(tok);
+            fv.v.t = mtdiscrete;
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
         }
         if (is_real(tok))
         {
             formulavalue fv {};
-            fv.v.dv = stof(tok);
-            fv.t = mtcontinuous;
+            fv.v.v.dv = stof(tok);
+            fv.v.t = mtcontinuous;
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
         }
         if (is_truth(tok))
         {
             formulavalue fv {};
-            fv.t = mtbool;
+            fv.v.t = mtbool;
             formulaoperator t = lookuptruth(tok);
-            fv.v.bv = t == formulaoperator::fotrue;
+            fv.v.v.bv = t == formulaoperator::fotrue;
             return fccombine(fv,nullptr,nullptr,t);
         }
     }
     std::cout << "Error in parsing formula \n";
-    auto fc = new formulaclass({0},nullptr,nullptr,formulaoperator::foconstant);
+    auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
     return fc;
 }
 
@@ -1414,7 +1532,7 @@ formulaclass* parseformula(
         int pos = -1;
         return parseformulainternal( components,pos, litnumps, littypes, &variables,fnptrs);
     } else {
-        auto fc = new formulaclass({0},nullptr,nullptr,formulaoperator::foconstant);
+        auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
         return fc;
     }
 }

@@ -9,6 +9,7 @@
 #include <string>
 #include "mathfn.h"
 #include <cmath>
+#include <cstring>
 #include <functional>
 
 #include "graphs.h"
@@ -92,24 +93,128 @@ struct intpair
     int j;
 };
 
+struct valspair;
+
 union vals
 {
     bool bv;
     double dv;
     int iv;
-    bool* iset;
-    intpair ip;
+    // bool* iset;
+    // intpair ip;
+    valspair* p;
     // std::pair<int,int> pv {};
 };
 
 enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtpair, mtset, mtpairset };
 
+class setitr;
+class itrpos;
 
 struct valms
 {
     measuretype t;
     vals v;
-    int setsize; // using setsize = sqrt(setsize) when using pairs
+    int setsize;
+    setitr* seti;
+};
+
+struct valspair
+{
+    valms i;
+    valms j;
+};
+
+class setitr;
+
+class itrpos;
+
+class setitr
+{
+protected:
+    std::vector<itrpos*> itrs {};
+public:
+    std::vector<valms> totality {};
+
+    itrpos* getitrpos();
+
+    int pos = 0;
+    virtual int getsize() {return 0;}
+    measuretype t = mtdiscrete;
+
+    virtual void reset() {pos = 0;}
+    virtual bool ended() {return true;}
+    virtual valms getnext()
+    {
+        if (++pos >= totality.size())
+            totality.push_back({});
+        return totality[pos];
+    }
+    ~setitr()
+    {
+        for (itrpos* itr : itrs)
+            delete itr;
+        itrs.clear();
+    }
+};
+
+class itrpos
+{
+public:
+    setitr* parent;
+    int pos = 0;
+    bool ended()
+    {
+        return (pos >= parent->getsize());
+    }
+    void reset() {pos = 0;}
+    int getsize() {return parent->getsize();}
+    valms getnext()
+    {
+        valms res;
+        while (pos >= parent->totality.size() && !parent->ended())
+        {
+            while (parent->pos < parent->totality.size())
+            {
+                parent->getnext();
+                if (parent->ended())
+                    break;
+            }
+            if (!parent->ended())
+                parent->getnext();
+        }
+        if (pos < parent->totality.size())
+            return parent->totality[pos++];
+        ++pos;
+        return {};
+    }
+    itrpos(setitr* parentin) : parent{parentin} {}
+};
+
+inline itrpos* setitr::getitrpos()
+{
+    itrs.push_back(new itrpos(this));
+    return itrs.back();
+}
+
+
+
+template<typename T>
+class setitrfactory
+{
+protected:
+    std::vector<T*> setitrs {};
+    public:
+    T* getsetitr()
+    {
+        setitrs.push_back(new T);
+        return setitrs.back();
+    };
+    ~setitrfactory()
+    {
+        for (auto s : setitrs)
+            delete s;
+    }
 };
 
 inline bool operator==(const valms& a1, const valms& a2)
@@ -124,10 +229,22 @@ inline bool operator==(const valms& a1, const valms& a2)
         return a1.v.iv == a2.v.iv;
     case measuretype::mtbool:
         return a1.v.bv == a2.v.bv;
+    case measuretype::mtpair:
+        return a1.v.p->i == a2.v.p->i && a1.v.p->j == a2.v.p->j;
+    case measuretype::mtset:
+        {
+            bool match = true;
+            a1.seti->reset();
+            a2.seti->reset();
+            while (match && !a1.seti->ended())
+            {
+                valms v = a1.seti->getnext();
+                match = match && !a2.seti->ended() && v == a2.seti->getnext();
+            }
+            return match;
+        }
     }
 }
-
-
 
 
 inline bool operator<(const valms& a1, const valms& a2)
@@ -136,50 +253,347 @@ inline bool operator<(const valms& a1, const valms& a2)
         return true;
     if (a1.t == a2.t)
         switch (a1.t) {
-        case measuretype::mtcontinuous:
-            return a1.v.dv < a2.v.dv;
-        case measuretype::mtdiscrete:
-            return a1.v.iv < a2.v.iv;
-        case measuretype::mtbool:
-            return a1.v.bv < a2.v.bv;
+    case measuretype::mtcontinuous:
+        return a1.v.dv < a2.v.dv;
+    case measuretype::mtdiscrete:
+        return a1.v.iv < a2.v.iv;
+    case measuretype::mtbool:
+        return a1.v.bv < a2.v.bv;
+    case measuretype::mtset: {}
+        // to do...
         }
     return false;
 }
 
-//enum qtype { qtitem, qtpair, qtsubset, qtsubsetpair};
+inline bool operator>(const valms& a1, const valms& a2)
+{
+    return a2 < a1;
+}
 
 
-struct qstruct {
-    std::string name;
-    bool* subset;
-    int n;
-    int m; // for pairs
-    measuretype t;
+inline bool operator<=(const valms& a1, const valms& a2)
+{
+    if (a1.t < a2.t)
+        return true;
+    if (a1 == a2)
+        return true;
+    if (a1.t == a2.t)
+        switch (a1.t) {
+    case measuretype::mtcontinuous:
+        return a1.v.dv < a2.v.dv;
+    case measuretype::mtdiscrete:
+        return a1.v.iv < a2.v.iv;
+    case measuretype::mtbool:
+        return a1.v.bv < a2.v.bv;
+    case measuretype::mtset: {}
+            // to do...
+        }
+    return false;
+}
+inline bool operator>=(const valms& a1, const valms& a2)
+{
+    return a2 <= a1;
+}
+
+
+
+
+class setitrmodeone : public setitr
+{
+    public:
+
+    bool computed = false;
+    virtual void compute() {computed = true;};
+    int getsize() override
+    {
+        if (!computed)
+        {
+            compute();
+            computed = true;
+        }
+        return totality.size();
+    }
+    bool ended() override
+    {
+        return pos >= getsize();
+    }
+    valms getnext() override
+    {
+        if (!computed)
+        {
+            compute();
+            computed = true;
+            pos = 0;
+        }
+        if (!ended())
+        {
+            return totality[pos++];
+        }
+        return {};
+    }
 };
 
+class setitrunion : public setitrmodeone
+{
+    public:
+    setitr* setA;
+    setitr* setB;
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = 0;
+        totality.clear();
+        while (!Aitr->ended())
+        {
+            totality.push_back(Aitr->getnext());
+        }
+        while (!Bitr->ended())
+        {
+            bool found = false;
+            valms v = Bitr->getnext();
+            for (int i = 0; !found && i < totality.size(); i++)
+                found = found || v == totality[i];
+            if (!found)
+                totality.push_back(v);
+        }
+        computed = true;
+        reset();
+        // delete Aitr;
+        // delete Bitr;
+    }
+
+    setitrunion(setitr* a, setitr* b) : setA{a}, setB{b} {};
+
+};
+
+class setitrintersection : public setitrmodeone
+{
+public:
+    setitr* setA {};
+    setitr* setB {};
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = 0;
+        std::vector<valms> temp {};
+        totality.clear();
+        while (!Aitr->ended())
+        {
+            temp.push_back(Aitr->getnext());
+        }
+        while (!Bitr->ended())
+        {
+            bool found = false;
+            valms v = Bitr->getnext();
+            for (int i = 0; !found && i < temp.size(); i++)
+                found = found || v == temp[i];
+            if (found)
+                totality.push_back(v);
+        }
+        computed = true;
+        reset();
+        // delete Aitr;
+        // delete Bitr;
+    }
+
+    setitrintersection(setitr* a, setitr* b) : setA{a}, setB{b} {};
+
+};
+
+class setitrbool : public setitrmodeone
+{
+public:
+    int maxint;
+    bool* elts = nullptr;
+    int relpos = 0;
+
+    void compute() override
+    {
+        totality.clear();
+        for (int i = 0; i < maxint; ++i)
+        {
+            if (elts[i])
+            {
+                valms v;
+                v.t = measuretype::mtdiscrete;
+                v.v.iv = i;
+                totality.push_back(v);
+            }
+        }
+        computed = true;
+    }
+    void setmaxint( const int maxintin )
+    {
+        maxint = maxintin;
+        if (maxint > 0)
+        {
+            elts = (bool*)malloc(maxint*sizeof(bool));
+            memset(elts, true, maxint*sizeof(bool));
+        }
+        else
+            elts = nullptr;
+        computed = false;
+        reset();
+    }
+
+    setitrbool(const int maxintin)
+    {
+        setmaxint(maxintin);
+        t = mtdiscrete;
+        totality.clear();
+    };
+    setitrbool()
+    {
+        setmaxint(0);
+        t = mtdiscrete;
+    };
+
+    ~setitrbool() {
+        delete elts;
+    }
+};
+
+
+class setitrsubset : public setitrbool {
+public:
+    itrpos* superset {};
+    void setsuperset( itrpos* supersetposin )
+    {
+        superset = supersetposin;
+        setmaxint(superset->getsize());
+        reset();
+    }
+    valms getnext() override
+    {
+        valms r = setitrbool::getnext();
+        valms res;
+        if (r.v.iv >= 0)
+            res = totality[r.v.iv];
+        return res;
+        // may add error catching code here
+    }
+    void reset() override
+    {
+        superset->reset();
+        setitrbool::reset();
+    }
+    bool ended() override
+    {
+        return setitrbool::ended(); // || superset->ended();
+    }
+    setitrsubset(itrpos* supersetin) : superset{supersetin}, setitrbool(supersetin ? supersetin->getsize() : 0)
+    {
+        t = superset->parent->t;
+    };
+    setitrsubset() : superset{}, setitrbool(0)
+    {
+        t = mtdiscrete;
+    };
+
+};
+
+class setitrint : public setitrmodeone
+{
+    public:
+    int maxint = 0;
+    bool* elts = nullptr;
+    void compute() override
+    {
+        totality.clear();
+        for (int i = 0; i < maxint; ++i)
+        {
+            if (elts[i])
+            {
+                valms v;
+                v.t = measuretype::mtdiscrete;
+                v.v.iv = i;
+                totality.push_back(v);
+            }
+        }
+        computed = true;
+    }
+    void setmaxint( const int maxintin )
+    {
+        delete elts;
+        maxint = maxintin;
+        if (maxint > 0)
+        {
+            elts = (bool*)malloc(maxint*sizeof(bool));
+            memset(elts, true, maxint*sizeof(bool));
+        } else
+            elts = nullptr;
+        computed = false;
+        reset();
+    }
+    setitrint(const int maxintin)
+    {
+        setmaxint(maxintin);
+        t = mtdiscrete;
+    }
+    setitrint()
+    {
+        setmaxint(0);
+        t = mtdiscrete;
+    }
+    ~setitrint() {
+        delete elts;
+    }
+
+};
+
+class setitrset : public setitrmodeone
+{
+    public:
+    setitrset( const std::vector<valms>& totalityin)
+    {
+        totality = totalityin;
+        computed = true;
+        pos = 0;
+    }
+    setitrset()
+    {
+        totality.clear();
+        computed = true;
+        pos = 0;
+    }
+};
+
+class setitrinitialsegment : public setitr
+{
+public:
+
+};
 
 class qclass {
 public:
     std::string name;
     valms qs;
     formulaclass* superset;
-    void eval( const std::vector<std::string>& q, int& pos) {
+    bool secondorder = false;
+    void eval( const std::vector<std::string>& q, int& pos)
+    {
         name = q[pos];
         ++pos;
         if (q[pos] == "SUBSETEQ") {
             qs.t = mtset;
+            secondorder = true;
         } else
-            if (q[pos] == "SUBSETEQP") {
-                qs.t = mtpairset;
-            } else
-                if (q[pos] == "IN") {
-                    qs.t = mtdiscrete;
-                } else
-                    if (q[pos] == "INP") {
-                        qs.t = mtpair;
-                    } else
-                        std::cout << "unknown quantifier variable";
-                }
+            // if (q[pos] == "SUBSETEQP") {
+                // qs.t = mtpairset;
+                    // } else
+                        if (q[pos] == "IN") {
+                            // qs.t = mtdiscrete;
+                            secondorder = false;
+                        }
+        // else
+        // if (q[pos] == "INP") {
+        // qs.t = mtpair;
+        // }
+                        else
+                            std::cout << "unknown quantifier variable";
+    }
 };
 
 inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables) {
@@ -196,8 +610,7 @@ inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variab
 
 
 struct formulavalue {
-    vals v;
-    measuretype t;
+    valms v;
     litstruct lit;
     fnstruct fns;
     qclass* qc;
@@ -219,8 +632,8 @@ public:
                 delete fnf;
         }
         if (fo == formulaoperator::fovariable) {
-            if (v.t == mtset || v.t == mtpairset)
-                delete v.v.iset;
+            if (v.v.t == mtset || v.v.t == mtpairset)
+                delete v.v.seti;
         }
     }
 
@@ -290,8 +703,8 @@ public:
         for (auto q : variables)
         {
             // if (!(q->name == "V" || q->name == "E" || q->name == "NE"))
-                if (q->qs.t == mtset)
-                    delete q->qs.v.iset;
+                // if (q->qs.t == mtset)
+                    // delete q->qs.seti;
             delete q;
         }
     }
