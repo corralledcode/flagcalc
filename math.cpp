@@ -487,18 +487,97 @@ bool eval2aryseteq( setitr* in1, setitr* in2, const formulaoperator fo )
     }
     if (fo == formulaoperator::folte)
     {
-        //
+        res = true;
+        auto pos1 = in1->getitrpos();
+        auto pos2 = in2->getitrpos();
+        pos1->reset();
+        /*
+        if (pos1->getsize() != pos2->getsize())
+        {
+            res = false;
+        }
+        */
+        while (!pos1->ended() && res)
+        {
+            pos2->reset();
+            auto itm = pos1->getnext();
+            bool match = false;
+            while ( !match && !pos2->ended())
+                match = match || (pos2->getnext() == itm);
+            res = match;
+        }
     }
     if (fo == formulaoperator::folt)
     {
+        res = true;
+        auto pos1 = in1->getitrpos();
+        auto pos2 = in2->getitrpos();
+        pos1->reset();
+        /*
+        if (pos1->getsize() != pos2->getsize())
+        {
+            res = false;
+        }
+        */
+        res = pos1->getsize() != pos2->getsize();
+        while (!pos1->ended() && res)
+        {
+            pos2->reset();
+            auto itm = pos1->getnext();
+            bool match = false;
+            while ( !match && !pos2->ended())
+                match = match || (pos2->getnext() == itm);
+            res = match;
+        }
         //
     }
     if (fo == formulaoperator::fogte)
     {
+        res = true;
+        auto pos1 = in1->getitrpos();
+        auto pos2 = in2->getitrpos();
+        pos1->reset();
+        /*
+        if (pos1->getsize() != pos2->getsize())
+        {
+            res = false;
+        }
+        */
+        pos2->reset();
+        while (!pos2->ended() && res)
+        {
+            pos1->reset();
+            auto itm = pos2->getnext();
+            bool match = false;
+            while ( !match && !pos1->ended())
+                match = match || (pos1->getnext() == itm);
+            res = match;
+        }
         //
     }
     if (fo == formulaoperator::fogt)
     {
+        res = true;
+        auto pos1 = in1->getitrpos();
+        auto pos2 = in2->getitrpos();
+        pos1->reset();
+        /*
+        if (pos1->getsize() != pos2->getsize())
+        {
+            res = false;
+        }
+        */
+        pos2->reset();
+        res = pos1->getsize() != pos2->getsize();
+        while (!pos2->ended() && res)
+        {
+            pos1->reset();
+            auto itm = pos2->getnext();
+            bool match = false;
+            while ( !match && !pos1->ended())
+                match = match || (pos1->getnext() == itm);
+            res = match;
+        }
         //
     }
     if (fo == formulaoperator::fone)
@@ -524,6 +603,7 @@ bool eval2aryseteq( setitr* in1, setitr* in2, const formulaoperator fo )
             res = !match;
             pos1->reset();
         }
+        res = !res;
     }
     return res;
 }
