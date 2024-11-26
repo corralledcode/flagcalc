@@ -11,6 +11,6 @@ EXISTS
                 r2 IN right),
             l IN left),
         r IN right),
-    right SUBSETEQ V),
-left SUBSETEQ V)
+    right IN [P]([V])),
+left IN [P]([V]))
 END

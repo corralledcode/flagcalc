@@ -9,6 +9,7 @@
 #include <string>
 #include "mathfn.h"
 #include <cmath>
+#include <cstring>
 #include <functional>
 
 #include "graphs.h"
@@ -92,25 +93,139 @@ struct intpair
     int j;
 };
 
+struct valspair;
+
 union vals
 {
     bool bv;
     double dv;
     int iv;
-    bool* iset;
-    intpair ip;
+    // bool* iset;
+    // intpair ip;
+    valspair* p;
     // std::pair<int,int> pv {};
 };
 
 enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtpair, mtset, mtpairset };
 
+class setitr;
+class itrpos;
+
+/*
+template<typename T>
+class setitrfactory
+{
+protected:
+    std::vector<T*> setitrs {};
+public:
+    T* getsetitr()
+    {
+        setitrs.push_back(new T);
+        return setitrs.back();
+    };
+    ~setitrfactory()
+    {
+        for (auto s : setitrs)
+            delete s;
+    }
+};
+*/
 
 struct valms
 {
     measuretype t;
     vals v;
-    int setsize; // using setsize = sqrt(setsize) when using pairs
+    int setsize;
+    setitr* seti;
 };
+
+struct valspair
+{
+    valms i;
+    valms j;
+};
+
+class setitr;
+
+class itrpos;
+
+class setitr
+{
+protected:
+    std::vector<itrpos*> itrs {};
+public:
+    std::vector<valms> totality {};
+
+    itrpos* getitrpos();
+
+    int pos = -1;
+    virtual int getsize() {return 0;}
+    measuretype t = mtdiscrete;
+
+    virtual void reset() {pos = -1;}
+    virtual bool ended() {return pos >= getsize()-1;}
+    virtual valms getnext()
+    {
+        ++pos;
+        return {};
+    }
+    setitr() {}
+    virtual ~setitr();
+};
+
+class itrpos
+{
+public:
+    setitr* parent;
+    int pos = -1;
+    bool ended()
+    {
+        return (pos >= parent->getsize() - 1);
+    }
+    void reset() {pos = -1;}
+    int getsize() {return parent->getsize();}
+    valms getnext()
+    {
+        ++pos;
+        while (pos >= parent->totality.size() && !parent->ended())
+        {
+            while (parent->pos < parent->totality.size())
+            {
+                if (parent->ended())
+                    break;
+                parent->getnext();
+            }
+            if (!parent->ended())
+                parent->getnext();
+        }
+        if (pos < parent->totality.size())
+        {
+            //std::cout << "pos == " << pos << std::endl;
+            return parent->totality[pos];
+        } else {
+            std::cout << "pos == " << pos << " exceeds parent position\n";
+            return {};
+        }
+    }
+    itrpos(setitr* parentin) : parent{parentin} {}
+};
+
+inline itrpos* setitr::getitrpos()
+{
+    itrs.push_back(new itrpos(this));
+    return itrs.back();
+}
+
+inline setitr::~setitr()
+{
+    //for (itrpos* itr : itrs)
+    //    delete itr;
+    //itrs.clear();
+}
+
+
+
+
 
 inline bool operator==(const valms& a1, const valms& a2)
 {
@@ -124,10 +239,24 @@ inline bool operator==(const valms& a1, const valms& a2)
         return a1.v.iv == a2.v.iv;
     case measuretype::mtbool:
         return a1.v.bv == a2.v.bv;
+    case measuretype::mtpair:
+        return a1.v.p->i == a2.v.p->i && a1.v.p->j == a2.v.p->j;
+    case measuretype::mtset:
+        { // code below assumes both sets sorted
+            auto i1 = new itrpos(a1.seti);
+            auto i2 = new itrpos(a2.seti);
+            bool match = i1->getsize() == i2->getsize();
+            while (match && !i1->ended())
+            {
+                valms v = i1->getnext();
+                match = match && !i2->ended() && v == i2->getnext();
+            }
+            delete i1;
+            delete i2;
+            return match;
+        }
     }
 }
-
-
 
 
 inline bool operator<(const valms& a1, const valms& a2)
@@ -136,51 +265,683 @@ inline bool operator<(const valms& a1, const valms& a2)
         return true;
     if (a1.t == a2.t)
         switch (a1.t) {
-        case measuretype::mtcontinuous:
-            return a1.v.dv < a2.v.dv;
-        case measuretype::mtdiscrete:
-            return a1.v.iv < a2.v.iv;
-        case measuretype::mtbool:
-            return a1.v.bv < a2.v.bv;
+    case measuretype::mtcontinuous:
+        return a1.v.dv < a2.v.dv;
+    case measuretype::mtdiscrete:
+        return a1.v.iv < a2.v.iv;
+    case measuretype::mtbool:
+        return a1.v.bv < a2.v.bv;
+    case measuretype::mtset: {}
         }
     return false;
 }
 
-//enum qtype { qtitem, qtpair, qtsubset, qtsubsetpair};
+inline bool operator>(const valms& a1, const valms& a2)
+{
+    return a2 < a1;
+}
 
 
-struct qstruct {
-    std::string name;
-    bool* subset;
-    int n;
-    int m; // for pairs
-    measuretype t;
+inline bool operator<=(const valms& a1, const valms& a2)
+{
+    if (a1.t < a2.t)
+        return true;
+    if (a1 == a2)
+        return true;
+    if (a1.t == a2.t)
+        switch (a1.t) {
+    case measuretype::mtcontinuous:
+        return a1.v.dv < a2.v.dv;
+    case measuretype::mtdiscrete:
+        return a1.v.iv < a2.v.iv;
+    case measuretype::mtbool:
+        return a1.v.bv < a2.v.bv;
+    case measuretype::mtset: {}
+            // to do...
+        }
+    return false;
+}
+inline bool operator>=(const valms& a1, const valms& a2)
+{
+    return a2 <= a1;
+}
+
+
+
+
+class setitrmodeone : public setitr
+{
+    public:
+
+    bool computed = false;
+    virtual void compute() {computed = true;}
+    int getsize() override
+    {
+        if (!computed)
+        {
+            compute();
+//            computed = true;
+        }
+        return totality.size();
+    }
+    bool ended() override
+    {
+        return pos >= getsize() - 1;
+    }
+    valms getnext() override
+    {
+        if (!computed)
+        {
+            compute();
+            //computed = true;
+            pos = -1;
+        }
+        if (!ended())
+        {
+            ++pos;
+            return totality[pos];
+        } else
+        {
+            std::cout << "setitrmodeone getnext() called with ended() == true\n";
+            valms v;
+            v.t = mtdiscrete;
+            v.v.iv = 0;
+            return v;
+        }
+    }
 };
 
+class setitrunion : public setitrmodeone
+{
+    public:
+    setitr* setA;
+    setitr* setB;
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = -1;
+        totality.clear();
+        while (!Aitr->ended())
+        {
+            totality.push_back(Aitr->getnext());
+        }
+        while (!Bitr->ended())
+        {
+            bool found = false;
+            valms v = Bitr->getnext();
+            for (int i = 0; !found && i < totality.size(); i++)
+                found = found || v == totality[i];
+            if (!found)
+                totality.push_back(v);
+        }
+        computed = true;
+        reset();
+        delete Aitr;
+        delete Bitr;
+    }
+
+    setitrunion(setitr* a, setitr* b) : setA{a}, setB{b}
+    {
+        reset();
+    };
+
+};
+
+class setitrintersection : public setitrmodeone
+{
+public:
+    setitr* setA {};
+    setitr* setB {};
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = -1;
+        std::vector<valms> temp {};
+        totality.clear();
+        while (!Aitr->ended())
+        {
+            temp.push_back(Aitr->getnext());
+        }
+        while (!Bitr->ended())
+        {
+            bool found = false;
+            valms v = Bitr->getnext();
+            for (int i = 0; !found && i < temp.size(); i++)
+                found = found || v == temp[i];
+            if (found)
+                totality.push_back(v);
+        }
+        computed = true;
+        reset();
+        // delete Aitr;
+        // delete Bitr;
+    }
+
+    setitrintersection(setitr* a, setitr* b) : setA{a}, setB{b} {};
+
+};
+
+class setitrbool : public setitrmodeone
+{
+public:
+    int maxint;
+    bool* elts = nullptr;
+
+    void compute() override
+    {
+        std::vector<valms> temp {};
+        // totality.clear();
+        temp.resize(maxint+1);
+        int j = 0;
+        for (int i = 0; i <= maxint; ++i)
+        {
+            if (elts[i])
+            {
+                valms v;
+                v.t = measuretype::mtdiscrete;
+                v.v.iv = i;
+                v.seti = nullptr;
+                temp[j++] = v;
+            }
+        }
+        totality.resize(j);
+        for (int i = 0; i < j; ++i)
+            totality[i] = temp[i];
+        computed = true;
+        reset();
+    }
+    void setmaxint( const int maxintin )
+    {
+        maxint = maxintin;
+        if (maxint >= 0)
+        {
+            elts = (bool*)malloc((maxint+1)*sizeof(bool));
+            memset(elts, true, (maxint+1)*sizeof(bool));
+        }
+        else
+            elts = nullptr;
+        computed = false;
+        reset();
+    }
+
+    setitrbool(const int maxintin)
+    {
+        setmaxint(maxintin);
+        t = mtdiscrete;
+    };
+    setitrbool()
+    {
+        setmaxint(-1);
+        t = mtdiscrete;
+    };
+
+    ~setitrbool() {
+        delete elts;
+    }
+};
+
+
+class setitrsubset : public setitrbool {
+public:
+    itrpos* superset {};
+    void setsuperset( itrpos* supersetposin )
+    {
+        superset = supersetposin;
+        setmaxint(superset->getsize() - 1);
+        reset();
+    }
+    valms getnext() override
+    {
+        valms r = setitrbool::getnext();
+        valms res;
+        if (r.v.iv >= 0)
+        {
+            if (superset->pos >= r.v.iv)
+                res = superset->parent->totality[r.v.iv];
+            else
+            {
+                while (superset->pos < r.v.iv && !superset->ended())
+                    res = superset->getnext();
+            }
+        } else
+        {
+            std::cout << "setitrbool::getnext() returns negative" << std::endl;
+        }
+        return res;
+        // may add error catching code here
+    }
+    void reset() override
+    {
+        superset->reset();
+        setitrbool::reset();
+    }
+    bool ended() override
+    {
+        return setitrbool::ended(); // || superset->ended();
+    }
+    setitrsubset(itrpos* supersetin) : superset{supersetin}, setitrbool(supersetin->getsize() - 1)
+    {
+        t = superset->parent->t;
+    };
+    setitrsubset() : superset{}, setitrbool(0)
+    {
+        t = mtdiscrete;
+    };
+
+};
+
+class setitrint : public setitrmodeone
+{
+    public:
+    int maxint = -1;
+    bool* elts = nullptr;
+    void compute() override
+    {
+        std::vector<valms> temp {};
+        temp.clear();
+        temp.resize(maxint+1);
+        int j = 0;
+        for (int i = 0; i <= maxint; ++i)
+        {
+            if (elts[i])
+            {
+                temp[j].t = measuretype::mtdiscrete;
+                temp[j++].v.iv = i;
+            }
+        }
+        totality.resize(j);
+        for (int i = 0; i < j; ++i)
+            totality[i] = temp[i];
+        computed = true;
+    }
+    void setmaxint( const int maxintin )
+    {
+        delete elts;
+        maxint = maxintin;
+        if (maxint >= 0)
+        {
+            elts = (bool*)malloc((maxint+1)*sizeof(bool));
+            memset(elts, true, (maxint+1)*sizeof(bool));
+        } else
+            elts = nullptr;
+        computed = false;
+        totality.clear();
+        reset();
+    }
+    setitrint(const int maxintin)
+    {
+        setmaxint(maxintin);
+        t = mtdiscrete;
+    }
+    setitrint()
+    {
+        setmaxint(-1);
+        t = mtdiscrete;
+    }
+    ~setitrint() {
+         delete elts;
+    }
+
+};
+
+class setitrset : public setitrmodeone
+{
+    public:
+    setitrset( const std::vector<valms>& totalityin)
+    {
+        totality = totalityin;
+        computed = true;
+        pos = -1;
+    }
+    setitrset()
+    {
+        totality.clear();
+        computed = true;
+        pos = -1;
+    }
+};
+
+class setitrinitialsegment : public setitr
+{
+public:
+
+};
 
 class qclass {
 public:
     std::string name;
     valms qs;
     formulaclass* superset;
-    void eval( const std::vector<std::string>& q, int& pos) {
+    bool secondorder = false;
+    void eval( const std::vector<std::string>& q, int& pos)
+    {
         name = q[pos];
         ++pos;
         if (q[pos] == "SUBSETEQ") {
             qs.t = mtset;
+            secondorder = true;
         } else
-            if (q[pos] == "SUBSETEQP") {
-                qs.t = mtpairset;
-            } else
-                if (q[pos] == "IN") {
-                    qs.t = mtdiscrete;
-                } else
-                    if (q[pos] == "INP") {
-                        qs.t = mtpair;
-                    } else
-                        std::cout << "unknown quantifier variable";
-                }
+            // if (q[pos] == "SUBSETEQP") {
+                // qs.t = mtpairset;
+                    // } else
+                        if (q[pos] == "IN") {
+                            // qs.t = mtdiscrete;
+                            secondorder = false;
+                        }
+        // else
+        // if (q[pos] == "INP") {
+        // qs.t = mtpair;
+        // }
+                        else
+                            std::cout << "unknown quantifier variable";
+    }
 };
+
+class setitrcp : public setitr
+// cross-product
+{
+public:
+    itrpos* setA;
+    itrpos* setB;
+
+    int posA;
+    valms valA;
+    int posB;
+
+    virtual int getsize() {return setA->getsize() * setB->getsize();}
+
+    virtual void reset()
+    {
+        pos = -1;
+        setA->reset();
+        setB->reset();
+        
+        posA = -1;
+    }
+    virtual bool ended() {return setA->ended() && setB->ended();}
+    virtual valms getnext()
+    {
+        valms r;
+        r.t = mtpair;
+        r.v.p = new valspair;
+        if (posA == -1)
+        {
+            valA = setA->getnext();
+            setB->reset();
+        }
+        if (!setB->ended())
+        {
+            r.v.p->j = setB->getnext();
+        } else
+        {
+            if (!setA->ended())
+            {
+                valA = setA->getnext();;
+                setB->reset();
+                if (!setB->ended())
+                    r.v.p->j = setB->getnext();
+            }
+        }
+        r.v.p->i = valA;
+        if (++pos >= totality.size())
+            totality.push_back(r);
+        return totality[pos];
+    }
+    setitrcp(setitr* Ain, setitr* Bin) : setA{Ain->getitrpos()}, setB{Bin->getitrpos()} {}
+    ~setitrcp()
+    {
+        for (auto t : totality)
+            delete t.v.p;
+    }
+};
+
+class setitrintpair : public setitrmodeone
+{
+protected:
+    int inta;
+    int intb;
+    public:
+    void compute() override
+    {
+        totality.resize(2);
+        totality[0].t = mtdiscrete;
+        totality[1].t = mtdiscrete;
+        totality[0].v.iv = inta;
+        totality[1].v.iv = intb;
+    }
+    setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
+};
+
+class setitredges : public setitr
+{
+public:
+    int posa = -1;
+    int posb = -1;
+    graphtype* g;
+    int getsize() override
+    {
+        return edgecnt(g);
+    }
+
+    void reset() override
+    {
+        pos = -1;
+        posa = -1;
+        posb = -1;
+    }
+
+    bool ended() override {return posa >= g->dim-2 && posb >= g->dim-1; }
+    valms getnext() override
+    {
+        if (++pos < totality.size())
+            return totality[pos];
+        valms r;
+        r.t = mtset;
+        int tmpposa = posa;
+        int tmpposb = posb;
+        while (tmpposa < g->dim-2 || tmpposb < g->dim-1)
+        {
+            if (tmpposa >= tmpposb-1)
+            {
+                while (tmpposa >= tmpposb-1)
+                    ++tmpposb;
+                tmpposa = 0;
+            }
+            else
+                ++tmpposa;
+            if (g->adjacencymatrix[tmpposa*g->dim + tmpposb])
+            {
+                posa = tmpposa;
+                posb = tmpposb;
+                r.seti = new setitrintpair(posa, posb);
+                totality.resize(pos+1);
+                totality[pos] = r;
+                return r;
+            }
+        }
+        r.seti = new setitrintpair(posa, posb);
+        posa = tmpposa;
+        posb = tmpposb;
+        return r;
+    }
+    setitredges( graphtype* gin ) : g{gin} {}
+};
+
+class setitrpairs : public setitr
+{
+    public:
+    itrpos* setA;
+
+    int posAprime = -1;
+
+    int getsize() override
+    {
+        int s = setA->getsize();
+        return s*(s-1)/2;
+    }
+
+    void reset() override
+    {
+        pos = -1;
+        setA->reset();
+        posAprime = -1;
+    }
+    bool ended() override {return setA->ended() && posAprime == setA->getsize() - 2;}
+    valms getnext() override
+    {
+        if (++pos < totality.size())
+            return totality[pos];
+        valms r;
+        r.t = mtset;
+        auto subset = new setitrsubset(setA);
+        r.seti = subset;
+        while (!setA->ended() && setA->pos < 1)
+            setA->getnext();
+        if (posAprime < setA->pos-1)
+            ++posAprime;
+        else
+        {
+            setA->getnext();
+            posAprime = 0;
+        }
+        subset->superset = setA;
+        memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
+        subset->elts[setA->pos] = true;
+        subset->elts[posAprime] = true;
+        r.setsize = 2;
+        totality.resize(pos+1);
+        totality[pos] = r;
+        // std::cout << posAprime << ", " << setA->pos << std::endl;
+        return totality[pos];
+    }
+    setitrpairs(setitr* Ain) : setA{Ain->getitrpos()} {}
+    ~setitrpairs() override
+    {
+        for (auto t : totality)
+            delete t.seti;
+        //setitr::~setitr();
+    }
+};
+
+class setitrsizedsubset : public setitr
+{
+public:
+    itrpos* setA;
+
+    std::vector<int> posAprimes {};
+    int size = 2;
+
+    int getsize() override
+    {
+        // if (setA->parent == this)
+        // {
+            // std::cout << "Circular reference in setitrsizedsubset::getsize()\n";
+            // return 0;
+        // }
+        int s = setA->getsize();
+        //double res1 = tgamma(s+1);
+        //double res2 = tgamma(s+1-size)*tgamma(size+1); // commented out due to floating point error and simply too large
+        return nchoosek(s,size);
+    }
+
+    void reset() override
+    {
+        pos = -1;
+        setA->reset();
+        if (size > 0)
+        {
+            posAprimes.resize(size-1);
+            for (int i = 0; i < size-1; ++i)
+                posAprimes[i] = i;
+        } else
+        {
+            posAprimes.resize(0);
+        }
+    }
+    bool ended() override
+    {
+        bool res;
+        if (size == 0)
+            res = pos > 0;
+        else
+        {
+            res = setA->ended();
+            int s = setA->getsize();
+            for (int i = 0; i < size-1; ++i)
+                res = res && (posAprimes[i] == s - size + i);
+        }
+        return res;
+    }
+    valms getnext() override
+    {
+        if (++pos < totality.size())
+            return totality[pos];
+        valms r;
+        r.t = mtset;
+        auto subset = new setitrsubset(setA);
+        r.seti = subset;
+        bool inced = false;
+        while (!setA->ended() && setA->pos < size-1)
+        {
+            inced = true;
+            setA->getnext();
+        }
+        for (int i = 0; !inced && i < size-1; ++i)
+        {
+            if (i == size-2)
+            {
+                if (posAprimes[i] + 1 == setA->pos)
+                    continue;
+            } else
+                if (posAprimes[i] + 1 == posAprimes[i+1])
+                    continue;
+            ++posAprimes[i];
+            for (int j = 0; j < i; ++j)
+                posAprimes[j] = j;
+            inced = true;
+        }
+
+        if (!inced)
+        {
+            setA->getnext();
+            for (int i = 0; i < size-1; ++i)
+            {
+                posAprimes[i] = i;
+            }
+        }
+        memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
+        if (size > 0)
+            subset->elts[setA->pos] = true;
+        for (int i = 0; i < size-1; ++i)
+            subset->elts[posAprimes[i]] = true;
+        r.setsize = size;
+        totality.resize(pos+1);
+        totality[pos] = r;
+        // std::cout << "pos " << pos << ": ";
+        // for (int i = 0; i < size-1; ++i)
+            // std::cout << posAprimes[i] << ", ";
+        // std::cout << setA->pos << std::endl;
+        return r;
+    }
+    setitrsizedsubset(setitr* Ain, int sizein ) : setA{Ain ? Ain->getitrpos() : nullptr}, size{sizein}
+    {
+        t = mtset;
+        if (Ain == this)
+            std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
+        if (setA)
+            reset();
+    }
+    ~setitrsizedsubset() override
+    {
+    //   for (auto t : totality) // this is handled by ~setitr() above
+    //       delete t.seti;
+    //   setitr::~setitr();
+    }
+};
+
+
 
 inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables) {
     bool found = false;
@@ -196,8 +957,7 @@ inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variab
 
 
 struct formulavalue {
-    vals v;
-    measuretype t;
+    valms v;
     litstruct lit;
     fnstruct fns;
     qclass* qc;
@@ -212,15 +972,15 @@ public:
     formulaclass(formulavalue vin, formulaclass* fcleftin, formulaclass* fcrightin, formulaoperator foin)
         : v{vin}, fcleft(fcleftin), fcright(fcrightin), fo(foin) {}
     ~formulaclass() {
-        delete fcleft;
-        delete fcright;
-        if (fo == formulaoperator::fofunction) {
-            for (auto fnf : v.fns.ps)
-                delete fnf;
-        }
+        //delete fcleft;
+        //delete fcright;
+        //if (fo == formulaoperator::fofunction) {
+        //    for (auto fnf : v.fns.ps)
+        //        delete fnf;
+        //}
         if (fo == formulaoperator::fovariable) {
-            if (v.t == mtset || v.t == mtpairset)
-                delete v.v.iset;
+            //if (v.v.t == mtset || v.v.t == mtpairset)
+            //    delete v.v.seti;
         }
     }
 
@@ -290,9 +1050,9 @@ public:
         for (auto q : variables)
         {
             // if (!(q->name == "V" || q->name == "E" || q->name == "NE"))
-                if (q->qs.t == mtset)
-                    delete q->qs.v.iset;
-            delete q;
+                // if (q->qs.t == mtset)
+                    // delete q->qs.seti;
+        //    delete q;
         }
     }
 

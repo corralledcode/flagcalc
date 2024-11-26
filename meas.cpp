@@ -1352,6 +1352,11 @@ template<typename T> tally* tallyfactory(mrecords* recin)
     return new T(recin);
 }
 
+template<typename T> set* setfactory(mrecords* recin)
+{
+    return new T(recin);
+}
+
 
 
 
@@ -1517,8 +1522,8 @@ public:
     bool takemeas(const int idx, const params& ps) override
     {
         if (ps.size() == 2) {
-            bool imatch = ps[0].v.ip.i == ps[1].v.ip.i || ps[0].v.ip.i == ps[1].v.ip.j;
-            bool jmatch = ps[0].v.ip.j == ps[1].v.ip.i || ps[0].v.ip.j == ps[1].v.ip.j;
+            bool imatch = ps[0].v.p->i == ps[1].v.p->i || ps[0].v.p->i == ps[1].v.p->j;
+            bool jmatch = ps[0].v.p->j == ps[1].v.p->i || ps[0].v.p->j == ps[1].v.p->j;
             return (imatch || jmatch) && !(imatch && jmatch);
         }
         return false;
@@ -1544,12 +1549,7 @@ public:
     int takemeas(const int idx, const params& ps) override
     {
         if (ps.size() == 1) {
-            int res = 0;
-            for (int i = 0; i < ps[0].setsize; ++i)
-                if (ps[0].v.iset[i])
-                    ++res;
-            // std::cout << "st == " << res << "\n";
-            return res;
+            return ps[0].seti->getsize();
         }
         return 0;
     }
@@ -1572,13 +1572,7 @@ public:
     int takemeas(const int idx, const params& ps) override
     {
         if (ps.size() == 1) {
-            int res = 0;
-            for (int i = 0; i < (ps[0].setsize*(ps[0].setsize-1)/2); ++i)
-                if (ps[0].v.iset[i])
-                    ++res;
-            // std::cout << "pst == " << res << "\n";
-            return res;
-
+            return ps[0].seti->getsize();
         }
         return 0;
     }
@@ -1632,7 +1626,7 @@ public:
             return false;
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        return g->adjacencymatrix[g->dim*ps[0].v.ip.i + ps[0].v.ip.j];
+        return g->adjacencymatrix[g->dim*ps[0].v.p->i.v.iv + ps[0].v.p->j.v.iv];
     }
 };
 
@@ -1650,7 +1644,7 @@ public:
 
     int takemeas( const int idx, const params& ps) override
     {
-        return ps[0].v.ip.i;
+        return ps[0].v.p->i.v.iv;
     }
 };
 
@@ -1668,7 +1662,7 @@ public:
 
     int takemeas( const int idx, const params& ps) override
     {
-        return ps[0].v.ip.j;
+        return ps[0].v.p->j.v.iv;
     }
 };
 
@@ -1693,33 +1687,41 @@ public:
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         bool all = true;
-        for (int i = 0; i < ps[0].setsize; ++i)
-            if (ps[0].v.iset[i])
+        if (setitrint* sl = dynamic_cast<setitrint*>(ps[0].seti))
+        {
+            if (setitrint* sr = dynamic_cast<setitrint*>(ps[1].seti))
             {
-                int j = 0;
-                while (all && j < ps[1].setsize)
-                {
-                    all = all && (!ps[1].v.iset[j] || g->adjacencymatrix[i*g->dim + j]);
-                    ++j;
-                }
+                for (int i = 0; i < sl->maxint; ++i)
+                    if (sl->elts[i])
+                    {
+                        int j = 0;
+                        while (all && j < sr->maxint)
+                        {
+                            all = all && (!sr->elts[j] || g->adjacencymatrix[i*g->dim + j]);
+                            ++j;
+                        }
+                    }
+                for (int j = 0; all && (j < sr->maxint); ++j)
+                    if (sr->elts[j])
+                    {
+                        int i = 0;
+                        while (all && i < ps[0].setsize)
+                        {
+                            all = all && (!sl->elts[i] || g->adjacencymatrix[i*g->dim + j]);
+                            ++i;
+                        }
+                    }
+                for (int i = 0; all && (i < sl->maxint); ++i)
+                    for (int j = i+1; all && (j < sl->maxint); ++j)
+                        all = !sl->elts[i] || !sl->elts[j] || !(g->adjacencymatrix[i*g->dim + j]);
+                for (int i = 0; all && (i < sr->maxint); ++i)
+                    for (int j = i+1; all && (j < sr->maxint); ++j)
+                        all = !sr->elts[i] || !sr->elts[j] || !(g->adjacencymatrix[i*g->dim + j]);
+                return all;
             }
-        for (int j = 0; all && (j < ps[1].setsize); ++j)
-            if (ps[1].v.iset[j])
-            {
-                int i = 0;
-                while (all && i < ps[0].setsize)
-                {
-                    all = all && (!ps[0].v.iset[i] || g->adjacencymatrix[i*g->dim + j]);
-                    ++i;
-                }
-            }
-        for (int i = 0; all && (i < ps[0].setsize); ++i)
-            for (int j = i+1; all && (j < ps[0].setsize); ++j)
-                all = !ps[0].v.iset[i] || !ps[0].v.iset[j] || !(g->adjacencymatrix[i*g->dim + j]);
-        for (int i = 0; all && (i < ps[1].setsize); ++i)
-            for (int j = i+1; all && (j < ps[1].setsize); ++j)
-                all = !ps[1].v.iset[i] || !ps[1].v.iset[j] || !(g->adjacencymatrix[i*g->dim + j]);
-        return all;
+        }
+        std::cout << "Non-integer (non-vertex) set passed to bipcrit\n";
+        return false;
     }
 };
 
@@ -1741,21 +1743,25 @@ public:
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         if (ps.size() == 1) {
-            bool* S = ps[0].v.iset;
-            bool* N = (bool*)malloc(g->dim * sizeof(bool));
-            memset(N,false,g->dim * sizeof(bool));
-            int cnt = 0;
-            for (int i = 0; i < ps[0].setsize; ++i)
-                if (S[i])
-                    for (int j = 0; j < ns->degrees[i]; ++j)
-                    {
-                        vertextype nbr = ns->neighborslist[i*g->dim + j];
-                        cnt += (!N[nbr] && !S[nbr]) ? 1 : 0;
-                        N[nbr] = true;
-                    }
-            delete N;
-            return cnt;
+            if (setitrint* s = dynamic_cast<setitrint*>(ps[0].seti))
+            {
+                bool* S = s->elts;
+                bool* N = (bool*)malloc(g->dim * sizeof(bool));
+                memset(N,false,g->dim * sizeof(bool));
+                int cnt = 0;
+                for (int i = 0; i < s->maxint; ++i)
+                    if (S[i])
+                        for (int j = 0; j < ns->degrees[i]; ++j)
+                        {
+                            vertextype nbr = ns->neighborslist[i*g->dim + j];
+                            cnt += (!N[nbr] && !S[nbr]) ? 1 : 0;
+                            N[nbr] = true;
+                        }
+                delete N;
+                return cnt;
+            }
         }
+        std::cout << "Wrong number of parameters or parameter types passed to Ntally\n";
         return 0;
     }
 

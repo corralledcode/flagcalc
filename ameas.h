@@ -24,18 +24,20 @@ class mrecords; // multiple types of precords
 class crit;
 class meas;
 class tally;
+class set;
 
 template<typename T>
 class ameas
 {
 protected:
-    mrecords* rec;
+    mrecords* rec {};
 public:
-    const std::string shortname;
-    const std::string name;
+    const std::string shortname {};
+    const std::string name {};
     virtual T takemeas(const int idx)
     {
-        return {};
+        T res;
+        return res;
     }
     ameas( mrecords* recin , const std::string shortnamein, const std::string namein)
         : rec{recin}, shortname{shortnamein}, name{namein} {};
@@ -46,6 +48,7 @@ union amptrs {
     crit* cs;
     meas* ms;
     tally* ts;
+    set* ss;
 };
 
 struct ams
@@ -78,6 +81,9 @@ inline bool operator==(const ams& a1, const ams& a2)
             return a1.a.ts == a2.a.ts;
         case measuretype::mtbool:
             return a1.a.cs == a2.a.cs;
+        case measuretype::mtset:
+            return false;
+            // return a1.a.ss == a2.a.ss;
     }
 }
 
@@ -105,7 +111,7 @@ public:
     }
     T takemeas(const int idx) override
     {
-        return {};
+//        return {};
     }
     virtual T takemeas(const int idx, const params& ps )
     {
@@ -143,6 +149,16 @@ public:
     tally( mrecords* recin , const std::string shortnamein, const std::string name)
         : pameas<int>(recin,  shortnamein, name) {}
 };
+
+class set : public pameas<setitr*>
+{
+public:
+    set( mrecords* recin , const std::string shortnamein, const std::string namein)
+        : pameas<setitr*>( recin, shortnamein, namein ) {}
+    set() : pameas<setitr*>( nullptr, "_abst", "_abstract (error)" ) {};
+};
+
+
 
 template<typename T>
 class records
@@ -324,7 +340,8 @@ public:
                 if (i >= blocksize)
                 {
                     std::cout << "Increase block size\n";
-                    return 0;
+                    T res;
+                    return res;
                 }
                 plookup[iidx*szin + idx]->resize(i+1);
                 plookup[iidx*szin + idx][i] = ps;
@@ -421,35 +438,35 @@ public:
 };
 
 inline void populatevariables(std::vector<qclass*>* variables ) {
-    auto Vv = new qclass;
-    auto Ev = new qclass;
-    auto NEv = new qclass;
+    // auto Vv = new qclass;
+    // auto Ev = new qclass;
+    // auto NEv = new qclass;
 
     // Vv->qs.v.iset = (bool*)malloc(g->dim * sizeof(bool));
     // memset(Vv->qs.v.iset,true,g->dim * sizeof(bool));
     // Vv->qs.setsize = g->dim;
-    Vv->name = "V";
-    Vv->qs.t = mtset;
-    Vv->qs.v.iset = nullptr;
+    // Vv->name = "V";
+    // Vv->qs.t = mtset;
+    // Vv->qs.v.iset = nullptr;
     // Ev->qs.v.iset = (bool*)malloc(g->dim*g->dim * sizeof(bool));
     // for (int i = 0; i < g->dim*g->dim; ++i)
         // Ev->qs.v.iset[i] = g->adjacencymatrix[i];
     // Ev->qs.setsize = g->dim*g->dim;
-    Ev->name = "E";
-    Ev->qs.t = mtset;
-    Ev->qs.v.iset = nullptr;
+    // Ev->name = "E";
+    // Ev->qs.t = mtset;
+    // Ev->qs.v.iset = nullptr;
     // NEv->qs.v.iset = (bool*)malloc(g->dim * g->dim * sizeof(bool));
     // for (int i = 0; i < g->dim*g->dim; ++i)
         // NEv->qs.v.iset[i] = !g->adjacencymatrix[i];
     // for (int i = 0; i < g->dim; ++i)
         // NEv->qs.v.iset[i*g->dim + i] = false;
-    NEv->name = "NE";
+    // NEv->name = "NE";
     // NEv->qs.setsize = g->dim*g->dim;
-    NEv->qs.t = mtset;
-    NEv->qs.v.iset = nullptr;
-    variables->push_back(Vv);
-    variables->push_back(Ev);
-    variables->push_back(NEv);
+    // NEv->qs.t = mtset;
+    // NEv->qs.v.iset = nullptr;
+    // variables->push_back(Vv);
+    // variables->push_back(Ev);
+    // variables->push_back(NEv);
 }
 
 
@@ -481,6 +498,7 @@ public:
     thrrecords<bool> boolrecs;
     thrrecords<int> intrecs;
     thrrecords<double> doublerecs;
+    thrrecords<setitr*> setrecs;
     std::map<int,std::pair<measuretype,int>> m;
     std::vector<evalmformula*> efv {};
     std::vector<valms*> literals {};
@@ -507,6 +525,13 @@ public:
             setmsize(iidx+1);
         literals[iidx][idx].t = mtcontinuous;
         literals[iidx][idx].v.dv = v;
+    }
+    void addliteralvalues( const int iidx, const int idx, setitr* v )
+    {
+        if (iidx >= msz)
+            setmsize(iidx + 1);
+        literals[iidx][idx].t = mtset;
+        literals[iidx][idx].seti = v;
     }
 
 
@@ -538,6 +563,9 @@ public:
         case measuretype::mtdiscrete:
             res.a.ts = (tally*)(*intrecs.pmsv)[m[i].second];
             return res;
+        case measuretype::mtset:
+            res.a.ss = (set*)(*setrecs.pmsv)[m[i].second];
+            return res;
         }
     }
 
@@ -552,6 +580,7 @@ public:
         boolrecs.setsize(sz);
         intrecs.setsize(sz);
         doublerecs.setsize(sz);
+        setrecs.setsize(sz);
         efv.resize(sz);
         for (int i = 0; i < sz; ++i)
         {
@@ -606,6 +635,9 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
         break;
     case mtcontinuous:
         tmpps = a.a.ms->ps;
+        break;
+    case mtset:
+        tmpps = a.a.ss->ps;
     }
 
     for (int i = 0; i < tmpps.size(); ++i)
@@ -647,6 +679,13 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
                             break;
                     }
                     break;
+                case measuretype::mtset:
+                    if (psin[i].t != mtset)
+                    {
+                        std::cout << "Set type required as parameter number " << i << "\n";
+                        exit(1);
+                    }
+
                 /*
                 case measuretype::mtpair:
                     switch (psin[i].t)
@@ -675,6 +714,8 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
         return r;
     case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(idx,psin);
         return r;
+    case measuretype::mtset: r.seti = a.a.ss->takemeas(idx,psin);
+        return r;
     }
 
 }
@@ -687,7 +728,7 @@ inline valms evalmformula::evalvariable(std::string& vname)
     int i = (lookup_variable(vname,variables));
     if (i >= 0)
         return evalformula::evalvariable(vname);
-    if (vname == "V") {
+    /*if (vname == "V") {
         res.setsize = g->dim;
         res.t = mtset;
         res.v.iset = (bool*)malloc(g->dim*sizeof(bool));
@@ -727,7 +768,7 @@ inline valms evalmformula::evalvariable(std::string& vname)
         }
         //rec->variables[i]->qs = res;
         return res;
-    }
+    }*/
 }
 
 
@@ -742,16 +783,19 @@ public:
         std::vector<valms> literals;
         literals.resize(rec->literals.size());
         for (int i = 0; i < rec->literals.size(); ++i)
+        {
             literals[i] = rec->literals[i][idx];
+        }
         rec->efv[idx]->literals = &literals;
         evalmformula* ef = rec->efv[idx];
         ef->variables.resize(this->variables.size());
-        for (int i = 0; i < variables.size(); ++i)
+        for (int i = 0; i < this->variables.size(); ++i)
         {
             ef->variables[i] = new qclass;
             ef->variables[i]->name = this->variables[i]->name;
             ef->variables[i]->qs = this->variables[i]->qs;
             ef->variables[i]->superset = this->variables[i]->superset;
+            ef->variables[i]->secondorder = this->variables[i]->secondorder;
         }
         ef->idx = idx;
         // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
@@ -762,6 +806,7 @@ public:
         case measuretype::mtbool: return negated != r.v.bv;
         case measuretype::mtdiscrete: return negated != (bool)r.v.iv;
         case measuretype::mtcontinuous: return negated != (bool)r.v.dv;
+        case measuretype::mtset: return negated != (r.seti->getsize()>0);
         }
     }
 
@@ -820,6 +865,7 @@ public:
         case measuretype::mtbool: return (double)r.v.bv;
         case measuretype::mtdiscrete: return (double)r.v.iv;
         case measuretype::mtcontinuous: return r.v.dv;
+        case measuretype::mtset: return (double)r.seti->getsize();
         }
     }
 
@@ -828,19 +874,479 @@ public:
         return takemeas(idx);
     }
 
-
     formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin, const std::string& fstr )
         : meas( recin,  "fm", "Formula " + fstr) {
         fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
     }
-
     ~formmeas() {
         delete fc;
+    }
+};
+
+
+
+
+class setitrpowerset : public setitr
+{
+protected:
+    int subsetsize;
+    int supersetsize;
+    std::vector<int> subsetsv;
+    int possubsetsv;
+    int numberofsubsets = 1;
+    setitrset inprocesssupersetitr;
+    std::vector<valms> subsets {};
+    // setitrsubset subsetitr;
+    itrpos* supersetpos {};
+    itrpos* inprocesssupersetpos;
+
+    std::vector<std::vector<int>> ssvs {};
+    int posssv;
+
+public:
+
+    setitr* supersetitr;
+
+    void reset() override
+    {
+        // supersetsize = supersetitr->getsize();
+        subsetsize = 0;
+        // possubsetsv = -1;
+        numberofsubsets = 1;
+        // subsetsv.clear();
+        // subsets.clear();
+        // if (!supersetpos)
+            // supersetpos = supersetitr->getitrpos();
+        // supersetpos->reset();
+        // inprocesssupersetpos->reset();
+        pos = -1;
+
+        posssv = -1;
+    }
+    bool ended() override
+    {
+
+        return posssv >= numberofsubsets-1 && subsetsize >= supersetsize;
+        // return (subsetsize >= supersetsize-1) && (possubsetsv >= numberofsubsets-1);
+    }
+    valms getnext() override  // override this and then invoke it alongside populating elts
+    {
+        if (pos+1 < totality.size())
+            return totality[++pos];
+
+        valms r;
+        r.t = mtset;
+        auto subset = new setitrsubset(supersetpos);
+        r.seti = subset;
+        if (++posssv >= numberofsubsets)
+        {
+            ++subsetsize;
+            numberofsubsets = ssvs[subsetsize].size()/subsetsize;
+            posssv = 0;
+        }
+        // if (posssv == 0)
+            // std::cout << "posssv == 0, subsetsize == " << subsetsize << " numberofsubsets == " << numberofsubsets << "\n";
+        memset(subset->elts, false, supersetsize*sizeof(bool));
+        for (int j = 0; j < subsetsize; ++j)
+            subset->elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
+        // if (subset.size() > 0)
+        // subset->elts[subset->maxint] = true;
+        subset->computed = false;
+        subset->reset();
+        totality.resize(++pos+1);
+        totality[pos] = r;
+
+        // std::cout << "subset ";
+        // while (!subset->ended())
+            // std::cout << subset->getnext().v.iv << ", ";
+        // std::cout << std::endl;
+
+        return r;
+
+/*
+
+        if (pos == -1)
+        {
+            valms r;
+            r.t = mtset;
+            auto subset = new setitrsubset(inprocesssupersetpos);
+            r.seti = subset;
+            supersetpos->reset();
+            // subsetitr.setsuperset(supersetitr->getitrpos());
+            memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
+            // valms res;
+            // res.t = mtset;
+            // res.seti = &subsetitr;
+            // std::cout << "subset ";
+            // for (int j = 0; j <= subset->maxint; ++j)
+                // std::cout << subset->elts[j] << ", ";
+            // std::cout << "\n";
+            totality.resize(++pos+1);
+            subset->computed = false;
+            subset->reset();
+            totality[pos] = r;
+            // std::cout << "..size == " << subset->getsize() << "\n";
+            return r;
+        }
+
+        if (++possubsetsv < numberofsubsets)
+        {
+            valms r;
+            r.t = mtset;
+            auto subset = new setitrsubset(inprocesssupersetpos);
+            r.seti = subset;
+            // valms res;
+            // res.t = mtset;
+            // res.seti = &subsetitr;
+            memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
+            for (int j = 0; j < subsetsize; ++j)
+                subset->elts[subsetsv[possubsetsv*subsetsize + j]] = true;
+            // if (subset.size() > 0)
+            subset->elts[subset->maxint] = true;
+            // std::cout << "subset ";
+            // for (int j = 0; j <= subset->maxint; ++j)
+                // std::cout << subset->elts[j] << ", ";
+            // std::cout << "\n";
+            // ++possubsetsv;
+            subset->computed = false;
+            subset->reset();
+            totality.resize(++pos+1);
+            totality[pos] = r;
+            // std::cout << "..size == " << subset->getsize() << "\n";
+            return r;
+        }
+
+
+        possubsetsv = -1;
+        ++subsetsize;
+        if (subsetsize < subsets.size())
+        {
+            subsetsv.clear();
+            enumsizedsubsets(0,subsetsize,nullptr,0,subsets.size()-1,&subsetsv);
+            numberofsubsets = subsetsv.size()/subsetsize;
+            // subset->totality.clear();
+            // subset->reset();
+            if (subsetsv.size() == 0)
+            {
+                std::cout << "Error infinite loop in Powerset\n";
+                exit(1);
+                valms v;
+                return v;
+            }
+            return getnext();
+        } else
+        {
+            if (!supersetpos->ended())
+            {
+                subsets.push_back(supersetpos->getnext());
+                subsetsize = 0;
+                numberofsubsets = 1;
+                subsetsv.clear();
+                possubsetsv = -1;
+                inprocesssupersetitr.totality.clear();
+                inprocesssupersetitr.totality.resize(subsets.size());
+                for (int i = 0; i < subsets.size(); ++i)
+                {
+                    valms v = subsets[i];
+                    inprocesssupersetitr.totality[i] = v;
+                }
+                inprocesssupersetitr.reset();
+                inprocesssupersetpos->reset();
+                // subset->totality.clear();
+                // subset->setmaxint(subsets.size());
+                // subset->reset();
+                // subsetitr.setsuperset(inprocesssupersetpos);
+                return getnext();
+            } else
+            {
+                std::cout << "Error: powerset ended already\n";
+                valms v;
+                return v;
+            }
+        }*/
+    }
+
+    int getsize() override
+    {
+        if (supersetpos)
+            return pow(2,supersetsize);
+        return 0;
+    }
+
+    setitrpowerset(setitr* setin)
+        : supersetitr{setin}, inprocesssupersetitr()
+    {
+        t = mtset;
+        if (supersetitr)
+            supersetsize = supersetitr->getsize();
+        else
+            supersetsize = 0;
+        // inprocesssupersetitr.totality.resize(0);
+        // inprocesssupersetpos = inprocesssupersetitr.getitrpos();
+        // subsetitr.setsuperset(inprocesssupersetpos);
+        supersetpos = supersetitr->getitrpos();
+
+        ssvs.resize(supersetsize+1);
+        for (int i = 0; i <= supersetsize; ++i)
+            enumsizedsubsets(0,i,nullptr,0,supersetsize,&(ssvs[i]));
+
+        reset();
+        // subsetsize = 0;
+        // numberofsubsets = 1;
+        // posssv = -1;
+    }
+    setitrpowerset() : supersetitr{nullptr}, inprocesssupersetitr()
+    {
+        t = mtset;
+        supersetsize = 0;
+        inprocesssupersetpos = inprocesssupersetitr.getitrpos();
+        // subsetitr.setsuperset(inprocesssupersetpos);
     }
 
 
 };
 
+
+/*
+int getsetsize( valms v)
+{
+    int res = 0;
+    for (int i = 0; i < v.setsize; ++i)
+        res += v.v.iset[i] ? 1 : 0;
+    return res;
+}*/
+
+class Pset : public set
+{
+public:
+    // setitrfactory<setitrpowerset> f;
+    //setitrpowerset* itr {};
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        // auto itr = f.getsetitr();
+        if (ps.size() == 1)
+        {
+            // delete itr;
+            // itr = new setitrpowerset(ps[0].seti);
+            // return itr;
+            auto itr = new setitrpowerset(ps[0].seti);
+            return itr;
+        }
+        std::cout << "Error in Pset::takemeas\n";
+        exit(1);
+        return nullptr;;
+    }
+
+    Pset( mrecords* recin ) : set(recin,"P", "Powerset")
+    {
+        valms v;
+        v.t = mtset;
+        ps.clear();
+        ps.push_back(v);
+        pssz = 1;
+    }
+    ~Pset()
+    {
+        // delete itr;
+    }
+};
+
+class Vset : public set
+{
+public:
+    std::vector<setitrint*> itr {};
+    setitr* takemeas(const int idx) override
+    {
+        // auto itr = f.getsetitr();
+        auto g = (*rec->gptrs)[idx];
+        // if (itr.size() <= idx)
+            // itr.resize(idx+1);
+        // itr[idx] = new setitrint(g->dim-1);
+        // itr->setmaxint(g->dim-1);
+        // memset(itr[idx]->elts,true,(itr[idx]->maxint+1)*sizeof(bool));
+        // itr[idx]->computed = false;
+        // itr[idx]->reset();
+        // return itr[idx];
+        auto itr = new setitrint(g->dim-1);
+        memset(itr->elts,true,(itr->maxint+1)*sizeof(bool));
+        itr->computed = false;
+        itr->reset();
+        return itr;
+    }
+    Vset( mrecords* recin ) : set(recin,"V", "Graph vertices set")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+};
+
+class Eset : public set
+{
+public:
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        // auto itr = f.getsetitr();
+        auto g = (*rec->gptrs)[idx];
+        auto itr = new setitredges(g);
+        return itr;
+    }
+
+    Eset( mrecords* recin ) : set(recin,"E", "Graph edges set")
+    {
+        pssz = 0;
+    }
+
+};
+
+
+
+class CPset : public set
+// Set cross-product
+{
+public:
+    setitrcp* f {};
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        delete f;
+        if (ps.size() == 2)
+        {
+            auto setA = ps[0].seti;
+            auto setB = ps[1].seti;
+            f = new setitrcp(setA,setB);
+            return f;
+        }
+        std::cout << "Error in CPset::takemeas\n";
+        return f;
+    }
+
+    CPset( mrecords* recin ) : set(recin,"CP", "set cross-product")
+    {
+        valms v;
+        v.t = mtset;
+        ps.clear();
+        ps.push_back(v);
+        ps.push_back(v);
+        pssz = 2;
+    }
+};
+
+class Pairset : public set
+{
+public:
+    setitrpairs* f {};
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        delete f;
+        if (ps.size() == 1)
+        {
+            auto setA = ps[0].seti;
+            f = new setitrpairs(setA);
+            return f;
+        }
+        std::cout << "Error in Pairset::takemeas\n";
+        return f;
+    }
+
+    Pairset( mrecords* recin ) : set(recin,"Pair", "set pair")
+    {
+        valms v;
+        v.t = mtset;
+        ps.clear();
+        ps.push_back(v);
+        pssz = 1;
+    }
+    ~Pairset()
+    {
+        delete f;
+    }
+};
+
+class Sizedsubset : public set
+{
+public:
+    // std::vector<setitrsizedsubset*> f {};
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        //delete f;
+        // if (f.size()<=idx)
+            // f.resize(idx+1);
+        if (ps.size() == 2)
+        {
+            auto size = ps[1].v.iv;
+            auto setA = ps[0].seti;
+            // f[idx] = new setitrsizedsubset(setA,size );
+            // if (setA == f)
+                // std::cout << "Circular reference in Sizedsubset\n";
+            // return f[idx];
+            auto f = new setitrsizedsubset(setA,size);
+            return f;
+        }
+        std::cout << "Error in Sizedsubset::takemeas\n";
+        return nullptr;
+    }
+
+    Sizedsubset( mrecords* recin ) : set(recin,"Sizedsubset", "Sized subset")
+    {
+        valms v;
+        v.t = mtset;
+        ps.clear();
+        ps.push_back(v);
+        v.t = mtdiscrete;
+        ps.push_back(v);
+        pssz = 2;
+    }
+    ~Sizedsubset()
+    {
+//        delete f;
+    }
+};
+
+class NNset : public set
+{
+public:
+    // std::vector<setitrint*> f {};
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+//        delete f;
+        if (ps.size() == 1)
+        {
+            // if (f.size() <= idx)
+                // f.resize(idx+1);
+            auto size = ps[0].v.iv;
+            // f[idx] = new setitrint(size-1);
+            // return f[idx];
+            auto f = new setitrint(size-1);
+            return f;
+        }
+        std::cout << "Error in NNset::takemeas\n";
+        return nullptr;
+    }
+
+    NNset( mrecords* recin ) : set(recin,"NN", "Natural numbers finite set")
+    {
+        valms v;
+        ps.clear();
+        v.t = mtdiscrete;
+        ps.push_back(v);
+        pssz = 1;
+    }
+    ~NNset()
+    {
+//        delete f;
+    }
+};
+
+class Nullset : public set
+{
+    public:
+    setitrint* itr {};
+    setitr* takemeas(const int idx) override
+    {
+        return itr;
+    }
+
+    Nullset( mrecords* recin ) : set(recin,"Nulls", "Null (empty) set"), itr{new setitrint(-1)} {}
+};
 
 
 
