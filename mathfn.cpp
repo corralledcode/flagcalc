@@ -109,9 +109,9 @@ inline double nchoosekfn( std::vector<double>& din )
 
 inline double expfn(std::vector<double>& din)
 {
-    if (din.empty())
+    if (din.size() != 1)
     {
-        std::cout << "No arguments passed to expfn\n";
+        std::cout << "Wrong number of arguments passed to expfn\n";
         return 0;
     }
     return exp(din[0]);
@@ -134,5 +134,15 @@ inline double modfn(std::vector<double>& din) {
         return 0;
     }
     return (int)din[0] % (int)din[1];
+
+}
+
+inline double powfn(std::vector<double>& din) {
+    if (din.size() != 2)
+    {
+        std::cout << "Wrong number of arguments passed to powfn\n";
+        return 0;
+    }
+    return pow(din[0],din[1]);
 
 }

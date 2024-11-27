@@ -163,7 +163,7 @@ public:
     measuretype t = mtdiscrete;
 
     virtual void reset() {pos = -1;}
-    virtual bool ended() {return pos >= getsize()-1;}
+    virtual bool ended() {return pos+1 >= getsize();}
     virtual valms getnext()
     {
         ++pos;
@@ -180,17 +180,26 @@ public:
     int pos = -1;
     bool ended()
     {
-        return (pos >= parent->getsize() - 1);
+        // std::cout << "itrpos.ended " << pos+1 << ", " << parent->getsize() << "\n";
+        return (pos+1 >= parent->getsize());
     }
     void reset() {pos = -1;}
     int getsize() {return parent->getsize();}
-    valms getnext()
+    virtual valms getnext()
     {
+        if (ended())
+            std::cout << "setitr.getnext() called with ended == true\n";
         ++pos;
         while (pos >= parent->totality.size() && !parent->ended())
         {
-            while (parent->pos < parent->totality.size())
+            // if (parent->pos+1 > parent->totality.size())
+            // {
+                // std::cout << "parent pos of " << parent->pos << " exceeds parent totality size of " << parent->totality.size() << "\n";
+                // parent->reset();
+            // }
+            while (parent->pos+1 < parent->totality.size())
             {
+                std::cout << "pos " << pos << ", parent->pos == " << parent->pos << ", parent->totality.size() == " << parent->totality.size() << std::endl;
                 if (parent->ended())
                     break;
                 parent->getnext();
@@ -201,10 +210,13 @@ public:
         if (pos < parent->totality.size())
         {
             //std::cout << "pos == " << pos << std::endl;
+            // std::cout << "parent totality pos t == " << parent->totality[pos].t << std::endl;
+            // std::cout << "iv " << parent->totality[pos].v.iv << std::endl;
+
             return parent->totality[pos];
         } else {
-            std::cout << "pos == " << pos << " exceeds parent position\n";
-            return {};
+            std::cout << "pos == " << pos << " exceeds parent totality size of " << parent->totality.size() << ", ended() == " << this->ended() << "\n";
+            exit(1);
         }
     }
     itrpos(setitr* parentin) : parent{parentin} {}
@@ -243,6 +255,7 @@ inline bool operator==(const valms& a1, const valms& a2)
         return a1.v.p->i == a2.v.p->i && a1.v.p->j == a2.v.p->j;
     case measuretype::mtset:
         { // code below assumes both sets sorted
+            std::cout << "early code being used...\n"; // as coded, not capable of nested sets...
             auto i1 = new itrpos(a1.seti);
             auto i2 = new itrpos(a2.seti);
             bool match = i1->getsize() == i2->getsize();
@@ -326,7 +339,7 @@ class setitrmodeone : public setitr
     }
     bool ended() override
     {
-        return pos >= getsize() - 1;
+        return pos+1 >= getsize();
     }
     valms getnext() override
     {
@@ -435,7 +448,7 @@ public:
         // totality.clear();
         temp.resize(maxint+1);
         int j = 0;
-        for (int i = 0; i <= maxint; ++i)
+        for (int i = 0; i < maxint+1; ++i)
         {
             if (elts[i])
             {
@@ -483,51 +496,80 @@ public:
 };
 
 
-class setitrsubset : public setitrbool {
+class setitrsubset : public setitr {
 public:
+    setitrbool* itrbool;
     itrpos* superset {};
     void setsuperset( itrpos* supersetposin )
     {
         superset = supersetposin;
-        setmaxint(superset->getsize() - 1);
+        itrbool->setmaxint(superset->getsize() - 1);
         reset();
     }
+
+    int getsize() override
+    {
+        return itrbool->getsize();
+    }
+
     valms getnext() override
     {
-        valms r = setitrbool::getnext();
+        if (pos+1 < totality.size())
+            return totality[++pos];
+
+        if (!itrbool->computed)
+            itrbool->compute();
         valms res;
-        if (r.v.iv >= 0)
+        int superpos = -1;
+        if (!itrbool->ended())
+            superpos = itrbool->totality[++pos].v.iv;
+        if (superpos >= 0)
         {
-            if (superset->pos >= r.v.iv)
-                res = superset->parent->totality[r.v.iv];
+            if (superset->pos+1 > superpos)
+                res = superset->parent->totality[superpos];
             else
             {
-                while (superset->pos < r.v.iv && !superset->ended())
+                while (superset->pos+1 < superpos+1 && !superset->ended())
                     res = superset->getnext();
+                if (superpos > superset->pos)
+                {
+                    std::cout << "Error in setitrsubset, parent size exceeded\n";
+                    exit(1);
+                }
             }
         } else
         {
-            std::cout << "setitrbool::getnext() returns negative" << std::endl;
+            std::cout << "Error itrbool totality item is negative, in pass to setitrsubset" << std::endl;
         }
+        // std::cout << "res.t == " << res.t << std::endl;
+        totality.resize(pos + 1);
+        if (pos >= 0)
+            totality[pos] = res;
         return res;
         // may add error catching code here
     }
     void reset() override
     {
         superset->reset();
-        setitrbool::reset();
+        itrbool->reset();
+        pos = -1;
     }
     bool ended() override
     {
-        return setitrbool::ended(); // || superset->ended();
+        if (itrbool->computed)
+            return pos + 1 >= itrbool->totality.size();
+        else
+            return pos + 1 >= itrbool->getsize();
     }
-    setitrsubset(itrpos* supersetin) : superset{supersetin}, setitrbool(supersetin->getsize() - 1)
+    setitrsubset(itrpos* supersetin) : superset{supersetin}, itrbool{new setitrbool(supersetin->getsize() - 1)}
     {
         t = superset->parent->t;
+        pos = -1;
     };
-    setitrsubset() : superset{}, setitrbool(0)
+    setitrsubset() : superset{}, itrbool{new setitrbool(-1)}
     {
         t = mtdiscrete;
+        pos = -1;
     };
 
 };
@@ -807,9 +849,9 @@ class setitrpairs : public setitr
             posAprime = 0;
         }
         subset->superset = setA;
-        memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
-        subset->elts[setA->pos] = true;
-        subset->elts[posAprime] = true;
+        memset(subset->itrbool->elts, false, (subset->itrbool->maxint+1)*sizeof(bool));
+        subset->itrbool->elts[setA->pos] = true;
+        subset->itrbool->elts[posAprime] = true;
         r.setsize = 2;
         totality.resize(pos+1);
         totality[pos] = r;
@@ -864,12 +906,12 @@ public:
     {
         bool res;
         if (size == 0)
-            res = pos > 0;
+            res = pos+1 >= 1;
         else
         {
             res = setA->ended();
             int s = setA->getsize();
-            for (int i = 0; i < size-1; ++i)
+            for (int i = 0; i+1 < size; ++i)
                 res = res && (posAprimes[i] == s - size + i);
         }
         return res;
@@ -911,11 +953,11 @@ public:
                 posAprimes[i] = i;
             }
         }
-        memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
+        memset(subset->itrbool->elts, false, (subset->itrbool->maxint+1)*sizeof(bool));
         if (size > 0)
-            subset->elts[setA->pos] = true;
+            subset->itrbool->elts[setA->pos] = true;
         for (int i = 0; i < size-1; ++i)
-            subset->elts[posAprimes[i]] = true;
+            subset->itrbool->elts[posAprimes[i]] = true;
         r.setsize = size;
         totality.resize(pos+1);
         totality[pos] = r;

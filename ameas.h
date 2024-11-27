@@ -926,7 +926,7 @@ public:
     bool ended() override
     {
 
-        return posssv >= numberofsubsets-1 && subsetsize >= supersetsize;
+        return posssv+1 >= numberofsubsets && subsetsize >= supersetsize;
         // return (subsetsize >= supersetsize-1) && (possubsetsv >= numberofsubsets-1);
     }
     valms getnext() override  // override this and then invoke it alongside populating elts
@@ -946,12 +946,12 @@ public:
         }
         // if (posssv == 0)
             // std::cout << "posssv == 0, subsetsize == " << subsetsize << " numberofsubsets == " << numberofsubsets << "\n";
-        memset(subset->elts, false, supersetsize*sizeof(bool));
+        memset(subset->itrbool->elts, false, supersetsize*sizeof(bool));
         for (int j = 0; j < subsetsize; ++j)
-            subset->elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
+            subset->itrbool->elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
         // if (subset.size() > 0)
         // subset->elts[subset->maxint] = true;
-        subset->computed = false;
+        subset->itrbool->computed = false;
         subset->reset();
         totality.resize(++pos+1);
         totality[pos] = r;

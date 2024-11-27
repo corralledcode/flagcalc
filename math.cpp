@@ -443,167 +443,76 @@ bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
     return res;
 }
 
+bool setsubseteq( itrpos* in1, itrpos* in2)
+{
+    bool res = true;
+    in1->reset();
+    while (!in1->ended() && res)
+    {
+        in2->reset();
+        auto itm = in1->getnext();
+        bool match = false;
+        while (!match && !in2->ended())
+        {
+            auto itm2 = in2->getnext();
+            if (itm.t == mtbool || itm.t == mtdiscrete || itm.t == mtcontinuous)
+                match = itm == itm2;
+            else
+                if (itm.t == mtset && itm2.t == mtset)
+                {
+                    auto pos1 = itm.seti->getitrpos();
+                    auto pos2 = itm2.seti->getitrpos();
+                    match = setsubseteq( pos1, pos2) && setsubseteq( pos2, pos1);
+                    delete pos1;
+                    delete pos2;
+                } else
+                {
+                    std::cout << "Mismatched set type in setsubseteq\n";
+                    exit(1);
+                }
+        }
+        res = match;
+    }
+    return res;
+}
+
 bool eval2aryseteq( setitr* in1, setitr* in2, const formulaoperator fo )
 {
     bool res;
+    auto pos1 = in1->getitrpos();
+    auto pos2 = in2->getitrpos();
     if (fo == formulaoperator::foe) {
-        res = true;
-        auto pos1 = in1->getitrpos();
-        auto pos2 = in2->getitrpos();
-        pos1->reset();
-        /*
-        if (pos1->getsize() != pos2->getsize())
-        {
-            res = false;
-        }
-        */
-        while (!pos1->ended() && res)
-        {
-            pos2->reset();
-            auto itm = pos1->getnext();
-            bool match = false;
-            while ( !match && !pos2->ended())
-                match = match || (pos2->getnext() == itm);
-            res = match;
-        }
-        pos2->reset();
-        while (!pos2->ended() && res)
-        {
-            pos1->reset();
-            auto itm = pos2->getnext();
-            bool match = false;
-            while ( !match && !pos1->ended())
-                match = match || (pos1->getnext() == itm);
-            res = match;
-        }
-        // if (itm.v.iv >= set.setsize)
-        // {
-        // std::cout << "Set size exceeded in call to ELT\n";
-        // res.v.bv = false;
-        // return res;
-        // }
-        // for (int i = 0; i < set.setsize; ++i)
-        // std::cout << "set " << i << " == " << set.v.iset[i] << "\n";
+        res = setsubseteq( pos1, pos2) && setsubseteq( pos2, pos1);
     }
     if (fo == formulaoperator::folte)
     {
-        res = true;
-        auto pos1 = in1->getitrpos();
-        auto pos2 = in2->getitrpos();
-        pos1->reset();
-        /*
-        if (pos1->getsize() != pos2->getsize())
-        {
-            res = false;
-        }
-        */
-        while (!pos1->ended() && res)
-        {
-            pos2->reset();
-            auto itm = pos1->getnext();
-            bool match = false;
-            while ( !match && !pos2->ended())
-                match = match || (pos2->getnext() == itm);
-            res = match;
-        }
+        res = setsubseteq( pos1, pos2);
     }
     if (fo == formulaoperator::folt)
     {
-        res = true;
-        auto pos1 = in1->getitrpos();
-        auto pos2 = in2->getitrpos();
-        pos1->reset();
-        /*
-        if (pos1->getsize() != pos2->getsize())
-        {
-            res = false;
-        }
-        */
         res = pos1->getsize() != pos2->getsize();
-        while (!pos1->ended() && res)
-        {
-            pos2->reset();
-            auto itm = pos1->getnext();
-            bool match = false;
-            while ( !match && !pos2->ended())
-                match = match || (pos2->getnext() == itm);
-            res = match;
-        }
-        //
+        if (res)
+            res = setsubseteq(pos1, pos2);
     }
     if (fo == formulaoperator::fogte)
     {
-        res = true;
-        auto pos1 = in1->getitrpos();
-        auto pos2 = in2->getitrpos();
-        pos1->reset();
-        /*
-        if (pos1->getsize() != pos2->getsize())
-        {
-            res = false;
-        }
-        */
-        pos2->reset();
-        while (!pos2->ended() && res)
-        {
-            pos1->reset();
-            auto itm = pos2->getnext();
-            bool match = false;
-            while ( !match && !pos1->ended())
-                match = match || (pos1->getnext() == itm);
-            res = match;
-        }
-        //
+        res = setsubseteq( pos2, pos1);
     }
     if (fo == formulaoperator::fogt)
     {
-        res = true;
-        auto pos1 = in1->getitrpos();
-        auto pos2 = in2->getitrpos();
-        pos1->reset();
-        /*
-        if (pos1->getsize() != pos2->getsize())
-        {
-            res = false;
-        }
-        */
-        pos2->reset();
         res = pos1->getsize() != pos2->getsize();
-        while (!pos2->ended() && res)
-        {
-            pos1->reset();
-            auto itm = pos2->getnext();
-            bool match = false;
-            while ( !match && !pos1->ended())
-                match = match || (pos1->getnext() == itm);
-            res = match;
-        }
-        //
+        if (res)
+            res = setsubseteq(pos2, pos1);
     }
     if (fo == formulaoperator::fone)
     {
-        res = true;
-        auto pos1 = in1->getitrpos();
-        auto pos2 = in2->getitrpos();
-        while (!pos1->ended() && res)
+        res = pos1->getsize() != pos2->getsize();
+        if (!res)
         {
-            auto itm = pos1->getnext();
-            bool match = false;
-            while ( !match && !pos2->ended())
-                match = match || pos2->getnext() == itm;
-            res = !match;
-            pos2->reset();
+            res = !setsubseteq(pos1, pos2);
+            if (!res)
+                res = !setsubseteq(pos2, pos1);
         }
-        while (!pos2->ended() && res)
-        {
-            auto itm = pos2->getnext();
-            bool match = false;
-            while ( !match && !pos1->ended())
-                match = match || pos1->getnext() == itm;
-            res = !match;
-            pos1->reset();
-        }
-        res = !res;
     }
     return res;
 }
@@ -741,9 +650,30 @@ valms evalformula::eval( formulaclass& fc)
         if (set.t == mtset)
         {
             auto pos = set.seti->getitrpos();
+            pos->reset();
             bool match = false;
             while ( !match && !pos->ended())
-                match = match || itm == pos->getnext();
+            {
+                auto v = pos->getnext();
+                if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
+                    match = match || itm == v;
+                else
+                    if (v.t == mtset)
+                    {
+                        if (itm.t == mtset)
+                        {
+                            auto itmpos = itm.seti->getitrpos();
+                            auto pospos = v.seti->getitrpos();
+                            match = match || (setsubseteq(itmpos, pospos) && setsubseteq(pospos, itmpos));
+                            delete itmpos;
+                            delete pospos;
+                        } else
+                        {
+                            std::cout << "Mismatched types in call to ELT\n";
+                            exit(1);
+                        }
+                    }
+            }
             res.v.bv = match;
 
                 // if (itm.v.iv >= set.setsize)
@@ -848,7 +778,7 @@ valms evalformula::eval( formulaclass& fc)
                     // fc.v.qc->qs.setsize = v.setsize;
 
                     auto itr = new setitrsubset(v.seti->getitrpos());
-                    memset(itr->elts,false,itr->maxint*sizeof(bool));
+                    memset(itr->itrbool->elts,false,itr->itrbool->maxint*sizeof(bool));
                     int numberofsubsets = 1;
                     variables[m]->qs.seti = itr;
                     itr->t = v.seti->t;
@@ -869,10 +799,10 @@ valms evalformula::eval( formulaclass& fc)
                             enumsizedsubsets(0,i,nullptr,0,subset.size(),&subsets);
                             numberofsubsets = subsets.size()/i;
                             for (int k = 0; res.v.bv && (k < numberofsubsets); ++k) {
-                                memset(itr->elts,false,v.setsize*sizeof(bool));
+                                memset(itr->itrbool->elts,false,v.setsize*sizeof(bool));
                                 // memset(fc.v.qc->qs.v.iset,false,v.setsize*sizeof(bool));
                                 for (int j = 0; (j < i); ++j) {
-                                    itr->elts[subsets[k*i+j]] = true;
+                                    itr->itrbool->elts[subsets[k*i+j]] = true;
                                     // fc.v.qc->qs.v.iset[subset[subsets[k*i + j]]] = true;
                                 }
                                 if (fc.fo == formulaoperator::foqexists)
@@ -978,9 +908,11 @@ valms evalformula::eval( formulaclass& fc)
 
                 int i = lookup_variable(fc.v.qc->name, variables);
                 supersetpos->reset();
-                variables[i]->qs.t = v.seti->t;
+                // variables[i]->qs.t = v.seti->t;
                 while ((!supersetpos->ended()) && res.v.bv) {
                     variables[i]->qs = supersetpos->getnext();
+                    // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
+                    // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
                 // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
                     if (fc.fo == formulaoperator::foqexists)
                         res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
