@@ -136,13 +136,3 @@ inline double modfn(std::vector<double>& din) {
     return (int)din[0] % (int)din[1];
 
 }
-
-inline double powfn(std::vector<double>& din) {
-    if (din.size() != 2)
-    {
-        std::cout << "Wrong number of arguments passed to powfn\n";
-        return 0;
-    }
-    return pow(din[0],din[1]);
-
-}

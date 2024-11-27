@@ -1099,8 +1099,12 @@ public:
     {
         t = mtset;
         supersetsize = 0;
-        inprocesssupersetpos = inprocesssupersetitr.getitrpos();
+        // inprocesssupersetpos = inprocesssupersetitr.getitrpos();
         // subsetitr.setsuperset(inprocesssupersetpos);
+    }
+    ~setitrpowerset()
+    {
+        delete supersetpos;
     }
 
 

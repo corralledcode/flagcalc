@@ -113,6 +113,9 @@ enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtpair, mtset, mtpairset };
 class setitr;
 class itrpos;
 
+bool setsubseteq( itrpos* in1, itrpos* in2);
+
+
 /*
 template<typename T>
 class setitrfactory
@@ -226,15 +229,16 @@ public:
 
 inline itrpos* setitr::getitrpos()
 {
-    itrs.push_back(new itrpos(this));
-    return itrs.back();
+    auto itr = new itrpos(this);
+    //itrs.push_back(itr);
+    return itr;
 }
 
 inline setitr::~setitr()
 {
-    //for (itrpos* itr : itrs)
-    //    delete itr;
-    //itrs.clear();
+    for (itrpos* itr : itrs)
+        delete itr;
+    itrs.clear();
 }
 
 
@@ -257,9 +261,9 @@ inline bool operator==(const valms& a1, const valms& a2)
         return a1.v.p->i == a2.v.p->i && a1.v.p->j == a2.v.p->j;
     case measuretype::mtset:
         { // code below assumes both sets sorted
-            std::cout << "early code being used...\n"; // as coded, not capable of nested sets...
-            auto i1 = new itrpos(a1.seti);
-            auto i2 = new itrpos(a2.seti);
+            std::cout << "early code being used...\n"; // as coded, probably not capable of nested sets...
+            auto i1 = a1.seti->getitrpos();
+            auto i2 = a2.seti->getitrpos();
             bool match = i1->getsize() == i2->getsize();
             while (match && !i1->ended())
             {
@@ -376,20 +380,39 @@ class setitrunion : public setitrmodeone
         auto Aitr = setA->getitrpos();
         auto Bitr = setB->getitrpos();
         pos = -1;
-        totality.clear();
+        std::vector<valms> temp {};
+        // totality.clear();
         while (!Aitr->ended())
         {
-            totality.push_back(Aitr->getnext());
+            temp.push_back(Aitr->getnext());
+            // totality.push_back(Aitr->getnext());
         }
         while (!Bitr->ended())
         {
             bool found = false;
             valms v = Bitr->getnext();
-            for (int i = 0; !found && i < totality.size(); i++)
-                found = found || v == totality[i];
+            for (int i = 0; !found && i < temp.size(); i++)
+                if (v.t == temp[i].t)
+                    if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
+                        found = found || v == temp[i];
+                    else
+                        if (v.t == mtset)
+                        {
+                            auto tmpitr1 = v.seti->getitrpos();
+                            auto tmpitr2 = temp[i].seti->getitrpos();
+                            found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
+                            delete tmpitr1;
+                            delete tmpitr2;
+                        }
+                        else
+                            std::cout << "Unsupported type " << v.t << " in setitrunion\n";
+
             if (!found)
-                totality.push_back(v);
+                temp.push_back(v);
         }
+        totality.resize(temp.size());
+        for (int i = 0; i < temp.size(); i++)
+            totality[i] = temp[i];
         computed = true;
         reset();
         delete Aitr;
@@ -414,7 +437,8 @@ public:
         auto Bitr = setB->getitrpos();
         pos = -1;
         std::vector<valms> temp {};
-        totality.clear();
+        std::vector<valms> temp2 {};
+        // totality.clear();
         while (!Aitr->ended())
         {
             temp.push_back(Aitr->getnext());
@@ -424,17 +448,37 @@ public:
             bool found = false;
             valms v = Bitr->getnext();
             for (int i = 0; !found && i < temp.size(); i++)
-                found = found || v == temp[i];
+                if (v.t == temp[i].t)
+                    if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
+                        found = found || v == temp[i];
+                    else
+                        if (v.t == mtset)
+                        {
+                            auto tmpitr1 = v.seti->getitrpos();
+                            auto tmpitr2 = temp[i].seti->getitrpos();
+                            found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
+                            delete tmpitr1;
+                            delete tmpitr2;
+                        }
+                        else
+                            std::cout << "Unsupported type " << v.t << " in setitrintersection\n";
+
             if (found)
-                totality.push_back(v);
+                temp2.push_back(v);
         }
+        totality.resize(temp2.size());
+        for (int i = 0; i < temp2.size(); i++)
+            totality[i] = temp2[i];
         computed = true;
         reset();
-        // delete Aitr;
-        // delete Bitr;
+        delete Aitr;
+        delete Bitr;
     }
 
-    setitrintersection(setitr* a, setitr* b) : setA{a}, setB{b} {};
+    setitrintersection(setitr* a, setitr* b) : setA{a}, setB{b}
+    {
+        reset();
+    };
 
 };
 
@@ -736,6 +780,8 @@ public:
     setitrcp(setitr* Ain, setitr* Bin) : setA{Ain->getitrpos()}, setB{Bin->getitrpos()} {}
     ~setitrcp()
     {
+        delete setA;
+        delete setB;
         for (auto t : totality)
             delete t.v.p;
     }
@@ -863,6 +909,7 @@ class setitrpairs : public setitr
     setitrpairs(setitr* Ain) : setA{Ain->getitrpos()} {}
     ~setitrpairs() override
     {
+        delete setA;
         for (auto t : totality)
             delete t.seti;
         //setitr::~setitr();
@@ -979,6 +1026,7 @@ public:
     }
     ~setitrsizedsubset() override
     {
+        delete setA;
     //   for (auto t : totality) // this is handled by ~setitr() above
     //       delete t.seti;
     //   setitr::~setitr();
