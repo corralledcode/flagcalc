@@ -111,7 +111,7 @@ public:
     }
     T takemeas(const int idx) override
     {
-//        return {};
+        return {};
     }
     virtual T takemeas(const int idx, const params& ps )
     {

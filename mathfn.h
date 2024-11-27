@@ -8,7 +8,7 @@
 #include <vector>
 
 
-inline int nchoosek( int n, int k);
+inline int nchoosek( const int n, const int k);
 
 inline double isinffn( std::vector<double>& din );
 
