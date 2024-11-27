@@ -22,6 +22,7 @@
 #include "ameas.h"
 #include "meas.cpp"
 #include "probsub.cpp"
+#include "math.h"
 
 //default is to enumisomorphisms
 #define DEFAULTCMDLINESWITCH "i"
