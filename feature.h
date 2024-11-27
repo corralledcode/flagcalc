@@ -452,9 +452,7 @@ public:
 
 
 
-        int cnt = 100; // the default count when count is omitted
         int dim = 5;
-        double edgecnt = dim*(dim-1)/4.0;
         //std::vector<abstractparameterizedrandomgraph> rs {};
         int rgsidx = 0;
         std::vector<std::string> rgparams {};
@@ -463,9 +461,11 @@ public:
         if (parsedargs.size() >= 1 && parsedargs[0].first == "default" && is_number(parsedargs[0].second)) {
             dim = std::stoi(parsedargs[0].second);
         }
-        if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_number(parsedargs[1].second)) {
+        double edgecnt = dim*(dim-1)/4.0;
+        if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_real(parsedargs[1].second)) {
             edgecnt = std::stof(parsedargs[1].second);
         }
+        int cnt = 100; // the default count when count is omitted
         if (parsedargs.size() >= 3 && parsedargs[2].first == "default" && is_number(parsedargs[2].second)) {
             cnt = std::stoi(parsedargs[2].second);
         }

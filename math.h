@@ -18,6 +18,8 @@ class qclass;
 class evalformula;
 
 inline bool is_number(const std::string& s);
+inline bool is_real(const std::string& s);
+
 
 
 enum class logicalconnective {lcand, lcor};
