@@ -1556,6 +1556,7 @@ public:
 
 };
 
+/*
 class psizetally : public tally {
 
 public:
@@ -1578,7 +1579,7 @@ public:
     }
 
 };
-
+*/
 
 class pctally : public tally {
 
@@ -1608,6 +1609,35 @@ public:
 
 };
 
+class cyclestally : public tally {
+
+public:
+
+    cyclestally( mrecords* recin ) : tally( recin, "cyclest", "cycles tally")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        //osadjacencymatrix(std::cout, g);
+        if (ps.size() == 1) {
+            // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
+            return directedcyclestally(g,ns,ps[0].v.iv)/2; // undirected (cf. Diestel p 6-10) is half of directed
+        }
+        return 0;
+    }
+
+};
+
+
+
 class ecrit : public crit
 {
 public:
@@ -1615,7 +1645,7 @@ public:
     {
         ps.clear();
         valms p1;
-        p1.t = mtpair;
+        p1.t = mtset;
         ps.push_back(p1);
         pssz = 1;
     }
@@ -1626,11 +1656,91 @@ public:
             return false;
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        return g->adjacencymatrix[g->dim*ps[0].v.p->i.v.iv + ps[0].v.p->j.v.iv];
+        auto itr = ps[0].seti->getitrpos();
+
+        bool res = g->adjacencymatrix[g->dim * itr->getnext().v.iv + itr->getnext().v.iv];
+        delete itr;
+        return res;
+
+        // return g->adjacencymatrix[g->dim*ps[0].v.p->i.v.iv + ps[0].v.p->j.v.iv];
     }
 };
 
-class pairfirsttally : public tally
+class idxtally : public tally
+{
+    public:
+
+    idxtally( mrecords* recin ) : tally( recin, "idxt", "Index into an integer-comprised set")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        p1.t = mtdiscrete;
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    int takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 2)
+        {
+            std::cout << "Wrong number of parameters to idxt\n";
+        }
+        auto itr = ps[0].seti->getitrpos();
+        if (itr->ended())
+        {
+            std::cout << "idxs called on empty set\n";
+            return -1;  // better error-catching needed here
+        }
+        int res = itr->getnext().v.iv;
+        for (int i = 0; i < ps[1].v.iv && !itr->ended(); ++i)
+        {
+            res = itr->getnext().v.iv;
+        }
+        delete itr;
+        return res;
+    }
+};
+
+class idxset : public set
+{
+public:
+    idxset( mrecords* recin ) : set( recin, "idxs", "Index into a set-comprised set")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        p1.t = mtdiscrete;
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 2)
+        {
+            std::cout << "Wrong number of parameters to idxs\n";
+        }
+        auto itr = ps[0].seti->getitrpos();
+        if (itr->ended())
+        {
+            std::cout << "idxs called on empty set\n";
+            return {};  // better error-catching needed here
+        }
+        setitr* res = itr->getnext().seti;
+        for (int i = 0; i < ps[1].v.iv && !itr->ended(); ++i)
+        {
+            res = itr->getnext().seti;
+        }
+        delete itr;
+        return res;
+    }
+
+};
+
+/* class pairfirsttally : public tally
 {
 public:
     pairfirsttally( mrecords* recin ) : tally( recin, "pfirstt", "Pair first")
@@ -1665,7 +1775,7 @@ public:
         return ps[0].v.p->j.v.iv;
     }
 };
-
+*/
 
 class bipcrit : public crit
 {

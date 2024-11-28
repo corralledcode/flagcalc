@@ -157,7 +157,7 @@ class itrpos;
 class setitr
 {
 protected:
-    std::vector<itrpos*> itrs {};
+    // std::vector<itrpos*> itrs {};
 public:
     std::vector<valms> totality {};
 
@@ -236,9 +236,9 @@ inline itrpos* setitr::getitrpos()
 
 inline setitr::~setitr()
 {
-    for (itrpos* itr : itrs)
-        delete itr;
-    itrs.clear();
+    // for (itrpos* itr : itrs)
+        // delete itr;
+    // itrs.clear();
 }
 
 
@@ -368,6 +368,15 @@ class setitrmodeone : public setitr
             return v;
         }
     }
+
+    setitrmodeone() {}
+
+    setitrmodeone( std::vector<valms> totalityin )
+    {
+        totality = totalityin;
+        computed = true;
+    }
+
 };
 
 class setitrunion : public setitrmodeone

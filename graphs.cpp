@@ -2185,3 +2185,97 @@ int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextyp
     return res;
 }
 
+
+
+void pathsbetweentuplesinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<vertextype> existingpath, std::vector<std::vector<vertextype>>& out )
+{
+    if (v1 == v2)
+    {
+        out.push_back(existingpath);
+        return;
+    }
+    auto g2 = new graphtype(g->dim);
+    //copygraph( g, g2 );
+    // int res = 0;
+    for (int i = 0; i < ns->degrees[v2]; ++i) {
+        copygraph( g, g2 );
+        vertextype v = ns->neighborslist[v2*g->dim + i];
+        // existingpath.insert(existingpath.begin(),v);
+        existingpath.push_back(v);
+        g2->adjacencymatrix[v2*g->dim + v] = false;
+        g2->adjacencymatrix[v*g->dim + v2] = false;
+        auto ns2 = new neighborstype(g2);
+        pathsbetweentuplesinternal(g2,ns2, v1,v,existingpath, out);
+        delete ns2;
+        existingpath.resize(existingpath.size()-1);
+        // .erase(existingpath.begin(),existingpath.begin()+1);
+    }
+    delete g2;
+}
+
+
+
+
+void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<std::vector<vertextype>>& out )
+{
+    // std::cout << "v1 == " << v1 << ", v2 == " << v2 << "\n";
+    std::vector<vertextype> existingpath {};
+    existingpath.push_back(v1);
+    pathsbetweentuplesinternal( g, ns, v2, v1, existingpath, out );
+}
+
+int directedcyclestallyinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
+    if (v1 == v2)
+        return 1;
+    auto g2 = new graphtype(g->dim);
+    //copygraph( g, g2 );
+    int res = 0;
+    for (int i = 0; i < ns->degrees[v1]; ++i) {
+        copygraph( g, g2 );
+        vertextype v = ns->neighborslist[v1*g->dim + i];
+        g2->adjacencymatrix[v1*g->dim + v] = false;
+        g2->adjacencymatrix[v*g->dim + v1] = false;
+        auto ns2 = new neighborstype(g2);
+        res += pathsbetweentally(g2,ns2, v,v2);
+        delete ns2;
+    }
+    delete g2;
+    return res;
+}
+
+
+int directedcyclestally( graphtype* g, neighborstype* ns, vertextype v1 )
+{
+    auto g2 = new graphtype(g->dim);
+    //copygraph( g, g2 );
+    int res = 0;
+    for (int i = 0; i < ns->degrees[v1]; ++i) {
+        copygraph( g, g2 );
+        vertextype v = ns->neighborslist[v1*g->dim + i];
+        g2->adjacencymatrix[v1*g->dim + v] = false;
+        g2->adjacencymatrix[v*g->dim + v1] = false;
+        auto ns2 = new neighborstype(g2);
+        res += directedcyclestallyinternal(g2,ns2, v,v1);
+        delete ns2;
+    }
+    delete g2;
+    return res;
+}
+
+void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out )
+{
+    auto g2 = new graphtype(g->dim);
+    for (int i = 0; i < ns->degrees[v]; ++i)
+    {
+        copygraph( g, g2 );
+        vertextype v2 = ns->neighborslist[v*g->dim + i];
+        g2->adjacencymatrix[v*g->dim + v2] = false;
+        g2->adjacencymatrix[v2*g->dim + v] = false;
+        auto ns2 = new neighborstype(g2);
+        pathsbetweentuples(g2,ns2, v, v2, out);
+        delete ns2;
+    }
+    for (auto p : out)
+        p.push_back(v);
+    delete g2;
+}

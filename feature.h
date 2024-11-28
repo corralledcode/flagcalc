@@ -1755,10 +1755,12 @@ public:
         auto (vdt) = tallyfactory<vdtally>;
         auto (st) = tallyfactory<sizetally>;
         auto (pct) = tallyfactory<pctally>;
-        auto (firstt) = tallyfactory<pairfirsttally>;
-        auto (secondt) = tallyfactory<pairsecondtally>;
-        auto (pst) = tallyfactory<psizetally>;
+        // auto (firstt) = tallyfactory<pairfirsttally>; // these three outdated by retirement of mtpair type
+        // auto (secondt) = tallyfactory<pairsecondtally>;
+        // auto (pst) = tallyfactory<psizetally>;
+        auto (idxt) = tallyfactory<idxtally>;
         auto (Nt) = tallyfactory<Ntally>;
+        auto (cyclest) = tallyfactory<cyclestally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
@@ -1766,10 +1768,12 @@ public:
         tysfactory.push_back(vdt);
         tysfactory.push_back(st);
         tysfactory.push_back(pct);
-        tysfactory.push_back(firstt);
-        tysfactory.push_back(secondt);
-        tysfactory.push_back(pst);
+        // tysfactory.push_back(firstt);
+        // tysfactory.push_back(secondt);
+        // tysfactory.push_back(pst);
+        tysfactory.push_back(idxt);
         tysfactory.push_back(Nt);
+        tysfactory.push_back(cyclest);
 
 
         // ,,,
@@ -1780,21 +1784,27 @@ public:
 
         auto (Vs) = setfactory<Vset>;
         auto (Ps) = setfactory<Pset>;
-        auto (CPs) = setfactory<CPset>;
-        auto (Pairs) = setfactory<Pairset>;
+        // auto (CPs) = setfactory<CPset>;
+        // auto (Pairs) = setfactory<Pairset>;
         auto (Sizedsubs) = setfactory<Sizedsubset>;
         auto (NNs) = setfactory<NNset>;
         auto (Nulls) = setfactory<Nullset>;
         auto (Es) = setfactory<Eset>;
+        auto (idxs) = setfactory<idxset>;
+        auto (Paths) = setfactory<Pathsset>;
+        auto (Cycles) = setfactory<Cyclesset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
-        stsfactory.push_back(CPs);
-        stsfactory.push_back(Pairs);
+        // stsfactory.push_back(CPs);
+        // stsfactory.push_back(Pairs);
         stsfactory.push_back(Sizedsubs);
         stsfactory.push_back(NNs);
         stsfactory.push_back(Nulls);
         stsfactory.push_back(Es);
+        stsfactory.push_back(idxs);
+        stsfactory.push_back(Paths);
+        stsfactory.push_back(Cycles);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -2300,6 +2310,10 @@ public:
         *_os << "\t" << "<tally>:\t which tally to use, standard options are:\n";
         for (int n = 0; n < tys.size(); ++n) {
             *_os << "\t\t\"" << tys[n]->shortname << "\": " << tys[n]->name << "\n";
+        }
+        *_os << "\t" << "<set>:\t which set to use (only within a logical sentence or measure), standard options are:\n";
+        for (int n = 0; n < sts.size(); ++n) {
+            *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
         }
     }
 
