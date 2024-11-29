@@ -2175,8 +2175,14 @@ int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextyp
     for (int i = 0; i < ns->degrees[v1]; ++i) {
         copygraph( g, g2 );
         vertextype v = ns->neighborslist[v1*g->dim + i];
-        g2->adjacencymatrix[v1*g->dim + v] = false;
-        g2->adjacencymatrix[v*g->dim + v1] = false;
+        for (int j = 0; j < ns->degrees[v1]; ++j)
+        {
+            vertextype v3 = ns->neighborslist[v1*g->dim + j];
+            g2->adjacencymatrix[v1*g->dim + v3] = false;
+            g2->adjacencymatrix[v3*g->dim + v1] = false;
+        }
+        // g2->adjacencymatrix[v1*g->dim + v] = false;
+        // g2->adjacencymatrix[v*g->dim + v1] = false;
         auto ns2 = new neighborstype(g2);
         res += pathsbetweentally(g2,ns2, v,v2);
         delete ns2;
@@ -2201,9 +2207,15 @@ void pathsbetweentuplesinternal( graphtype* g, neighborstype* ns, vertextype v1,
         copygraph( g, g2 );
         vertextype v = ns->neighborslist[v2*g->dim + i];
         // existingpath.insert(existingpath.begin(),v);
+        for (int j = 0; j < ns->degrees[v2]; ++j)
+        {
+            vertextype v3 = ns->neighborslist[v2*g->dim + j];
+            g2->adjacencymatrix[v2*g->dim + v3] = false;
+            g2->adjacencymatrix[v3*g->dim + v2] = false;
+        }
         existingpath.push_back(v);
-        g2->adjacencymatrix[v2*g->dim + v] = false;
-        g2->adjacencymatrix[v*g->dim + v2] = false;
+        // g2->adjacencymatrix[v2*g->dim + v] = false;
+        // g2->adjacencymatrix[v*g->dim + v2] = false;
         auto ns2 = new neighborstype(g2);
         pathsbetweentuplesinternal(g2,ns2, v1,v,existingpath, out);
         delete ns2;
@@ -2225,6 +2237,7 @@ void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertext
 }
 
 int directedcyclestallyinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
+
     if (v1 == v2)
         return 1;
     auto g2 = new graphtype(g->dim);
@@ -2233,8 +2246,14 @@ int directedcyclestallyinternal( graphtype* g, neighborstype* ns, vertextype v1,
     for (int i = 0; i < ns->degrees[v1]; ++i) {
         copygraph( g, g2 );
         vertextype v = ns->neighborslist[v1*g->dim + i];
-        g2->adjacencymatrix[v1*g->dim + v] = false;
-        g2->adjacencymatrix[v*g->dim + v1] = false;
+        for (int j = 0; j < ns->degrees[v1]; ++j)
+        {
+            vertextype v3 = ns->neighborslist[v1*g->dim + j];
+            g2->adjacencymatrix[v1*g->dim + v3] = false;
+            g2->adjacencymatrix[v3*g->dim + v1] = false;
+        }
+        // g2->adjacencymatrix[v1*g->dim + v] = false;
+        // g2->adjacencymatrix[v*g->dim + v1] = false;
         auto ns2 = new neighborstype(g2);
         res += pathsbetweentally(g2,ns2, v,v2);
         delete ns2;

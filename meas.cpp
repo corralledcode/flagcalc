@@ -1797,35 +1797,38 @@ public:
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         bool all = true;
-        if (setitrint* sl = dynamic_cast<setitrint*>(ps[0].seti))
+        if (setitrbool* sl = dynamic_cast<setitrsubset*>(ps[0].seti)->itrbool)
         {
-            if (setitrint* sr = dynamic_cast<setitrint*>(ps[1].seti))
+            if (setitrbool* sr = dynamic_cast<setitrsubset*>(ps[1].seti)->itrbool)
             {
-                for (int i = 0; i < sl->maxint; ++i)
+                /*
+                for (int i = 0; i <= sl->maxint; ++i)
                     if (sl->elts[i])
                     {
                         int j = 0;
-                        while (all && j < sr->maxint)
+                        while (all && j <= sr->maxint)
                         {
                             all = all && (!sr->elts[j] || g->adjacencymatrix[i*g->dim + j]);
                             ++j;
                         }
                     }
-                for (int j = 0; all && (j < sr->maxint); ++j)
+                for (int j = 0; all && (j <= sr->maxint); ++j)
                     if (sr->elts[j])
                     {
                         int i = 0;
-                        while (all && i < ps[0].setsize)
+                        while (all && i <= sl->maxint)
                         {
                             all = all && (!sl->elts[i] || g->adjacencymatrix[i*g->dim + j]);
                             ++i;
                         }
                     }
+                    */  // the above code commented out per Diestel's definition (p 17)
+
                 for (int i = 0; all && (i < sl->maxint); ++i)
-                    for (int j = i+1; all && (j < sl->maxint); ++j)
+                    for (int j = i+1; all && (j <= sl->maxint); ++j)
                         all = !sl->elts[i] || !sl->elts[j] || !(g->adjacencymatrix[i*g->dim + j]);
                 for (int i = 0; all && (i < sr->maxint); ++i)
-                    for (int j = i+1; all && (j < sr->maxint); ++j)
+                    for (int j = i+1; all && (j <= sr->maxint); ++j)
                         all = !sr->elts[i] || !sr->elts[j] || !(g->adjacencymatrix[i*g->dim + j]);
                 return all;
             }
