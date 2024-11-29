@@ -1602,7 +1602,7 @@ public:
         //osadjacencymatrix(std::cout, g);
         if (ps.size() == 2) {
             // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
-            return pathsbetweentally(g,ns,ps[0].v.iv, ps[1].v.iv);
+            return pathsbetweencount(g,ns,ps[0].v.iv, ps[1].v.iv);
         }
         return 0;
     }
@@ -1629,7 +1629,7 @@ public:
         //osadjacencymatrix(std::cout, g);
         if (ps.size() == 1) {
             // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
-            return directedcyclestally(g,ns,ps[0].v.iv)/2; // undirected (cf. Diestel p 6-10) is half of directed
+            return cyclescount(g,ns,ps[0].v.iv); // undirected (cf. Diestel p 6-10) is half of directed
         }
         return 0;
     }

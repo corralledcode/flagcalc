@@ -17,13 +17,13 @@ $PTH/flagcalc -r 7 8 10 -a s="EXISTS (s == [E], s IN [Sizedsubset]([Sizedsubset]
 $PTH/flagcalc -r 7 8 10 -a s="EXISTS (s == [E], s IN [P]([Sizedsubset]([V],2)))" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip12.dat -a s="EXISTS (EXISTS (EXISTS ([st](r CUP l) == [dimm] AND FORALL (FORALL (NOT [ac](a,b), b IN l), a IN l) AND FORALL (FORALL (NOT [ac](c,d), d IN r), c IN r), r IN [Sizedsubset]([V],[dimm] - n)), l IN [Sizedsubset]([V],n)) , n IN [NN]([dimm]+1))" all
 $PTH/flagcalc -r 4 3 10 -a s="FORALL (EXISTS (EXISTS (((s CUP t) == [P]([V])) AND ((s CAP t) == [Nulls]), t IN [Sizedsubset]([P]([V]),2^[dimm] - n)), s IN [Sizedsubset]([P]([V]),n)), n IN [NN](2^[dimm]+1))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 20 100 -a s="FORALL ([ac]([idxt](e,0),[idxt](e,1)), e IN [E])"
+$PTH/flagcalc -r 10 20 100 -a s="FORALL ([ac]([idxt](e,0),[idxt](e,1)), e IN [E])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 20 100 -a s="FORALL ([ac]([idxt]([idxs]([E],n),0),[idxt]([idxs]([E],n),1)), n IN [NN]([st]([E])))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 12 10 -a s="FORALL (FORALL ([st]([Pathss](a,b)) == [pct](a,b), a IN [V]), b IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 6 10 10 -a s="FORALL (FORALL (FORALL (FORALL ([ac]([idxt](p,m),[idxt](p,m+1)), m IN [NN]([st](p)-1)), p IN [Pathss](a,b)), a IN [V]), b IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip8.dat -a s="FORALL (FORALL (mod([st](c),2) == 0, c IN [Cycless](v)), v IN [V])" all
 $PTH/flagcalc -r 8 10 1000 -a s="[cr1] IFF FORALL (FORALL ([st](c) > 3, c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 13 100 -a s="[treec] IFF FORALL (FORALL ([st]([Pathss](a,b)) == 1, b IN [V]), a IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 8 100 -a s="[treec] IFF FORALL (FORALL ([st]([Pathss](a,b)) == 1, b IN [V]), a IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (FORALL ([st]([Pathss](a,b)) <= 1, b IN [V]), a IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL ([st]([Cycless](a)) == 0, a IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 6 100 -a s="[forestc] IFF FORALL ([st]([Cycless](a)) == 0, a IN [V])" all -v i=minimal3.cfg
@@ -31,8 +31,7 @@ $PTH/flagcalc -r 10 15 50 -a s="[conn1c] IFF FORALL (FORALL ([Pathss](a,b) != [N
 $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL (c ELT [Cycless](w), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a s="EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))" all
 $PTH/flagcalc -r 9 10 100 -a s="(EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))) IFF FORALL (FORALL (mod([st](c),2) == 0, c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 1 -a s="SUM ([cyclet](n), n IN [NN]([dimm]+1)) == SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 100 -a s="abs(SUM ([cyclet](n), n IN [NN]([dimm]+1)) - SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])) < 0.001" all -v i=minimal3.cfg
-
-
+$PTH/flagcalc -r 7 10 100 -a s="SUM ([cyclet](n), n IN [NN]([dimm]+1)) == SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 33 1000 -a s="SUM ([vdt](v), v IN [V])/2 == [edgecm]" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (1, e IN [E]) == [edgecm]" all -v i=minimal3.cfg
 

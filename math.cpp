@@ -434,7 +434,7 @@ template<typename T1, typename T2>
 bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
     bool res;
     if (fo == formulaoperator::foe) {
-        res = in1 == in2;
+        res = abs(in1 - in2) < 0.0000001;
     }
     if (fo == formulaoperator::folte) {
         res = in1 <= in2;
@@ -449,7 +449,7 @@ bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
         res = in1 > in2;
     }
     if (fo == formulaoperator::fone) {
-        res = in1 != in2;
+        res = (in1 - in2) >= 0.0000001;
     }
     return res;
 }
@@ -1224,6 +1224,7 @@ valms evalformula::eval( formulaclass& fc)
         res.t = mtbool;
         switch(resleft.t)
         {
+            /*
         case mtpair:
             switch (resright.t)
             {
@@ -1253,7 +1254,7 @@ valms evalformula::eval( formulaclass& fc)
                 break;
             }
 
-            break;
+            break;*/
         case mtdiscrete:
             switch (resright.t)
             {

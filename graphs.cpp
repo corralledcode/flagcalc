@@ -2166,7 +2166,7 @@ void copygraph( graphtype* g1, graphtype* g2 ) {
         g2->adjacencymatrix[i] = g1->adjacencymatrix[i];
 }
 
-int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
+int pathsbetweencount( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
     if (v1 == v2)
         return 1;
     auto g2 = new graphtype(g->dim);
@@ -2184,7 +2184,7 @@ int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextyp
         // g2->adjacencymatrix[v1*g->dim + v] = false;
         // g2->adjacencymatrix[v*g->dim + v1] = false;
         auto ns2 = new neighborstype(g2);
-        res += pathsbetweentally(g2,ns2, v,v2);
+        res += pathsbetweencount(g2,ns2, v,v2);
         delete ns2;
     }
     delete g2;
@@ -2201,27 +2201,30 @@ void pathsbetweentuplesinternal( graphtype* g, neighborstype* ns, vertextype v1,
         return;
     }
     auto g2 = new graphtype(g->dim);
-    //copygraph( g, g2 );
+    copygraph( g, g2 );
     // int res = 0;
+    for (int j = 0; j < ns->degrees[v2]; ++j)
+    {
+        vertextype v3 = ns->neighborslist[v2*g->dim + j];
+        g2->adjacencymatrix[v2*g->dim + v3] = false;
+        g2->adjacencymatrix[v3*g->dim + v2] = false;
+    }
+    auto ns2 = new neighborstype(g2);
+
     for (int i = 0; i < ns->degrees[v2]; ++i) {
-        copygraph( g, g2 );
+        // copygraph( g, g2 );
         vertextype v = ns->neighborslist[v2*g->dim + i];
         // existingpath.insert(existingpath.begin(),v);
-        for (int j = 0; j < ns->degrees[v2]; ++j)
-        {
-            vertextype v3 = ns->neighborslist[v2*g->dim + j];
-            g2->adjacencymatrix[v2*g->dim + v3] = false;
-            g2->adjacencymatrix[v3*g->dim + v2] = false;
-        }
+
         existingpath.push_back(v);
         // g2->adjacencymatrix[v2*g->dim + v] = false;
         // g2->adjacencymatrix[v*g->dim + v2] = false;
-        auto ns2 = new neighborstype(g2);
+        // auto ns2 = new neighborstype(g2);
         pathsbetweentuplesinternal(g2,ns2, v1,v,existingpath, out);
-        delete ns2;
         existingpath.resize(existingpath.size()-1);
         // .erase(existingpath.begin(),existingpath.begin()+1);
     }
+    delete ns2;
     delete g2;
 }
 
@@ -2236,45 +2239,54 @@ void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertext
     pathsbetweentuplesinternal( g, ns, v2, v1, existingpath, out );
 }
 
-int directedcyclestallyinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
+int cyclescountinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
 
     if (v1 == v2)
         return 1;
     auto g2 = new graphtype(g->dim);
     //copygraph( g, g2 );
     int res = 0;
+    copygraph( g, g2 );
+    for (int j = 0; j < ns->degrees[v1]; ++j)
+    {
+        vertextype v3 = ns->neighborslist[v1*g->dim + j];
+        g2->adjacencymatrix[v1*g->dim + v3] = false;
+        g2->adjacencymatrix[v3*g->dim + v1] = false;
+    }
+    auto ns2 = new neighborstype(g2);
     for (int i = 0; i < ns->degrees[v1]; ++i) {
-        copygraph( g, g2 );
         vertextype v = ns->neighborslist[v1*g->dim + i];
-        for (int j = 0; j < ns->degrees[v1]; ++j)
-        {
-            vertextype v3 = ns->neighborslist[v1*g->dim + j];
-            g2->adjacencymatrix[v1*g->dim + v3] = false;
-            g2->adjacencymatrix[v3*g->dim + v1] = false;
-        }
         // g2->adjacencymatrix[v1*g->dim + v] = false;
         // g2->adjacencymatrix[v*g->dim + v1] = false;
-        auto ns2 = new neighborstype(g2);
-        res += pathsbetweentally(g2,ns2, v,v2);
-        delete ns2;
+        res += pathsbetweencount(g2,ns2, v,v2);
+        // delete ns2;
     }
     delete g2;
+    delete ns2;
     return res;
 }
 
 
-int directedcyclestally( graphtype* g, neighborstype* ns, vertextype v1 )
+int cyclescount( graphtype* g, neighborstype* ns, vertextype v1 )
 {
     auto g2 = new graphtype(g->dim);
     //copygraph( g, g2 );
     int res = 0;
+    copygraph( g, g2 );
     for (int i = 0; i < ns->degrees[v1]; ++i) {
-        copygraph( g, g2 );
         vertextype v = ns->neighborslist[v1*g->dim + i];
         g2->adjacencymatrix[v1*g->dim + v] = false;
         g2->adjacencymatrix[v*g->dim + v1] = false;
+
         auto ns2 = new neighborstype(g2);
-        res += directedcyclestallyinternal(g2,ns2, v,v1);
+
+        res += cyclescountinternal(g2,ns2, v,v1);
+        // for (int j = 0; j < ns->degrees[v]; ++j)
+        // {
+            // vertextype v3 = ns->neighborslist[v*g->dim + j];
+            // g2->adjacencymatrix[v*g->dim + v3] = false;
+            // g2->adjacencymatrix[v3*g->dim + v] = false;
+        // }
         delete ns2;
     }
     delete g2;
@@ -2285,6 +2297,30 @@ void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::
 {
     auto g2 = new graphtype(g->dim);
     std::vector<std::vector<vertextype>> internalout {};
+
+    copygraph( g, g2 );
+    for (int i = 0; i < ns->degrees[v]; ++i) {
+        vertextype v1 = ns->neighborslist[v*g->dim + i];
+        g2->adjacencymatrix[v1*g->dim + v] = false;
+        g2->adjacencymatrix[v*g->dim + v1] = false;
+
+        auto ns2 = new neighborstype(g2);
+
+        pathsbetweentuples(g2,ns2, v,v1, out);
+
+        // for (int j = 0; j < ns->degrees[v1]; ++j)
+        // {
+            // vertextype v3 = ns->neighborslist[v1*g->dim + j];
+            // g2->adjacencymatrix[v1*g->dim + v3] = false;
+            // g2->adjacencymatrix[v3*g->dim + v1] = false;
+        // }
+        delete ns2;
+    }
+    for (auto p : out)
+        p.push_back(v);
+
+/*
+
     for (int i = 0; i < ns->degrees[v]; ++i)
     {
         copygraph( g, g2 );
@@ -2292,11 +2328,15 @@ void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::
         g2->adjacencymatrix[v*g->dim + v2] = false;
         g2->adjacencymatrix[v2*g->dim + v] = false;
         auto ns2 = new neighborstype(g2);
-        pathsbetweentuples(g2,ns2, v, v2, internalout);
+        pathsbetweentuples(g2,ns2, v, v2, out);
         delete ns2;
     }
+
     for (auto p : internalout)
         p.push_back(v);
+*/
+
+    /*
     for (int i = 0; i+1 < internalout.size(); ++i) {
         bool dupe = false;
         int j;
@@ -2317,6 +2357,6 @@ void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::
             out.push_back(internalout[i]);
         if (dupe)
             internalout[j-1].clear();
-    }
+    }*/
     delete g2;
 }

@@ -187,11 +187,11 @@ void osmachinereadablegraph(std::ostream &os, graphtype* g);
 
 void zerograph(graphtype* g);
 
-int pathsbetweentally( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2);
+int pathsbetweencount( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2);
 
 void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<std::vector<vertextype>>& out );
 
-int directedcyclestally( graphtype* g, neighborstype* ns, vertextype v1 );
+int cyclescount( graphtype* g, neighborstype* ns, vertextype v1 );
 
 void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out );
 
