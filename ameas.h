@@ -7,6 +7,8 @@
 
 #define KNMAXCLIQUESIZE 12
 
+#define ABSCUTOFF 0.001
+
 #include <cstring>
 #include <functional>
 #include <stdexcept>
@@ -49,6 +51,7 @@ union amptrs {
     meas* ms;
     tally* ts;
     set* ss;
+    set* os; // ordered set aka tuple
 };
 
 struct ams
@@ -503,6 +506,7 @@ public:
     thrrecords<int> intrecs;
     thrrecords<double> doublerecs;
     thrrecords<setitr*> setrecs;
+    thrrecords<setitr*> tuplerecs;
     std::map<int,std::pair<measuretype,int>> m;
     std::vector<evalmformula*> efv {};
     std::vector<valms*> literals {};
@@ -535,6 +539,13 @@ public:
         if (iidx >= msz)
             setmsize(iidx + 1);
         literals[iidx][idx].t = mtset;
+        literals[iidx][idx].seti = v;
+    }
+    void addliteralvaluest( const int iidx, const int idx, setitr* v )
+    {
+        if (iidx >= msz)
+            setmsize(iidx + 1);
+        literals[iidx][idx].t = mttuple;
         literals[iidx][idx].seti = v;
     }
 
@@ -570,6 +581,9 @@ public:
         case measuretype::mtset:
             res.a.ss = (set*)(*setrecs.pmsv)[m[i].second];
             return res;
+        case measuretype::mttuple:
+            res.a.os = (set*)(*tuplerecs.pmsv)[m[i].second];
+            return res;
         }
     }
 
@@ -585,6 +599,7 @@ public:
         intrecs.setsize(sz);
         doublerecs.setsize(sz);
         setrecs.setsize(sz);
+        tuplerecs.setsize(sz);
         efv.resize(sz);
         for (int i = 0; i < sz; ++i)
         {
@@ -642,6 +657,10 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
         break;
     case mtset:
         tmpps = a.a.ss->ps;
+        break;
+    case mttuple:
+        tmpps = a.a.os->ps;
+        break;
     }
 
     for (int i = 0; i < tmpps.size(); ++i)
@@ -684,11 +703,19 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
                     }
                     break;
                 case measuretype::mtset:
-                    if (psin[i].t != mtset)
+                    if (psin[i].t != mtset && psin[i].t != mttuple)
                     {
-                        std::cout << "Set type required as parameter number " << i << "\n";
+                        std::cout << "Set or tuple type required as parameter number " << i << "\n";
                         exit(1);
                     }
+                    break;
+                case measuretype::mttuple:
+                    if (psin[i].t != mttuple && psin[i].t != mtset)
+                    {
+                        std::cout << "Tuple or set type required as parameter number " << i << "\n";
+                        exit(1);
+                    }
+                    break;
 
                 /*
                 case measuretype::mtpair:
@@ -720,9 +747,35 @@ inline valms evalmformula::evalpslit( const int l, params& psin )
         return r;
     case measuretype::mtset: r.seti = a.a.ss->takemeas(idx,psin);
         return r;
+    case measuretype::mttuple: r.seti = a.a.os->takemeas(idx,psin);
+        return r;
     }
 
 }
+
+inline bool istuplezero( itrpos* tuplein )
+{
+    bool iszero = true;
+    while (iszero && !tuplein->ended())
+    {
+        auto v = tuplein->getnext();
+        switch (v.t)
+        {
+        case measuretype::mtbool: iszero = iszero && !v.v.bv; break;
+        case measuretype::mtdiscrete: iszero = iszero && v.v.iv == 0; break;
+        case measuretype::mtcontinuous: iszero = iszero && abs(v.v.dv) <= ABSCUTOFF; break;
+        case measuretype::mtset: iszero = iszero && v.seti->getsize() == 0; break;
+        case measuretype::mttuple:
+            auto itr = v.seti->getitrpos();
+            iszero = iszero && istuplezero(itr);
+            delete itr;
+            break;
+        }
+    }
+    return iszero;
+
+}
+
 
 inline valms evalmformula::evalvariable(std::string& vname)
 {
@@ -811,6 +864,11 @@ public:
         case measuretype::mtdiscrete: return negated != (bool)r.v.iv;
         case measuretype::mtcontinuous: return negated != (bool)r.v.dv;
         case measuretype::mtset: return negated != (r.seti->getsize()>0);
+        case measuretype::mttuple:
+            auto itr = r.seti->getitrpos();
+            bool res = negated != !istuplezero(itr);
+            delete itr;
+            return res;
         }
     }
 
@@ -870,6 +928,7 @@ public:
         case measuretype::mtdiscrete: return (double)r.v.iv;
         case measuretype::mtcontinuous: return r.v.dv;
         case measuretype::mtset: return (double)r.seti->getsize();
+        case measuretype::mttuple: return (double)r.seti->getsize(); // ??
         }
     }
 
@@ -922,7 +981,7 @@ public:
                 pathvalms[i].t = mtdiscrete;
                 pathvalms[i].v.iv = path[i];
             }
-            totality[j].t = mtset; // mttuple
+            totality[j].t = mttuple;
             totality[j++].seti = new setitrmodeone(pathvalms);
         }
         computed = true;
@@ -976,8 +1035,8 @@ public:
                 pathvalms[i].t = mtdiscrete;
                 pathvalms[i].v.iv = cycle[i];
             }
-            totality[j].t = mtset; // mttuple
-            totality[j++].seti = new setitrmodeone(pathvalms);
+            totality[j].t = mttuple;
+            totality[j++].seti = new setitrtuple(pathvalms);
         }
         computed = true;
         pos = -1;
@@ -1346,6 +1405,9 @@ public:
     }
 };
 
+
+/*
+
 class Pairset : public set
 {
 public:
@@ -1376,6 +1438,9 @@ public:
         delete f;
     }
 };
+
+
+*/
 
 class Sizedsubset : public set
 {
@@ -1462,6 +1527,47 @@ class Nullset : public set
     }
 
     Nullset( mrecords* recin ) : set(recin,"Nulls", "Null (empty) set"), itr{new setitrint(-1)} {}
+};
+
+class TupletoSet : public set
+{
+    setitrmodeone* itr {};
+    public:
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() != 1)
+        {
+            std::cout << "Error in TupletoSet::takemeas: wrong number of parameters\n";
+            exit(1);
+            return nullptr;
+        }
+        if (ps[0].t != mttuple)
+        {
+            std::cout << "Error in TupletoSet::takemeas: wrong type\n";
+            exit(1);
+        }
+
+        if (setitrtuple* s = dynamic_cast<setitrtuple*>(ps[0].seti))
+        {
+            if (!s->computed)
+                s->compute();
+            auto res = new setitrmodeone(s->totality);
+            return res;
+        } else
+        {
+            std::cout << "Error in TupletoSet::takemeas: dynamic cast error, wrong type passed\n";
+            exit(1);
+        }
+    }
+
+    TupletoSet( mrecords* recin ) : set(recin, "TupletoSet", "Converts a tuple to a set")
+    {
+        valms v;
+        ps.clear();
+        v.t = mttuple;
+        ps.push_back(v);
+        pssz = 1;
+    }
 };
 
 class Pathsset : public set

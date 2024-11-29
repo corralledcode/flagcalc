@@ -1357,6 +1357,11 @@ template<typename T> set* setfactory(mrecords* recin)
     return new T(recin);
 }
 
+template<typename T> set* tuplefactory(mrecords* recin)
+{
+    return new T(recin);
+}
+
 
 
 
@@ -1496,11 +1501,16 @@ public:
         // neighborstype* ns = (*rec->nsptrs)[idx];
         vertextype v1 = 0;
         vertextype v2 = 0;
-        if (ps.size() == 2) {
+        if (ps.size() == 2)
+        {
             v1 = ps[0].v.iv;
             v2 = ps[1].v.iv;
+            return g->adjacencymatrix[v1*g->dim + v2];
+        } else
+        {
+            std::cout << "Wrong number of parameters to ac\n";
+            exit(-1);
         }
-        return g->adjacencymatrix[v1*g->dim + v2];
     }
 
 };
@@ -1513,7 +1523,7 @@ public:
     {
         ps.clear();
         valms p1;
-        p1.t = mtpair;
+        p1.t = mtset;
         ps.push_back(p1);
         ps.push_back(p1);
         pssz = 2;
@@ -1522,10 +1532,29 @@ public:
     bool takemeas(const int idx, const params& ps) override
     {
         if (ps.size() == 2) {
-            bool imatch = ps[0].v.p->i == ps[1].v.p->i || ps[0].v.p->i == ps[1].v.p->j;
-            bool jmatch = ps[0].v.p->j == ps[1].v.p->i || ps[0].v.p->j == ps[1].v.p->j;
-            return (imatch || jmatch) && !(imatch && jmatch);
+            if (ps[0].t != mtset || ps[1].t != mtset)
+            {
+                std::cout << "Non set types passed to eadjc\n";
+                return false;
+            }
+            bool res = false;
+            auto itra = ps[0].seti->getitrpos();
+            auto itrb = ps[1].seti->getitrpos();
+            valms a = itra->getnext();
+            valms b = itrb->getnext();
+            res = res || a == b;
+            res = res || a == itrb->getnext();
+            res = res || b == itra->getnext();
+            delete itra;
+            delete itrb;
+
+            // bool imatch = ps[0].v.p->i == ps[1].v.p->i || ps[0].v.p->i == ps[1].v.p->j;
+            // bool jmatch = ps[0].v.p->j == ps[1].v.p->i || ps[0].v.p->j == ps[1].v.p->j;
+            // return (imatch || jmatch) && !(imatch && jmatch);
+
+            return res;
         }
+        std::cout << "Incorrect number of parameters passed to eadjc\n";
         return false;
     }
 
@@ -1555,6 +1584,31 @@ public:
     }
 
 };
+
+class lengthtally : public tally {
+
+public:
+
+    lengthtally( mrecords* recin ) : tally( recin, "lt", "tuple length tally")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mttuple;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() == 1) {
+            return ps[0].seti->getsize();
+        }
+        std::cout << "Incorrect number of parameters passed to lengthtally\n";
+        return 0;
+    }
+
+};
+
 
 /*
 class psizetally : public tally {

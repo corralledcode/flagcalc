@@ -1658,6 +1658,8 @@ protected:
     std::vector<tally*(*)(mrecords*)> tysfactory {};
     std::vector<set*> sts {};
     std::vector<set*(*)(mrecords*)> stsfactory {};
+    std::vector<set*> oss {};
+    std::vector<set*(*)(mrecords*)> ossfactory {};
 
 public:
     virtual void listoptions() override {
@@ -1754,6 +1756,7 @@ public:
         auto (kappat) = tallyfactory<kappatally>;
         auto (vdt) = tallyfactory<vdtally>;
         auto (st) = tallyfactory<sizetally>;
+        auto (lt) = tallyfactory<lengthtally>;
         auto (pct) = tallyfactory<pctally>;
         // auto (firstt) = tallyfactory<pairfirsttally>; // these three outdated by retirement of mtpair type
         // auto (secondt) = tallyfactory<pairsecondtally>;
@@ -1767,6 +1770,7 @@ public:
         tysfactory.push_back(kappat);
         tysfactory.push_back(vdt);
         tysfactory.push_back(st);
+        tysfactory.push_back(lt);
         tysfactory.push_back(pct);
         // tysfactory.push_back(firstt);
         // tysfactory.push_back(secondt);
@@ -1791,8 +1795,7 @@ public:
         auto (Nulls) = setfactory<Nullset>;
         auto (Es) = setfactory<Eset>;
         auto (idxs) = setfactory<idxset>;
-        auto (Paths) = setfactory<Pathsset>;
-        auto (Cycles) = setfactory<Cyclesset>;
+        auto (TtoS) = setfactory<TupletoSet>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1803,11 +1806,22 @@ public:
         stsfactory.push_back(Nulls);
         stsfactory.push_back(Es);
         stsfactory.push_back(idxs);
-        stsfactory.push_back(Paths);
-        stsfactory.push_back(Cycles);
+        stsfactory.push_back(TtoS);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
+        }
+
+        // ...
+
+        auto (Paths) = tuplefactory<Pathsset>;
+        auto (Cycles) = tuplefactory<Cyclesset>;
+
+        ossfactory.push_back(Paths);
+        ossfactory.push_back(Cycles);
+
+        for (int n = 0; n < ossfactory.size(); ++n) {
+            oss.push_back((*ossfactory[n])(&rec));
         }
 
         // ...
@@ -2089,6 +2103,8 @@ protected:
             case mtcontinuous: sn = a.a.ms->shortname;
                 break;
             case mtset: sn = a.a.ss->shortname;
+                break;
+            case mttuple: sn = a.a.os->shortname;
             }
             if (sn == sin)
                 return iter[i]->iidx;
@@ -2119,6 +2135,10 @@ protected:
         case measuretype::mtset:
             j = rec.setrecs.pmsv->size();
             rec.setrecs.pmsv->push_back(ain.a.ss);
+            break;
+        case measuretype::mttuple:
+            j = rec.tuplerecs.pmsv->size();
+            rec.tuplerecs.pmsv->push_back(ain.a.os);
             break;
         }
 
@@ -2201,17 +2221,17 @@ protected:
                 return j;
             }
         }
-        for (int i = 0; i < sts.size(); ++i)
+        for (int i = 0; i < oss.size(); ++i)
         {
-            if (sin == sts[i]->shortname)
+            if (sin == oss[i]->shortname)
             {
                 ams a;
-                a.t = measuretype::mtset;
-                a.a.ss = (*stsfactory[i])(&rec);
-                iter.push_back(newiteration(mtset,roundin,a,sts[i]->pssz > 0));
+                a.t = measuretype::mttuple;
+                a.a.os = (*ossfactory[i])(&rec);
+                iter.push_back(newiteration(mttuple,roundin,a,oss[i]->pssz > 0));
                 int j = iter.size()-1;
                 litnumps.resize(j+1);
-                litnumps[j] = sts[i]->pssz;
+                litnumps[j] = oss[i]->pssz;
                 littypes.resize(j+1);
                 littypes[j] = a.t;
                 return j;

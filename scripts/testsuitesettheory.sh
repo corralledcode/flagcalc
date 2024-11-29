@@ -28,11 +28,15 @@ $PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (FORALL ([st]([Pathss](a,b)
 $PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL ([st]([Cycless](a)) == 0, a IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 6 100 -a s="[forestc] IFF FORALL ([st]([Cycless](a)) == 0, a IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 15 50 -a s="[conn1c] IFF FORALL (FORALL ([Pathss](a,b) != [Nulls], b IN [V]), a IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL (c ELT [Cycless](w), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL ([TupletoSet](c) ELT [Cycless](w), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a s="EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))" all
 $PTH/flagcalc -r 9 10 100 -a s="(EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))) IFF FORALL (FORALL (mod([st](c),2) == 0, c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10 100 -a s="SUM ([cyclet](n), n IN [NN]([dimm]+1)) == SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 33 1000 -a s="SUM ([vdt](v), v IN [V])/2 == [edgecm]" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10 100 -a s="SUM (1, e IN [E]) == [edgecm]" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 10 100 -a s="FORALL ([st]([Cycless](v)) == [cyclest](v), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 1000 -a s="FORALL (FORALL (SUM (SUM ([ac](b,a), b IN c), a IN c)/2 >= [st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 1000 -a s="FORALL (FORALL (SUM (SUM ([ac](b,a), b IN c), a IN c)/2 >= [lt](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL (EXISTS ([TupletoSet](d) == [TupletoSet](c), d IN [Cycless](w)), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
+$PTH/flagcalc -d f="abc" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
+

@@ -385,7 +385,8 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqsum
             || fo == formulaoperator::foqmin
             || fo == formulaoperator::foqmax
-            || fo == formulaoperator::foqspread);
+            || fo == formulaoperator::foqspread
+            || fo == formulaoperator::foqaverage);
 }
 
 
@@ -434,7 +435,7 @@ template<typename T1, typename T2>
 bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
     bool res;
     if (fo == formulaoperator::foe) {
-        res = abs(in1 - in2) < 0.0000001;
+        res = abs(in1 - in2) < ABSCUTOFF;
     }
     if (fo == formulaoperator::folte) {
         res = in1 <= in2;
@@ -449,10 +450,12 @@ bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
         res = in1 > in2;
     }
     if (fo == formulaoperator::fone) {
-        res = (in1 - in2) >= 0.0000001;
+        res = abs(in1 - in2) >= ABSCUTOFF;
     }
     return res;
 }
+
+bool tupleeq( itrpos* in1, itrpos* in2);
 
 bool setsubseteq( itrpos* in1, itrpos* in2)
 {
@@ -477,15 +480,81 @@ bool setsubseteq( itrpos* in1, itrpos* in2)
                     delete pos1;
                     delete pos2;
                 } else
-                {
-                    std::cout << "Mismatched set type in setsubseteq\n";
-                    exit(1);
-                }
+                    if (itm.t == mttuple && itm2.t == mttuple)
+                    {
+                        auto pos1 = itm.seti->getitrpos();
+                        auto pos2 = itm2.seti->getitrpos();
+                        match = tupleeq( pos1, pos2);
+                        delete pos1;
+                        delete pos2;
+                    }
+                    else {
+                        std::cout << "Mismatched set type in setsubseteq\n";
+                        exit(1);
+                    }
         }
         res = match;
     }
     return res;
 }
+
+
+bool tupleeq( itrpos* in1, itrpos* in2)
+{
+    bool res = true;
+    in1->reset();
+    in2->reset();
+    if (in1->ended())
+        if (in2->ended())
+            return true;
+        else
+            return false;
+    if (in2->ended())
+        return false;
+
+    while (res)
+    {
+        auto itm = in1->getnext();
+        auto itm2 = in2->getnext();
+
+        bool e1 = in1->ended();
+        bool e2 = in2->ended();
+        if (e1 != e2)
+            return false;
+
+        if (itm.t == mtbool || itm.t == mtdiscrete || itm.t == mtcontinuous)
+            res = itm == itm2;
+        else
+            if (itm.t == mtset && itm2.t == mtset)
+            {
+                auto pos1 = itm.seti->getitrpos();
+                auto pos2 = itm2.seti->getitrpos();
+                res = setsubseteq( pos1, pos2) && setsubseteq( pos2, pos1);
+                delete pos1;
+                delete pos2;
+            } else
+                if (itm.t == mttuple && itm2.t == mttuple)
+                {
+                    auto pos1 = itm.seti->getitrpos();
+                    auto pos2 = itm2.seti->getitrpos();
+                    res = tupleeq( pos1, pos2);
+                    delete pos1;
+                    delete pos2;
+                }
+                else {
+                    std::cout << "Mismatched tuple type in tupleeq\n";
+                    exit(1);
+                }
+        if (e1) // which equals e2...
+            return res;
+    }
+    return res;
+}
+
+
+
+
+
 
 bool eval2aryseteq( setitr* in1, setitr* in2, const formulaoperator fo )
 {
@@ -527,6 +596,50 @@ bool eval2aryseteq( setitr* in1, setitr* in2, const formulaoperator fo )
     }
     return res;
 }
+
+
+bool eval2arytupleeq( setitr* in1, setitr* in2, const formulaoperator fo )
+{
+    bool res;
+    auto pos1 = in1->getitrpos();
+    auto pos2 = in2->getitrpos();
+    if (fo == formulaoperator::foe) {
+        res = tupleeq( pos1, pos2);
+    }
+
+
+    /* .. to do: add some notion of comparing tuples
+
+    if (fo == formulaoperator::folte)
+    {
+        res = setsubseteq( pos1, pos2);
+    }
+    if (fo == formulaoperator::folt)
+    {
+        res = pos1->getsize() != pos2->getsize();
+        if (res)
+            res = setsubseteq(pos1, pos2);
+    }
+    if (fo == formulaoperator::fogte)
+    {
+        res = setsubseteq( pos2, pos1);
+    }
+    if (fo == formulaoperator::fogt)
+    {
+        res = pos1->getsize() != pos2->getsize();
+        if (res)
+            res = setsubseteq(pos2, pos1);
+    } */
+
+    if (fo == formulaoperator::fone)
+    {
+        res = !tupleeq( pos1, pos2);
+    }
+    return res;
+}
+
+
+
 
 valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
 {
@@ -658,7 +771,7 @@ valms evalformula::eval( formulaclass& fc)
         res.t = measuretype::mtbool;
         valms set = eval(*fc.fcright );
         valms itm = eval( *fc.fcleft );
-        if (set.t == mtset)
+        if (set.t == mtset || set.t == mttuple)
         {
             auto pos = set.seti->getitrpos();
             pos->reset();
@@ -671,7 +784,7 @@ valms evalformula::eval( formulaclass& fc)
                 else
                     if (v.t == mtset)
                     {
-                        if (itm.t == mtset)
+                        if (itm.t == mtset || itm.t == mttuple)  // for now, auto convert a tuple to a set here
                         {
                             auto itmpos = itm.seti->getitrpos();
                             auto pospos = v.seti->getitrpos();
@@ -683,7 +796,30 @@ valms evalformula::eval( formulaclass& fc)
                             std::cout << "Mismatched types in call to ELT\n";
                             exit(1);
                         }
-                    }
+                    } else
+                        if (v.t == mttuple)
+                        {
+                            if (itm.t == mttuple )
+                            {
+                                auto itmpos = itm.seti->getitrpos();
+                                auto pospos = v.seti->getitrpos();
+                                match = match || (tupleeq(itmpos, pospos));
+                                delete itmpos;
+                                delete pospos;
+                            } else
+                                if (itm.t == mtset) // for now, generously auto convert the tuple to a set
+                                {
+                                    auto itmpos = itm.seti->getitrpos();
+                                    auto pospos = v.seti->getitrpos();
+                                    match = match || (setsubseteq(itmpos, pospos) && setsubseteq(pospos, itmpos));
+                                    delete itmpos;
+                                    delete pospos;
+                                } else
+                                {
+                                    std::cout << "Mismatched types in call to ELT\n";
+                                    exit(1);
+                                }
+                        }
             }
             res.v.bv = match;
 
@@ -1243,7 +1379,7 @@ valms evalformula::eval( formulaclass& fc)
             }
                 std::cout << "Error in evalformula::eval comparing int pair to non-int-pair\n";
             }
-            break;
+            break; */
         case mtbool:
             switch (resright.t)
             {
@@ -1255,7 +1391,7 @@ valms evalformula::eval( formulaclass& fc)
                 break;
             }
 
-            break;*/
+            break;
         case mtdiscrete:
             switch (resright.t)
             {
@@ -1280,13 +1416,27 @@ valms evalformula::eval( formulaclass& fc)
             }
             break;
         case mtset:
-            if (resright.t == mtset)
+            if (resright.t == mtset || resright.t == mttuple)
             {
                 res.v.bv = eval2aryseteq(resleft.seti,resright.seti,fc.fo);
             } else
             {
                 std::cout << "Error in evalformula::eval comparing set type to non-set type\n";
             }
+            break;
+        case mttuple:
+            if (resright.t == mttuple)
+            {
+                res.v.bv = eval2arytupleeq(resleft.seti,resright.seti,fc.fo);
+            } else
+                if (resright.t == mtset)
+                {
+                    res.v.bv = eval2aryseteq(resleft.seti,resright.seti,fc.fo);
+                }
+                else
+                {
+                    std::cout << "Error in evalformula::eval comparing tuple type to non-tuple type\n";
+                }
             break;
         }
 

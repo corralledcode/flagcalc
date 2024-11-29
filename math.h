@@ -115,7 +115,7 @@ union vals
     // std::pair<int,int> pv {};
 };
 
-enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtpair, mtset, mtpairset };
+enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtset, mttuple };
 
 class setitr;
 class itrpos;
@@ -264,8 +264,8 @@ inline bool operator==(const valms& a1, const valms& a2)
         return a1.v.iv == a2.v.iv;
     case measuretype::mtbool:
         return a1.v.bv == a2.v.bv;
-    case measuretype::mtpair:
-        return a1.v.p->i == a2.v.p->i && a1.v.p->j == a2.v.p->j;
+    // case measuretype::mtpair:
+        // return a1.v.p->i == a2.v.p->i && a1.v.p->j == a2.v.p->j;
     case measuretype::mtset:
         { // code below assumes both sets sorted
             std::cout << "early code being used...\n"; // as coded, probably not capable of nested sets...
@@ -743,65 +743,6 @@ public:
     }
 };
 
-class setitrcp : public setitr
-// cross-product
-{
-public:
-    itrpos* setA;
-    itrpos* setB;
-
-    int posA;
-    valms valA;
-    int posB;
-
-    virtual int getsize() {return setA->getsize() * setB->getsize();}
-
-    virtual void reset()
-    {
-        pos = -1;
-        setA->reset();
-        setB->reset();
-        
-        posA = -1;
-    }
-    virtual bool ended() {return setA->ended() && setB->ended();}
-    virtual valms getnext()
-    {
-        valms r;
-        r.t = mtpair;
-        r.v.p = new valspair;
-        if (posA == -1)
-        {
-            valA = setA->getnext();
-            setB->reset();
-        }
-        if (!setB->ended())
-        {
-            r.v.p->j = setB->getnext();
-        } else
-        {
-            if (!setA->ended())
-            {
-                valA = setA->getnext();;
-                setB->reset();
-                if (!setB->ended())
-                    r.v.p->j = setB->getnext();
-            }
-        }
-        r.v.p->i = valA;
-        if (++pos >= totality.size())
-            totality.push_back(r);
-        return totality[pos];
-    }
-    setitrcp(setitr* Ain, setitr* Bin) : setA{Ain->getitrpos()}, setB{Bin->getitrpos()} {}
-    ~setitrcp()
-    {
-        delete setA;
-        delete setB;
-        for (auto t : totality)
-            delete t.v.p;
-    }
-};
 
 class setitrintpair : public setitrmodeone
 {
@@ -819,6 +760,87 @@ protected:
     }
     setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
 };
+
+class setitrtuple : public setitrmodeone
+{
+protected:
+    int size;
+public:
+    void compute() override
+    {
+        computed = true;
+    }
+    setitrtuple(std::vector<valms> totalityin)
+    {
+        totality = totalityin;
+        computed = true;
+    }
+};
+
+class setitrcp : public setitr
+// cross-product
+{
+public:
+    itrpos* setA;
+    itrpos* setB;
+
+    virtual int getsize() {return setA->getsize() * setB->getsize();}
+
+    virtual void reset()
+    {
+        pos = -1;
+        setA->reset();
+        setB->reset();
+    }
+    virtual bool ended() {return setA->ended() && setB->ended();}
+    virtual valms getnext()
+    {
+        valms r;
+        r.t = mttuple;
+        std::vector<valms> temp;
+        temp.resize(2);
+        if (setA->pos + 1 <= 0)
+        {
+            if (!setA->ended())
+                temp[0] = setA->getnext();
+            else
+            {
+                std::cout << "setitrcp error position past end of setA\n";
+            }
+            setB->reset();
+        }
+        if (!setB->ended())
+        {
+            temp.push_back(setB->getnext());
+            r.seti = new setitrtuple(temp);
+        } else
+        {
+            if (!setA->ended())
+            {
+                temp[0] = setA->getnext();;
+                setB->reset();
+                if (!setB->ended())
+                    temp[1] = setB->getnext();
+                else
+                {
+                    std::cout << "setitrcp error position past end of setB\n";
+                }
+            }
+        }
+        if (++pos >= totality.size())
+            totality.push_back(r);
+        return totality[pos];
+    }
+    setitrcp(setitr* Ain, setitr* Bin) : setA{Ain->getitrpos()}, setB{Bin->getitrpos()} {}
+    ~setitrcp()
+    {
+        delete setA;
+        delete setB;
+        for (auto t : totality)
+            delete t.seti;
+    }
+};
+
 
 class setitredges : public setitr
 {
