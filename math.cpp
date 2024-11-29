@@ -377,6 +377,17 @@ inline bool equalityops( const formulaoperator fo)
             || fo == formulaoperator::fone);
 }
 
+inline bool quantifierops( const formulaoperator fo )
+{
+    return (fo == formulaoperator::foqforall
+            || fo == formulaoperator::foqexists
+            || fo == formulaoperator::foqproduct
+            || fo == formulaoperator::foqsum
+            || fo == formulaoperator::foqmin
+            || fo == formulaoperator::foqmax
+            || fo == formulaoperator::foqspread);
+}
+
 
 
 template<typename T, typename T1, typename T2>
@@ -748,11 +759,11 @@ valms evalformula::eval( formulaclass& fc)
         return res;
     }
 
-    if (fc.fo == formulaoperator::foqforall || fc.fo == formulaoperator::foqexists) {
+    if (quantifierops(fc.fo)) {
         res.v.bv = true;
 
         res.t = mtbool;
-        switch (fc.v.qc->secondorder) {
+/*        switch (fc.v.qc->secondorder) {
             case true: {
                     valms v = eval(*fc.v.qc->superset);
                     bool responsibletodelete = false;
@@ -886,19 +897,19 @@ valms evalformula::eval( formulaclass& fc)
 
 
             case false: {
-
-                valms v = eval(*fc.v.qc->superset);
-                int maxint = -1;
+*/
+        valms v = eval(*fc.v.qc->superset);
+        int maxint = -1;
 //                switch (v.t) {
 //                    case mtbool: maxint = (int)v.v.bv; break;
 //                    case mtdiscrete: maxint = v.v.iv - 1; break;
 //                    case mtcontinuous: maxint = (int)v.v.dv - 1; break;
 //                }
-                // while (!v.seti->ended())
-                    // v.seti->getnext();
-                auto supersetpos = v.seti->getitrpos();
-                auto supersetsize = supersetpos->getsize();
-                setitrint* ss = nullptr;
+        // while (!v.seti->ended())
+            // v.seti->getnext();
+        auto supersetpos = v.seti->getitrpos();
+        auto supersetsize = supersetpos->getsize();
+        setitrint* ss = nullptr;
 //                if (maxint >= 0) {
 //                    ss = new setitrint(maxint);
 //                    memset(ss->elts,true,(maxint+1)*sizeof(bool));
@@ -906,25 +917,102 @@ valms evalformula::eval( formulaclass& fc)
 //                    supersetsize = maxint;
 //                }
 
-                int i = lookup_variable(fc.v.qc->name, variables);
-                supersetpos->reset();
-                // variables[i]->qs.t = v.seti->t;
-                while ((!supersetpos->ended()) && res.v.bv) {
-                    variables[i]->qs = supersetpos->getnext();
-                    // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
-                    // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
+        int i = lookup_variable(fc.v.qc->name, variables);
+        supersetpos->reset();
+        // variables[i]->qs.t = v.seti->t;
+        if (fc.fo == formulaoperator::foqexists || fc.fo == formulaoperator::foqforall)
+        {
+            res.t = mtbool;
+            while ((!supersetpos->ended()) && res.v.bv) {
+                variables[i]->qs = supersetpos->getnext();
+                // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
+                // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
                 // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
-                    if (fc.fo == formulaoperator::foqexists)
-                        res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
-                    if (fc.fo == formulaoperator::foqforall)
-                        res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                if (fc.fo == formulaoperator::foqexists)
+                    res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                if (fc.fo == formulaoperator::foqforall)
+                    res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                // std::cout << fc.v.qc->qs.v.iv << " iv \n";
+            }
+            if (fc.fo == formulaoperator::foqexists)
+                res.v.bv = !res.v.bv;
+        }
+        if (fc.fo == formulaoperator::foqsum || fc.fo == formulaoperator::foqproduct || fc.fo == formulaoperator::foqmin
+            || fc.fo == formulaoperator::foqmax || fc.fo == formulaoperator::foqspread
+            || fc.fo == formulaoperator::foqaverage)
+        {
+            res.t = mtcontinuous;
+            double min = std::numeric_limits<double>::infinity();
+            double max = 0;
+            int count = 0;
+            if (fc.fo == formulaoperator::foqsum)
+                res.v.dv = 0;
+            if (fc.fo == formulaoperator::foqproduct)
+                res.v.dv = 1;;
+            while (!supersetpos->ended())
+            {
+                variables[i]->qs = supersetpos->getnext();
+                count++;
+                // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
+                // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
+                // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
+                auto v = eval(*fc.fcright);
+                if (fc.fo == formulaoperator::foqspread || fc.fo == formulaoperator::foqmin
+                    || fc.fo == formulaoperator::foqmax)
+                    res.v.dv = 0;
+                if (fc.fo == formulaoperator::foqsum || fc.fo == formulaoperator::foqspread
+                    || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
+                    || fc.fo == formulaoperator::foqaverage)
+                {
+                    switch (v.t)
+                    {
+                    case mtcontinuous:
+                        res.v.dv += v.v.dv;
+                        break;
+                    case mtdiscrete:
+                        res.v.dv += v.v.iv;
+                        break;
+                    case mtbool:
+                        res.v.dv += v.v.bv ? 1 : 0;
+                    case mtset:
+                        res.v.dv += v.seti->getsize();
+                    }
+                }
+                if (fc.fo == formulaoperator::foqspread || fc.fo == formulaoperator::foqmin
+                    || fc.fo == formulaoperator::foqmax)
+                {
+                    min = res.v.dv < min ? res.v.dv : min;
+                    max = res.v.dv > max ? res.v.dv : max;
+                }
+                if (fc.fo == formulaoperator::foqproduct)
+                {
+                    switch (v.t)
+                    {
+                    case mtcontinuous:
+                        res.v.dv *= v.v.dv;
+                        break;
+                    case mtdiscrete:
+                        res.v.dv *= v.v.iv;
+                        break;
+                    case mtbool:
+                        res.v.dv *= v.v.bv ? 1 : 0;
+                    case mtset:
+                        res.v.dv *= v.seti->getsize();
+                    }
                     // std::cout << fc.v.qc->qs.v.iv << " iv \n";
                 }
-                if (fc.fo == formulaoperator::foqexists)
-                    res.v.bv = !res.v.bv;
-                delete ss;
-                break;
             }
+            if (fc.fo == formulaoperator::foqspread)
+                res.v.dv = max - min;
+            if (fc.fo == formulaoperator::foqaverage)
+                res.v.dv = count > 0 ? res.v.dv / count : 0;
+        }
+
+
+
+
+        delete ss;
+        // break;
 
 
             // case mtpair: {
@@ -971,7 +1059,7 @@ valms evalformula::eval( formulaclass& fc)
 
 
 
-        }
+
         return res;
     }
 
@@ -1341,7 +1429,11 @@ inline int get_literal(std::string tok) {
 
 
 inline bool is_quantifier( std::string tok ) {
-    return tok == QUANTIFIER_FORALL || tok == QUANTIFIER_EXISTS;
+    for (auto q : operatorsmap)
+        if (tok == q.first)
+            return quantifierops(q.second);
+    return false;
+    // return tok == QUANTIFIER_FORALL || tok == QUANTIFIER_EXISTS;
 }
 
 

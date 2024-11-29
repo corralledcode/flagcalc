@@ -31,6 +31,8 @@ $PTH/flagcalc -r 10 15 50 -a s="[conn1c] IFF FORALL (FORALL ([Pathss](a,b) != [N
 $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL (c ELT [Cycless](w), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a s="EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))" all
 $PTH/flagcalc -r 9 10 100 -a s="(EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))) IFF FORALL (FORALL (mod([st](c),2) == 0, c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 1 -a s="SUM ([cyclet](n), n IN [NN]([dimm]+1)) == SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="abs(SUM ([cyclet](n), n IN [NN]([dimm]+1)) - SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])) < 0.001" all -v i=minimal3.cfg
 
 
 

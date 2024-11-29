@@ -2284,6 +2284,7 @@ int directedcyclestally( graphtype* g, neighborstype* ns, vertextype v1 )
 void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out )
 {
     auto g2 = new graphtype(g->dim);
+    std::vector<std::vector<vertextype>> internalout {};
     for (int i = 0; i < ns->degrees[v]; ++i)
     {
         copygraph( g, g2 );
@@ -2291,10 +2292,31 @@ void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::
         g2->adjacencymatrix[v*g->dim + v2] = false;
         g2->adjacencymatrix[v2*g->dim + v] = false;
         auto ns2 = new neighborstype(g2);
-        pathsbetweentuples(g2,ns2, v, v2, out);
+        pathsbetweentuples(g2,ns2, v, v2, internalout);
         delete ns2;
     }
-    for (auto p : out)
+    for (auto p : internalout)
         p.push_back(v);
+    for (int i = 0; i+1 < internalout.size(); ++i) {
+        bool dupe = false;
+        int j;
+        for (j = i+1; !dupe && j < internalout.size(); ++j)
+        {
+            if (internalout[i].size() == internalout[j].size()) {
+                int k = 0;
+                bool match = true;
+                while (dupe && k < internalout[i].size())
+                {
+                    match = match && (internalout[i][k] == internalout[j][internalout[j].size()-1-k]);
+                    k++;
+                }
+                dupe = dupe || match;
+            }
+        }
+        if (!internalout[i].empty())
+            out.push_back(internalout[i]);
+        if (dupe)
+            internalout[j-1].clear();
+    }
     delete g2;
 }

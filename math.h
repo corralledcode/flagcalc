@@ -39,7 +39,8 @@ logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2,
 enum class formulaoperator
 {foliteral,fofunction, foconstant, foqforall, foqexists, foplus, fominus, fotimes, fodivide, foexponent,
 folte, folt, foe,fone,fogte,fogt,founion, fointersection, foelt,
-foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable};
+foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
+foqsum, foqproduct, foqmin, foqmax, foqaverage, foqspread};
 
 inline std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -67,7 +68,13 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {"EXISTS",formulaoperator::foqexists},
         {"CUP",formulaoperator::founion},
         {"CAP",formulaoperator::fointersection},
-        {"ELT",formulaoperator::foelt}};
+        {"ELT",formulaoperator::foelt},
+        {"SUM",formulaoperator::foqsum},
+        {"MIN",formulaoperator::foqmin},
+        {"MAX",formulaoperator::foqmax},
+        {"PRODUCT",formulaoperator::foqproduct},
+        {"AVERAGE",formulaoperator::foqaverage},
+        {"SPREAD",formulaoperator::foqspread}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -1095,6 +1102,11 @@ formulaclass* fccombine( const formulavalue& item, formulaclass* fc1, formulacla
 inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foqexists,0},
                             {formulaoperator::foqforall,0},
+                            {formulaoperator::foqsum,0},
+                            {formulaoperator::foqproduct,0},
+                            {formulaoperator::foqmin,0},
+                            {formulaoperator::foqmax,0},
+                            {formulaoperator::foqspread,0},
                             {formulaoperator::foexponent,1},
                             {formulaoperator::fotimes,2},
                             {formulaoperator::fodivide,2},
