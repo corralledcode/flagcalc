@@ -34,4 +34,5 @@ $PTH/flagcalc -r 9 10 100 -a s="(EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r
 $PTH/flagcalc -r 7 10 100 -a s="SUM ([cyclet](n), n IN [NN]([dimm]+1)) == SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 33 1000 -a s="SUM ([vdt](v), v IN [V])/2 == [edgecm]" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10 100 -a s="SUM (1, e IN [E]) == [edgecm]" all -v i=minimal3.cfg
-
+$PTH/flagcalc -r 8 10 100 -a s="FORALL ([st]([Cycless](v)) == [cyclest](v), v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 1000 -a s="FORALL (FORALL (SUM (SUM ([ac](b,a), b IN c), a IN c)/2 >= [st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg

@@ -974,6 +974,7 @@ valms evalformula::eval( formulaclass& fc)
                         break;
                     case mtbool:
                         res.v.dv += v.v.bv ? 1 : 0;
+                        break;
                     case mtset:
                         res.v.dv += v.seti->getsize();
                     }

@@ -174,6 +174,8 @@ public:
         for (auto i = 0; i < msv->size(); ++i )
             if ((*msv)[i]->shortname == sin)
                 return i;
+        // std::cout << "Unknown literal " << sin << std::endl;
+        // exit(-1);
         return -1;
     }
     virtual int findms( const ameas<T>* msin)
@@ -260,6 +262,8 @@ public:
         for (auto i = 0; i < pmsv->size(); ++i )
             if ((*pmsv)[i]->shortname == sin)
                 return i;
+        // std::cout << "Unknown literal " << sin << std::endl;
+        // exit(-1);
         return -1;
     }
     virtual int findms( const pameas<T>* pamin)
