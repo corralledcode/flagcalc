@@ -36,6 +36,8 @@
 #define VERBOSE_APPLYCRITERION "crit"
 #define VERBOSE_SUBOBJECT "subobj"
 #define VERBOSE_PAIRWISEDISJOINT "pd"
+#define VERBOSE_APPLYSET "set"
+#define VERBOSE_SETVERBOSE "allsets"
 
 #define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj pd"
 #define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj pd"
@@ -463,9 +465,6 @@ public:
 
 
 
-
-
-
 template<typename T>
 class chkmeasaitem : public workitems
 {
@@ -588,6 +587,168 @@ public:
         return true;
     }
 };
+
+
+inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t )
+{
+    os << pre << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
+
+    os << pre << (t == mtset ? "{" : "<");
+    bool e = itr->ended();
+    if (e)
+    {
+        std::cout << (t == mtset ? "}" : ">");
+        return;
+    }
+    while (!e)
+    {
+        valms v = itr->getnext();
+        e = itr->ended();
+        switch (v.t)
+        {
+        case mtbool:
+            os << v.v.bv << ", ";
+            break;
+        case mtdiscrete:
+            os << v.v.iv << ", ";
+            break;
+        case mtcontinuous:
+            os << v.v.dv << ", ";
+            break;
+        case mtset:
+        case mttuple:
+             std::string pre2 = pre + "\t";
+             auto itr2 = v.seti->getitrpos();
+             osset( os, itr2, pre2, v.t );
+             os << (e ? "\n" : ",\n ");
+            break;
+        }
+    }
+    os << pre << "\b\b" << (t == mtset ? "}" : ">");;
+}
+
+template<typename Tm>
+class checksetitem : public chkmeasaitem<Tm> {
+public:
+    checksetitem( pameas<Tm>& pamin ) : chkmeasaitem<Tm>(pamin) {
+        this->classname = "APPLYSETCRITERION";
+        this->verbositylevel = VERBOSE_APPLYSET;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+
+
+        int cnt = 0;
+        int max = 0;
+        int min = -1;
+        int sizesum = 0;
+
+        for (int i = 0; i < this->res.size(); ++i ) {
+            if (this->parentbool[i]) {
+                auto itr = this->meas[i];
+                int size = itr->getsize();
+                sizesum += size;
+                min = (min == -1 ? size : (size < min ? size : min));
+                max = size > max ? size : max;
+                cnt++;
+                if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
+                {
+                    auto pos = itr->getitrpos();
+                    std::string pre = "";
+                    osset( os, pos, pre, mtset );
+                    os << "\n";
+                    // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                }
+            }
+        }
+        if (cnt > 0)
+            os << "Count, average, min, max of set size " << this->pam.name << ": " << cnt << ", " << (double)sizesum/(double)cnt << ", " << min << ", " << max << "\n";
+        else
+            os << "Count, average, min, max of set size " << this->pam.name << ": 0, undef, undef, undef\n";
+
+        return true;
+    }
+};
+
+template<typename Tm>
+class checktupleitem : public chkmeasaitem<Tm> {
+public:
+    checktupleitem( pameas<Tm>& pamin ) : chkmeasaitem<Tm>(pamin) {
+        this->classname = "APPLYTUPLECRITERION";
+        this->verbositylevel = VERBOSE_APPLYSET;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        // Tm sum = 0;
+        // int cnt = 0;
+        // double max = 0;
+        // double min = std::numeric_limits<double>::infinity();
+
+        int cnt = 0;
+        int max = 0;
+        int min = -1;
+        int sizesum = 0;
+
+        for (int i = 0; i < this->parentbool.size(); ++i ) {
+            if (this->parentbool[i]) {
+                auto itr = this->meas[i];
+                int size = itr->getsize();
+                sizesum += size;
+                min = (min == -1 ? size : (size < min ? size : min));
+                max = size > max ? size : max;
+                cnt++;
+                if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
+                {
+                    auto pos = itr->getitrpos();
+                    std::string pre = "";
+                    osset( os, pos, pre, mttuple );
+                    os << "\n";
+                    // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                }
+            }
+        }
+        if (cnt > 0)
+            os << "Count, average, min, max of tuple size " << this->pam.name << ": " << cnt << ", " << (double)sizesum/(double)cnt << ", " << min << ", " << max << "\n";
+        else
+            os << "Count, average, min, max of tuple size " << this->pam.name << ": 0, undef, undef, undef\n";
+
+        // recode this to do coordinate-wise avg, min, max
+
+
+        return true;
+    }
+};
+
 
 
 

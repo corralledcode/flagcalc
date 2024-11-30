@@ -414,6 +414,10 @@ T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
     if (fo == formulaoperator::foexponent) {
         res = pow(in1, in2);
     }
+    if (fo == formulaoperator::fomodulus)
+    {
+        res = (int)in1 % (int)in2;
+    }
     if (fo == formulaoperator::foand) {
         res = in1 && in2;
     }

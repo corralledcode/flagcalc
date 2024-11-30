@@ -40,5 +40,8 @@ $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL (EXISTS ([TupletoSet](d)
 $PTH/flagcalc -d f="abcd" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
 $PTH/flagcalc -d f="abc" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
 $PTH/flagcalc -r 20 95 100 -a s="TALLY ([vdt](v), v IN [V])/2 == [edgecm]" all -v i=minimal3.cfg
-$PTH/flagcalc -r 15 52.5 100 -a s="mod(COUNT (mod([vdt](v),2) == 1, v IN [V]),2) == 0" all -v i=minimal3.cfg
-$PTH/flagcalc -r 15 52.5 100 -a i="COUNT (mod([vdt](v),2) == 1, v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 15 52.5 10000 -a s="COUNT ([vdt](v) % 2 == 1, v IN [V]) % 2 == 0" all -v i=minimal3.cfg
+$PTH/flagcalc -r 15 52.5 10000 -a i="COUNT ([vdt](v) % 2 == 1, v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 7.5 1 -a e="[Cycless](0)" all -v set allsets
+$PTH/flagcalc -d f="abcd" -a p="[idxs]([Pathss](0,1),0)" all -v set allsets
+

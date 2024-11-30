@@ -541,7 +541,7 @@ public:
         literals[iidx][idx].t = mtset;
         literals[iidx][idx].seti = v;
     }
-    void addliteralvaluest( const int iidx, const int idx, setitr* v )
+    void addliteralvaluet( const int iidx, const int idx, setitr* v )
     {
         if (iidx >= msz)
             setmsize(iidx + 1);
@@ -1004,6 +1004,174 @@ public:
     };
 
     ~formtally() {
+        delete fc;
+        // for (int i = 0; i < rec->sz; ++i)
+        // {
+            // for (int j = 0; j < variables.size(); ++j)
+                // delete rec->variablesv[i][j];
+            // delete variables[i];
+        // }
+    }
+
+};
+
+
+class formset : public set
+{
+public:
+    formulaclass* fc;
+    std::vector<qclass*> variables;
+
+    setitr* takemeas(const int idx) override
+    {
+        std::vector<valms> literals;
+        literals.resize(rec->literals.size());
+        for (int i = 0; i < rec->literals.size(); ++i)
+        {
+            literals[i] = rec->literals[i][idx];
+        }
+        rec->efv[idx]->literals = &literals;
+        evalmformula* ef = rec->efv[idx];
+        ef->variables.resize(this->variables.size());
+        for (int i = 0; i < this->variables.size(); ++i)
+        {
+            ef->variables[i] = new qclass;
+            ef->variables[i]->name = this->variables[i]->name;
+            ef->variables[i]->qs = this->variables[i]->qs;
+            ef->variables[i]->superset = this->variables[i]->superset;
+            ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        }
+        ef->idx = idx;
+        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
+        // ef->populatevariablesbound = &pv;
+        valms r = ef->eval(*fc);
+        switch (r.t)
+        {
+        case mtset:
+        case mttuple:
+            return r.seti;
+            break;
+        case measuretype::mtbool:
+        case measuretype::mtdiscrete:
+        case measuretype::mtcontinuous:
+            std::vector<valms> t {};
+            valms v;
+            v.t = r.t;
+            switch (r.t)
+            {
+            case mtbool:
+                v.v.bv = r.v.bv;
+                break;
+                case mtdiscrete:
+                    v.v.iv = r.v.iv;
+                break;
+                case mtcontinuous:
+                    v.v.dv = r.v.dv;
+                break;
+            }
+            t.push_back(v);
+            auto s = new setitrmodeone(t);
+            return s;
+        }
+    }
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        return takemeas(idx);
+    }
+
+
+    formset( mrecords* recin , const std::vector<int>& litnumpsin,
+                const std::vector<measuretype>& littypesin, const std::string& fstr )
+        : set( recin,  "st", "Set-valued formula " + fstr) {
+        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+    };
+
+    ~formset() {
+        delete fc;
+        // for (int i = 0; i < rec->sz; ++i)
+        // {
+            // for (int j = 0; j < variables.size(); ++j)
+                // delete rec->variablesv[i][j];
+            // delete variables[i];
+        // }
+    }
+
+};
+
+
+class formtuple : public set
+{
+public:
+    formulaclass* fc;
+    std::vector<qclass*> variables;
+
+    setitr* takemeas(const int idx) override
+    {
+        std::vector<valms> literals;
+        literals.resize(rec->literals.size());
+        for (int i = 0; i < rec->literals.size(); ++i)
+        {
+            literals[i] = rec->literals[i][idx];
+        }
+        rec->efv[idx]->literals = &literals;
+        evalmformula* ef = rec->efv[idx];
+        ef->variables.resize(this->variables.size());
+        for (int i = 0; i < this->variables.size(); ++i)
+        {
+            ef->variables[i] = new qclass;
+            ef->variables[i]->name = this->variables[i]->name;
+            ef->variables[i]->qs = this->variables[i]->qs;
+            ef->variables[i]->superset = this->variables[i]->superset;
+            ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        }
+        ef->idx = idx;
+        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
+        // ef->populatevariablesbound = &pv;
+        valms r = ef->eval(*fc);
+        switch (r.t)
+        {
+        case mtset:
+        case mttuple:
+            return r.seti;
+            break;
+        case measuretype::mtbool:
+        case measuretype::mtdiscrete:
+        case measuretype::mtcontinuous:
+            std::vector<valms> t {};
+            valms v;
+            v.t = r.t;
+            switch (r.t)
+            {
+            case mtbool:
+                v.v.bv = r.v.bv;
+                break;
+                case mtdiscrete:
+                    v.v.iv = r.v.iv;
+                break;
+                case mtcontinuous:
+                    v.v.dv = r.v.dv;
+                break;
+            }
+            t.push_back(v);
+            auto s = new setitrmodeone(t);
+            return s;
+        }
+    }
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        return takemeas(idx);
+    }
+
+
+    formtuple( mrecords* recin , const std::vector<int>& litnumpsin,
+                const std::vector<measuretype>& littypesin, const std::string& fstr )
+        : set( recin,  "fp", "Tuple-valued formula " + fstr) {
+        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+    };
+
+    ~formtuple() {
         delete fc;
         // for (int i = 0; i < rec->sz; ++i)
         // {

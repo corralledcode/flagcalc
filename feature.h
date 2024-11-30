@@ -2105,6 +2105,7 @@ protected:
             case mtset: sn = a.a.ss->shortname;
                 break;
             case mttuple: sn = a.a.os->shortname;
+                break;
             }
             if (sn == sin)
                 return iter[i]->iidx;
@@ -2434,6 +2435,34 @@ public:
                 a.t = measuretype::mtdiscrete;
                 a.a.ts = new formtally(&rec,litnumps,littypes,s);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
+                iter.push_back(it);
+                continue;
+            }
+
+            if (ccl.t == "e")
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mtset,ccl.i);
+                ams a;
+                a.t = measuretype::mtset;
+                a.a.ss = new formset(&rec,litnumps,littypes,s);
+                auto it = newiteration(mtset,ccl.i,a);
+                iter.push_back(it);
+                continue;
+            }
+
+            if (ccl.t == "p")
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mttuple,ccl.i);
+                ams a;
+                a.t = measuretype::mttuple;
+                a.a.os = new formtuple(&rec,litnumps,littypes,s);
+                auto it = newiteration(mttuple,ccl.i,a);
                 iter.push_back(it);
                 continue;
             }
@@ -2909,10 +2938,12 @@ public:
         std::vector<int> threadint {};
         std::vector<double> threaddouble {};
         std::vector<setitr*> threadset {};
+        std::vector<setitr*> threadtuple {};
         threadbool.resize(eqclass.size());
         threadint.resize(eqclass.size());
         threaddouble.resize(eqclass.size());
         threadset.resize(eqclass.size());
+        threadtuple.resize(eqclass.size());
         for (int k = 0; k < iter.size(); ++k)
         {
             int ilookup = rec.intlookup(iter[k]->iidx);
@@ -2931,6 +2962,9 @@ public:
                 if (iter[k-1]->t == mtset)
                     for (int m = 0; m < eqclass.size(); ++m)
                         rec.addliteralvalues( iter[k-1]->iidx, m, threadset[m]);
+                if (iter[k-1]->t == mttuple)
+                    for (int m = 0; m < eqclass.size(); ++m)
+                        rec.addliteralvaluet( iter[k-1]->iidx, m, threadtuple[m]);
             }
 
             if (k > 0 && iter[k]->round > iter[k-1]->round)
@@ -2948,6 +2982,9 @@ public:
                 if (iter[k-1]->t == mtset)
                     for (int m = 0; m < threadset.size(); ++m)
                         todo[m] = todo[m] && threadset[m]->getsize()>0;
+                if (iter[k-1]->t == mttuple)
+                    for (int m = 0; m < threadtuple.size(); ++m)
+                        todo[m] = todo[m] && threadtuple[m]->getsize()>0;
 
                 alltodo = false;
 
@@ -2969,6 +3006,8 @@ public:
                     runthreads<double>(ilookup,iter[k]->ps,rec.doublerecs);
                 if (iter[k]->t == mtset)
                     runthreads<setitr*>(ilookup,iter[k]->ps,rec.setrecs);
+                if (iter[k]->t == mttuple)
+                    runthreads<setitr*>(ilookup,iter[k]->ps,rec.tuplerecs);
 
             } else
             {
@@ -2980,6 +3019,8 @@ public:
                     runthreadspartial<double>(ilookup,iter[k]->ps,rec.doublerecs,&todo);
                 if (iter[k]->t == mtset)
                     runthreadspartial<setitr*>(ilookup,iter[k]->ps,rec.setrecs,&todo);
+                if (iter[k]->t == mttuple)
+                    runthreadspartial<setitr*>(ilookup,iter[k]->ps,rec.tuplerecs,&todo);
 
             }
 
@@ -3006,6 +3047,11 @@ public:
                 {
                     threadset[m] = rec.setrecs.fetch(m,ilookup, iter[k]->ps);
                 }
+            if (iter[k]->t == mttuple)
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    threadtuple[m] = rec.tuplerecs.fetch(m,ilookup, iter[k]->ps);
+                }
 
 
             if (iter[k]->t == mtbool)
@@ -3019,7 +3065,7 @@ public:
                     {
                         if (takeallsubitems)
                         {
-                            auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                            // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                             if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                             {
                                 gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
@@ -3034,7 +3080,7 @@ public:
 
                         } else
                         {
-                            auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                            // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                             if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                             {
                                 gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
@@ -3057,7 +3103,7 @@ public:
                 {
                     if (todo[m])
                     {
-                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                         if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                         {
                             gi->intitems.push_back(new ameasoutcome<int>(alookup.a.ts,gi,threadint[m]));
@@ -3079,7 +3125,7 @@ public:
                 {
                     if (todo[m])
                     {
-                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                         if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                         {
                             gi->doubleitems.push_back(new ameasoutcome<double>(alookup.a.ms,gi,threaddouble[m]));
@@ -3092,6 +3138,54 @@ public:
                     }
                 }
             }
+
+            if (iter[k]->t == mtset)
+            {
+                auto wi = new checksetitem<setitr*>(*alookup.a.ss);
+                populatewi<setitr*>(_ws, wi, threadset,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (todo[m])
+                    {
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->setitems.push_back(new setoutcome<setitr*>(alookup.a.ss,gi,threadset[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
+                    }
+                }
+            }
+
+            if (iter[k]->t == mttuple)
+            {
+                auto wi = new checktupleitem<setitr*>(*alookup.a.os);
+                populatewi<setitr*>(_ws, wi, threadtuple,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (todo[m])
+                    {
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->tupleitems.push_back(new tupleoutcome<setitr*>(alookup.a.os,gi,threadset[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
+                    }
+                }
+            }
+
+
 
         }
 

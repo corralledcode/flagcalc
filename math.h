@@ -37,11 +37,12 @@ logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2,
 
 
 enum class formulaoperator
-{foliteral,fofunction, foconstant, foqforall, foqexists, foplus, fominus, fotimes, fodivide, foexponent,
-folte, folt, foe,fone,fogte,fogt,founion, fointersection, foelt,
-foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
-foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
-foqtally, foqcount, foqbigcup, foqbigcap};
+{foliteral,fofunction, foconstant, foqforall, foqexists,
+    foplus, fominus, fotimes, fodivide, foexponent, fomodulus,
+    folte, folt, foe,fone,fogte,fogt,founion, fointersection, foelt,
+    foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
+    foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
+    foqtally, foqcount, foqbigcup, foqbigcap};
 
 inline std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -49,6 +50,7 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {"/",formulaoperator::fodivide},
         {"+",formulaoperator::foplus},
         {"-",formulaoperator::fominus},
+        {"%",formulaoperator::fomodulus},
         {"AND",formulaoperator::foand},
         {"OR",formulaoperator::foor},
         {"NOT",formulaoperator::fonot},
@@ -1142,6 +1144,7 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foexponent,1},
                             {formulaoperator::fotimes,2},
                             {formulaoperator::fodivide,2},
+                            {formulaoperator::fomodulus,2},
                             {formulaoperator::foplus,3},
                             {formulaoperator::fominus,3},
                             {formulaoperator::foe,4},
