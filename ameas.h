@@ -7,7 +7,7 @@
 
 #define KNMAXCLIQUESIZE 12
 
-#define ABSCUTOFF 0.001
+#define ABSCUTOFF 0.00001
 
 #include <cstring>
 #include <functional>
@@ -945,6 +945,79 @@ public:
         delete fc;
     }
 };
+
+
+
+class formtally : public tally
+{
+public:
+    formulaclass* fc;
+    std::vector<qclass*> variables;
+
+    int takemeas(const int idx) override
+    {
+        std::vector<valms> literals;
+        literals.resize(rec->literals.size());
+        for (int i = 0; i < rec->literals.size(); ++i)
+        {
+            literals[i] = rec->literals[i][idx];
+        }
+        rec->efv[idx]->literals = &literals;
+        evalmformula* ef = rec->efv[idx];
+        ef->variables.resize(this->variables.size());
+        for (int i = 0; i < this->variables.size(); ++i)
+        {
+            ef->variables[i] = new qclass;
+            ef->variables[i]->name = this->variables[i]->name;
+            ef->variables[i]->qs = this->variables[i]->qs;
+            ef->variables[i]->superset = this->variables[i]->superset;
+            ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        }
+        ef->idx = idx;
+        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
+        // ef->populatevariablesbound = &pv;
+        valms r = ef->eval(*fc);
+        switch (r.t)
+        {
+        case measuretype::mtbool: return r.v.bv ? 1 : 0;
+        case measuretype::mtdiscrete: return r.v.iv;
+        case measuretype::mtcontinuous: return (int)r.v.dv;
+        case measuretype::mtset: return r.seti->getsize();
+        case measuretype::mttuple:
+            auto itr = r.seti->getitrpos();
+            bool res = !istuplezero(itr);
+            delete itr;
+            return res;
+        }
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        return takemeas(idx);
+    }
+
+
+    formtally( mrecords* recin , const std::vector<int>& litnumpsin,
+                const std::vector<measuretype>& littypesin, const std::string& fstr )
+        : tally( recin,  "ft", "Int-valued formula " + fstr) {
+        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+    };
+
+    ~formtally() {
+        delete fc;
+        // for (int i = 0; i < rec->sz; ++i)
+        // {
+            // for (int j = 0; j < variables.size(); ++j)
+                // delete rec->variablesv[i][j];
+            // delete variables[i];
+        // }
+    }
+
+};
+
+
+
+
 
 
 class setitrpaths : public setitrmodeone

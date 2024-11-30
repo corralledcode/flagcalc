@@ -40,7 +40,8 @@ enum class formulaoperator
 {foliteral,fofunction, foconstant, foqforall, foqexists, foplus, fominus, fotimes, fodivide, foexponent,
 folte, folt, foe,fone,fogte,fogt,founion, fointersection, foelt,
 foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
-foqsum, foqproduct, foqmin, foqmax, foqaverage, foqspread};
+foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
+foqtally, foqcount, foqbigcup, foqbigcap};
 
 inline std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -74,7 +75,11 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {"MAX",formulaoperator::foqmax},
         {"PRODUCT",formulaoperator::foqproduct},
         {"AVERAGE",formulaoperator::foqaverage},
-        {"SPREAD",formulaoperator::foqspread}};
+        {"RANGE",formulaoperator::foqrange},
+        {"TALLY",formulaoperator::foqtally},
+        {"COUNT",formulaoperator::foqcount},
+        {"BIGCUP",formulaoperator::foqbigcup},
+        {"BIGCAP", formulaoperator::foqbigcap}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -1128,7 +1133,12 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foqproduct,0},
                             {formulaoperator::foqmin,0},
                             {formulaoperator::foqmax,0},
-                            {formulaoperator::foqspread,0},
+                            {formulaoperator::foqrange,0},
+                            {formulaoperator::foqaverage,0},
+                            {formulaoperator::foqtally,0},
+                            {formulaoperator::foqcount,0},
+                            {formulaoperator::foqbigcup,0},
+                            {formulaoperator::foqbigcap,0},
                             {formulaoperator::foexponent,1},
                             {formulaoperator::fotimes,2},
                             {formulaoperator::fodivide,2},

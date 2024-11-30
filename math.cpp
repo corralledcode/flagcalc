@@ -385,8 +385,12 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqsum
             || fo == formulaoperator::foqmin
             || fo == formulaoperator::foqmax
-            || fo == formulaoperator::foqspread
-            || fo == formulaoperator::foqaverage);
+            || fo == formulaoperator::foqrange
+            || fo == formulaoperator::foqaverage
+            || fo == formulaoperator::foqtally
+            || fo == formulaoperator::foqcount
+            || fo == formulaoperator::foqbigcap
+            || fo == formulaoperator::foqbigcup);
 }
 
 
@@ -1074,7 +1078,7 @@ valms evalformula::eval( formulaclass& fc)
                 res.v.bv = !res.v.bv;
         }
         if (fc.fo == formulaoperator::foqsum || fc.fo == formulaoperator::foqproduct || fc.fo == formulaoperator::foqmin
-            || fc.fo == formulaoperator::foqmax || fc.fo == formulaoperator::foqspread
+            || fc.fo == formulaoperator::foqmax || fc.fo == formulaoperator::foqrange
             || fc.fo == formulaoperator::foqaverage)
         {
             res.t = mtcontinuous;
@@ -1085,7 +1089,7 @@ valms evalformula::eval( formulaclass& fc)
                 res.v.dv = 0;
             if (fc.fo == formulaoperator::foqproduct)
                 res.v.dv = 1;;
-            while (!supersetpos->ended())
+            while (!supersetpos->ended() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
             {
                 variables[i]->qs = supersetpos->getnext();
                 count++;
@@ -1093,10 +1097,10 @@ valms evalformula::eval( formulaclass& fc)
                 // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
                 // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
                 auto v = eval(*fc.fcright);
-                if (fc.fo == formulaoperator::foqspread || fc.fo == formulaoperator::foqmin
+                if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
                     || fc.fo == formulaoperator::foqmax)
                     res.v.dv = 0;
-                if (fc.fo == formulaoperator::foqsum || fc.fo == formulaoperator::foqspread
+                if (fc.fo == formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
                     || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
                     || fc.fo == formulaoperator::foqaverage)
                 {
@@ -1113,9 +1117,10 @@ valms evalformula::eval( formulaclass& fc)
                         break;
                     case mtset:
                         res.v.dv += v.seti->getsize();
+                        break;
                     }
                 }
-                if (fc.fo == formulaoperator::foqspread || fc.fo == formulaoperator::foqmin
+                if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
                     || fc.fo == formulaoperator::foqmax)
                 {
                     min = res.v.dv < min ? res.v.dv : min;
@@ -1133,18 +1138,78 @@ valms evalformula::eval( formulaclass& fc)
                         break;
                     case mtbool:
                         res.v.dv *= v.v.bv ? 1 : 0;
+                        break;
                     case mtset:
                         res.v.dv *= v.seti->getsize();
+                        break;
                     }
                     // std::cout << fc.v.qc->qs.v.iv << " iv \n";
                 }
             }
-            if (fc.fo == formulaoperator::foqspread)
+            if (fc.fo == formulaoperator::foqrange)
                 res.v.dv = max - min;
             if (fc.fo == formulaoperator::foqaverage)
                 res.v.dv = count > 0 ? res.v.dv / count : 0;
         }
+        if (fc.fo == formulaoperator::foqtally || fc.fo == formulaoperator::foqcount)
+        {
+            res.t = mtdiscrete;
+            res.v.iv = 0;
+            while (!supersetpos->ended())
+            {
+                variables[i]->qs = supersetpos->getnext();
+                auto v = eval(*fc.fcright);
+                if (fc.fo == formulaoperator::foqcount)
+                    switch (v.t)
+                    {
+                        case mtdiscrete:
+                            res.v.iv += v.v.iv != 0 ? 1 : 0;
+                            break;
+                        case mtbool:
+                            res.v.iv += v.v.bv ? 1 : 0;
+                            break;
+                        case mtcontinuous:
+                            res.v.iv += abs(v.v.dv) > ABSCUTOFF ? 1 : 0;
+                            break;
+                        case mtset:
+                        case mttuple:
+                            res.v.iv += v.seti->getsize() > 0 ? 1 : 0;
+                        break;
+                    }
+                if (fc.fo == formulaoperator::foqtally)
+                    switch (v.t)
+                    {
+                case mtdiscrete:
+                    res.v.iv += v.v.iv;
+                        break;
+                case mtbool:
+                    res.v.iv += v.v.bv ? 1 : 0;
+                        break;
+                case mtcontinuous:
+                    res.v.iv += (int)v.v.dv;
+                        break;
+                case mtset:
+                case mttuple:
+                    res.v.iv += v.seti->getsize();
+                        break;
+                    }
+            }
 
+        }
+
+        /*
+        if (fc.fo == formulaoperator::foqbigcup || fc.fo == formulaoperator::foqbigcap)
+        {
+            res.t = mtset;
+            while (!supersetpos->ended())
+            {
+                variables[i]->qs = supersetpos->getnext();
+                auto v = eval(*fc.fcright);
+
+            }
+
+        }
+*/
 
 
 

@@ -2317,6 +2317,7 @@ public:
         *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
         *_os << "\t" << "\"if=<filename>\": applies the criteria of flag(s) in <filename> embedding\n";
         *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
+        *_os << "\t" << "\"i=<expression>\": uses mathematical expression to serve as an integer\n";
         *_os << "\t" << "\"ia=<filename>\": uses the mathematical expression(s) in <filename> embedding\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
@@ -2422,6 +2423,23 @@ public:
                 iter.push_back(it);
                 continue;
             }
+
+            if (ccl.t == "i")
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mtdiscrete,ccl.i);
+                ams a;
+                a.t = measuretype::mtdiscrete;
+                a.a.ts = new formtally(&rec,litnumps,littypes,s);
+                auto it = newiteration(mtdiscrete,ccl.i,a);
+                iter.push_back(it);
+                continue;
+            }
+
+
+
             if (ccl.t == "c")
             {
                 bool found = false;

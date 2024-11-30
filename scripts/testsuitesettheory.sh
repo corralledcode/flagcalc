@@ -39,4 +39,6 @@ $PTH/flagcalc -r 7 10 1000 -a s="FORALL (FORALL (SUM (SUM ([ac](b,a), b IN c), a
 $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL (EXISTS ([TupletoSet](d) == [TupletoSet](c), d IN [Cycless](w)), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
 $PTH/flagcalc -d f="abc" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
-
+$PTH/flagcalc -r 20 95 100 -a s="TALLY ([vdt](v), v IN [V])/2 == [edgecm]" all -v i=minimal3.cfg
+$PTH/flagcalc -r 15 52.5 100 -a s="mod(COUNT (mod([vdt](v),2) == 1, v IN [V]),2) == 0" all -v i=minimal3.cfg
+$PTH/flagcalc -r 15 52.5 100 -a i="COUNT (mod([vdt](v),2) == 1, v IN [V])" all -v i=minimal3.cfg
