@@ -7,7 +7,7 @@
 
 #define KNMAXCLIQUESIZE 12
 
-#define ABSCUTOFF 0.00001
+#define ABSCUTOFF 0.000001
 
 #include <cstring>
 #include <functional>

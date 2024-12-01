@@ -463,7 +463,6 @@ bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
     return res;
 }
 
-bool tupleeq( itrpos* in1, itrpos* in2);
 
 bool setsubseteq( itrpos* in1, itrpos* in2)
 {
@@ -1214,7 +1213,6 @@ valms evalformula::eval( formulaclass& fc)
 
         }
 */
-
 
 
         delete ss;

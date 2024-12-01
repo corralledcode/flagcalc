@@ -1796,6 +1796,8 @@ public:
         auto (Es) = setfactory<Eset>;
         auto (idxs) = setfactory<idxset>;
         auto (TtoS) = setfactory<TupletoSet>;
+        auto (Paths) = setfactory<Pathsset>;
+        auto (Cycles) = setfactory<Cyclesset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1807,18 +1809,14 @@ public:
         stsfactory.push_back(Es);
         stsfactory.push_back(idxs);
         stsfactory.push_back(TtoS);
+        stsfactory.push_back(Paths);
+        stsfactory.push_back(Cycles);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
         }
 
         // ...
-
-        auto (Paths) = tuplefactory<Pathsset>;
-        auto (Cycles) = tuplefactory<Cyclesset>;
-
-        ossfactory.push_back(Paths);
-        ossfactory.push_back(Cycles);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));
@@ -2165,7 +2163,8 @@ protected:
                 ams a;
                 a.t = measuretype::mtset;
                 a.a.ss = (*stsfactory[i])(&rec);
-                iter.push_back(newiteration(mtset,roundin,a,sts[i]->pssz > 0));
+                // iter.push_back(newiteration(mtset,roundin,a,sts[i]->pssz > 0));
+                iter.push_back(newiteration(mtset,roundin,a,true));  // hide also those of pssz == 0
                 int j = iter.size()-1;
                 litnumps.resize(j+1);
                 litnumps[j] = sts[i]->pssz;
@@ -2181,7 +2180,8 @@ protected:
                 ams a;
                 a.t = measuretype::mtbool;
                 a.a.cs = (*crsfactory[i])(&rec);
-                iter.push_back(newiteration(mtbool,roundin,a,crs[i]->pssz > 0));
+                // iter.push_back(newiteration(mtbool,roundin,a,crs[i]->pssz > 0));
+                iter.push_back(newiteration(mtbool,roundin,a,true));
                 int j = iter.size()-1;
                 litnumps.resize(j+1);
                 litnumps[j] = crs[i]->pssz;
@@ -2197,7 +2197,8 @@ protected:
                 ams a;
                 a.t = measuretype::mtcontinuous;
                 a.a.ms = (*mssfactory[i])(&rec);
-                iter.push_back(newiteration(mtcontinuous,roundin,a,mss[i]->pssz > 0));
+                // iter.push_back(newiteration(mtcontinuous,roundin,a,mss[i]->pssz > 0));
+                iter.push_back(newiteration(mtcontinuous,roundin,a, true));
                 int j = iter.size()-1;
                 litnumps.resize(j+1);
                 littypes.resize(j+1);
@@ -2213,7 +2214,8 @@ protected:
                 ams a;
                 a.t = measuretype::mtdiscrete;
                 a.a.ts = (*tysfactory[i])(&rec);
-                iter.push_back(newiteration(mtdiscrete,roundin,a,tys[i]->pssz > 0));
+                // iter.push_back(newiteration(mtdiscrete,roundin,a,tys[i]->pssz > 0));
+                iter.push_back(newiteration(mtdiscrete,roundin,a,true));
                 int j = iter.size()-1;
                 litnumps.resize(j+1);
                 littypes.resize(j+1);
@@ -2229,7 +2231,8 @@ protected:
                 ams a;
                 a.t = measuretype::mttuple;
                 a.a.os = (*ossfactory[i])(&rec);
-                iter.push_back(newiteration(mttuple,roundin,a,oss[i]->pssz > 0));
+                // iter.push_back(newiteration(mttuple,roundin,a,oss[i]->pssz > 0));
+                iter.push_back(newiteration(mttuple,roundin,a,true));
                 int j = iter.size()-1;
                 litnumps.resize(j+1);
                 litnumps[j] = oss[i]->pssz;
@@ -2990,8 +2993,11 @@ public:
 
             }
 
-            if (iter[k]->hidden)
+            if (litnumps[k] > 0 && iter[k]->hidden)
                 continue;
+
+            // if (iter[k]->hidden)
+                // continue;
 
 
 
@@ -3024,6 +3030,7 @@ public:
 
             }
 
+
             if (iter[k]->t == mtbool)
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
@@ -3053,6 +3060,8 @@ public:
                     threadtuple[m] = rec.tuplerecs.fetch(m,ilookup, iter[k]->ps);
                 }
 
+            if (iter[k]->hidden)
+                continue;
 
             if (iter[k]->t == mtbool)
             {

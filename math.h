@@ -128,6 +128,8 @@ class setitr;
 class itrpos;
 
 bool setsubseteq( itrpos* in1, itrpos* in2);
+bool tupleeq( itrpos* in1, itrpos* in2);
+
 
 
 /*
@@ -419,6 +421,7 @@ class setitrunion : public setitrmodeone
                     if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
                         found = found || v == temp[i];
                     else
+                    {
                         if (v.t == mtset)
                         {
                             auto tmpitr1 = v.seti->getitrpos();
@@ -426,9 +429,19 @@ class setitrunion : public setitrmodeone
                             found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
                             delete tmpitr1;
                             delete tmpitr2;
-                        }
-                        else
-                            std::cout << "Unsupported type " << v.t << " in setitrunion\n";
+                        } else
+                            if (v.t == mttuple)
+                            {
+                                auto tmpitr1 = v.seti->getitrpos();
+                                auto tmpitr2 = temp[i].seti->getitrpos();
+                                found = found || tupleeq( tmpitr1, tmpitr2);
+                                delete tmpitr1;
+                                delete tmpitr2;
+
+                            }
+                            else
+                                std::cout << "Unsupported type " << v.t << " in setitrunion\n";
+                    }
 
             if (!found)
                 temp.push_back(v);
@@ -482,9 +495,18 @@ public:
                             found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
                             delete tmpitr1;
                             delete tmpitr2;
-                        }
-                        else
-                            std::cout << "Unsupported type " << v.t << " in setitrintersection\n";
+                        } else
+                            if (v.t == mttuple)
+                            {
+                                auto tmpitr1 = v.seti->getitrpos();
+                                auto tmpitr2 = temp[i].seti->getitrpos();
+                                found = found || tupleeq( tmpitr1, tmpitr2);
+                                delete tmpitr1;
+                                delete tmpitr2;
+
+                            }
+                            else
+                                std::cout << "Unsupported type " << v.t << " in setitrintersection\n";
 
             if (found)
                 temp2.push_back(v);
