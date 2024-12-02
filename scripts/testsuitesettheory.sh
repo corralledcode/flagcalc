@@ -49,7 +49,10 @@ $PTH/flagcalc -r 10 22.5 1 -a e="[V] CUP [E]" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="[Pathss](0,2) CUP [Pathss](0,3)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="[V] CUP [E]" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc" -a e="[Pathss](0,1) CUP [Pathss](0,2)" all -v set allsets i=minimal3.cfg
-
-
-
-
+$PTH/flagcalc -d f="abcd" -a e="BIGCUPD ([Cycless](v), v IN [V])" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 8 14 100 -g o=out.dat all overwrite -v i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUPD ([Cycless](v), v IN [V])" all -v set i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUP ([Cycless](v), v IN [V])" all -v set i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUP (BIGCUP ([TupletoSet](c), c IN [Cycless](v)), v IN [V])" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUP (SET (a, a IN c), c IN [Cylcess](v)), v IN [V])" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (SET ([TupletoSet](c), c IN [Cycless](v)), v IN [V])" all -v set allsets i=minimal3.cfg

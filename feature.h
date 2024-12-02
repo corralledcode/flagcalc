@@ -2321,7 +2321,7 @@ public:
         *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
         *_os << "\t" << "\"if=<filename>\": applies the criteria of flag(s) in <filename> embedding\n";
         *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
-        *_os << "\t" << "\"i=<expression>\": uses mathematical expression to serve as an integer\n";
+        *_os << "\t" << "\"z=<expression>\": uses mathematical expression to serve as an integer\n";
         *_os << "\t" << "\"ia=<filename>\": uses the mathematical expression(s) in <filename> embedding\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
@@ -2428,7 +2428,7 @@ public:
                 continue;
             }
 
-            if (ccl.t == "i")
+            if (ccl.t == "z" || ccl.t == "i") // demoting the "i" option in favor of "z"
             {
                 if (ccl.n)
                     std::cout << "No feature to negate here\n";

@@ -389,8 +389,11 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqaverage
             || fo == formulaoperator::foqtally
             || fo == formulaoperator::foqcount
-            || fo == formulaoperator::foqbigcap
-            || fo == formulaoperator::foqbigcup);
+            || fo == formulaoperator::foqset
+            || fo == formulaoperator::foqdupeset
+            || fo == formulaoperator::foqunion
+            || fo == formulaoperator::foqdupeunion
+            || fo == formulaoperator::foqintersection);
 }
 
 
@@ -862,7 +865,8 @@ valms evalformula::eval( formulaclass& fc)
         }
     }
 
-    if (fc.fo == formulaoperator::founion || fc.fo == formulaoperator::fointersection)
+    if (fc.fo == formulaoperator::founion || fc.fo == formulaoperator::fointersection
+        || fc.fo == formulaoperator::fodupeunion)
     {
         valms set1 = eval(*fc.fcright );
         valms set2 = eval( *fc.fcleft );
@@ -871,7 +875,10 @@ valms evalformula::eval( formulaclass& fc)
             if (fc.fo == formulaoperator::founion)
                 res.seti = new setitrunion(set1.seti,set2.seti);
             else
-                res.seti = new setitrintersection(set1.seti,set2.seti);
+                if (fc.fo == formulaoperator::fointersection)
+                    res.seti = new setitrintersection(set1.seti,set2.seti);
+                else
+                    res.seti = new setitrdupeunion( set1.seti,set2.seti);
             res.t = mtset;
             res.setsize = res.seti->getsize();
 
@@ -1200,19 +1207,134 @@ valms evalformula::eval( formulaclass& fc)
 
         }
 
-        /*
-        if (fc.fo == formulaoperator::foqbigcup || fc.fo == formulaoperator::foqbigcap)
+        if (fc.fo == formulaoperator::foqdupeset)
         {
             res.t = mtset;
+            std::vector<valms> tot {};
             while (!supersetpos->ended())
             {
                 variables[i]->qs = supersetpos->getnext();
                 auto v = eval(*fc.fcright);
+                tot.push_back(v);
+            }
+            res.seti = new setitrmodeone(tot);
+        }
 
+        if (fc.fo == formulaoperator::foqset)
+        {
+            res.t = mtset;
+            std::vector<valms> tot {};
+            while (!supersetpos->ended())
+            {
+                variables[i]->qs = supersetpos->getnext();
+                auto v = eval(*fc.fcright);
+                bool match = false;
+                for (int i = 0; !match && i < tot.size(); i++)
+                {
+                    switch (tot[i].t)
+                    {
+                        case mtdiscrete:
+                            switch (v.t)
+                            {
+                            case mtdiscrete:
+                                match = match || v.v.iv == tot[i].v.iv;
+                                break;
+                            case mtbool:
+                                match = match || v.v.bv == tot[i].v.iv;
+                                break;
+                            case mtcontinuous:
+                                match = match || abs(v.v.dv - tot[i].v.iv) < ABSCUTOFF;
+                                break;
+                            }
+                        break;
+                    case mtbool:
+                        switch (v.t)
+                        {
+                            case mtdiscrete:
+                                match = (match || v.v.iv != 0) == tot[i].v.bv;
+                                    break;
+                            case mtbool:
+                                match = match || v.v.bv == tot[i].v.bv;
+                                    break;
+                            case mtcontinuous:
+                                match = match || ((abs(v.v.dv) >= ABSCUTOFF) == tot[i].v.bv);
+                                    break;
+                        }
+                        break;
+                    case mtcontinuous:
+                        switch (v.t)
+                        {
+                            case mtdiscrete:
+                                match = match || abs(v.v.iv - tot[i].v.dv) < ABSCUTOFF;
+                                    break;
+                            case mtbool:
+                                match = match || (v.v.bv == (abs(tot[i].v.bv) >= ABSCUTOFF));
+                                    break;
+                            case mtcontinuous:
+                                match = (match || abs(v.v.dv - tot[i].v.dv) < ABSCUTOFF);
+                                    break;
+                        }
+                        break;
+                    case mtset:
+                        if (v.t == mtset || v.t == mttuple)
+                        {
+                            auto itr1 = tot[i].seti->getitrpos();
+                            auto itr2 = v.seti->getitrpos();
+                            match = match || (setsubseteq(itr1,itr2) && setsubseteq(itr2,itr1));
+                            delete itr1;
+                            delete itr2;
+                        } else
+                        {
+                            std::cout << "Mismatched to type set in SET\n";
+                        }
+                        break;
+                    case mttuple:
+                        if (v.t == mttuple || v.t == mtset)
+                        {
+                            auto itr1 = tot[i].seti->getitrpos();
+                            auto itr2 = v.seti->getitrpos();
+                            match = match || tupleeq(itr1,itr2);
+                            delete itr1;
+                            delete itr2;
+                        } else
+                        {
+                            std::cout << "Mismatched to type tuple in SET\n";
+                        }
+                        break;
+                    }
+                }
+                if (!match)
+                    tot.push_back(v);
             }
 
+            res.seti = new setitrmodeone(tot);
         }
-*/
+
+        if (fc.fo == formulaoperator::foqunion || fc.fo == formulaoperator::foqintersection
+            || fc.fo == formulaoperator::foqdupeunion)
+        {
+            res.t = mtset;
+            res.seti = nullptr;
+            while (!supersetpos->ended())
+            {
+                variables[i]->qs = supersetpos->getnext();
+                auto v = eval(*fc.fcright);
+                switch (fc.fo)
+                {
+                case formulaoperator::foqunion:
+                    res.seti = res.seti ? new setitrunion( v.seti, res.seti) : v.seti;
+                    break;
+                case formulaoperator::foqintersection:
+                    res.seti = res.seti ? new setitrintersection( v.seti, res.seti) : v.seti;
+                    break;
+                case formulaoperator::foqdupeunion:
+                    res.seti = res.seti ? new setitrdupeunion( v.seti, res.seti) : v.seti;
+                    break;
+                }
+            }
+            if (!res.seti)
+                res.seti = new setitrint(-1);
+        }
 
 
         delete ss;

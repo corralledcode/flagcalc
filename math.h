@@ -39,10 +39,10 @@ logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2,
 enum class formulaoperator
 {foliteral,fofunction, foconstant, foqforall, foqexists,
     foplus, fominus, fotimes, fodivide, foexponent, fomodulus,
-    folte, folt, foe,fone,fogte,fogt,founion, fointersection, foelt,
+    folte, folt, foe,fone,fogte,fogt,founion, fodupeunion, fointersection, foelt,
     foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
-    foqtally, foqcount, foqbigcup, foqbigcap};
+    foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection};
 
 inline std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -67,9 +67,12 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {">=",formulaoperator::fogte},
         {">",formulaoperator::fogt},
         {"!=",formulaoperator::fone},
+        {"SET",formulaoperator::foqset},
+        {"SETD",formulaoperator::foqdupeset},
         {"FORALL",formulaoperator::foqforall},
         {"EXISTS",formulaoperator::foqexists},
         {"CUP",formulaoperator::founion},
+        {"CUPD",formulaoperator::fodupeunion},
         {"CAP",formulaoperator::fointersection},
         {"ELT",formulaoperator::foelt},
         {"SUM",formulaoperator::foqsum},
@@ -80,8 +83,9 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {"RANGE",formulaoperator::foqrange},
         {"TALLY",formulaoperator::foqtally},
         {"COUNT",formulaoperator::foqcount},
-        {"BIGCUP",formulaoperator::foqbigcup},
-        {"BIGCAP", formulaoperator::foqbigcap}};
+        {"BIGCUP",formulaoperator::foqunion},
+        {"BIGCUPD",formulaoperator::foqdupeunion},
+        {"BIGCAP", formulaoperator::foqintersection}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -461,6 +465,47 @@ class setitrunion : public setitrmodeone
     };
 
 };
+
+class setitrdupeunion : public setitrmodeone
+{
+    public:
+    setitr* setA;
+    setitr* setB;
+
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = -1;
+        std::vector<valms> temp {};
+        // totality.clear();
+        while (!Aitr->ended())
+        {
+            temp.push_back(Aitr->getnext());
+            // totality.push_back(Aitr->getnext());
+        }
+        while (!Bitr->ended())
+        {
+            temp.push_back(Bitr->getnext());
+        }
+
+        totality.resize(temp.size());
+        for (int i = 0; i < temp.size(); i++)
+            totality[i] = temp[i];
+        computed = true;
+        reset();
+        delete Aitr;
+        delete Bitr;
+    }
+
+    setitrdupeunion(setitr* a, setitr* b) : setA{a}, setB{b}
+    {
+        reset();
+    };
+
+};
+
+
 
 class setitrintersection : public setitrmodeone
 {
@@ -1161,8 +1206,11 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foqaverage,0},
                             {formulaoperator::foqtally,0},
                             {formulaoperator::foqcount,0},
-                            {formulaoperator::foqbigcup,0},
-                            {formulaoperator::foqbigcap,0},
+                            {formulaoperator::foqset,0},
+                            {formulaoperator::foqdupeset,0},
+                            {formulaoperator::foqunion,0},
+                            {formulaoperator::foqdupeunion,0},
+                            {formulaoperator::foqintersection,0},
                             {formulaoperator::foexponent,1},
                             {formulaoperator::fotimes,2},
                             {formulaoperator::fodivide,2},
@@ -1184,6 +1232,7 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foiff,6},
                             {formulaoperator::foif,6},
                             {formulaoperator::founion,7},
+                            {formulaoperator::fodupeunion,7},
                             {formulaoperator::fointersection,7}};
 
 

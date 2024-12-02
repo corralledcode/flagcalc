@@ -655,16 +655,13 @@ public:
         int min = -1;
         int sizesum = 0;
 
-        for (int i = 0; i < this->res.size(); ++i ) {
-            if (this->parentbool[i]) {
-                auto itr = this->meas[i];
-                int size = itr->getsize();
-                sizesum += size;
-                min = (min == -1 ? size : (size < min ? size : min));
-                max = size > max ? size : max;
-                cnt++;
-                if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
+        {
+            for (int i = 0; i < this->res.size(); ++i )
+            {
+                if (this->parentbool[i])
                 {
+                    auto itr = this->meas[i];
                     auto pos = itr->getitrpos();
                     std::string pre = "";
                     osset( os, pos, pre, mtset );
@@ -674,6 +671,18 @@ public:
                     // max = this->meas[i] > max ? this->meas[i] : max;
                     // cnt++;
                 }
+            }
+        }
+
+
+        for (int i = 0; i < this->res.size(); ++i ) {
+            if (this->parentbool[i]) {
+                auto itr = this->meas[i];
+                int size = itr->getsize();
+                sizesum += size;
+                min = (min == -1 ? size : (size < min ? size : min));
+                max = size > max ? size : max;
+                cnt++;
             }
         }
         if (cnt > 0)
@@ -716,7 +725,26 @@ public:
         int min = -1;
         int sizesum = 0;
 
-        for (int i = 0; i < this->parentbool.size(); ++i ) {
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
+        {
+            for (int i = 0; i < this->res.size(); ++i ) {
+                if (this->parentbool[i])
+                {
+                    auto itr = this->meas[i];
+                    auto pos = itr->getitrpos();
+                    std::string pre = "";
+                    osset( os, pos, pre, mtset );
+                    os << "\n";
+                    // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                }
+            }
+        }
+
+
+        for (int i = 0; i < this->res.size(); ++i ) {
             if (this->parentbool[i]) {
                 auto itr = this->meas[i];
                 int size = itr->getsize();
@@ -724,17 +752,6 @@ public:
                 min = (min == -1 ? size : (size < min ? size : min));
                 max = size > max ? size : max;
                 cnt++;
-                if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
-                {
-                    auto pos = itr->getitrpos();
-                    std::string pre = "";
-                    osset( os, pos, pre, mttuple );
-                    os << "\n";
-                    // min = this->meas[i] < min ? this->meas[i] : min;
-                    // sum += this->meas[i];
-                    // max = this->meas[i] > max ? this->meas[i] : max;
-                    // cnt++;
-                }
             }
         }
         if (cnt > 0)
