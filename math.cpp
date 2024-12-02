@@ -15,8 +15,8 @@
 #include "feature.h"
 #include "graphs.h"
 
-#define QUANTIFIER_FORALL "FORALL"
-#define QUANTIFIER_EXISTS "EXISTS"
+#define QUANTIFIERMODE_PRECEDING
+
 
 inline bool is_number(const std::string& s)
 {
@@ -1746,7 +1746,9 @@ inline int operatorprecedence( const std::string& tok1, const std::string& tok2)
 inline bool is_function(std::string tok) {
     bool res = !tok.empty();
     for (auto c : tok)
-        res = res && isalpha(c);
+        res = res && isalnum(c);
+    if (tok.size() > 0)
+        res = res && isalpha(tok[0]);
     return res;
 }
 
@@ -1807,7 +1809,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             output.insert(output.begin(),tok);
             continue;
         }
-        if (is_quantifier(tok)) {
+        if (is_quantifier(tok))
+        {
             operatorstack.push_back(tok);
             continue;
         }
@@ -1823,6 +1826,10 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         break;
                 }
             }
+            operatorstack.push_back(tok);
+            continue;
+        }
+        if (tok == "IN") {
             operatorstack.push_back(tok);
             continue;
         }
@@ -1845,6 +1852,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             }
             continue;
         }
+
         if (tok == "(") {
             operatorstack.push_back(tok);
             continue;
@@ -1877,6 +1885,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             operatorstack.resize(operatorstack.size()-1);
             if (operatorstack.size() > 0) {
                 ostok = operatorstack[operatorstack.size()-1];
+
                 if (is_function(ostok))
                 {
                     output.insert(output.begin(),ostok);
@@ -1941,8 +1950,46 @@ inline formulaclass* parseformulainternal(
         ++pos;
         std::string tok = q[pos];
         if (is_quantifier(tok)) {
+
+#ifdef QUANTIFIERMODE_PRECEDING
             auto qc = new qclass;
-            qc->eval( q, ++pos);
+            qc->secondorder = false;
+            // qc->eval( q, ++pos);
+            int pos2 = pos;
+            int quantcount = 0;
+            while (pos2+1 <= q.size() && (q[pos2] != "IN" || quantcount > 1)) {
+                quantcount += is_quantifier(q[pos2]) ? 1 : 0;
+                quantcount -= q[pos2] == "IN" ? 1 : 0;
+                qc->name = q[pos2++];
+            }
+            if (pos2 + 1 >= q.size()) {
+                std::cout << "Quantifier not containing an 'IN'\n";
+                exit(-1);
+            }
+
+            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,variables,fnptrs);
+            // qc->qs.t = qc->superset->v.v.seti->t;
+
+            variables->push_back(qc);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
+            formulaclass* fcleft = nullptr;
+            formulaoperator o = lookupoperator(tok);
+            formulavalue fv {};
+            fv.qc = qc;
+            auto fc = fccombine(fv,fcleft,fcright,o);
+            pos = pos2;
+            return fc;
+#else
+            auto qc = new qclass;
+            qc->secondorder = false;
+            qc->name = q[++pos];
+            // qc->eval( q, ++pos);
+            if (q[++pos] != "IN")
+            {
+                std::cout << "Missing 'IN' in quantifier expression\n";
+                exit(-1);
+            }
+
             qc->superset = parseformulainternal(q, pos, litnumps,littypes,variables,fnptrs);
             // qc->qs.t = qc->superset->v.v.seti->t;
 
@@ -1954,6 +2001,7 @@ inline formulaclass* parseformulainternal(
             fv.qc = qc;
             auto fc = fccombine(fv,fcleft,fcright,o);
             return fc;
+#endif
         }
         if (is_operator(tok))
         {

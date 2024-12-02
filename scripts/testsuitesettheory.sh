@@ -1,47 +1,47 @@
 PTH='../cmake-build-debug'
-$PTH/flagcalc -r 9 2 50 -a s="EXISTS (EXISTS ((s CUP t) == [V] AND [st](s) == ceil([dimm]/2) AND [st](t) == floor([dimm]/2), t IN [P]([V])), s IN [P]([V]))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 10 1 -a s="FORALL (EXISTS (EXISTS ((s CUP t) == [V] AND [st](s) == ceil([dimm]/(n+1)) AND [st](t) == floor(n*[dimm]/(n+1)), t IN [P]([V])), s IN [P]([V])), n IN [NN]([dimm]))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 10 100 -a s="FORALL (EXISTS (EXISTS (a ELT e AND b ELT e AND a != b, b IN [V]), a IN [V]), e IN [E])" all -v i=minimal3.cfg
-$PTH/flagcalc -d halfconnectedgraph.dat -a s="EXISTS ([st](s) >= [dimm]/2 AND FORALL (FORALL (a == b OR EXISTS (a ELT e AND b ELT e, e IN [E]), b IN s), a IN s), s IN [P]([V]))" all
-$PTH/flagcalc -r 10 20 10 -a s="FORALL ([Knc](n,1) IFF EXISTS (FORALL (FORALL (a == b OR EXISTS (a ELT e AND b ELT e, e IN [E]) , a IN s), b IN s), s IN [Sizedsubset]([V],n)), n IN [NN]([dimm]+1))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 15 1 -a s="FORALL (s == [V] OR EXISTS (EXISTS ((NOT (u <= s)) AND (NOT (t <= s)) AND ((s CAP t) <= s), u IN [P]([V])), t IN [P]([V])), s IN [P]([V]))" all
-$PTH/flagcalc -d testbip10.dat -a s="EXISTS (EXISTS (((s CAP t) == [Nulls]) AND ((s CUP t) == [V]) AND FORALL (FORALL (NOT [ac](a,b), b IN s), a IN s) AND FORALL (FORALL (NOT [ac](c,d), d IN t), c IN t), t IN [P]([V])), s IN [P]([V]))" all
-$PTH/flagcalc -r 4 5 50 -a s="EXISTS (s == [E], s IN [P]([P]([V])))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 6 10 2 -a s="FORALL (EXISTS (FORALL (FORALL ((b ELT e) AND (c ELT e), c IN a), b IN a), a IN [Sizedsubset]([V],2)), e IN [E])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 6 10 2 -a s="FORALL (e ELT [Sizedsubset]([V],2), e IN [E])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 6 10 8 -a s="EXISTS (FORALL (FORALL (FORALL (EXISTS (c ELT e AND b ELT e, e IN [E]), c IN a), b IN a), a IN s), s IN [P]([Sizedsubset]([V],2)))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 6 10 8 -a s="EXISTS (FORALL (a ELT [E], a IN s), s IN [P]([Sizedsubset]([V],2)))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 4 3 1 -a s="EXISTS ([st](s) == 2^[dimm], s IN [P]([P]([V])))" all
-$PTH/flagcalc -r 4 3 1 -a s="FORALL (EXISTS (t ELT s, t IN [P]([V])) OR [st](s) == 0, s IN [P]([P]([V])))" all
-$PTH/flagcalc -r 7 8 10 -a s="EXISTS (s == [E], s IN [Sizedsubset]([Sizedsubset]([V],2),[st]([E])))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 8 10 -a s="EXISTS (s == [E], s IN [P]([Sizedsubset]([V],2)))" all -v i=minimal3.cfg
-$PTH/flagcalc -d testbip12.dat -a s="EXISTS (EXISTS (EXISTS ([st](r CUP l) == [dimm] AND FORALL (FORALL (NOT [ac](a,b), b IN l), a IN l) AND FORALL (FORALL (NOT [ac](c,d), d IN r), c IN r), r IN [Sizedsubset]([V],[dimm] - n)), l IN [Sizedsubset]([V],n)) , n IN [NN]([dimm]+1))" all
-$PTH/flagcalc -r 4 3 10 -a s="FORALL (EXISTS (EXISTS (((s CUP t) == [P]([V])) AND ((s CAP t) == [Nulls]), t IN [Sizedsubset]([P]([V]),2^[dimm] - n)), s IN [Sizedsubset]([P]([V]),n)), n IN [NN](2^[dimm]+1))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 20 100 -a s="FORALL ([ac]([idxt](e,0),[idxt](e,1)), e IN [E])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 20 100 -a s="FORALL ([ac]([idxt]([idxs]([E],n),0),[idxt]([idxs]([E],n),1)), n IN [NN]([st]([E])))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 12 10 -a s="FORALL (FORALL ([st]([Pathss](a,b)) == [pct](a,b), a IN [V]), b IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 6 10 10 -a s="FORALL (FORALL (FORALL (FORALL ([ac]([idxt](p,m),[idxt](p,m+1)), m IN [NN]([st](p)-1)), p IN [Pathss](a,b)), a IN [V]), b IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -d testbip8.dat -a s="FORALL (FORALL (mod([st](c),2) == 0, c IN [Cycless](v)), v IN [V])" all
-$PTH/flagcalc -r 8 10 1000 -a s="[cr1] IFF FORALL (FORALL ([st](c) > 3, c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 8 100 -a s="[treec] IFF FORALL (FORALL ([st]([Pathss](a,b)) == 1, b IN [V]), a IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (FORALL ([st]([Pathss](a,b)) <= 1, b IN [V]), a IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL ([st]([Cycless](a)) == 0, a IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 6 100 -a s="[forestc] IFF FORALL ([st]([Cycless](a)) == 0, a IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 15 50 -a s="[conn1c] IFF FORALL (FORALL ([Pathss](a,b) != [Nulls], b IN [V]), a IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL ([TupletoSet](c) ELT [Cycless](w), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -d testbip10.dat -a s="EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))" all
-$PTH/flagcalc -r 9 10 100 -a s="(EXISTS (EXISTS ((l CUP r) == [V] AND [bipc](l,r), l IN [P]([V])), r IN [P]([V]))) IFF FORALL (FORALL (mod([st](c),2) == 0, c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 100 -a s="SUM ([cyclet](n), n IN [NN]([dimm]+1)) == SUM (SUM (1/[st](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 12 33 1000 -a s="SUM ([vdt](v), v IN [V])/2 == [edgecm]" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 100 -a s="SUM (1, e IN [E]) == [edgecm]" all -v i=minimal3.cfg
-$PTH/flagcalc -r 8 10 100 -a s="FORALL ([st]([Cycless](v)) == [cyclest](v), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 1000 -a s="FORALL (FORALL (SUM (SUM ([ac](b,a), b IN c), a IN c)/2 >= [lt](c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (FORALL (FORALL (EXISTS ([TupletoSet](d) == [TupletoSet](c), d IN [Cycless](w)), w IN c), c IN [Cycless](v)), v IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
-$PTH/flagcalc -d f="abc" -a s="EXISTS (EXISTS (c != d AND [TupletoSet](c) == [TupletoSet](d), d IN [Cycless](0)), c IN [Cycless](0))" all
-$PTH/flagcalc -r 20 95 100 -a s="TALLY ([vdt](v), v IN [V])/2 == [edgecm]" all -v i=minimal3.cfg
-$PTH/flagcalc -r 15 52.5 10000 -a s="COUNT ([vdt](v) % 2 == 1, v IN [V]) % 2 == 0" all -v i=minimal3.cfg
-$PTH/flagcalc -r 15 52.5 10000 -a i="COUNT ([vdt](v) % 2 == 1, v IN [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 2 50 -a s="EXISTS (t IN [P]([V]), EXISTS (s IN [P]([V]), (s CUP t) == [V] AND [st](s) == ceil([dimm]/2) AND [st](t) == floor([dimm]/2)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 10 1 -a s="FORALL (n IN [NN]([dimm]), EXISTS (s IN [P]([V]), EXISTS (t IN [P]([V]), (s CUP t) == [V] AND [st](s) == ceil([dimm]/(n+1)) AND [st](t) == floor(n*[dimm]/(n+1)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 10 100 -a s="FORALL (e IN [E], EXISTS (a IN [V], EXISTS (b IN [V], a ELT e AND b ELT e AND a != b)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d halfconnectedgraph.dat -a s="EXISTS (s IN [P]([V]), [st](s) >= [dimm]/2 AND FORALL (a IN s, FORALL (b IN s, a == b OR EXISTS (e IN [E], a ELT e AND b ELT e))))" all
+$PTH/flagcalc -r 10 20 10 -a s="FORALL (n IN [NN]([dimm]+1), [Knc](n,1) IFF EXISTS (s IN [Sizedsubset]([V],n), FORALL (b IN s, FORALL (a IN s, a == b OR EXISTS (e IN [E], a ELT e AND b ELT e)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 15 1 -a s="FORALL (s IN [P]([V]), s == [V] OR EXISTS (t IN [P]([V]), EXISTS (u IN [P]([V]), (NOT (u <= s)) AND (NOT (t <= s)) AND ((s CAP t) <= s))))" all
+$PTH/flagcalc -d testbip10.dat -a s="EXISTS (s IN [P]([V]), EXISTS (t IN [P]([V]), ((s CAP t) == [Nulls]) AND ((s CUP t) == [V]) AND FORALL (a IN s, FORALL (b IN s, NOT [ac](a,b))) AND FORALL (d IN t, FORALL (c IN t, NOT [ac](c,d)))))" all
+$PTH/flagcalc -r 4 5 50 -a s="EXISTS (s IN [P]([P]([V])), s == [E])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 10 2 -a s="FORALL (e IN [E], EXISTS (a IN [Sizedsubset]([V],2), FORALL (b IN a, FORALL (c IN a, (b ELT e) AND (c ELT e)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 10 2 -a s="FORALL (e IN [E], e ELT [Sizedsubset]([V],2))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 10 8 -a s="EXISTS (s IN [P]([Sizedsubset]([V],2)), FORALL (a IN s, FORALL (b IN a, FORALL (c IN a, EXISTS (e IN [E], c ELT e AND b ELT e)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 10 8 -a s="EXISTS (s IN [P]([Sizedsubset]([V],2)), FORALL (a IN s, a ELT [E]))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 4 3 1 -a s="EXISTS (s IN [P]([P]([V])), [st](s) == 2^[dimm])" all
+$PTH/flagcalc -r 4 3 1 -a s="FORALL (s IN [P]([P]([V])), EXISTS (t IN [P]([V]), t ELT s) OR [st](s) == 0)" all
+$PTH/flagcalc -r 7 8 10 -a s="EXISTS (s IN [Sizedsubset]([Sizedsubset]([V],2),[st]([E])), s == [E])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 8 10 -a s="EXISTS (s IN [P]([Sizedsubset]([V],2)), s == [E])" all -v i=minimal3.cfg
+$PTH/flagcalc -d testbip12.dat -a s="EXISTS (n IN [NN]([dimm]+1), EXISTS (l IN [Sizedsubset]([V],n), EXISTS (r IN [Sizedsubset]([V],[dimm] - n), [st](r CUP l) == [dimm] AND FORALL (a IN l, FORALL (b IN l, NOT [ac](a,b))) AND FORALL (c IN r, FORALL (d IN r, NOT [ac](c,d))))))" all
+$PTH/flagcalc -r 4 3 10 -a s="FORALL (n IN [NN](2^[dimm]+1), EXISTS (s IN [Sizedsubset]([P]([V]),n), EXISTS (t IN [Sizedsubset]([P]([V]),2^[dimm] - n), ((s CUP t) == [P]([V])) AND ((s CAP t) == [Nulls]))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 20 100 -a s="FORALL (e IN [E], [ac]([idxt](e,0),[idxt](e,1)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 20 100 -a s="FORALL (n IN [NN]([st]([E])), [ac]([idxt]([idxs]([E],n),0),[idxt]([idxs]([E],n),1)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 12 10 -a s="FORALL (b IN [V], FORALL (a IN [V], [st]([Pathss](a,b)) == [pct](a,b)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 10 10 -a s="FORALL (b IN [V], FORALL (a IN [V], FORALL (p IN [Pathss](a,b), FORALL (m IN [NN]([st](p)-1), [ac]([idxt](p,m),[idxt](p,m+1))))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d testbip8.dat -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" all
+$PTH/flagcalc -r 8 10 1000 -a s="[cr1] IFF FORALL (v IN [V], FORALL (c IN [Cycless](v), [st](c) > 3))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 8 100 -a s="[treec] IFF FORALL (a IN [V], FORALL (b IN [V], [st]([Pathss](a,b)) == 1))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (a IN [V], FORALL (b IN [V], [st]([Pathss](a,b)) <= 1))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cycless](a)) == 0)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 6 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cycless](a)) == 0)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 15 50 -a s="[conn1c] IFF FORALL (a IN [V], FORALL (b IN [V], [Pathss](a,b) != [Nulls]))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), FORALL (w IN c, [TupletoSet](c) ELT [Cycless](w))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d testbip10.dat -a s="EXISTS (r IN [P]([V]), EXISTS (l IN [P]([V]), (l CUP r) == [V] AND [bipc](l,r)))" all
+$PTH/flagcalc -r 9 10 100 -a s="(EXISTS (r IN [P]([V]), EXISTS (l IN [P]([V]), (l CUP r) == [V] AND [bipc](l,r)))) IFF FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN [NN]([dimm]+1), [cyclet](n)) == SUM (v IN [V], SUM (c IN [Cycless](v), 1/[st](c)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 33 1000 -a s="SUM (v IN [V], [vdt](v))/2 == [edgecm]" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (e IN [E], 1) == [edgecm]" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 10 100 -a s="FORALL (v IN [V], [st]([Cycless](v)) == [cyclest](v))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 1000 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), SUM (a IN c, SUM (b IN c, [ac](b,a)))/2 >= [lt](c)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), FORALL (w IN c, EXISTS (d IN [Cycless](w), [TupletoSet](d) == [TupletoSet](c)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a s="EXISTS (c IN [Cycless](0), EXISTS (d IN [Cycless](0), c != d AND [TupletoSet](c) == [TupletoSet](d)))" all
+$PTH/flagcalc -d f="abc" -a s="EXISTS (c IN [Cycless](0), EXISTS (d IN [Cycless](0), c != d AND [TupletoSet](c) == [TupletoSet](d)))" all
+$PTH/flagcalc -r 20 95 100 -a s="TALLY (v IN [V], [vdt](v))/2 == [edgecm]" all -v i=minimal3.cfg
+$PTH/flagcalc -r 15 52.5 10000 -a s="COUNT (v IN [V], [vdt](v) % 2 == 1) % 2 == 0" all -v i=minimal3.cfg
+$PTH/flagcalc -r 15 52.5 10000 -a i="COUNT (v IN [V], [vdt](v) % 2 == 1)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 6 7.5 1 -a e="[Cycless](0)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a p="[idxs]([Pathss](0,1),0)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcdef" -a p="[idxs]([Pathss](0,5),0)" all -v set allsets i=minimal3.cfg
@@ -49,10 +49,11 @@ $PTH/flagcalc -r 10 22.5 1 -a e="[V] CUP [E]" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="[Pathss](0,2) CUP [Pathss](0,3)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="[V] CUP [E]" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc" -a e="[Pathss](0,1) CUP [Pathss](0,2)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="BIGCUPD ([Cycless](v), v IN [V])" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUPD (v IN [V], [Cycless](v))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 8 14 100 -g o=out.dat all overwrite -v i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a e="BIGCUPD ([Cycless](v), v IN [V])" all -v set i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a e="BIGCUP ([Cycless](v), v IN [V])" all -v set i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a e="BIGCUP (BIGCUP ([TupletoSet](c), c IN [Cycless](v)), v IN [V])" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a e="BIGCUP (SET (a, a IN c), c IN [Cylcess](v)), v IN [V])" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="BIGCUP (SET ([TupletoSet](c), c IN [Cycless](v)), v IN [V])" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUPD (v IN [V], [Cycless](v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], [Cycless](v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], BIGCUP (c IN [Cycless](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
+
+
