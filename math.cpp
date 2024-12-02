@@ -1049,6 +1049,7 @@ valms evalformula::eval( formulaclass& fc)
             case false: {
 */
         valms v = eval(*fc.v.qc->superset);
+        auto criterion = fc.v.qc->criterion;
         int maxint = -1;
 //                switch (v.t) {
 //                    case mtbool: maxint = (int)v.v.bv; break;
@@ -1075,6 +1076,16 @@ valms evalformula::eval( formulaclass& fc)
             res.t = mtbool;
             while ((!supersetpos->ended()) && res.v.bv) {
                 variables[i]->qs = supersetpos->getnext();
+                valms c;
+                if (criterion) {
+                    c = eval(*criterion);
+                    if (c.t == mtbool && !c.v.bv)
+                        continue;
+                    if (c.t != mtbool) {
+                        std::cout << "Quantifier criterion requires boolean value\n";
+                        exit(1);
+                    }
+                }
                 // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
                 // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
                 // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
@@ -1102,6 +1113,16 @@ valms evalformula::eval( formulaclass& fc)
             while (!supersetpos->ended() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
             {
                 variables[i]->qs = supersetpos->getnext();
+                valms c;
+                if (criterion) {
+                    c = eval(*criterion);
+                    if (c.t == mtbool && !c.v.bv)
+                        continue;
+                    if (c.t != mtbool) {
+                        std::cout << "Quantifier criterion requires boolean value\n";
+                        exit(1);
+                    }
+                }
                 count++;
                 // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
                 // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
@@ -1168,6 +1189,16 @@ valms evalformula::eval( formulaclass& fc)
             while (!supersetpos->ended())
             {
                 variables[i]->qs = supersetpos->getnext();
+                valms c;
+                if (criterion) {
+                    c = eval(*criterion);
+                    if (c.t == mtbool && !c.v.bv)
+                        continue;
+                    if (c.t != mtbool) {
+                        std::cout << "Quantifier criterion requires boolean value\n";
+                        exit(1);
+                    }
+                }
                 auto v = eval(*fc.fcright);
                 if (fc.fo == formulaoperator::foqcount)
                     switch (v.t)
@@ -1214,6 +1245,16 @@ valms evalformula::eval( formulaclass& fc)
             while (!supersetpos->ended())
             {
                 variables[i]->qs = supersetpos->getnext();
+                valms c;
+                if (criterion) {
+                    c = eval(*criterion);
+                    if (c.t == mtbool && !c.v.bv)
+                        continue;
+                    if (c.t != mtbool) {
+                        std::cout << "Quantifier criterion requires boolean value\n";
+                        exit(1);
+                    }
+                }
                 auto v = eval(*fc.fcright);
                 tot.push_back(v);
             }
@@ -1227,6 +1268,16 @@ valms evalformula::eval( formulaclass& fc)
             while (!supersetpos->ended())
             {
                 variables[i]->qs = supersetpos->getnext();
+                valms c;
+                if (criterion) {
+                    c = eval(*criterion);
+                    if (c.t == mtbool && !c.v.bv)
+                        continue;
+                    if (c.t != mtbool) {
+                        std::cout << "Quantifier criterion requires boolean value\n";
+                        exit(1);
+                    }
+                }
                 auto v = eval(*fc.fcright);
                 bool match = false;
                 for (int i = 0; !match && i < tot.size(); i++)
@@ -1318,6 +1369,16 @@ valms evalformula::eval( formulaclass& fc)
             while (!supersetpos->ended())
             {
                 variables[i]->qs = supersetpos->getnext();
+                valms c;
+                if (criterion) {
+                    c = eval(*criterion);
+                    if (c.t == mtbool && !c.v.bv)
+                        continue;
+                    if (c.t != mtbool) {
+                        std::cout << "Quantifier criterion requires boolean value\n";
+                        exit(1);
+                    }
+                }
                 auto v = eval(*fc.fcright);
                 switch (fc.fo)
                 {
@@ -1786,6 +1847,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
     std::vector<std::string> output {};
     std::vector<std::string> operatorstack {};
 
+    int quantcrit = 0;
     int n = 0;
     while( n < components.size()) {
         const std::string tok = components[n++];
@@ -1927,9 +1989,9 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         operatorstack.resize(operatorstack.size()-1);
     }
 
-    // for (auto o : output)
-        // std::cout << o << ", ";
-    // std::cout << "\n";
+    for (auto o : output)
+        std::cout << o << ", ";
+    std::cout << "\n";
 
     return output;
 
@@ -1956,11 +2018,14 @@ inline formulaclass* parseformulainternal(
             qc->secondorder = false;
             // qc->eval( q, ++pos);
             int pos2 = pos;
+            int pos1 = pos2;
             int quantcount = 0;
             while (pos2+1 <= q.size() && (q[pos2] != "IN" || quantcount > 1)) {
                 quantcount += is_quantifier(q[pos2]) ? 1 : 0;
                 quantcount -= q[pos2] == "IN" ? 1 : 0;
+                pos1 = pos2;
                 qc->name = q[pos2++];
+
             }
             if (pos2 + 1 >= q.size()) {
                 std::cout << "Quantifier not containing an 'IN'\n";
@@ -1968,10 +2033,17 @@ inline formulaclass* parseformulainternal(
             }
 
             qc->superset = parseformulainternal(q, pos2, litnumps,littypes,variables,fnptrs);
+            qc->criterion = nullptr;
+            variables->push_back(qc);
+
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
+
+            if (pos+1 < pos1)
+            {
+                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, variables, fnptrs);
+            }
             // qc->qs.t = qc->superset->v.v.seti->t;
 
-            variables->push_back(qc);
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
             formulaclass* fcleft = nullptr;
             formulaoperator o = lookupoperator(tok);
             formulavalue fv {};
@@ -2106,15 +2178,6 @@ inline formulaclass* parseformulainternal(
     exit(1);
     auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
     return fc;
-}
-
-int preprocessforquantifiers( const std::vector<std::string>& components )
-{
-    int res = 0;
-    for (auto c : components)
-        if (is_quantifier(c))
-            ++res;
-    return res;
 }
 
 

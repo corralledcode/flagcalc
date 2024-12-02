@@ -792,6 +792,7 @@ public:
     std::string name;
     valms qs;
     formulaclass* superset;
+    formulaclass* criterion;
     bool secondorder = false;
     void eval( const std::vector<std::string>& q, int& pos)
     {

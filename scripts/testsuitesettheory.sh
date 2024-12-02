@@ -55,5 +55,10 @@ $PTH/flagcalc -d out.dat -a e="BIGCUPD (v IN [V], [Cycless](v))" all -v set i=mi
 $PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], [Cycless](v))" all -v set i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], BIGCUP (c IN [Cycless](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
-
-
+$PTH/flagcalc -d f="abc d" -a e="SET (x IN [V], [st](SET (e IN [E], x ELT e, e)) > 0, x)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN [V], SET (c IN [Cycless](v), [st](c) % 2 == 1, [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN [V], SET (c IN [Cycless](v), [st](c) % 2 == 0, [TupletoSet](c)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), [st](c) % 2 == 0, [TupletoSet](c)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efgh" -a a="SUM (v IN [V], [vdt](v) > [dimm]/2, 1)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 16 60 100 -a s="SUM (v IN [V], [vdt](v) > [dimm]/4, 1) == COUNT (v IN [V], [vdt](v) > [dimm]/4)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 16 60 1000 -a s="FORALL (v IN [V], [vdt](v) > 0, EXISTS (u IN [V], [ac](u,v)))" all -v i=minimal3.cfg
