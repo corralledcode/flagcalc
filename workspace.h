@@ -589,21 +589,30 @@ public:
 };
 
 
-inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t )
+inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t, bool alreadyindented = false )
 {
-    os << pre << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
+    if (alreadyindented)
+    {
+        os << "\t" << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
+    } else
+        os << pre << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
+
 
     os << pre << (t == mtset ? "{" : "<");
+    alreadyindented = true;
+
     bool e = itr->ended();
     if (e)
     {
         std::cout << (t == mtset ? "}" : ">");
         return;
     }
+    bool newline;
     while (!e)
     {
         valms v = itr->getnext();
         e = itr->ended();
+        newline = false;
         switch (v.t)
         {
         case mtbool:
@@ -619,12 +628,17 @@ inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t
         case mttuple:
              std::string pre2 = pre + "\t";
              auto itr2 = v.seti->getitrpos();
-             osset( os, itr2, pre2, v.t );
+             newline = true;
+             osset( os, itr2, pre2, v.t, alreadyindented );
              os << (e ? "\n" : ",\n ");
-            break;
+             alreadyindented = false;
+             break;
         }
     }
-    os << pre << "\b\b" << (t == mtset ? "}" : ">");;
+    if (!newline)
+        os << "\b\b" << (t == mtset ? "}" : ">");
+    else
+        os << pre << (t == mtset ? "}" : ">");
 }
 
 template<typename Tm>

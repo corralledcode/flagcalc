@@ -62,3 +62,7 @@ $PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), [
 $PTH/flagcalc -d f="abcd=efgh" -a a="SUM (v IN [V], [vdt](v) > [dimm]/2, 1)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 16 60 100 -a s="SUM (v IN [V], [vdt](v) > [dimm]/4, 1) == COUNT (v IN [V], [vdt](v) > [dimm]/4)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 16 60 1000 -a s="FORALL (v IN [V], [vdt](v) > 0, EXISTS (u IN [V], [ac](u,v)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abc" -a e="SET (v IN [V], SET (u IN [V], SET (t IN [V], t)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc" -a e="SETD (v IN [V], SETD (u IN [V], SETD (t IN [V], t)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (a IN c, EXISTS (b IN c, a ELT e AND b ELT e AND a != b)), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), [idxt](c,n) ELT e AND [idxt](c,(n + 1) % [st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
