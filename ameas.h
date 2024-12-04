@@ -486,7 +486,7 @@ public:
     mrecords* rec;
 
     valms evalpslit( const int l, params& psin ) override;
-    valms evalvariable(std::string& vname) override;
+    valms evalvariable(std::string& vname, std::vector<int>& vidxin) override;
 
     evalmformula( mrecords* recin );
 
@@ -777,14 +777,14 @@ inline bool istuplezero( itrpos* tuplein )
 }
 
 
-inline valms evalmformula::evalvariable(std::string& vname)
+inline valms evalmformula::evalvariable(std::string& vname, std::vector<int>& vidxin)
 {
     valms res;
     graphtype* g = (*rec->gptrs)[idx];
 
     int i = (lookup_variable(vname,variables));
     if (i >= 0)
-        return evalformula::evalvariable(vname);
+        return evalformula::evalvariable(vname,vidxin);
     /*if (vname == "V") {
         res.setsize = g->dim;
         res.t = mtset;

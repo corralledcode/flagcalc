@@ -66,3 +66,6 @@ $PTH/flagcalc -d f="abc" -a e="SET (v IN [V], SET (u IN [V], SET (t IN [V], t)))
 $PTH/flagcalc -d f="abc" -a e="SETD (v IN [V], SETD (u IN [V], SETD (t IN [V], t)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (a IN c, EXISTS (b IN c, a ELT e AND b ELT e AND a != b)), e)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), [idxt](c,n) ELT e AND [idxt](c,(n + 1) % [st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 8 14 100 -a s="[cr1]" e2="BIGCUP (v IN [V], [Cycless](v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdea" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg

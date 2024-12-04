@@ -668,6 +668,7 @@ inline int cyclesearch( const graphtype* g, const neighborstype* ns, int* path, 
 
 
 
+
 class cycletally : public tally
 {
 public:

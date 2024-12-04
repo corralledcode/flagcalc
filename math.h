@@ -107,6 +107,12 @@ struct litstruct
     std::vector<formulaclass*> ps;
 };
 
+struct variablestruct
+{
+    std::string name;
+    std::vector<formulaclass*> ps;
+};
+
 struct intpair
 {
     int i;
@@ -1166,6 +1172,7 @@ struct formulavalue {
     litstruct lit;
     fnstruct fns;
     qclass* qc;
+    variablestruct vs;
 };
 
 class formulaclass {
@@ -1261,7 +1268,7 @@ public:
     std::vector<qclass*> variables {};
 
     virtual valms evalpslit( const int idx, std::vector<valms>& psin );
-    virtual valms evalvariable( std::string& vname );
+    virtual valms evalvariable( std::string& vname, std::vector<int>& vidxin );
     virtual valms eval( formulaclass& fc );
     evalformula();
 

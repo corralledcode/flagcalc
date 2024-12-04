@@ -10,13 +10,14 @@
 #include "mathfn.h"
 #include "math.h";
 
+#include <complex>
 #include <cstring>
 
 #include "feature.h"
 #include "graphs.h"
 
 #define QUANTIFIERMODE_PRECEDING
-
+#define SHUNTINGYARDVARIABLEARGUMENTKEY "arg#"
 
 inline bool is_number(const std::string& s)
 {
@@ -151,6 +152,14 @@ inline std::vector<std::string> parsecomponents( std::string str) {
                 partial = "";
             }
             components.push_back("^");
+            continue;
+        }
+        if (ch == '%') {
+            if (partial != "") {
+                components.push_back(partial);
+                partial = "";
+            }
+            components.push_back("%");
             continue;
         }
         if (ch == ',') {
@@ -661,7 +670,7 @@ valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
 
 
 
-valms evalformula::evalvariable( std::string& vname ) {
+valms evalformula::evalvariable( std::string& vname, std::vector<int>& vidxin ) {
     // if (!populated && (vname == "E" || vname == "V" || vname == "NE")) {
 /*
         int e = lookup_variable("E",*variables);
@@ -695,7 +704,23 @@ valms evalformula::evalvariable( std::string& vname ) {
         res.v.iv = 0;
     } else
     {
-        res = variables[i]->qs;
+        if (vidxin.size() == 0)
+            res = variables[i]->qs;
+        else {
+            if (vidxin.size() != 1)
+            {
+                std::cout << "Wrong number of parameters passed to de-index a variable\n";
+            } else
+            {
+                int index = vidxin[0];
+                auto pos = variables[i]->qs.seti->getitrpos();
+                int i = 0;
+                while (!pos->ended() && i++ <= index) {
+                    res = pos->getnext();
+                }
+            }
+        }
+
     }
     return res;
 }
@@ -772,7 +797,20 @@ valms evalformula::eval( formulaclass& fc)
 
 
     if (fc.fo == formulaoperator::fovariable) {
-        res = evalvariable(fc.v.qc->name);
+
+
+        if (fc.v.vs.ps.empty())
+        {
+            std::vector<int> ps {};
+            res = evalvariable(fc.v.vs.name,ps);
+        } else {
+            std::vector<int> ps {};
+            for (auto f : fc.v.vs.ps) {
+                ps.push_back(eval(*f).v.iv);
+                // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
+            }
+            res = evalvariable(fc.v.vs.name,ps);
+        }
         return res;
     }
 
@@ -1847,36 +1885,32 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
     std::vector<std::string> output {};
     std::vector<std::string> operatorstack {};
 
-    int quantcrit = 0;
+    std::vector<bool> werevalues {};
+    std::vector<int> argcount {};
+
     int n = 0;
     while( n < components.size()) {
         const std::string tok = components[n++];
-        if (is_real(tok))
+        if (is_real(tok) || is_number(tok) || is_truth(tok))
         {
             output.insert(output.begin(),tok);
+            if (!werevalues.empty())
+            {
+                werevalues.resize(werevalues.size() - 1);
+                werevalues.push_back(true);
+            }
             continue;
         }
-        if (is_number(tok)) {
-            output.insert(output.begin(),tok);
-            continue;
-        }
-        if (is_literal(tok)) {
-            if (litnumps[get_literal(tok)] > 0)
-                operatorstack.push_back(tok);
-            else
-                output.insert(output.begin(),tok);
-            continue;
-        }
-        if (is_truth(tok)) {
-            output.insert(output.begin(),tok);
-            continue;
-        }
-        if (is_quantifier(tok))
-        {
-            operatorstack.push_back(tok);
-            continue;
-        }
-        if (is_operator(tok)) {
+        // if (is_number(tok)) {
+            // output.insert(output.begin(),tok);
+            // if (!werevalues.empty())
+            // {
+                // werevalues.resize(werevalues.size() - 1);
+                // werevalues.push_back(true);
+            // }
+            // continue;
+        // }
+        if ((is_operator(tok) && !is_quantifier(tok)) || tok == "IN") {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
                 while ((ostok != "(") && (operatorprecedence(ostok,tok) >= 0)) {
@@ -1891,27 +1925,135 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             operatorstack.push_back(tok);
             continue;
         }
-        if (tok == "IN") {
-            operatorstack.push_back(tok);
+
+
+        if (tok != "IN" && (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok)))
+        {
+            // if (litnumps[get_literal(tok)] > 0)
+            // {
+            if (n < components.size())
+                if (components[n] == "(")
+                {
+                    operatorstack.push_back(tok);
+                    argcount.push_back(0);
+                    if (!werevalues.empty())
+                        werevalues[werevalues.size() - 1] = true;
+                    werevalues.push_back(false);
+                } else
+                {
+                    output.insert(output.begin(),tok);
+                    if (!werevalues.empty())
+                    {
+                        werevalues.resize(werevalues.size() - 1);
+                        werevalues.push_back(true);
+                    }
+                }
+            else
+            {
+                output.insert(output.begin(),tok);
+                if (!werevalues.empty())
+                {
+                    werevalues.resize(werevalues.size() - 1);
+                    werevalues.push_back(true);
+                }
+            }
+            // }
+            // else
+            // output.insert(output.begin(),tok);
             continue;
         }
-        if (is_function(tok)) {
-            operatorstack.push_back(tok);
-            continue;
-        }
-        if (is_variable(tok)) {
-            operatorstack.push_back(tok);
-            continue;
-        }
+        // if (is_truth(tok)) {
+            // output.insert(output.begin(),tok);
+            // if (werevalues.size() > 0)
+            // {
+                // werevalues.resize(werevalues.size() - 1);
+                // werevalues.push_back(true);
+            // }
+            // continue;
+        // }
+        // if (is_quantifier(tok))
+        // {
+            // operatorstack.push_back(tok);
+            // argcount.push_back(0);
+            // if (!werevalues.empty())
+            // {
+                // werevalues.resize(werevalues.size() - 1);
+                // werevalues.push_back(true);
+            // }
+                // werevalues.push_back(false);
+            // continue;
+        // }
+        // if (tok == "IN") {
+            // operatorstack.push_back(tok);
+            // continue;
+        // }
+        // if (is_function(tok)) {
+            // operatorstack.push_back(tok);
+            // argcount.push_back(0);
+            // if (!werevalues.empty())
+            // {
+                // werevalues.resize(werevalues.size() - 1);
+                // werevalues.push_back(true);
+            // }
+                // werevalues.push_back(false);
+            // continue;
+        // }
+        // if (is_variable(tok)) {
+            // operatorstack.push_back(tok);
+            // argcount.push_back(0);
+            // if (!werevalues.empty())
+            // {
+                // werevalues.resize(werevalues.size() - 1);
+                // werevalues.push_back(true);
+            // }
+                // werevalues.push_back(false);
+            // continue;
+        // }
         if (tok == ",") {
-            if (operatorstack.size() >= 1) {
+            if (!operatorstack.empty()) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "(") {
                     output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
-                    ostok = operatorstack[operatorstack.size()-1];
+                    if (!operatorstack.empty())
+                        ostok = operatorstack[operatorstack.size()-1];
+                    else
+                    {
+                        std::cout << "Mismatched parentheses\n";
+                        break;
+                    }
                 }
+            } else
+            {
+                std::cout << "Mismatched parentheses\n";
             }
+            if (!werevalues.empty())
+            {
+                bool w;
+                while (!werevalues.empty())
+                {
+                    w = werevalues[werevalues.size()-1];
+                    werevalues.resize(werevalues.size() - 1);
+
+                    if (w == true)
+                    {
+                        if (!argcount.empty())
+                        {
+                            int a = argcount[argcount.size()-1];
+                            ++a;
+                            argcount[argcount.size()-1] = a;
+                        } else
+                        {
+                            std::cout << "Mismatched argcount\n";
+                        }
+                    } else
+                        break;
+                    break;
+                }
+                // if (w == false)
+                    werevalues.push_back(false);
+            } else
+                werevalues.push_back(false);
             continue;
         }
 
@@ -1948,31 +2090,103 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             if (operatorstack.size() > 0) {
                 ostok = operatorstack[operatorstack.size()-1];
 
-                if (is_function(ostok))
+                if (is_operator(ostok) && !is_quantifier(ostok)) {
+                    continue;
+                }
+                if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok))
                 {
-                    output.insert(output.begin(),ostok);
-                    operatorstack.resize(operatorstack.size()-1);
-                    continue;
-                }
-                if (is_quantifier(ostok)) {
-                    output.insert(output.begin(),ostok);
-                    operatorstack.resize(operatorstack.size()-1);
-                    continue;
-                }
-                if (is_literal(ostok)) {
-                    if (litnumps[get_literal(ostok)] > 0)
+                    int a = 0;
+                    if (!argcount.empty())
                     {
-                        output.insert(output.begin(),ostok);
-                        operatorstack.resize(operatorstack.size()-1);
-                        continue;
-                    }
-                }
-                if (is_variable(ostok))
-                {
+                        a = argcount[argcount.size()-1];
+                        argcount.resize(argcount.size()-1);
+                    } else
+                        std::cout << "Mismatched argcount\n";
+                    bool w = false;
+                    if (!werevalues.empty())
+                    {
+                        w = werevalues[werevalues.size()-1];
+                        werevalues.resize(werevalues.size()-1);
+                    } else
+                        std::cout << "Mismatched werevalues (right paren branch)\n";
+                    if (w == true)
+                        ++a;
+                    output.insert(output.begin(), std::to_string(a));
+                    output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
                     output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     continue;
                 }
+                // if (is_quantifier(ostok)) {
+                    // int a = 0;
+                    // if (argcount.size() > 0)
+                    // {
+                        // a = argcount[argcount.size()-1];
+                        // argcount.resize(argcount.size()-1);
+                    // } else
+                        // std::cout << "Mismatched argcount\n";
+                    // std::string w = false;
+                    // if (werevalues.size() > 0)
+                    // {
+                        // w = werevalues[werevalues.size()-1];
+                        // werevalues.resize(werevalues.size()-1);
+                    // } else
+                        // std::cout << "Mismatched werevalues\n";
+                    // if (w == true)
+                        // ++a;
+                    // output.insert(output.begin(), "argcnt="+std::to_string(a));
+                    // output.insert(output.begin(),ostok);
+                    // operatorstack.resize(operatorstack.size()-1);
+                    // continue;
+                // }
+                // if (is_literal(ostok)) {
+                    // if (litnumps[get_literal(ostok)] > 0)
+                    // {
+                        // int a = 0;
+                        // if (argcount.size() > 0)
+                        // {
+                            // a = argcount[argcount.size()-1];
+                            // argcount.resize(argcount.size()-1);
+                        // } else
+                            // std::cout << "Mismatched argcount\n";
+                        // std::string w = false;
+                        // if (werevalues.size() > 0)
+                        // {
+                            // w = werevalues[werevalues.size()-1];
+                            // werevalues.resize(werevalues.size()-1);
+                        // } else
+                            // std::cout << "Mismatched werevalues\n";
+                        // if (w == true)
+                            // ++a;
+                        // output.insert(output.begin(), "argcnt="+std::to_string(a));
+                        // output.insert(output.begin(),ostok);
+                        // operatorstack.resize(operatorstack.size()-1);
+                        // continue;
+                    // }
+                // }
+                // if (is_variable(ostok))
+                // {
+                    // int a = 0;
+                    // if (argcount.size() > 0)
+                    // {
+                        // a = argcount[argcount.size()-1];
+                        // argcount.resize(argcount.size()-1);
+                    // } else
+                        // std::cout << "Mismatched argcount\n";
+                    // std::string w = false;
+                    // if (werevalues.size() > 0)
+                    // {
+                        // w = werevalues[werevalues.size()-1];
+                        // werevalues.resize(werevalues.size()-1);
+                    // } else
+                        // std::cout << "Mismatched werevalues\n";
+                    // if (w == true)
+                        // ++a;
+                    // output.insert(output.begin(), "argcnt="+std::to_string(a));
+                    // output.insert(output.begin(),ostok);
+                    // operatorstack.resize(operatorstack.size()-1);
+                    // continue;
+                // }
             }
             continue;
         }
@@ -1990,8 +2204,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
     }
 
 //    for (auto o : output)
-  //      std::cout << o << ", ";
-   // std::cout << "\n";
+//        std::cout << o << ", ";
+//    std::cout << "\n";
 
     return output;
 
@@ -2017,28 +2231,34 @@ inline formulaclass* parseformulainternal(
             auto qc = new qclass;
             qc->secondorder = false;
             // qc->eval( q, ++pos);
-            int pos2 = pos;
-            int pos1 = pos2;
+            int argcnt;
+            if (q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            {
+                argcnt = stoi(q[++pos]);
+                if (argcnt != 3 && argcnt != 2)
+                    std::cout << "Wrong number (" << argcnt << ") of arguments to a quantifier\n";
+            }
+            int pos2 = pos+1;
             int quantcount = 0;
-            while (pos2+1 <= q.size() && (q[pos2] != "IN" || quantcount > 1)) {
+            while (pos2+1 <= q.size() && (q[pos2] != "IN" || quantcount >= 1)) {
                 quantcount += is_quantifier(q[pos2]) ? 1 : 0;
                 quantcount -= q[pos2] == "IN" ? 1 : 0;
-                pos1 = pos2;
-                qc->name = q[pos2++];
-
+                ++pos2;
             }
-            if (pos2 + 1 >= q.size()) {
+            if (pos2 >= q.size()) {
                 std::cout << "Quantifier not containing an 'IN'\n";
                 exit(-1);
             }
-
+            // --pos2;
             qc->superset = parseformulainternal(q, pos2, litnumps,littypes,variables,fnptrs);
+            qc->name = q[++pos2];
             qc->criterion = nullptr;
             variables->push_back(qc);
 
             formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
 
-            if (pos+1 < pos1)
+            // if (pos+1 < pos1)
+            if (argcnt == 3)
             {
                 qc->criterion = parseformulainternal(q,pos, litnumps, littypes, variables, fnptrs);
             }
@@ -2052,6 +2272,7 @@ inline formulaclass* parseformulainternal(
             pos = pos2;
             return fc;
 #else
+            // what follows needs to be revisited using argcnt aspect of Shunting Yard formula (variable arguments)
             auto qc = new qclass;
             qc->secondorder = false;
             qc->name = q[++pos];
@@ -2089,12 +2310,36 @@ inline formulaclass* parseformulainternal(
         }
         int v = lookup_variable(tok,*variables);
         if (v >= 0) {
-            formulavalue fv {};
 
-            fv.v.t = (*variables)[v]->qs.t;
-            fv.v = (*variables)[v]->qs;
-            auto fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
-            fc->v.qc = (*variables)[v];
+            formulavalue fv {};
+            formulaclass* fc;
+            if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            {
+                pos += 2;
+                if (q[pos] == "1")
+                {
+                    fv.v.t = (*variables)[v]->qs.t;
+                    fv.v = (*variables)[v]->qs;
+
+                    fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+                    fc->v.vs.name = tok;
+                    fc->v.vs.ps.clear();
+                    fc->v.vs.ps.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
+                    fc->v.qc = (*variables)[v];
+                } else
+                {
+                    if (q[pos] != "1")
+                        std::cout << "More than one parameter used to index into a set or tuple\n";
+                }
+            } else {
+                fv.v.t = (*variables)[v]->qs.t;
+                fv.v = (*variables)[v]->qs;
+                fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+                fc->v.vs.name = tok;
+                fc->v.vs.ps.clear();
+                fc->v.qc = (*variables)[v];
+            }
+
             return fc;
         }
         // if (tok == "V" || tok == "E" || tok == "NE") {
@@ -2121,23 +2366,36 @@ inline formulaclass* parseformulainternal(
                 if (f.first == tok)
                     argcnt = f.second.second;
             std::vector<formulaclass*> psrev {};
-            for (int i = 0; i < argcnt; ++i) {
-                psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
+            if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+                if (stoi(q[pos+2]) == argcnt)
+                {
+                    pos += 2;
+                    for (int i = 0; i < argcnt; ++i) {
+                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
+                    }
+                    for (int i = psrev.size()-1; i >= 0; --i)
+                        ps.push_back(psrev[i]);
+                    formulavalue fv {};
+                    if (auto search = fnptrs->find(tok); search != fnptrs->end())
+                    {
+                        fv.fns.fn = search->second.first;
+                        fv.fns.ps = ps;
+                        fv.v.t = mtcontinuous;
+                        return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
+                    } else
+                    {
+                        std::cout << "Unknown function " << tok << " in parseformula internal\n";
+                    }
+                } else
+                {
+                    std::cout << "Error in Shuntingyard around function arguments\n";
+                }
+            else
+            {
+                std::cout << "Error in Shuntingyard around function arguments\n";
             }
-            for (int i = psrev.size()-1; i >= 0; --i)
-                ps.push_back(psrev[i]);
-
             formulavalue fv {};
-            if (auto search = fnptrs->find(tok); search != fnptrs->end())
-            {
-                fv.fns.fn = search->second.first;
-                fv.fns.ps = ps;
-                fv.v.t = mtcontinuous;
-                return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
-            } else
-            {
-                std::cout << "Unknown function " << tok << " in parseformula internal\n";
-            }
+            return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
         }
         if (is_literal(tok))
         {
@@ -2149,14 +2407,28 @@ inline formulaclass* parseformulainternal(
                 return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
             else
             {
-                int argcnt = litnumps[fv.lit.l];
-                std::vector<formulaclass*> psrev {};
-                for (int i = 0; i < argcnt; ++i) {
-                    psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
+                if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+                {
+                    int argcnt = stoi(q[pos+2]);
+                    pos += 2;
+                    if (argcnt != litnumps[fv.lit.l])
+                    {
+                        std::cout << "Literal expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
+                        return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+                    };
+                    std::vector<formulaclass*> psrev {};
+                    for (int i = 0; i < argcnt; ++i) {
+                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
+                    }
+                    for (int i = psrev.size()-1; i >= 0; --i)
+                        fv.lit.ps.push_back(psrev[i]);
+                    return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+                } else
+                {
+                    std::cout << "Error: parameterized literal has no parameters\n";
+                    return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+
                 }
-                for (int i = psrev.size()-1; i >= 0; --i)
-                    fv.lit.ps.push_back(psrev[i]);
-                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
             }
 
         }
