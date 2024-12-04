@@ -747,7 +747,7 @@ public:
                     auto itr = this->meas[i];
                     auto pos = itr->getitrpos();
                     std::string pre = "";
-                    osset( os, pos, pre, mtset );
+                    osset( os, pos, pre, mttuple );
                     os << "\n";
                     // min = this->meas[i] < min ? this->meas[i] : min;
                     // sum += this->meas[i];

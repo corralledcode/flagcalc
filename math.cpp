@@ -18,6 +18,8 @@
 
 #define QUANTIFIERMODE_PRECEDING
 #define SHUNTINGYARDVARIABLEARGUMENTKEY "arg#"
+#define SHUNTINGYARDINLINESETKEY "_INLINESET"
+#define SHUNTINGYARDINLINETUPLEKEY "_INLINETUPLE"
 
 inline bool is_number(const std::string& s)
 {
@@ -89,6 +91,23 @@ inline std::vector<std::string> parsecomponents( std::string str) {
                 components.push_back(partial);
                 partial = "";
             }
+            continue;
+        }
+        if (ch == '{')
+        {
+            if (partial != "") {
+                components.push_back(partial);
+                partial = "";
+            }
+            components.push_back("{");
+            continue;
+        }
+        if (ch == '}') {
+            if (partial != "") {
+                components.push_back(partial);
+                partial = "";
+            }
+            components.push_back("}");
             continue;
         }
         if (ch == '(') {
@@ -229,6 +248,12 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         }
         if (ch == '<')
         {
+            if (partial == "<")
+            {
+                components.push_back( "<<");
+                partial = "";
+                continue;
+            }
             if (partial != "")
             {
                 components.push_back(partial);
@@ -238,6 +263,12 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         }
         if (ch == '>')
         {
+            if (partial == ">")
+            {
+                components.push_back( ">>");
+                partial = "";
+                continue;
+            }
             if (partial != "")
             {
                 components.push_back(partial);
@@ -766,6 +797,13 @@ valms evalformula::eval( formulaclass& fc)
         case mtdiscrete: res.v.iv = fc.v.v.v.iv;
             return res;
         case mtcontinuous: res.v.dv = fc.v.v.v.dv;
+            return res;
+        case mtset:
+        case mttuple:
+            std::vector<valms> tot {};
+            for (int i = 0; i < fc.v.ss.elts.size(); ++i)
+                tot.push_back(eval(*fc.v.ss.elts[i]));
+            res.seti = new setitrmodeone(tot);
             return res;
         }
     }
@@ -1907,19 +1945,10 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             }
             continue;
         }
-        // if (is_number(tok)) {
-            // output.insert(output.begin(),tok);
-            // if (!werevalues.empty())
-            // {
-                // werevalues.resize(werevalues.size() - 1);
-                // werevalues.push_back(true);
-            // }
-            // continue;
-        // }
         if ((is_operator(tok) && !is_quantifier(tok)) || tok == "IN") {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
-                while ((ostok != "(") && (operatorprecedence(ostok,tok) >= 0)) {
+                while ((ostok != "(") && (ostok != "{") && (operatorprecedence(ostok,tok) >= 0)) {
                     output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     if (operatorstack.size() >= 1)
@@ -1971,20 +2000,20 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         if (tok == ",") {
             if (!operatorstack.empty()) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
-                while (ostok != "(") {
+                while (ostok != "(" && ostok != "{" && ostok != "<<") {
                     output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     if (!operatorstack.empty())
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Mismatched parentheses\n";
+                        std::cout << "Mismatched parentheses, curley braces, or tuple brackets\n";
                         break;
                     }
                 }
             } else
             {
-                std::cout << "Mismatched parentheses\n";
+                std::cout << "Mismatched parentheses, curley braces, or tuple brackets (loc 2)\n";
             }
             if (!werevalues.empty())
             {
@@ -2016,18 +2045,26 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             continue;
         }
 
-        if (tok == "(") {
+        if (tok == "{")
+        {
+            operatorstack.push_back(SHUNTINGYARDINLINESETKEY);
             operatorstack.push_back(tok);
+            argcount.push_back(0);
+            if (!werevalues.empty())
+                werevalues[werevalues.size() - 1] = true;
+            werevalues.push_back(false);
             continue;
         }
-        if (tok == ")") {
+
+        if (tok == "}")
+        {
             std::string ostok;
             if (operatorstack.size() >= 1)
             {
                 ostok = operatorstack[operatorstack.size()-1];
-                while (ostok != "(") {
+                while (ostok != "{") {
                     if (operatorstack.empty()) {
-                        std::cout << "Error mismatched parentheses\n";
+                        std::cout << "Error mismatched curley braces (loc 1)\n";
                         return output;
                     }
                     output.insert(output.begin(),ostok);
@@ -2036,48 +2073,228 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Error mismatched parentheses\n";
+                        std::cout << "Error mismatched curley braces (loc 2)\n";
+                        return output;
+                    }
+                }
+            }
+            if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "{") {
+                std::cout << "Error mismatched curley braces (loc 3)\n";
+                return output;
+            }
+            operatorstack.resize(operatorstack.size()-1);
+
+
+            if (operatorstack.size() > 0) {
+                ostok = operatorstack[operatorstack.size()-1];
+
+                // if (is_operator(ostok) && !is_quantifier(ostok)) {
+                    // continue;
+                // } else
+                    if (ostok == SHUNTINGYARDINLINESETKEY)
+                    // if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok))
+                    {
+                        int a = 0;
+                        if (!argcount.empty())
+                        {
+                            a = argcount[argcount.size()-1];
+                            argcount.resize(argcount.size()-1);
+                        } else
+                            std::cout << "Mismatched argcount\n";
+                        bool w = false;
+                        if (!werevalues.empty())
+                        {
+                            w = werevalues[werevalues.size()-1];
+                            werevalues.resize(werevalues.size()-1);
+                        } else
+                            std::cout << "Mismatched werevalues (right paren branch)\n";
+                        if (w == true)
+                            ++a;
+
+                        output.insert(output.begin(), std::to_string(a));
+                        output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
+                        output.insert(output.begin(),ostok);
+                        operatorstack.resize(operatorstack.size()-1);
+                        // continue;
+                    } else
+                    {
+                        std::cout << "Error in inline set\n";
+                    }
+
+            }
+
+
+            continue;
+        }
+
+
+        if (tok == "<<")
+        {
+            operatorstack.push_back(SHUNTINGYARDINLINETUPLEKEY);
+            operatorstack.push_back(tok);
+            argcount.push_back(0);
+            if (!werevalues.empty())
+                werevalues[werevalues.size() - 1] = true;
+            werevalues.push_back(false);
+            continue;
+        }
+
+        if (tok == ">>")
+        {
+            std::string ostok;
+            if (operatorstack.size() >= 1)
+            {
+                ostok = operatorstack[operatorstack.size()-1];
+                while (ostok != "<<") {
+                    if (operatorstack.empty()) {
+                        std::cout << "Error mismatched tuple braces (loc 1)\n";
+                        return output;
+                    }
+                    output.insert(output.begin(),ostok);
+                    operatorstack.resize(operatorstack.size()-1);
+                    if (operatorstack.size() >= 1)
+                        ostok = operatorstack[operatorstack.size()-1];
+                    else
+                    {
+                        std::cout << "Error mismatched tuple braces (loc 2)\n";
+                        return output;
+                    }
+                }
+            }
+            if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "<<") {
+                std::cout << "Error mismatched tuple braces (loc 3)\n";
+                return output;
+            }
+            operatorstack.resize(operatorstack.size()-1);
+
+
+            if (operatorstack.size() > 0) {
+                ostok = operatorstack[operatorstack.size()-1];
+
+                // if (is_operator(ostok) && !is_quantifier(ostok)) {
+                    // continue;
+                // } else
+                    if (ostok == SHUNTINGYARDINLINETUPLEKEY)
+                    // if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok))
+                    {
+                        int a = 0;
+                        if (!argcount.empty())
+                        {
+                            a = argcount[argcount.size()-1];
+                            argcount.resize(argcount.size()-1);
+                        } else
+                            std::cout << "Mismatched argcount\n";
+                        bool w = false;
+                        if (!werevalues.empty())
+                        {
+                            w = werevalues[werevalues.size()-1];
+                            werevalues.resize(werevalues.size()-1);
+                        } else
+                            std::cout << "Mismatched werevalues (right paren branch)\n";
+                        if (w == true)
+                            ++a;
+
+                        output.insert(output.begin(), std::to_string(a));
+                        output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
+                        output.insert(output.begin(),ostok);
+                        operatorstack.resize(operatorstack.size()-1);
+                        // continue;
+                    } else
+                    {
+                        std::cout << "Error in inline tuple\n";
+                    }
+
+            }
+
+
+            continue;
+        }
+
+
+
+
+
+
+        if (tok == "(") {
+            operatorstack.push_back(tok);
+            continue;
+        }
+        if (tok == ")") {
+
+            std::string ostok;
+            if (operatorstack.size() >= 1)
+            {
+                ostok = operatorstack[operatorstack.size()-1];
+                while (ostok != "(") {
+                    if (operatorstack.empty()) {
+                        std::cout << "Error mismatched parentheses (loc 1)\n";
+                        return output;
+                    }
+                    output.insert(output.begin(),ostok);
+                    operatorstack.resize(operatorstack.size()-1);
+                    if (operatorstack.size() >= 1)
+                        ostok = operatorstack[operatorstack.size()-1];
+                    else
+                    {
+                        std::cout << "Error mismatched parentheses (loc 2)\n";
                         return output;
                     }
                 }
             }
             if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
-                std::cout << "Error mistmatched parentheses\n";
+                std::cout << "Error mismatched parentheses (loc 3)\n";
                 return output;
             }
             operatorstack.resize(operatorstack.size()-1);
+
+            if (n < components.size())
+                if (components[n] == "(") {
+                    operatorstack.push_back("DEREF");
+                    argcount.push_back(1);
+                    if (n+1 < components.size() && components[n+1] == ")")
+                        argcount[argcount.size()-1] = 0;
+                    else
+                        if (!werevalues.empty())
+                            werevalues[werevalues.size() - 1] = true;
+                    werevalues.push_back(false);
+                }
+
+
             if (operatorstack.size() > 0) {
                 ostok = operatorstack[operatorstack.size()-1];
 
                 if (is_operator(ostok) && !is_quantifier(ostok)) {
-                    continue;
-                }
-                if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok))
-                {
-                    int a = 0;
-                    if (!argcount.empty())
+                    // continue;
+                } else
+                    if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok))
                     {
-                        a = argcount[argcount.size()-1];
-                        argcount.resize(argcount.size()-1);
-                    } else
-                        std::cout << "Mismatched argcount\n";
-                    bool w = false;
-                    if (!werevalues.empty())
-                    {
-                        w = werevalues[werevalues.size()-1];
-                        werevalues.resize(werevalues.size()-1);
-                    } else
-                        std::cout << "Mismatched werevalues (right paren branch)\n";
-                    if (w == true)
-                        ++a;
-                    output.insert(output.begin(), std::to_string(a));
-                    output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
-                    output.insert(output.begin(),ostok);
-                    operatorstack.resize(operatorstack.size()-1);
-                    continue;
-                }
+                        int a = 0;
+                        if (!argcount.empty())
+                        {
+                            a = argcount[argcount.size()-1];
+                            argcount.resize(argcount.size()-1);
+                        } else
+                            std::cout << "Mismatched argcount\n";
+                        bool w = false;
+                        if (!werevalues.empty())
+                        {
+                            w = werevalues[werevalues.size()-1];
+                            werevalues.resize(werevalues.size()-1);
+                        } else
+                            std::cout << "Mismatched werevalues (right paren branch)\n";
+                        if (w == true)
+                            ++a;
+
+                        output.insert(output.begin(), std::to_string(a));
+                        output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
+                        output.insert(output.begin(),ostok);
+                        operatorstack.resize(operatorstack.size()-1);
+                        // continue;
+                    }
 
             }
+
+
             continue;
         }
 
@@ -2085,8 +2302,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
     }
     while (operatorstack.size()> 0) {
         std::string ostok = operatorstack[operatorstack.size()-1];
-        if (ostok == "(") {
-            std::cout << "Error mismatched parentheses\n";
+        if (ostok == "(" || ostok == "{" || ostok == "<<") {
+            std::cout << "Error mismatched parentheses, curley braces, or tuple brackets: " << ostok << ", (loc 4)\n";
             return output;
         }
         output.insert(output.begin(),ostok);
@@ -2116,6 +2333,27 @@ inline formulaclass* parseformulainternal(
     while( pos+1 < q.size()) {
         ++pos;
         std::string tok = q[pos];
+        if (tok == SHUNTINGYARDINLINESETKEY || tok == SHUNTINGYARDINLINETUPLEKEY)
+        {
+
+            formulavalue fv {};
+            fv.v.t = tok == SHUNTINGYARDINLINESETKEY ? mtset : mttuple;
+            int argcount = 0;
+            if (q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            {
+                argcount = stoi(q[++pos]);
+            }
+
+            fv.ss.elts.clear();
+            fv.ss.elts.resize(argcount);
+            for (int i = 0; i < argcount; ++i)
+                fv.ss.elts[argcount - i - 1] = parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs);
+
+            return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
+
+        }
+
+
         if (is_quantifier(tok)) {
 
 #ifdef QUANTIFIERMODE_PRECEDING
@@ -2328,10 +2566,12 @@ inline formulaclass* parseformulainternal(
                 } else
                 {
                     std::cout << "Error in Shuntingyard around function arguments\n";
+                    exit(1);
                 }
             else
             {
                 std::cout << "Error in Shuntingyard around function arguments\n";
+                exit(1);
             }
             formulavalue fv {};
             return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);

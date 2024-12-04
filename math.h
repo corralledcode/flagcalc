@@ -114,6 +114,11 @@ struct variablestruct
     std::vector<formulaclass*> ps;
 };
 
+struct setstruct
+{
+    std::vector<formulaclass*> elts;
+};
+
 struct intpair
 {
     int i;
@@ -1174,6 +1179,7 @@ struct formulavalue {
     fnstruct fns;
     qclass* qc;
     variablestruct vs;
+    setstruct ss;
 };
 
 class formulaclass {

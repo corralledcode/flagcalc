@@ -3043,8 +3043,9 @@ public:
 
             }
 
-            if (litnumps[k] > 0 && iter[k]->hidden)
-                continue;
+            if (!litnumps.empty())
+                if (litnumps[k] > 0 && iter[k]->hidden)
+                    continue;
 
             // if (iter[k]->hidden)
                 // continue;

@@ -74,3 +74,11 @@ $PTH/flagcalc -r 8 14 100 -a f="abcd" a2="[cliquem]>3" all -v set i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set i=minimal3.cfg
 $PTH/flagcalc -r 4 3 1 -a s="FORALL (s IN P(P(V)), EXISTS (t IN P(V), t ELT s) OR st(s) == 0)" all
 $PTH/flagcalc -d f="abc" -a e="SET (v IN V, SET (u IN V, SET (t IN V, t)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a e="{3+2,SUM (v IN V, v), {1}}" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a e="BIGCUP (v IN V, {v+1})" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a e="SET (v IN V, {v+1})" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,<<<<1>>,5,6>>,2,3>>" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=ef=ghi" -a e="{SET (v IN V, FORALL (c IN Cycless(v), st(c) % 2 == 0), v)}" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efghi" -a e="{SET (v IN V, FORALL (c IN Cycless(v), (st(c) % 2) == 0), v)}" all -v set allsets i=minimal3.cfg
