@@ -879,9 +879,9 @@ public:
 
 
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
-                const std::vector<measuretype>& littypesin, const std::string& fstr )
+                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin, const std::string& fstr )
         : crit( recin,  "sn", "Sentence " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin, variables,&global_fnptrs);
     };
 
     ~sentofcrit() {
@@ -937,9 +937,10 @@ public:
         return takemeas(idx);
     }
 
-    formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin, const std::string& fstr )
+    formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin,
+        const std::vector<std::string>& litnamesin, const std::string& fstr )
         : meas( recin,  "fm", "Formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,variables, &global_fnptrs);
     }
     ~formmeas() {
         delete fc;
@@ -998,9 +999,9 @@ public:
 
 
     formtally( mrecords* recin , const std::vector<int>& litnumpsin,
-                const std::vector<measuretype>& littypesin, const std::string& fstr )
+                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin, const std::string& fstr )
         : tally( recin,  "ft", "Int-valued formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,variables,&global_fnptrs);
     };
 
     ~formtally() {
@@ -1082,9 +1083,10 @@ public:
 
 
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
-                const std::vector<measuretype>& littypesin, const std::string& fstr )
+                const std::vector<measuretype>& littypesin,
+                const std::vector<std::string>& litnamesin, const std::string& fstr )
         : set( recin,  "st", "Set-valued formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin, variables,&global_fnptrs);
     };
 
     ~formset() {
@@ -1166,9 +1168,10 @@ public:
 
 
     formtuple( mrecords* recin , const std::vector<int>& litnumpsin,
-                const std::vector<measuretype>& littypesin, const std::string& fstr )
+                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
+                const std::string& fstr )
         : set( recin,  "fp", "Tuple-valued formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,variables,&global_fnptrs);
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin, variables,&global_fnptrs);
     };
 
     ~formtuple() {

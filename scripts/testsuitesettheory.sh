@@ -71,3 +71,6 @@ $PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e
 $PTH/flagcalc -d f="-abcdea" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set i=minimal3.cfg
 $PTH/flagcalc -r 8 14 100 -a f="abcd" a2="[cliquem]>3" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a e="BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -r 4 3 1 -a s="FORALL (s IN P(P(V)), EXISTS (t IN P(V), t ELT s) OR st(s) == 0)" all
+$PTH/flagcalc -d f="abc" -a e="SET (v IN V, SET (u IN V, SET (t IN V, t)))" all -v set allsets i=minimal3.cfg

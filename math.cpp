@@ -1852,7 +1852,10 @@ inline bool is_function(std::string tok) {
 }
 
 inline bool is_literal(std::string tok) {
-    return tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']';
+    if ((tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']'))
+        return true;
+    else
+        return is_function(tok);
 }
 
 inline bool is_variable(std::string tok) {
@@ -1863,9 +1866,12 @@ inline bool is_variable(std::string tok) {
     return res;
 }
 
-inline int get_literal(std::string tok) {
+inline std::string get_literal(std::string tok) {
     if (is_literal(tok))
-        return stoi(tok.substr(1,tok.size()-2));
+        if (tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']')
+            return tok.substr(1,tok.size()-2);
+        else
+            return tok;
     return 0;
 }
 
@@ -1962,53 +1968,6 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             // output.insert(output.begin(),tok);
             continue;
         }
-        // if (is_truth(tok)) {
-            // output.insert(output.begin(),tok);
-            // if (werevalues.size() > 0)
-            // {
-                // werevalues.resize(werevalues.size() - 1);
-                // werevalues.push_back(true);
-            // }
-            // continue;
-        // }
-        // if (is_quantifier(tok))
-        // {
-            // operatorstack.push_back(tok);
-            // argcount.push_back(0);
-            // if (!werevalues.empty())
-            // {
-                // werevalues.resize(werevalues.size() - 1);
-                // werevalues.push_back(true);
-            // }
-                // werevalues.push_back(false);
-            // continue;
-        // }
-        // if (tok == "IN") {
-            // operatorstack.push_back(tok);
-            // continue;
-        // }
-        // if (is_function(tok)) {
-            // operatorstack.push_back(tok);
-            // argcount.push_back(0);
-            // if (!werevalues.empty())
-            // {
-                // werevalues.resize(werevalues.size() - 1);
-                // werevalues.push_back(true);
-            // }
-                // werevalues.push_back(false);
-            // continue;
-        // }
-        // if (is_variable(tok)) {
-            // operatorstack.push_back(tok);
-            // argcount.push_back(0);
-            // if (!werevalues.empty())
-            // {
-                // werevalues.resize(werevalues.size() - 1);
-                // werevalues.push_back(true);
-            // }
-                // werevalues.push_back(false);
-            // continue;
-        // }
         if (tok == ",") {
             if (!operatorstack.empty()) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
@@ -2117,76 +2076,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     operatorstack.resize(operatorstack.size()-1);
                     continue;
                 }
-                // if (is_quantifier(ostok)) {
-                    // int a = 0;
-                    // if (argcount.size() > 0)
-                    // {
-                        // a = argcount[argcount.size()-1];
-                        // argcount.resize(argcount.size()-1);
-                    // } else
-                        // std::cout << "Mismatched argcount\n";
-                    // std::string w = false;
-                    // if (werevalues.size() > 0)
-                    // {
-                        // w = werevalues[werevalues.size()-1];
-                        // werevalues.resize(werevalues.size()-1);
-                    // } else
-                        // std::cout << "Mismatched werevalues\n";
-                    // if (w == true)
-                        // ++a;
-                    // output.insert(output.begin(), "argcnt="+std::to_string(a));
-                    // output.insert(output.begin(),ostok);
-                    // operatorstack.resize(operatorstack.size()-1);
-                    // continue;
-                // }
-                // if (is_literal(ostok)) {
-                    // if (litnumps[get_literal(ostok)] > 0)
-                    // {
-                        // int a = 0;
-                        // if (argcount.size() > 0)
-                        // {
-                            // a = argcount[argcount.size()-1];
-                            // argcount.resize(argcount.size()-1);
-                        // } else
-                            // std::cout << "Mismatched argcount\n";
-                        // std::string w = false;
-                        // if (werevalues.size() > 0)
-                        // {
-                            // w = werevalues[werevalues.size()-1];
-                            // werevalues.resize(werevalues.size()-1);
-                        // } else
-                            // std::cout << "Mismatched werevalues\n";
-                        // if (w == true)
-                            // ++a;
-                        // output.insert(output.begin(), "argcnt="+std::to_string(a));
-                        // output.insert(output.begin(),ostok);
-                        // operatorstack.resize(operatorstack.size()-1);
-                        // continue;
-                    // }
-                // }
-                // if (is_variable(ostok))
-                // {
-                    // int a = 0;
-                    // if (argcount.size() > 0)
-                    // {
-                        // a = argcount[argcount.size()-1];
-                        // argcount.resize(argcount.size()-1);
-                    // } else
-                        // std::cout << "Mismatched argcount\n";
-                    // std::string w = false;
-                    // if (werevalues.size() > 0)
-                    // {
-                        // w = werevalues[werevalues.size()-1];
-                        // werevalues.resize(werevalues.size()-1);
-                    // } else
-                        // std::cout << "Mismatched werevalues\n";
-                    // if (w == true)
-                        // ++a;
-                    // output.insert(output.begin(), "argcnt="+std::to_string(a));
-                    // output.insert(output.begin(),ostok);
-                    // operatorstack.resize(operatorstack.size()-1);
-                    // continue;
-                // }
+
             }
             continue;
         }
@@ -2219,6 +2109,7 @@ inline formulaclass* parseformulainternal(
     int& pos,
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
+    const std::vector<std::string>& litnames,
     std::vector<qclass*>* variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs )
 {
@@ -2250,17 +2141,17 @@ inline formulaclass* parseformulainternal(
                 exit(-1);
             }
             // --pos2;
-            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,variables,fnptrs);
+            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, variables,fnptrs);
             qc->name = q[++pos2];
             qc->criterion = nullptr;
             variables->push_back(qc);
 
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs);
 
             // if (pos+1 < pos1)
             if (argcnt == 3)
             {
-                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, variables, fnptrs);
+                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, variables, fnptrs);
             }
             // qc->qs.t = qc->superset->v.v.seti->t;
 
@@ -2299,11 +2190,11 @@ inline formulaclass* parseformulainternal(
         if (is_operator(tok))
         {
             formulaoperator o = lookupoperator(tok);
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes, variables,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs);
             formulaclass* fcleft = nullptr;
             if (o != formulaoperator::fonot)
             {
-                fcleft = parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs);
+                fcleft = parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs);
             }
             if (fcright)
                 return fccombine({},fcleft,fcright,o);
@@ -2324,7 +2215,7 @@ inline formulaclass* parseformulainternal(
                     fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
                     fc->v.vs.name = tok;
                     fc->v.vs.ps.clear();
-                    fc->v.vs.ps.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
+                    fc->v.vs.ps.push_back(parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs));
                     fc->v.qc = (*variables)[v];
                 } else
                 {
@@ -2358,6 +2249,54 @@ inline formulaclass* parseformulainternal(
             fv.v.v.bv = t == formulaoperator::fotrue;
             return fccombine(fv,nullptr,nullptr,t);
         }
+        bool literal = false;
+        int i;
+        std::string potentialliteral {};
+        if (is_literal(tok) || is_function(tok))
+        {
+            potentialliteral = get_literal(tok);
+            for (i = 0; i < litnames.size() && !literal; ++i )
+                 literal = literal || litnames[i] == potentialliteral;
+            --i;
+        }
+
+        if (literal)
+        {
+            formulavalue fv {};
+            fv.lit.lname = potentialliteral;
+            fv.lit.l = i;
+            fv.lit.ps.clear();
+            fv.v.t = littypes[fv.lit.l];
+            if (litnumps[fv.lit.l] == 0)
+                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+            else
+            {
+                if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+                {
+                    int argcnt = stoi(q[pos+2]);
+                    pos += 2;
+                    if (argcnt != litnumps[fv.lit.l])
+                    {
+                        std::cout << "Literal expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
+                        return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+                    };
+                    std::vector<formulaclass*> psrev {};
+                    for (int i = 0; i < argcnt; ++i) {
+                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs));
+                    }
+                    for (int i = psrev.size()-1; i >= 0; --i)
+                        fv.lit.ps.push_back(psrev[i]);
+                    return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+                } else
+                {
+                    std::cout << "Error: parameterized literal has no parameters\n";
+                    return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+
+                }
+            }
+
+        }
+
         if (is_function(tok)) {
             std::vector<formulaclass*> ps {};
             // double (*f2)(std::vector<double>&);
@@ -2371,7 +2310,7 @@ inline formulaclass* parseformulainternal(
                 {
                     pos += 2;
                     for (int i = 0; i < argcnt; ++i) {
-                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
+                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs));
                     }
                     for (int i = psrev.size()-1; i >= 0; --i)
                         ps.push_back(psrev[i]);
@@ -2397,41 +2336,8 @@ inline formulaclass* parseformulainternal(
             formulavalue fv {};
             return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
         }
-        if (is_literal(tok))
-        {
-            formulavalue fv {};
-            fv.lit.l = get_literal(tok);
-            fv.lit.ps.clear();
-            fv.v.t = littypes[fv.lit.l];
-            if (litnumps[fv.lit.l] == 0)
-                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
-            else
-            {
-                if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
-                {
-                    int argcnt = stoi(q[pos+2]);
-                    pos += 2;
-                    if (argcnt != litnumps[fv.lit.l])
-                    {
-                        std::cout << "Literal expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
-                        return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
-                    };
-                    std::vector<formulaclass*> psrev {};
-                    for (int i = 0; i < argcnt; ++i) {
-                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,variables,fnptrs));
-                    }
-                    for (int i = psrev.size()-1; i >= 0; --i)
-                        fv.lit.ps.push_back(psrev[i]);
-                    return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
-                } else
-                {
-                    std::cout << "Error: parameterized literal has no parameters\n";
-                    return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
 
-                }
-            }
 
-        }
         if (is_number(tok)) { // integer
             formulavalue fv {};
             fv.v.v.iv = stoi(tok);
@@ -2457,6 +2363,7 @@ formulaclass* parseformula(
     const std::string& sentence,
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
+    const std::vector<std::string>& litnames,
     std::vector<qclass*>& variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs )
 {
@@ -2466,7 +2373,7 @@ formulaclass* parseformula(
         
         std::vector<std::string> components = Shuntingyardalg(c,litnumps);
         int pos = -1;
-        return parseformulainternal( components,pos, litnumps, littypes, &variables,fnptrs);
+        return parseformulainternal( components,pos, litnumps, littypes, litnames, &variables,fnptrs);
     } else {
         auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
         return fc;

@@ -110,11 +110,23 @@ public:
         }
         for (auto o : out)
             std::cout << o << ", ";
-        std::cout << "\n";
+        std::cout << " END\n";
 
-        std::string replacement = "1";
-        std::string result = std::regex_replace(f,r,replacement);
-        std::cout << result << "\n";
+
+        const std::regex r2 {"([[:alpha:]]\\w*)"};
+        std::vector<std::string> out2 {};
+        for (std::sregex_iterator p2(f.begin(),f.end(),r2); p2!=std::sregex_iterator{}; ++p2)
+        {
+            out2.push_back((*p2)[1]);
+        }
+        for (auto o : out2)
+            std::cout << o << ", ";
+        std::cout << " END2\n";
+
+
+        // std::string replacement = "1";
+        // std::string result = std::regex_replace(f,r,replacement);
+        // std::cout << result << "\n";
 
 
 
@@ -2084,6 +2096,7 @@ protected:
     std::vector<itn*> iter {};
     std::vector<int> litnumps {};
     std::vector<measuretype> littypes {};
+    std::vector<std::string> litnames {};
 
     int lookupiter( const std::string sin )
     {
@@ -2170,6 +2183,8 @@ protected:
                 litnumps[j] = sts[i]->pssz;
                 littypes.resize(j+1);
                 littypes[j] = a.t;
+                litnames.resize(j+1);
+                litnames[j] = sin;
                 return j;
             }
         }
@@ -2187,6 +2202,8 @@ protected:
                 litnumps[j] = crs[i]->pssz;
                 littypes.resize(j+1);
                 littypes[j] = a.t;
+                litnames.resize(j+1);
+                litnames[j] = sin;
                 return j;
             }
         }
@@ -2204,6 +2221,8 @@ protected:
                 littypes.resize(j+1);
                 litnumps[j] = mss[i]->pssz;
                 littypes[j] = a.t;
+                litnames.resize(j+1);
+                litnames[j] = sin;
                 return j;
             }
         }
@@ -2221,6 +2240,8 @@ protected:
                 littypes.resize(j+1);
                 litnumps[j] = tys[i]->pssz;
                 littypes[j] = a.t;
+                litnames.resize(j+1);
+                litnames[j] = sin;
                 return j;
             }
         }
@@ -2238,6 +2259,8 @@ protected:
                 litnumps[j] = oss[i]->pssz;
                 littypes.resize(j+1);
                 littypes[j] = a.t;
+                litnames.resize(j+1);
+                litnames[j] = sin;
                 return j;
             }
         }
@@ -2250,9 +2273,16 @@ protected:
     {
         const std::regex r {"\\[([[:alpha:]]\\w*)\\]"};
         std::vector<std::string> out {};
+        std::vector<std::string> out2 {};
+
         for (std::sregex_iterator p(sin.begin(),sin.end(),r); p!=std::sregex_iterator{}; ++p)
         {
             out.push_back((*p)[1]);
+        }
+        const std::regex r2 {"([[:alpha:]]\\w*)"};
+        for (std::sregex_iterator p( sin.begin(), sin.end(),r2); p != std::sregex_iterator{}; ++p)
+        {
+            out2.push_back((*p)[1]);
         }
         for (int i = 0; i < out.size(); ++i)
         {
@@ -2264,12 +2294,31 @@ protected:
 
                 idx = addmeas( out[i],mtin, roundin );
             }
-            std::string replacement = "[" + std::to_string(idx) + "]";
+
+            // std::string replacement = "[" + std::to_string(idx) + "]";
+            std::string replacement = "[" + out[i] + "]";
+
             std::string pattern = "\\[" + out[i] + "\\]";
             std::regex reg(pattern);
             sin = std::regex_replace(sin,reg,replacement);
         }
         // std::cout << sin << "\n";
+
+        for (int i = 0; i < out2.size(); ++i)
+        {
+            if (is_number(out2[i]))
+                continue;
+            int idx = lookupiter(out2[i]);
+            if (idx < 0)
+            {
+
+                idx = addmeas( out2[i],mtin, roundin );
+                if (idx < 0)
+                    continue;
+            }
+        }
+
+
         return sin;
     }
 
@@ -2409,7 +2458,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtbool,ccl.i);
                 ams a;
                 a.t = measuretype::mtbool;
-                a.a.cs = new sentofcrit(&rec,litnumps,littypes,s);
+                a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames,s);
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
@@ -2423,7 +2472,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtcontinuous,ccl.i);
                 ams a;
                 a.t = measuretype::mtcontinuous;
-                a.a.ms = new formmeas(&rec,litnumps,littypes,s);
+                a.a.ms = new formmeas(&rec,litnumps,littypes,litnames, s);
                 auto it = newiteration(mtcontinuous,ccl.i,a);
                 iter.push_back(it);
                 continue;
@@ -2437,7 +2486,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtdiscrete,ccl.i);
                 ams a;
                 a.t = measuretype::mtdiscrete;
-                a.a.ts = new formtally(&rec,litnumps,littypes,s);
+                a.a.ts = new formtally(&rec,litnumps,littypes,litnames, s);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
                 continue;
@@ -2451,7 +2500,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtset,ccl.i);
                 ams a;
                 a.t = measuretype::mtset;
-                a.a.ss = new formset(&rec,litnumps,littypes,s);
+                a.a.ss = new formset(&rec,litnumps,littypes,litnames, s);
                 auto it = newiteration(mtset,ccl.i,a);
                 iter.push_back(it);
                 continue;
@@ -2465,7 +2514,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mttuple,ccl.i);
                 ams a;
                 a.t = measuretype::mttuple;
-                a.a.os = new formtuple(&rec,litnumps,littypes,s);
+                a.a.os = new formtuple(&rec,litnumps,littypes,litnames,s);
                 auto it = newiteration(mttuple,ccl.i,a);
                 iter.push_back(it);
                 continue;
@@ -2716,7 +2765,7 @@ public:
                     std::string s = bindformula(q,mtbool,ccl.i);
                     ams a;
                     a.t = measuretype::mtbool;
-                    a.a.cs = new sentofcrit(&rec,litnumps,littypes,s);
+                    a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames, s);
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
@@ -2743,7 +2792,7 @@ public:
                     std::string s = bindformula(q,mtcontinuous,ccl.i);
                     ams a;
                     a.t = measuretype::mtcontinuous;
-                    a.a.ms = new formmeas(&rec,litnumps,littypes,s);
+                    a.a.ms = new formmeas(&rec,litnumps,littypes,litnames,s);
                     auto it = newiteration(mtcontinuous,ccl.i,a);
                     iter.push_back(it);
                     litnumps.resize(iter.size());

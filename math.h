@@ -104,6 +104,7 @@ struct fnstruct {
 struct litstruct
 {
     int l;
+    std::string lname;
     std::vector<formulaclass*> ps;
 };
 
@@ -1251,6 +1252,7 @@ formulaclass* parseformula(
     const std::string& sentence,
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
+    const std::vector<std::string>& litnames,
     std::vector<qclass*>& variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs  );
 
@@ -1263,6 +1265,7 @@ public:
     graphtype* g {};
     std::vector<valms>* literals {};
     std::vector<measuretype>* littypes {};
+    std::vector<std::string>* litnames {};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
     //std::function<void()>* populatevariablesbound {};
     std::vector<qclass*> variables {};
