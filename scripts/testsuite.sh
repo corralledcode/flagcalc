@@ -29,13 +29,14 @@ $PTH/flagcalc -r 10 12 1000 -a s="[kappat] <= [deltam]" all -v i=minimal3.cfg mi
 $PTH/flagcalc -r 10 12 10000 -a s="([kappat] > 0) == [conn1c]" all -v i=minimal3.cfg min subobj srm
 $PTH/flagcalc -r 8 7 1000 -a is=quantforestcrit.dat all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a is=bipartitecrit2.dat all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 12 1000 -a c=cr1 s2="FORALL (FORALL (FORALL (NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)), z IN [V]) ,y IN [V]) , x IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 12 1000 -a s="[cr1] != FORALL (FORALL (FORALL (NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)), z IN [V]) ,y IN [V]) , x IN [V])" all -v i=minimal3.cfg
-$PTH/flagcalc -r 15 10 2 -a s="FORALL (s == [V], s IN [Sizedsubset]([V],[dimm]))" all
-$PTH/flagcalc -r 4 4 1 -a s="EXISTS (EXISTS (EXISTS (EXISTS (EXISTS (t ELT y AND u ELT y AND v ELT y AND w ELT y AND t != u AND t != v AND u != v AND t != w AND u != w AND v != w, w IN [V]), t IN [V]), u IN [V]), v IN [V]), y IN [Sizedsubset]([V],3))" all
-$PTH/flagcalc -r 4 4 1 -a s="EXISTS (EXISTS (EXISTS (EXISTS (EXISTS (t ELT y AND u ELT y AND v ELT y AND w ELT y AND t != u AND t != v AND u != v AND t != w AND u != w AND v != w, w IN [V]), t IN [V]), u IN [V]), v IN [V]), y IN [Sizedsubset]([V],4))" all
-$PTH/flagcalc -r 8 10 10 -a s="FORALL (FORALL ((s CUP t) == [V] IMPLIES FORALL (x ELT (s CUP t), x IN [V]), t IN [P]([V])), s IN [P]([V]))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 8 10 5 -a s="FORALL (FORALL ((s CUP t) != [V] IMPLIES EXISTS (NOT (x ELT (s CUP t)), x IN [V]), t IN [P]([V])), s IN [P]([V]))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a is=bipartitecrit2.dat all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 12 1000 -a c=cr1 s2="FORALL (x IN [V], FORALL (y IN [V], FORALL (z IN [V], NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 12 1000 -a s="[cr1] != FORALL (x IN [V], FORALL (y IN [V], FORALL (z IN [V], NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 15 10 200 -a s="FORALL (s IN [Sizedsubset]([V],[dimm]), s == [V])" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 4 100 -a s="EXISTS (y IN [Sizedsubset]([V],3), EXISTS (v IN [V], EXISTS (u IN [V], EXISTS (t IN [V], EXISTS (w IN [V], t ELT y AND u ELT y AND v ELT y AND w ELT y AND t != u AND t != v AND u != v AND t != w AND u != w AND v != w)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 4 100 -a s="EXISTS (y IN [Sizedsubset]([V],4), EXISTS (v IN [V], EXISTS (u IN [V], EXISTS (t IN [V], EXISTS (w IN [V], t ELT y AND u ELT y AND v ELT y AND w ELT y AND t != u AND t != v AND u != v AND t != w AND u != w AND v != w)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 10 10 -a s="FORALL (s IN [P]([V]), FORALL (t IN [P]([V]), (s CUP t) == [V] IMPLIES FORALL (x IN [V], x ELT (s CUP t))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 10 5 -a s="FORALL (s IN [P]([V]), FORALL (t IN [P]([V]), (s CUP t) != [V] IMPLIES EXISTS (x IN [V], NOT (x ELT (s CUP t)))))" all -v i=minimal3.cfg
 
 
 

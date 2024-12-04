@@ -2319,6 +2319,7 @@ public:
         *_os << "\t" << "\"s=<sentence>\": applies the logical sentence inside the quotes to the criteria\n";
         *_os << "\t" << "\"is=<filename>\": applies the logical sentence in <filename> to the criteria\n";
         *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
+        *_os << "\t" << "\"ft=<graph>\": \t counts the tally of <graph> embedding\n";
         *_os << "\t" << "\"if=<filename>\": applies the criteria of flag(s) in <filename> embedding\n";
         *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
         *_os << "\t" << "\"z=<expression>\": uses mathematical expression to serve as an integer\n";
