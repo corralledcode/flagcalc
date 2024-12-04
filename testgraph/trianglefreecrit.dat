@@ -1,2 +1,2 @@
-[cr1] != FORALL (FORALL (FORALL (NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)), z IN V) ,y IN V) , x IN V)
+[cr1] != FORALL (x IN [V], FORALL (y IN [V], FORALL (z IN [V], NOT ([ac](x,y) AND [ac](x,z) AND [ac](y,z)))))
 END
