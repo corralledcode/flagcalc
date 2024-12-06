@@ -2165,6 +2165,20 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     }
 
             }
+            if (n < components.size())
+            {
+                if (components[n] == "(") {
+                    // operatorstack.push_back(tok);
+                    operatorstack.push_back(SHUNTINGYARDDEREFKEY);
+                    argcount.push_back(0);
+                    if (!werevalues.empty())
+                        werevalues[werevalues.size() - 1] = true;
+                    werevalues.push_back(false);
+                    // operatorstack.push_back("(");
+                    // ++n;
+                    continue;
+                }
+            }
 
 
             continue;
@@ -2247,6 +2261,20 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         std::cout << "Error in inline tuple\n";
                     }
 
+            }
+            if (n < components.size())
+            {
+                if (components[n] == "(") {
+                    // operatorstack.push_back(tok);
+                    operatorstack.push_back(SHUNTINGYARDDEREFKEY);
+                    argcount.push_back(0);
+                    if (!werevalues.empty())
+                        werevalues[werevalues.size() - 1] = true;
+                    werevalues.push_back(false);
+                    // operatorstack.push_back("(");
+                    // ++n;
+                    continue;
+                }
             }
 
 
