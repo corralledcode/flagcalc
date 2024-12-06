@@ -17,9 +17,13 @@
 #include "graphs.h"
 
 #define QUANTIFIERMODE_PRECEDING
+
 #define SHUNTINGYARDVARIABLEARGUMENTKEY "arg#"
-#define SHUNTINGYARDINLINESETKEY "_INLINESET"
-#define SHUNTINGYARDINLINETUPLEKEY "_INLINETUPLE"
+// the random digits below are to prevent any chance occurrence of someone using those function names and it matching
+// even though for now function names cannot inlude an underscore
+#define SHUNTINGYARDINLINESETKEY "_INLINESET7903822160"
+#define SHUNTINGYARDINLINETUPLEKEY "_INLINETUPLE7903822160"
+#define SHUNTINGYARDDEREFKEY "_DEREF7903822160"
 
 inline bool is_number(const std::string& s)
 {
@@ -746,8 +750,14 @@ valms evalformula::evalvariable( std::string& vname, std::vector<int>& vidxin ) 
                 int index = vidxin[0];
                 auto pos = variables[i]->qs.seti->getitrpos();
                 int i = 0;
-                while (!pos->ended() && i++ <= index) {
-                    res = pos->getnext();
+                if (!pos->ended())
+                    while (!pos->ended() && i++ <= index)
+                        res = pos->getnext();
+                else
+                {
+                    std::cout << "Indexing into the empty set\n";
+                    res.t = mtdiscrete;
+                    res.v.iv = 0;
                 }
             }
         }
@@ -830,6 +840,33 @@ valms evalformula::eval( formulaclass& fc)
         }
         res.v.dv = fn(ps);
         res.t = measuretype::mtcontinuous;
+        return res;
+    }
+
+    if (fc.fo == formulaoperator::foderef)
+    {
+
+        auto v = eval(*fc.fcright);
+        if (v.t != measuretype::mtset && v.t != measuretype::mttuple)
+            std::cout << "Non-set or tuple variable being dereferenced\n";
+        auto pos = v.seti->getitrpos();
+        int i = 0;
+        valms res;
+        auto idx = eval(*fc.fcleft);
+        switch (idx.t) {
+        case mtbool: idx.v.iv = idx.v.bv ? 1 : 0;
+            break;
+        case mtcontinuous: idx.v.iv = (int)idx.v.dv;
+            break;
+        }
+        if (!pos->ended())
+            while (i++ <= idx.v.iv && !pos->ended())
+                res = pos->getnext();
+        else {
+            std::cout << "Dereferencing beyond end of set\n";
+            res.t = measuretype::mtdiscrete;
+            res.v.iv = 0;
+        }
         return res;
     }
 
@@ -1257,6 +1294,11 @@ valms evalformula::eval( formulaclass& fc)
                 res.v.dv = max - min;
             if (fc.fo == formulaoperator::foqaverage)
                 res.v.dv = count > 0 ? res.v.dv / count : 0;
+            if (fc.fo == formulaoperator::foqmax)
+                res.v.dv = max;
+            if (fc.fo == formulaoperator::foqmin)
+                res.v.dv = min;
+
         }
         if (fc.fo == formulaoperator::foqtally || fc.fo == formulaoperator::foqcount)
         {
@@ -1932,6 +1974,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
     std::vector<bool> werevalues {};
     std::vector<int> argcount {};
 
+
     int n = 0;
     while( n < components.size()) {
         const std::string tok = components[n++];
@@ -1948,7 +1991,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         if ((is_operator(tok) && !is_quantifier(tok)) || tok == "IN") {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
-                while ((ostok != "(") && (ostok != "{") && (operatorprecedence(ostok,tok) >= 0)) {
+                while ((ostok != "(") && (ostok != "{") && ostok != "<<" && (operatorprecedence(ostok,tok) >= 0)) {
                     output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     if (operatorstack.size() >= 1)
@@ -1960,7 +2003,6 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             operatorstack.push_back(tok);
             continue;
         }
-
 
         if (tok != "IN" && (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok)))
         {
@@ -1997,6 +2039,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             // output.insert(output.begin(),tok);
             continue;
         }
+
         if (tok == ",") {
             if (!operatorstack.empty()) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
@@ -2039,7 +2082,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     break;
                 }
                 // if (w == false)
-                    werevalues.push_back(false);
+                werevalues.push_back(false);
             } else
                 werevalues.push_back(false);
             continue;
@@ -2211,18 +2254,16 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         }
 
 
-
-
-
-
         if (tok == "(") {
             operatorstack.push_back(tok);
             continue;
         }
+
+
         if (tok == ")") {
 
             std::string ostok;
-            if (operatorstack.size() >= 1)
+            if (!operatorstack.empty())
             {
                 ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "(") {
@@ -2230,8 +2271,36 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         std::cout << "Error mismatched parentheses (loc 1)\n";
                         return output;
                     }
-                    output.insert(output.begin(),ostok);
-                    operatorstack.resize(operatorstack.size()-1);
+                    if (ostok == SHUNTINGYARDDEREFKEY) {
+                        // output.insert(output.begin(), SHUNTINGYARDDEREFKEY);
+                        int a = 0;
+                        if (!argcount.empty())
+                        {
+                            a = argcount[argcount.size()-1];
+                            argcount.resize(argcount.size()-1);
+                        } else
+                            std::cout << "Mismatched argcount\n";
+                        bool w = false;
+                        if (!werevalues.empty())
+                        {
+                            w = werevalues[werevalues.size()-1];
+                            werevalues.resize(werevalues.size()-1);
+                        } else
+                            std::cout << "Mismatched werevalues (right paren branch)\n";
+                        if (w == true)
+                            ++a;
+
+
+                        output.insert(output.begin(), std::to_string(a));
+                        output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
+                        // output.insert(output.begin(),SHUNTINGYARDDEREFKEY);
+
+                        operatorstack.resize(operatorstack.size()-2);
+                    }
+                    else {
+                        output.insert(output.begin(),ostok);
+                        operatorstack.resize(operatorstack.size()-1);
+                    }
                     if (operatorstack.size() >= 1)
                         ostok = operatorstack[operatorstack.size()-1];
                     else
@@ -2243,26 +2312,22 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             }
             if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
                 std::cout << "Error mismatched parentheses (loc 3)\n";
+                for (auto t : operatorstack) {
+                    std::cout << t << ", ";
+                }
+                std::cout << std::endl;
+
+                for (auto o : output)
+                    std::cout << o << ", ";
+                std::cout << "\n";
+
                 return output;
             }
             operatorstack.resize(operatorstack.size()-1);
 
-            if (n < components.size())
-                if (components[n] == "(") {
-                    operatorstack.push_back("DEREF");
-                    argcount.push_back(1);
-                    if (n+1 < components.size() && components[n+1] == ")")
-                        argcount[argcount.size()-1] = 0;
-                    else
-                        if (!werevalues.empty())
-                            werevalues[werevalues.size() - 1] = true;
-                    werevalues.push_back(false);
-                }
-
-
-            if (operatorstack.size() > 0) {
+            if (operatorstack.size() > 0)
+            {
                 ostok = operatorstack[operatorstack.size()-1];
-
                 if (is_operator(ostok) && !is_quantifier(ostok)) {
                     // continue;
                 } else
@@ -2287,23 +2352,48 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
 
                         output.insert(output.begin(), std::to_string(a));
                         output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
+                        //if (ostok == ")") {
+                        //    ostok = SHUNTINGYARDDEREFKEY;
                         output.insert(output.begin(),ostok);
                         operatorstack.resize(operatorstack.size()-1);
-                        // continue;
                     }
-
+                // continue;
             }
 
-
+            if (n < components.size())
+            {
+                if (components[n] == "(") {
+                    //operatorstack.push_back(tok);
+                    operatorstack.push_back(SHUNTINGYARDDEREFKEY);
+                    argcount.push_back(0);
+                    if (!werevalues.empty())
+                        werevalues[werevalues.size() - 1] = true;
+                    werevalues.push_back(false);
+                    //operatorstack.push_back("(");
+                    //++n;
+                    continue;
+                }
+            }
             continue;
         }
 
-
     }
+
+
     while (operatorstack.size()> 0) {
         std::string ostok = operatorstack[operatorstack.size()-1];
         if (ostok == "(" || ostok == "{" || ostok == "<<") {
             std::cout << "Error mismatched parentheses, curley braces, or tuple brackets: " << ostok << ", (loc 4)\n";
+
+            for (auto t : operatorstack) {
+                std::cout << t << ", ";
+            }
+            std::cout << std::endl;
+
+            for (auto o : output)
+                std::cout << o << ", ";
+            std::cout << "\n";
+
             return output;
         }
         output.insert(output.begin(),ostok);
@@ -2333,6 +2423,24 @@ inline formulaclass* parseformulainternal(
     while( pos+1 < q.size()) {
         ++pos;
         std::string tok = q[pos];
+
+        if (tok == SHUNTINGYARDDEREFKEY) {
+            ++pos; // skip over arg#
+            int argcount = stoi(q[++pos]);
+            if (argcount != 1) {
+                std::cout << "No support for dereferencing a set or tuple with other than one variable input\n";
+                exit(1);
+            }
+            formulavalue fv {};
+
+            auto fcleft = parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs);
+            auto fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs);
+
+            auto fc = fccombine(fv,fcleft,fcright, formulaoperator::foderef);
+
+            return fc;
+        }
+
         if (tok == SHUNTINGYARDINLINESETKEY || tok == SHUNTINGYARDINLINETUPLEKEY)
         {
 
@@ -2518,12 +2626,21 @@ inline formulaclass* parseformulainternal(
                         std::cout << "Literal expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
                         return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                     };
+
                     std::vector<formulaclass*> psrev {};
                     for (int i = 0; i < argcnt; ++i) {
                         psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs));
                     }
                     for (int i = psrev.size()-1; i >= 0; --i)
                         fv.lit.ps.push_back(psrev[i]);
+
+                    while (q[pos] == SHUNTINGYARDVARIABLEARGUMENTKEY) {
+                        int argcnt = stoi(q[++pos]);
+                        ++pos;
+                        for (int i = 0; i < argcnt; ++i) {
+
+                        }
+                    }
                     return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                 } else
                 {
@@ -2591,7 +2708,12 @@ inline formulaclass* parseformulainternal(
             fv.v.t = mtcontinuous;
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
         }
+
     }
+
+
+
+
     std::cout << "Error in parsing formula \n";
     exit(1);
     auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);

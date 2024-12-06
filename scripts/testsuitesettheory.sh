@@ -82,3 +82,7 @@ $PTH/flagcalc -d f="abc=def=ghi" -a e="SET (v IN V, {v+1})" all -v set allsets i
 $PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,<<<<1>>,5,6>>,2,3>>" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd=ef=ghi" -a e="{SET (v IN V, FORALL (c IN Cycless(v), st(c) % 2 == 0), v)}" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd=efghi" -a e="{SET (v IN V, FORALL (c IN Cycless(v), (st(c) % 2) == 0), v)}" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdefdgha" -a e="Cycless(0)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdefdgha" -a e="BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a e="SET (es IN P(E), st(es) != 0, es(0)(0))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcdef" -a a="MAX (n IN NN(st(Cycless(0)(0))), Cycless(0)(0)(n))" all -v i=minimal3.cfg

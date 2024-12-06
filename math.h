@@ -37,9 +37,10 @@ logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2,
 
 
 enum class formulaoperator
-{foliteral,fofunction, foconstant, foqforall, foqexists,
+{foliteral,fofunction, foconstant, foderef,
+    foqforall, foqexists,
     foplus, fominus, fotimes, fodivide, foexponent, fomodulus,
-    folte, folt, foe,fone,fogte,fogt,founion, fodupeunion, fointersection, foelt,
+    folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt,
     foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection};
