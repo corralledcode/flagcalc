@@ -2295,6 +2295,9 @@ protected:
                 idx = addmeas( out[i],mtin, roundin );
             }
 
+            if (idx < 0)
+                std::cout << "Unknown bracketed literal " << out[i] << std::endl;
+
             // std::string replacement = "[" + std::to_string(idx) + "]";
             std::string replacement = "[" + out[i] + "]";
 

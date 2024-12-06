@@ -765,11 +765,13 @@ class setitrint : public setitrmodeone
     {
         setmaxint(maxintin);
         t = mtdiscrete;
+        reset();
     }
     setitrint()
     {
         setmaxint(-1);
         t = mtdiscrete;
+        reset();
     }
     ~setitrint() {
          delete elts;
@@ -799,6 +801,8 @@ class setitrinitialsegment : public setitr
 public:
 
 };
+
+
 
 class qclass {
 public:
@@ -1294,6 +1298,95 @@ public:
     }
 
 };
+
+inline bool quantifierops( const formulaoperator fo );
+
+
+inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> bound = {})
+{
+    if (!fc)
+        return false;
+    if (quantifierops(fc->fo))
+    {
+        bound.push_back(fc->v.qc->name);
+        if (searchfcforvariable(fc->v.qc->superset,bound))
+            return true;
+        if (searchfcforvariable(fc->fcright, bound) || searchfcforvariable(fc->fcleft, bound))
+            return true;
+    }
+    if (fc->fo == formulaoperator::fovariable)
+    {
+        for (auto s : bound)
+            if (fc->v.vs.name == s)
+                return false;
+        return true;
+    }
+    if (fc->fcleft && searchfcforvariable(fc->fcleft,bound))
+        return true;
+    if (fc->fcright && searchfcforvariable(fc->fcright,bound))
+        return true;
+    if (fc->fo == formulaoperator::fofunction)
+        for (auto p : fc->v.fns.ps)
+            if (searchfcforvariable(p,bound))
+                return true;
+    if (fc->fo == formulaoperator::foconstant)
+        for (auto p : fc->v.ss.elts)
+            if (searchfcforvariable(p,bound))
+                return true;
+    if (fc->fo == formulaoperator::foliteral)
+        for (auto p : fc->v.lit.ps)
+            if (searchfcforvariable(p,bound))
+                return true;
+    return false;
+}
+
+class setitrformulae : public setitr
+{
+public:
+
+    int size;
+    evalformula* ef;
+    std::vector<formulaclass*> formulae;
+
+    virtual int getsize() {return formulae.size();}
+
+    virtual bool ended() {return pos+1 >= getsize();}
+    virtual valms getnext()
+    {
+        ++pos;
+        if (pos >= getsize())
+        {
+            valms v;
+            v.t = mtdiscrete;
+            v.v.iv = 0;
+            return v;
+        }
+        if (pos >= totality.size())
+        {
+            totality.resize(pos+1);
+            totality[pos] = ef->eval(*formulae[pos]);
+        }
+        return totality[pos];
+    }
+
+    setitrformulae( evalformula* efin, std::vector<formulaclass*>& fcin)
+        : formulae{fcin}, ef{efin}
+    {
+        totality.clear();
+        reset();
+        // to do... search the fcin for unbound variables, and compute now if any are found
+        int n = 0;
+        bool variablefound = false;
+        while (n < fcin.size() && !variablefound)
+            variablefound = searchfcforvariable(fcin[n++]);
+        if (variablefound)
+            while (!ended())
+                getnext();
+    }
+};
+
+
+
 
 
 
