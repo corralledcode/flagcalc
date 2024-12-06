@@ -2301,11 +2301,14 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         output.insert(output.begin(),ostok);
                         operatorstack.resize(operatorstack.size()-1);
                     }
-                    if (operatorstack.size() >= 1)
+                    if (!operatorstack.empty())
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
                         std::cout << "Error mismatched parentheses (loc 2)\n";
+                        for (auto o : output)
+                            std::cout << o << ", ";
+                        std::cout << "\n";
                         return output;
                     }
                 }
@@ -2331,7 +2334,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                 if (is_operator(ostok) && !is_quantifier(ostok)) {
                     // continue;
                 } else
-                    if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok))
+                    if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok)
+                        || ostok == SHUNTINGYARDDEREFKEY)
                     {
                         int a = 0;
                         if (!argcount.empty())
@@ -2352,10 +2356,9 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
 
                         output.insert(output.begin(), std::to_string(a));
                         output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
-                        //if (ostok == ")") {
-                        //    ostok = SHUNTINGYARDDEREFKEY;
                         output.insert(output.begin(),ostok);
                         operatorstack.resize(operatorstack.size()-1);
+
                     }
                 // continue;
             }
@@ -2363,14 +2366,14 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             if (n < components.size())
             {
                 if (components[n] == "(") {
-                    //operatorstack.push_back(tok);
+                    // operatorstack.push_back(tok);
                     operatorstack.push_back(SHUNTINGYARDDEREFKEY);
                     argcount.push_back(0);
                     if (!werevalues.empty())
                         werevalues[werevalues.size() - 1] = true;
                     werevalues.push_back(false);
-                    //operatorstack.push_back("(");
-                    //++n;
+                    // operatorstack.push_back("(");
+                    // ++n;
                     continue;
                 }
             }
