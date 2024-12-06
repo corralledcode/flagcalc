@@ -1726,6 +1726,38 @@ public:
     }
 };
 
+
+class Setpartition : public set
+{
+public:
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        if (ps.size() == 1)
+        {
+            auto setA = ps[0].seti;
+            auto f = new setitrsetpartitions(setA);
+            return f;
+        }
+        std::cout << "Error in Sizedsubset::takemeas\n";
+        return nullptr;
+    }
+
+    Setpartition( mrecords* recin ) : set(recin,"Setpartition", "Set partitions")
+    {
+        valms v;
+        v.t = mtset;
+        ps.clear();
+        ps.push_back(v);
+        pssz = 1;
+    }
+    ~Setpartition()
+    {
+        //        delete f;
+    }
+};
+
+
+
 class NNset : public set
 {
 public:

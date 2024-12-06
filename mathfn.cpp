@@ -10,6 +10,8 @@
 #include <vector>
 #include "mathfn.h"
 
+#include "math.h"
+
 inline int nchoosek( const int n, const int k) {
     if (k == 0)
         return 1;
@@ -136,3 +138,25 @@ inline double modfn(std::vector<double>& din) {
     return (int)din[0] % (int)din[1];
 
 }
+
+inline double stirlingfn(std::vector<double>& din)
+{
+    if (din.size() != 2)
+    {
+        std::cout << "Wrong number of arguments passed to stirlingfn\n";
+        return 0;
+    }
+    return stirling((int)din[0], (int)din[1]);
+};
+
+inline double bellfn(std::vector<double>& din)
+{
+    if (din.size() != 1)
+    {
+        std::cout << "Wrong number of arguments passed to bellfn\n";
+        return 0;
+    }
+    return bellNumber((int)din[0]);
+
+}
+

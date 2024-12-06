@@ -1074,7 +1074,7 @@ public:
         if (size > 0)
         {
             posAprimes.resize(size-1);
-            for (int i = 0; i < size-1; ++i)
+            for (int i = 0; i+1 < size; ++i)
                 posAprimes[i] = i;
         } else
         {
@@ -1104,14 +1104,14 @@ public:
         auto subset = new setitrsubset(setA);
         r.seti = subset;
         bool inced = false;
-        while (!setA->ended() && setA->pos < size-1)
+        while (!setA->ended() && setA->pos+1 < size)
         {
             inced = true;
             setA->getnext();
         }
-        for (int i = 0; !inced && i < size-1; ++i)
+        for (int i = 0; !inced && i+1 < size; ++i)
         {
-            if (i == size-2)
+            if (i+2 == size)
             {
                 if (posAprimes[i] + 1 == setA->pos)
                     continue;
@@ -1162,6 +1162,160 @@ public:
     //   setitr::~setitr();
     }
 };
+
+
+// Function to compute Stirling numbers of
+// the second kind S(n, k) with memoization
+inline int stirling(int n, int k) {
+
+    // Base cases
+    if (n == 0 && k == 0) return 1;
+    if (k == 0 || n == 0) return 0;
+    if (n == k) return 1;
+    if (k == 1) return 1;
+
+
+    // Recursive formula
+    return k * stirling(n - 1, k) + stirling(n - 1, k - 1);
+}
+
+// Function to calculate the total number of
+// ways to partition a set of `n` elements
+inline int bellNumber(int n) {
+
+    int result = 0;
+
+    // Sum up Stirling numbers S(n, k) for all
+    // k from 1 to n
+    for (int k = 1; k <= n; ++k) {
+        result += stirling(n, k);
+    }
+    return result;
+}
+
+
+class setitrsetpartitions : public setitr
+{
+public:
+    itrpos* setA;
+    int setsize;
+
+    bool endedvar;
+    std::vector<int> sequence {};
+    std::vector<setitrsubset*> subsets {};
+
+    void codesubsets() {
+        subsets.resize(setsize);
+
+        int max = 0;
+        for (int i = 0; i < setsize; ++i)
+        {
+            subsets[i] = new setitrsubset(setA);
+            subsets[i]->itrbool = new setitrbool(setsize-1);
+            for (int j = 0; j < setsize; ++j)
+            {
+                subsets[i]->itrbool->elts[j] = sequence[j] == i;
+                max = max < sequence[j] ? sequence[j] : max;
+            }
+            subsets[i]->reset();
+        }
+        subsets.resize(max+1);
+
+    }
+
+    int getsize() override
+    {
+        setsize = setA->getsize();
+        return bellNumber(setsize);
+    }
+
+    void reset() override
+    {
+        pos = -1;
+        setsize = setA->getsize();
+        setA->reset();
+        sequence.resize(setsize);
+        for (int i = 0; i < setsize; ++i)
+            sequence[i] = 0;
+        endedvar = setsize == 0;
+        totality.clear();
+    }
+    bool ended() override
+    {
+        return endedvar;
+    }
+    valms getnext() override
+    {
+        if (pos+1 < totality.size())
+            return totality[++pos];
+        ++pos;
+        if (!endedvar)
+        {
+            codesubsets();
+            std::vector<valms> tot {};
+            for (auto s : subsets)
+            {
+                valms v;
+                v.t = mtset;
+                v.seti = s;
+                tot.push_back(v);
+            }
+            totality.resize(pos+1);
+            valms u;
+            u.t = mtset;
+            u.seti = new setitrmodeone(tot);
+            totality[pos] = u;
+
+            int j = setsize;
+            bool incrementable = false;
+            endedvar = false;
+            while (j > 1 && !incrementable)
+            {
+                --j;
+                int i = j-1;
+                while (!incrementable && i >= 0)
+                    incrementable = sequence[j] <= sequence[i--];
+            }
+            if (incrementable)
+            {
+                sequence[j]++;
+                for (int k = j+1; k < setsize; ++k)
+                    sequence[k] = 0;
+
+            } else
+                endedvar = true;
+            return totality[pos];
+        }
+        std::cout << "setitrsetpartitions: ended\n";
+        valms v;
+        v.t = mtset;
+        v.seti = new setitrint(-1);
+        return v;
+    }
+
+    setitrsetpartitions(setitr* Ain ) : setA{Ain ? Ain->getitrpos() : nullptr}
+    {
+        if (Ain == this)
+            std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
+        if (setA)
+            reset();
+    }
+
+    ~setitrsetpartitions() override
+    {
+
+        delete setA;
+        for (auto s : subsets)
+        {
+            delete s->itrbool;
+            delete s;
+        }
+    // for (auto t : totality) // this is handled by ~setitr() above
+        // delete t.seti;
+    //   setitr::~setitr();
+    }
+};
+
 
 
 

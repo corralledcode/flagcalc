@@ -34,7 +34,9 @@ inline double absfn(std::vector<double>& din);
 
 inline double modfn(std::vector<double>& din);
 
+inline double stirlingfn(std::vector<double>& din);
 
+inline double bellfn(std::vector<double>& din);
 
 inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> global_fnptrs
     {{"log", {&logfn,1}},
@@ -48,6 +50,8 @@ inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> glo
      {"exp",{&expfn,1}},
      {"isinf",{&isinffn,1}},
      {"abs",{&absfn,1}},
-     {"mod",{modfn,2}}};
+     {"mod",{modfn,2}},
+     {"stirling",{&stirlingfn,2}},
+     {"bell",{&bellfn,1}}};
 
 #endif //MATHFN_H

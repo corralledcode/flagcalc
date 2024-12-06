@@ -1770,9 +1770,6 @@ public:
         auto (st) = tallyfactory<sizetally>;
         auto (lt) = tallyfactory<lengthtally>;
         auto (pct) = tallyfactory<pctally>;
-        // auto (firstt) = tallyfactory<pairfirsttally>; // these three outdated by retirement of mtpair type
-        // auto (secondt) = tallyfactory<pairsecondtally>;
-        // auto (pst) = tallyfactory<psizetally>;
         auto (idxt) = tallyfactory<idxtally>;
         auto (Nt) = tallyfactory<Ntally>;
         auto (cyclest) = tallyfactory<cyclestally>;
@@ -1784,15 +1781,12 @@ public:
         tysfactory.push_back(st);
         tysfactory.push_back(lt);
         tysfactory.push_back(pct);
-        // tysfactory.push_back(firstt);
-        // tysfactory.push_back(secondt);
-        // tysfactory.push_back(pst);
         tysfactory.push_back(idxt);
         tysfactory.push_back(Nt);
         tysfactory.push_back(cyclest);
 
 
-        // ,,,
+        // ...
 
         for (int n = 0; n < tysfactory.size(); ++n) {
             tys.push_back((*tysfactory[n])(&rec));
@@ -1800,8 +1794,6 @@ public:
 
         auto (Vs) = setfactory<Vset>;
         auto (Ps) = setfactory<Pset>;
-        // auto (CPs) = setfactory<CPset>;
-        // auto (Pairs) = setfactory<Pairset>;
         auto (Sizedsubs) = setfactory<Sizedsubset>;
         auto (NNs) = setfactory<NNset>;
         auto (Nulls) = setfactory<Nullset>;
@@ -1810,11 +1802,10 @@ public:
         auto (TtoS) = setfactory<TupletoSet>;
         auto (Paths) = setfactory<Pathsset>;
         auto (Cycles) = setfactory<Cyclesset>;
+        auto (Setpartitions) = setfactory<Setpartition>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
-        // stsfactory.push_back(CPs);
-        // stsfactory.push_back(Pairs);
         stsfactory.push_back(Sizedsubs);
         stsfactory.push_back(NNs);
         stsfactory.push_back(Nulls);
@@ -1823,6 +1814,7 @@ public:
         stsfactory.push_back(TtoS);
         stsfactory.push_back(Paths);
         stsfactory.push_back(Cycles);
+        stsfactory.push_back(Setpartitions);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
