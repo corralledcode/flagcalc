@@ -98,3 +98,7 @@ $PTH/flagcalc -r 12 33 200 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) 
 $PTH/flagcalc -r 17 68 100000 -a s="Chit <= (1/2 + sqrt(2*edgecm + 1/4))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 17 68 100000 -a s="Chigreedyt <= (1/2 + sqrt(2*edgecm + 1/4))" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip12.dat -a p=Chip all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdefga" -a p=Chigreedyp all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdefga" -a a=Chigreedyt all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 17 68 100000 -a a="(1/2 + sqrt(2*edgecm + 1/4)) - Chigreedyt" all -v i=minimal3.cfg
+$PTH/flagcalc -r 17 68 100000 -a a="(1/2 + sqrt(2*edgecm + 1/4)) - Chit" all -v i=minimal3.cfg

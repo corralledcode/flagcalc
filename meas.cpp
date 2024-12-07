@@ -2137,6 +2137,38 @@ inline int greedyColoring(const std::vector<std::vector<int> >& graph)
     return chromaticNumber;
 }
 
+inline std::vector<int> greedyColoringtuple(const std::vector<std::vector<int> >& graph)
+{
+    int n = graph.size();
+    std::vector<int> colors(n, -1);
+
+    for (int v = 0; v < n; ++v) {
+        std::unordered_set<int> usedColors;
+
+        // Check neighbors and mark their colors as used
+        for (int neighbor : graph[v]) {
+            if (colors[neighbor] != -1) {
+                usedColors.insert(colors[neighbor]);
+            }
+        }
+
+        // Find the smallest available color
+        for (int color = 1;; ++color) {
+            if (usedColors.find(color)
+                == usedColors.end()) {
+                colors[v] = color;
+                break;
+                }
+        }
+    }
+
+    // Find the maximum color used (chromatic number)
+    int chromaticNumber
+        = *max_element(colors.begin(), colors.end()) + 1;
+    return colors;
+}
+
+
 class Chigreedytally : public tally
 {
 public:
@@ -2178,7 +2210,7 @@ public:
         }
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        auto color = graphColoringtuple(convertadjacencymatrix(ns), g->dim);
+        auto color = greedyColoringtuple(convertadjacencymatrix(ns));
         std::vector<valms> tot;
         tot.resize(color.size());
         int i = 0;
