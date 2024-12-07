@@ -2133,7 +2133,7 @@ inline int greedyColoring(const std::vector<std::vector<int> >& graph)
 
     // Find the maximum color used (chromatic number)
     int chromaticNumber
-        = *max_element(colors.begin(), colors.end()) + 1;
+        = *std::max_element(colors.begin(), colors.end());
     return chromaticNumber;
 }
 

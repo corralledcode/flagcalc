@@ -102,3 +102,5 @@ $PTH/flagcalc -d f="-abcdefga" -a p=Chigreedyp all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="-abcdefga" -a a=Chigreedyt all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 17 68 100000 -a a="(1/2 + sqrt(2*edgecm + 1/4)) - Chigreedyt" all -v i=minimal3.cfg
 $PTH/flagcalc -r 17 68 100000 -a a="(1/2 + sqrt(2*edgecm + 1/4)) - Chit" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 1000 -a s="MIN (p IN Setpartition(V), FORALL (s IN p, FORALL (v1 IN s, FORALL (v2 IN s, NOT ac(v1,v2)))), st(p)) <= Chigreedyt" all -v i=minimal3.cfg
+$PTH/flagcalc -r 17 68 10000 -a s="Chit <= Chigreedyt" all -v i=minimal3.cfg
