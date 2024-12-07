@@ -1765,7 +1765,7 @@ inline std::string get_literal(std::string tok) {
             return tok.substr(1,tok.size()-2);
         else
             return tok;
-    return 0;
+    return "";
 }
 
 

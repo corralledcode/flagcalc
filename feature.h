@@ -2373,10 +2373,13 @@ public:
         *_os << "\t" << "\"s=<sentence>\": applies the logical sentence inside the quotes to the criteria\n";
         *_os << "\t" << "\"is=<filename>\": applies the logical sentence in <filename> to the criteria\n";
         *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
+        *_os << "\t" << "\"nf=<graph>\": \t checks the criterion of NOT <graph> embedding\n";
         *_os << "\t" << "\"ft=<graph>\": \t counts the tally of <graph> embedding\n";
         *_os << "\t" << "\"if=<filename>\": applies the criteria of flag(s) in <filename> embedding\n";
         *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
         *_os << "\t" << "\"z=<expression>\": uses mathematical expression to serve as an integer\n";
+        *_os << "\t" << "\"e=<expression>\": uses mathematical expression to serve as a set\n";
+        *_os << "\t" << "\"p=<expression>\": uses mathematical expression to serve as a tuple\n";
         *_os << "\t" << "\"ia=<filename>\": uses the mathematical expression(s) in <filename> embedding\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
@@ -2387,11 +2390,15 @@ public:
         for (int n = 0; n < mss.size(); ++n) {
             *_os << "\t\t\"" << mss[n]->shortname << "\": " << mss[n]->name << "\n";
         }
-        *_os << "\t" << "<tally>:\t which tally to use, standard options are:\n";
+        *_os << "\t" << "z=<tally>:\t which tally to use, standard options are:\n";
         for (int n = 0; n < tys.size(); ++n) {
             *_os << "\t\t\"" << tys[n]->shortname << "\": " << tys[n]->name << "\n";
         }
-        *_os << "\t" << "<set>:\t which set to use (only within a logical sentence or measure), standard options are:\n";
+        *_os << "\t" << "e=<set>:\t which set to use, standard options are:\n";
+        for (int n = 0; n < sts.size(); ++n) {
+            *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
+        }
+        *_os << "\t" << "p=<tuple>:\t which tuple to use, standard options are:\n";
         for (int n = 0; n < sts.size(); ++n) {
             *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
         }
@@ -2715,6 +2722,10 @@ public:
 
             if (ccl.t == "ft")
             {
+
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
 
                 std::vector<std::string> flagv {};
                 flagv.push_back(parsedargs[i].second);

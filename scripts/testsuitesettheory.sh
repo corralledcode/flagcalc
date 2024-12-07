@@ -89,7 +89,7 @@ $PTH/flagcalc -d f="abcdef" -a a="MAX (n IN NN(st(Cycless(0)(0))), Cycless(0)(0)
 $PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN P(V), st(v) > 0, st(Cycless(v(0))))>>(1)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN P(V), st(v) > 0, st(Cycless(v(0))))>>(2)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc=def=ghi" -a e="SETD (n IN st(V), SETD (i IN n, {i}))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcdefg" -a e="SET (s IN Setpartition(V,6), s)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcdefg" -a e="SET (s IN Setpartition(V), s)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 7 20 100 -a s="conn1c" s2="Knc(dimm,1)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10.5 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0 AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10.5 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0 AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
@@ -105,3 +105,9 @@ $PTH/flagcalc -r 17 68 100000 -a a="(1/2 + sqrt(2*edgecm + 1/4)) - Chigreedyt" a
 $PTH/flagcalc -r 17 68 100000 -a a="(1/2 + sqrt(2*edgecm + 1/4)) - Chit" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 14 1000 -a s="MIN (p IN Setpartition(V), FORALL (s IN p, FORALL (v1 IN s, FORALL (v2 IN s, NOT ac(v1,v2)))), st(p)) <= Chigreedyt" all -v i=minimal3.cfg
 $PTH/flagcalc -r 17 68 10000 -a s="Chit <= Chigreedyt" all -v i=minimal3.cfg
+$PTH/flagcalc -r 32 60 100000 -a s="girthm > 3 AND Chigreedyt > 3" all -v i=minimal3.cfg
+$PTH/flagcalc -r 38 50 1000000 -a s="girthm > 4 AND Chigreedyt > 4" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="MAX (v IN V, MAX (c IN Cycless(v), st(c))) >= deltam + 1" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="EXISTS (v IN V, EXISTS (c IN Cycless(v), st(c) >= deltam + 1))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 30 100 -a s="MAX (v1 IN V, MAX (v2 IN V, MAX (p IN Pathss(v1,v2), st(p)))) >= deltam" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 30 100 -a s="EXISTS (v1 IN V, EXISTS (v2 IN V, EXISTS (p IN Pathss(v1,v2), st(p) >= deltam)))" all -v i=minimal3.cfg
