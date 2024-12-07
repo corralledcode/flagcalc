@@ -1988,7 +1988,7 @@ inline int graphColoring(const std::vector<std::vector<int> >& graph, int m)
     std::vector<int> color(n, 0);
 
     if (!graphColoringUtil(0, graph, color, m)) {
-        std::cout << "No feasible solution exists";
+        // std::cout << "No feasible solution exists";
         return 0;
     }
 
@@ -2011,7 +2011,7 @@ inline std::vector<int> graphColoringtuple(const std::vector<std::vector<int> >&
     std::vector<int> color(n, 0);
 
     if (!graphColoringUtil(0, graph, color, m)) {
-        std::cout << "No feasible coloring solution exists";
+        // std::cout << "No feasible coloring solution exists";
         return {};
     }
 
@@ -2042,6 +2042,14 @@ inline std::vector<std::vector<int>> convertadjacencymatrix( neighborstype* ns )
         }
         out[n] = neighbors;
     }
+    // for (auto a : out)
+    // {
+        // for (auto b : a)
+            // std::cout << b << " ";
+        // std::cout << "\n";
+    // }
+    // std::cout << std::endl;
+
     return out;
 }
 
@@ -2063,8 +2071,12 @@ public:
         }
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        auto res = graphColoring(convertadjacencymatrix(ns), g->dim);
-        return res;
+        std::vector<std::vector<int> > graph = convertadjacencymatrix(ns);
+        int c = 1;
+        while (!graphColoring(graph,c) && c < g->dim)
+            ++c;
+        // auto res = graphColoring(convertadjacencymatrix(ns), g->dim);
+        return c;
     }
 };
 
@@ -2086,7 +2098,13 @@ public:
         }
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        auto color = graphColoringtuple(convertadjacencymatrix(ns), g->dim);
+
+        std::vector<std::vector<int> > graph = convertadjacencymatrix(ns);
+        int c = 1;
+        while (!graphColoring(graph,c) && c < g->dim)
+            ++c;
+
+        auto color = graphColoringtuple(convertadjacencymatrix(ns), c);
         std::vector<valms> tot;
         tot.resize(color.size());
         int i = 0;
