@@ -4,6 +4,8 @@
 
 #include "ameas.h"
 #include "graphs.h"
+#include <unordered_set>
+
 
 #define GRAPH_PRECOMPUTECYCLESCNT 15
 
@@ -1933,4 +1935,261 @@ public:
         return 0;
     }
 
+};
+
+
+// following code around chromatic numbers found online
+
+// Function to check if it's safe to color a vertex with a
+// given color
+inline bool isSafe(int v, const std::vector<std::vector<int> >& graph,
+            const std::vector<int>& color, int c)
+{
+    for (int neighbor : graph[v]) {
+        if (color[neighbor] == c) {
+            return false; // If any adjacent vertex has the
+            // same color, it's not safe
+        }
+    }
+    return true;
+}
+
+// Backtracking function to find a valid coloring
+inline bool graphColoringUtil(int v,
+                    const std::vector<std::vector<int> >& graph,
+                    std::vector<int>& color, int m)
+{
+    if (v == graph.size()) {
+        return true; // All vertices are colored, a solution
+        // is found
+    }
+
+    for (int c = 1; c <= m; ++c) {
+        if (isSafe(v, graph, color, c)) {
+            color[v] = c;
+
+            // Recur for the next vertices
+            if (graphColoringUtil(v + 1, graph, color, m)) {
+                return true;
+            }
+
+            // Backtrack
+            color[v] = 0;
+        }
+    }
+
+    return false; // No solution found for this coloring
+}
+
+// Main function to find chromatic number
+inline int graphColoring(const std::vector<std::vector<int> >& graph, int m)
+{
+    int n = graph.size();
+    std::vector<int> color(n, 0);
+
+    if (!graphColoringUtil(0, graph, color, m)) {
+        std::cout << "No feasible solution exists";
+        return 0;
+    }
+
+    // Print the solution
+    // std::cout << "Vertex colors: ";
+    // for (int c : color) {
+        // std::cout << c << " ";
+    // }
+    // std::cout << std::endl;
+
+    // Count unique colors to determine chromatic number
+    std::unordered_set<int> uniqueColors(color.begin(),
+                                    color.end());
+    return uniqueColors.size();
+}
+
+inline std::vector<int> graphColoringtuple(const std::vector<std::vector<int> >& graph, int m)
+{
+    int n = graph.size();
+    std::vector<int> color(n, 0);
+
+    if (!graphColoringUtil(0, graph, color, m)) {
+        std::cout << "No feasible coloring solution exists";
+        return {};
+    }
+
+    // Print the solution
+    // std::cout << "Vertex colors: ";
+    // for (int c : color) {
+        // std::cout << c << " ";
+    // }
+    // std::cout << std::endl;
+
+    // Count unique colors to determine chromatic number
+    std::unordered_set<int> uniqueColors(color.begin(),
+                                    color.end());
+    return color;
+}
+
+
+inline std::vector<std::vector<int>> convertadjacencymatrix( neighborstype* ns )
+{
+    std::vector<std::vector<int>> out;
+    out.resize(ns->dim);
+    for (int n = 0; n < ns->dim; ++n)
+    {
+        std::vector<int> neighbors {};
+        for (int i = 0; i < ns->degrees[n]; ++i)
+        {
+            neighbors.push_back( ns->neighborslist[n*ns->dim + i]);
+        }
+        out[n] = neighbors;
+    }
+    return out;
+}
+
+class Chitally : public tally
+{
+public:
+
+    Chitally( mrecords* recin ) : tally( recin, "Chit", "Chromatic number of graph using back-tracking algorithm")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    int takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 0)
+        {
+            std::cout << "Wrong number of parameters to Chit\n";
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto res = graphColoring(convertadjacencymatrix(ns), g->dim);
+        return res;
+    }
+};
+
+class Chituple : public set
+{
+public:
+
+    Chituple( mrecords* recin ) : set( recin, "Chip", "Coloring of a graph using back-tracking algorithm")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 0)
+        {
+            std::cout << "Wrong number of parameters to Chip\n";
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto color = graphColoringtuple(convertadjacencymatrix(ns), g->dim);
+        std::vector<valms> tot;
+        tot.resize(color.size());
+        int i = 0;
+        for (auto c : color )
+        {
+            valms v;
+            v.t = mtdiscrete;
+            v.v.iv = c;
+            tot[i++] = v;
+        }
+        auto res = new setitrmodeone(tot);
+        return res;
+    }
+};
+
+// also sourced on the internet geeksforgeeks.org
+
+// Function to find the chromatic number using the greedy
+// coloring algorithm
+inline int greedyColoring(const std::vector<std::vector<int> >& graph)
+{
+    int n = graph.size();
+    std::vector<int> colors(n, -1);
+
+    for (int v = 0; v < n; ++v) {
+        std::unordered_set<int> usedColors;
+
+        // Check neighbors and mark their colors as used
+        for (int neighbor : graph[v]) {
+            if (colors[neighbor] != -1) {
+                usedColors.insert(colors[neighbor]);
+            }
+        }
+
+        // Find the smallest available color
+        for (int color = 1;; ++color) {
+            if (usedColors.find(color)
+                == usedColors.end()) {
+                colors[v] = color;
+                break;
+                }
+        }
+    }
+
+    // Find the maximum color used (chromatic number)
+    int chromaticNumber
+        = *max_element(colors.begin(), colors.end()) + 1;
+    return chromaticNumber;
+}
+
+class Chigreedytally : public tally
+{
+public:
+
+    Chigreedytally( mrecords* recin ) : tally( recin, "Chigreedyt", "Chromatic number of graph using greedy algorithm")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    int takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 0)
+        {
+            std::cout << "Wrong number of parameters to Chigreedyt\n";
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto res = greedyColoring(convertadjacencymatrix(ns));
+        return res;
+    }
+};
+
+class Chigreedytuple : public set
+{
+public:
+
+    Chigreedytuple( mrecords* recin ) : set( recin, "Chigreedyp", "Coloring of a graph using greedy algorithm")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 0)
+        {
+            std::cout << "Wrong number of parameters to Chigreedyp\n";
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto color = graphColoringtuple(convertadjacencymatrix(ns), g->dim);
+        std::vector<valms> tot;
+        tot.resize(color.size());
+        int i = 0;
+        for (auto c : color )
+        {
+            valms v;
+            v.t = mtdiscrete;
+            v.v.iv = c;
+            tot[i++] = v;
+        }
+        auto res = new setitrmodeone(tot);
+        return res;
+    }
 };

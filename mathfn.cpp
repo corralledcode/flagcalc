@@ -160,3 +160,14 @@ inline double bellfn(std::vector<double>& din)
 
 }
 
+inline double sqrtfn( std::vector<double>& din)
+{
+    if (din.size() != 1)
+    {
+        std::cout << "Wrong number of arguments passed to squareroot\n";
+        return 0;
+    }
+    return sqrt(din[0]);
+
+}
+

@@ -1773,6 +1773,8 @@ public:
         auto (idxt) = tallyfactory<idxtally>;
         auto (Nt) = tallyfactory<Ntally>;
         auto (cyclest) = tallyfactory<cyclestally>;
+        auto (Chit) = tallyfactory<Chitally>;
+        auto (Chigreedyt) = tallyfactory<Chigreedytally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
@@ -1784,6 +1786,8 @@ public:
         tysfactory.push_back(idxt);
         tysfactory.push_back(Nt);
         tysfactory.push_back(cyclest);
+        tysfactory.push_back(Chit);
+        tysfactory.push_back(Chigreedyt);
 
 
         // ...
@@ -1821,6 +1825,12 @@ public:
         }
 
         // ...
+
+        auto (Chip) = tuplefactory<Chituple>;
+        auto (Chigreedyp) = tuplefactory<Chigreedytuple>;
+
+        ossfactory.push_back(Chip);
+        ossfactory.push_back(Chigreedyp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));
