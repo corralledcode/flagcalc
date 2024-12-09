@@ -1935,6 +1935,8 @@ public:
                         N[nbr] = true;
                     }
             delete N;
+            delete S;
+            delete s;
             return cnt;
             // }
         }
