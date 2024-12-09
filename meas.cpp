@@ -1540,14 +1540,14 @@ public:
                 std::cout << "Non set types passed to eadjc\n";
                 return false;
             }
-            bool res = false;
+            bool res;
             auto itra = ps[0].seti->getitrpos();
             auto itrb = ps[1].seti->getitrpos();
-            valms a = itra->getnext();
-            valms b = itrb->getnext();
-            res = res || a == b;
-            res = res || a == itrb->getnext();
-            res = res || b == itra->getnext();
+            valms a1 = itra->getnext();
+            valms b1 = itrb->getnext();
+            valms a2 = itra->getnext();
+            valms b2 = itrb->getnext();
+            res = (a1 == b1 && a2 != b2) || (a2 == b2 && a1 != b1) || a1 == b2 || a2 == b1;
             delete itra;
             delete itrb;
 
@@ -1913,23 +1913,30 @@ public:
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         if (ps.size() == 1) {
-            if (setitrint* s = dynamic_cast<setitrint*>(ps[0].seti))
+            auto s = ps[0].seti->getitrpos();
+            // if (setitrint* s = dynamic_cast<setitrint*>(ps[0].seti))
+            // {
+            bool* S = (bool*)malloc(g->dim * sizeof(bool));
+            memset(S,false,g->dim*sizeof(bool));
+            while (!s->ended())
             {
-                bool* S = s->elts;
-                bool* N = (bool*)malloc(g->dim * sizeof(bool));
-                memset(N,false,g->dim * sizeof(bool));
-                int cnt = 0;
-                for (int i = 0; i < s->maxint; ++i)
-                    if (S[i])
-                        for (int j = 0; j < ns->degrees[i]; ++j)
-                        {
-                            vertextype nbr = ns->neighborslist[i*g->dim + j];
-                            cnt += (!N[nbr] && !S[nbr]) ? 1 : 0;
-                            N[nbr] = true;
-                        }
-                delete N;
-                return cnt;
+                auto v = s->getnext();
+                S[v.v.iv] = true;
             }
+            bool* N = (bool*)malloc(g->dim * sizeof(bool));
+            memset(N,false,g->dim * sizeof(bool));
+            int cnt = 0;
+            for (int i = 0; i < g->dim; ++i)
+                if (S[i])
+                    for (int j = 0; j < ns->degrees[i]; ++j)
+                    {
+                        vertextype nbr = ns->neighborslist[i*g->dim + j];
+                        cnt += (!N[nbr] && !S[nbr]) ? 1 : 0;
+                        N[nbr] = true;
+                    }
+            delete N;
+            return cnt;
+            // }
         }
         std::cout << "Wrong number of parameters or parameter types passed to Ntally\n";
         return 0;
@@ -2304,3 +2311,32 @@ public:
         return c;
     }
 };
+
+class Chiprimegreedytally : public tally
+{
+public:
+
+    Chiprimegreedytally( mrecords* recin ) : tally( recin, "Chiprimegreedyt", "Edge chromatic number of graph using greedy algorithm")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    int takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 0)
+        {
+            std::cout << "Wrong number of parameters to Chiprimegreedyt\n";
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto gedge = edgegraph(ns);
+        auto nsedge = neighborstype(gedge);
+        nsedge.computeneighborslist();
+        std::vector<std::vector<int>> graph = convertadjacencymatrix(&nsedge);
+        auto res = greedyColoring(graph);
+        delete gedge;
+        return res;
+    }
+};
+

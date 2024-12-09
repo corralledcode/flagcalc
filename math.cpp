@@ -998,7 +998,7 @@ valms evalformula::eval( formulaclass& fc)
 
         }
         else {
-            std::cout << "Non-matching types in call to CUP \n";
+            std::cout << "Non-matching types in call to CUP, CAP, or CUPD\n";
             res.seti = nullptr;
             res.setsize = 0;
         }

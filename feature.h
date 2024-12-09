@@ -1776,6 +1776,7 @@ public:
         auto (Chit) = tallyfactory<Chitally>;
         auto (Chigreedyt) = tallyfactory<Chigreedytally>;
         auto (Chiprimet) = tallyfactory<Chiprimetally>;
+        auto (Chiprimegreedyt) = tallyfactory<Chiprimegreedytally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
@@ -1790,6 +1791,7 @@ public:
         tysfactory.push_back(Chit);
         tysfactory.push_back(Chigreedyt);
         tysfactory.push_back(Chiprimet);
+        tysfactory.push_back(Chiprimegreedyt);
 
 
         // ...

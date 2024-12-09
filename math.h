@@ -1405,9 +1405,9 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foimplies,6},
                             {formulaoperator::foiff,6},
                             {formulaoperator::foif,6},
-                            {formulaoperator::founion,7},
-                            {formulaoperator::fodupeunion,7},
-                            {formulaoperator::fointersection,7}};
+                            {formulaoperator::founion,3},
+                            {formulaoperator::fodupeunion,3},
+                            {formulaoperator::fointersection,3}};
 
 
 
