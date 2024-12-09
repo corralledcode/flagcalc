@@ -141,14 +141,14 @@ $PTH/flagcalc -r 8 14 10000 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), m
 
 $PTH/flagcalc -r 8 14 2000 -a s="EXISTS (p IN Setpartition(V), bipc(p(0),p(1)) && st(p) == 2)" s2="MAX (es IN P(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))), st(es)) == MIN (vs IN P(V), FORALL (e IN E, vs CAP e != Nulls), st(vs))" all -v i=minimal3.cfg
 
-# Diestel 2.1.2
+# Diestel 2.1.2 (Hall 1935)
 
 $PTH/flagcalc -d testbip8.dat -a s="FORALL (p IN Setpartition(V), (bipc(p(0),p(1)) && st(p) == 2) IMPLIES (EXISTS (es IN P(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))) AND FORALL (a IN p(0), EXISTS (e IN es, a ELT e))) IFF FORALL (S IN P(p(0)), Nt(S) >= st(S))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 14 2000 -a s="FORALL (p IN Setpartition(V), (EXISTS (es IN P(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))) AND FORALL (a IN p(0), EXISTS (e IN es, a ELT e))) IFF FORALL (S IN P(p(0)), Nt(S) >= st(S))) IF (bipc(p(0),p(1)) && st(p) == 2))" all -v i=minimal3.cfg
 
 # Diestel 5.3.3 (Csaba et al 2016)
 
-$PTH/flagcalc -r 5 4 10 -r 6 7.5 10 -r 7 10.5 10 -r 8 14 10 -r 9 18 10 -a s="FORALL (n IN NN(10), FORALL (d IN NN(10), (FORALL (v IN V, Chiprimet == Deltam IF (vdt(v) == d AND dimm == n))) IF (d >= n/2 AND n >= 4 AND n % 2 == 0)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 4 10 -r 6 7.5 10 -r 7 10.5 10 -r 8 14 10 -r 9 18 10 -a s="FORALL (n IN NN(10), FORALL (d IN NN(10), Chiprimet == Deltam IF (FORALL (v IN V, (vdt(v) == d) AND dimm == n AND d >= n/2 AND n >= 4 AND n % 2 == 0))))" all -v i=minimal3.cfg
 
 $PTH/flagcalc -r 6 7.5 100 -a z="Chiprimegreedyt - Chiprimet" all -v i=minimal3.cfg
 
