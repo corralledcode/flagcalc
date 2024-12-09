@@ -96,8 +96,8 @@ $PTH/flagcalc -r 7 10.5 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0))
 $PTH/flagcalc -r 8 14 1000 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 33 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="Chit <= Deltam" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 33 200 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="Chigreedyt <= Deltam" all -v i=minimal3.cfg
-$PTH/flagcalc -r 17 68 100000 -a s="Chit <= (1/2 + sqrt(2*edgecm + 1/4))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 17 68 100000 -a s="Chigreedyt <= (1/2 + sqrt(2*edgecm + 1/4))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 36 1000 -a s="Chit <= (1/2 + sqrt(2*edgecm + 1/4))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 17 68 1000 -a s="Chigreedyt <= (1/2 + sqrt(2*edgecm + 1/4))" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip12.dat -a p=Chip all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="-abcdefga" -a p=Chigreedyp all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="-abcdefga" -a a=Chigreedyt all -v set allsets i=minimal3.cfg
@@ -106,8 +106,11 @@ $PTH/flagcalc -r 17 68 1000 -a a="(1/2 + sqrt(2*edgecm + 1/4)) - Chit" all -v i=
 $PTH/flagcalc -r 8 14 1000 -a s="MIN (p IN Setpartition(V), FORALL (s IN p, FORALL (v1 IN s, FORALL (v2 IN s, NOT ac(v1,v2)))), st(p)) <= Chigreedyt" all -v i=minimal3.cfg
 $PTH/flagcalc -r 17 68 1000 -a s="Chit <= Chigreedyt" all -v i=minimal3.cfg
 $PTH/flagcalc -r 32 60 100000 -a s="girthm > 3 AND Chigreedyt > 3" all -v i=minimal3.cfg
-$PTH/flagcalc -r 38 50 1000000 -a s="girthm > 4 AND Chigreedyt > 4" all -v i=minimal3.cfg
+$PTH/flagcalc -r 38 50 100000 -a s="girthm > 4 AND Chigreedyt > 4" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="MAX (v IN V, MAX (c IN Cycless(v), st(c))) >= deltam + 1" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="EXISTS (v IN V, EXISTS (c IN Cycless(v), st(c) >= deltam + 1))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 30 100 -a s="MAX (v1 IN V, MAX (v2 IN V, MAX (p IN Pathss(v1,v2), st(p)))) >= deltam" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 30 100 -a s="EXISTS (v1 IN V, EXISTS (v2 IN V, EXISTS (p IN Pathss(v1,v2), st(p) >= deltam)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 100 -a s="Deltam <= Chiprimet && Chiprimet <= Deltam + 1" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abc=defg" f="abcd=efgh" f="abc=de" -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 10000 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg

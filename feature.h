@@ -1775,6 +1775,7 @@ public:
         auto (cyclest) = tallyfactory<cyclestally>;
         auto (Chit) = tallyfactory<Chitally>;
         auto (Chigreedyt) = tallyfactory<Chigreedytally>;
+        auto (Chiprimet) = tallyfactory<Chiprimetally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
@@ -1788,6 +1789,7 @@ public:
         tysfactory.push_back(cyclest);
         tysfactory.push_back(Chit);
         tysfactory.push_back(Chigreedyt);
+        tysfactory.push_back(Chiprimet);
 
 
         // ...
@@ -2555,6 +2557,8 @@ public:
                                 litnumps[iter.size()-1] = a.a.cs->pssz;
                                 littypes.resize(iter.size());
                                 littypes[iter.size()-1] = mtbool;
+                                litnames.resize(iter.size());
+                                litnames[iter.size()-1] = parsedargs2[m].first;
 
                                 if (!parsedargs2[m].second.empty())
                                 {
@@ -2604,6 +2608,8 @@ public:
                                 litnumps[iter.size()-1] = a.a.ms->pssz;
                                 littypes.resize(iter.size());
                                 littypes[iter.size()-1] = mtcontinuous;
+                                litnames.resize(iter.size());
+                                litnames[iter.size()-1] = parsedargs2[m].first;
 
                                 if (!parsedargs2[m].second.empty())
                                 {
@@ -2651,6 +2657,9 @@ public:
                                 litnumps[iter.size()-1] = a.a.ts->pssz;
                                 littypes.resize(iter.size());
                                 littypes[iter.size()-1] = mtdiscrete;
+                                litnames.resize(iter.size());
+                                litnames[iter.size()-1] = parsedargs2[m].first;
+
 
                                 if (!parsedargs2[m].second.empty())
                                 {
@@ -2715,6 +2724,9 @@ public:
                 litnumps[iter.size()-1] = a.a.cs->pssz;
                 littypes.resize(iter.size());
                 littypes[iter.size()-1] = mtbool;
+                litnames.resize(iter.size());
+                litnames[iter.size()-1] = gi->name;
+
                 continue;
 
             }
@@ -2762,6 +2774,8 @@ public:
                 litnumps[iter.size()-1] = a.a.ts->pssz;
                 littypes.resize(iter.size());
                 littypes[iter.size()-1] = mtdiscrete;
+                litnames.resize(iter.size());
+                litnames[iter.size()-1] = gi->name;
 
                 continue;
 
@@ -2789,6 +2803,8 @@ public:
                     litnumps[iter.size()-1] = a.a.cs->pssz;
                     littypes.resize(iter.size());
                     littypes[iter.size()-1] = mtbool;
+                    litnames.resize(iter.size());
+                    litnames[iter.size()-1] = parsedargs[i].second;
 
                 }
                 continue;
@@ -2815,6 +2831,8 @@ public:
                     litnumps[iter.size()-1] = a.a.ms->pssz;
                     littypes.resize(iter.size());
                     littypes[iter.size()-1] = mtcontinuous;
+                    litnames.resize(iter.size());
+                    litnames[iter.size()-1] = parsedargs[i].second;
 
                 }
                 continue;
@@ -2871,6 +2889,8 @@ public:
                     litnumps[iter.size()-1] = a.a.cs->pssz;
                     littypes.resize(iter.size());
                     littypes[iter.size()-1] = mtbool;
+                    litnames.resize(iter.size());
+                    litnames[iter.size()-1] = gi->name;
 
                 }
                 continue;
@@ -3047,7 +3067,7 @@ public:
                         todo[m] = todo[m] && (threadint[m] != 0);
                 if (iter[k-1]->t == mtcontinuous)
                     for (int m = 0; m < threaddouble.size();++m)
-                        todo[m] = todo[m] && (abs(threaddouble[m]) > 0.00000001);
+                        todo[m] = todo[m] && (abs(threaddouble[m]) > ABSCUTOFF);
                 if (iter[k-1]->t == mtset)
                     for (int m = 0; m < threadset.size(); ++m)
                         todo[m] = todo[m] && threadset[m]->getsize()>0;
@@ -3101,30 +3121,35 @@ public:
             if (iter[k]->t == mtbool)
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    threadbool[m] = rec.boolrecs.fetch(m,ilookup, iter[k]->ps);
+                    if (alltodo || todo[m])
+                        threadbool[m] = rec.boolrecs.fetch(m,ilookup, iter[k]->ps);
                 }
 
             if (iter[k]->t == mtdiscrete)
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    threadint[m] = rec.intrecs.fetch(m,ilookup, iter[k]->ps);
+                    if (alltodo || todo[m])
+                        threadint[m] = rec.intrecs.fetch(m,ilookup, iter[k]->ps);
                 }
 
             if (iter[k]->t == mtcontinuous)
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    threaddouble[m] = rec.doublerecs.fetch(m,ilookup, iter[k]->ps);
+                    if (alltodo || todo[m])
+                        threaddouble[m] = rec.doublerecs.fetch(m,ilookup, iter[k]->ps);
                 }
 
             if (iter[k]->t == mtset)
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    threadset[m] = rec.setrecs.fetch(m,ilookup, iter[k]->ps);
+                    if (alltodo || todo[m])
+                        threadset[m] = rec.setrecs.fetch(m,ilookup, iter[k]->ps);
                 }
             if (iter[k]->t == mttuple)
                 for (int m = 0; m < eqclass.size(); ++m)
                 {
-                    threadtuple[m] = rec.tuplerecs.fetch(m,ilookup, iter[k]->ps);
+                    if (alltodo || todo[m])
+                        threadtuple[m] = rec.tuplerecs.fetch(m,ilookup, iter[k]->ps);
                 }
 
             if (iter[k]->hidden)

@@ -2053,6 +2053,9 @@ inline std::vector<std::vector<int>> convertadjacencymatrix( neighborstype* ns )
     return out;
 }
 
+
+
+
 class Chitally : public tally
 {
 public:
@@ -2072,7 +2075,7 @@ public:
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         std::vector<std::vector<int> > graph = convertadjacencymatrix(ns);
-        int c = 1;
+        int c = g->dim == 0 ? 0 : 1;
         while (!graphColoring(graph,c) && c < g->dim)
             ++c;
         // auto res = graphColoring(convertadjacencymatrix(ns), g->dim);
@@ -2241,5 +2244,63 @@ public:
         }
         auto res = new setitrmodeone(tot);
         return res;
+    }
+};
+
+
+inline graphtype* edgegraph( neighborstype* ns )
+{
+
+    std::vector<std::pair<int, int>> neighbors {};
+    for (int i = 0; i+1 < ns->dim; ++i)
+        for (int j = i+1; j < ns->dim; ++j)
+            if (ns->g->adjacencymatrix[i*ns->dim + j])
+                neighbors.push_back(std::make_pair(i, j));
+    int dim = neighbors.size();
+    auto gout = new graphtype(dim);
+    for (int k = 0; k+1 < dim; ++k)
+    {
+        gout->adjacencymatrix[k*dim + k] = false;
+        for (int l = k+1; l < dim; ++l)
+        {
+            gout->adjacencymatrix[k*dim + l] = neighbors[k].first == neighbors[l].first
+                                                || neighbors[k].first == neighbors[l].second
+                                                || neighbors[k].second == neighbors[l].first
+                                                || neighbors[k].second == neighbors[l].second;
+            gout->adjacencymatrix[l*dim + k] = gout->adjacencymatrix[k*dim + l];
+        }
+    }
+    gout->adjacencymatrix[(dim-1)*dim + dim-1] = false;
+    return gout;
+}
+
+class Chiprimetally : public tally
+{
+public:
+
+    Chiprimetally( mrecords* recin ) : tally( recin, "Chiprimet", "Edge chromatic number of graph using back-tracking algorithm")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    int takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 0)
+        {
+            std::cout << "Wrong number of parameters to Chiprimet\n";
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto gedge = edgegraph(ns);
+        auto nsedge = neighborstype(gedge);
+        nsedge.computeneighborslist();
+        std::vector<std::vector<int>> graph = convertadjacencymatrix(&nsedge);
+        int c = nsedge.dim == 0 ? 0 : 1;
+        while (!graphColoring(graph,c) && c < nsedge.dim)
+            ++c;
+        // auto res = graphColoring(convertadjacencymatrix(ns), g->dim);
+        delete gedge;
+        return c;
     }
 };
