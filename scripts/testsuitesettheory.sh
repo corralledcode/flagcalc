@@ -143,7 +143,8 @@ $PTH/flagcalc -r 8 14 2000 -a s="EXISTS (p IN Setpartition(V), bipc(p(0),p(1)) &
 
 # Diestel 2.1.2 (Hall 1935)
 
-$PTH/flagcalc -d testbip8.dat -a s="FORALL (p IN Setpartition(V), (bipc(p(0),p(1)) && st(p) == 2) IMPLIES (EXISTS (es IN P(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))) AND FORALL (a IN p(0), EXISTS (e IN es, a ELT e))) IFF FORALL (S IN P(p(0)), Nt(S) >= st(S))))" all -v i=minimal3.cfg
+# $PTH/flagcalc -d testbip8.dat -a s="FORALL (p IN Setpartition(V), (bipc(p(0),p(1)) && st(p) == 2) IMPLIES (EXISTS (es IN P(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))) AND FORALL (a IN p(0), EXISTS (e IN es, a ELT e))) IFF FORALL (S IN P(p(0)), Nt(S) >= st(S))))" all -v i=minimal3.cfg
+
 $PTH/flagcalc -r 8 14 2000 -a s="FORALL (p IN Setpartition(V), (EXISTS (es IN P(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))) AND FORALL (a IN p(0), EXISTS (e IN es, a ELT e))) IFF FORALL (S IN P(p(0)), Nt(S) >= st(S))) IF (bipc(p(0),p(1)) && st(p) == 2))" all -v i=minimal3.cfg
 
 # Diestel 5.3.3 (Csaba et al 2016)
@@ -152,3 +153,12 @@ $PTH/flagcalc -r 5 4 10 -r 6 7.5 10 -r 7 10.5 10 -r 8 14 10 -r 9 18 10 -a s="FOR
 
 $PTH/flagcalc -r 6 7.5 100 -a z="Chiprimegreedyt - Chiprimet" all -v i=minimal3.cfg
 
+# Diestel Conjecture p. 184 (Hadwiger 1943), Corollary 7.3.3
+
+$PTH/flagcalc -r 9 18 10000 -a s="Chit >= 4" s2="EXISTS (p IN Setpartition(V), FORALL (s IN p, FORALL (t IN p, s != t, EXISTS (u IN s, EXISTS (v IN t, ac(u,v))))) AND st(p) >= 4)" all -v i=minimal3.cfg
+
+# Diestel Corollary 7.3.2
+
+$PTH/flagcalc -r 8 14 300 -a s="NOT EXISTS (o IN Setpartition(V), st(o) == 4, FORALL (p IN o, FORALL (q IN p, FORALL (r IN p, q != r, EXISTS (z IN Pathss(q,r), z <= p)))) AND FORALL (p1 IN o, FORALL (q1 IN o, q1 != p1, EXISTS (r1 IN p1, EXISTS (s1 IN q1, ac(r1,s1))))))" \
+s2="FORALL (v1 IN V, FORALL (v2 IN V, v1 != v2 AND NOT ac(v1,v2), EXISTS (m IN Setpartition(V), st(m) == 4, FORALL (p IN m, FORALL (q IN p, FORALL (r IN p, EXISTS (z IN Pathss(q,r), z <= p))) OR (v1 ELT p AND v2 ELT p AND FORALL (u IN p, FORALL (v IN p, (EXISTS (z IN Pathss(u,v1), z <= p) AND EXISTS (z2 IN Pathss(v2,v), z2 <= p)) OR (EXISTS (z3 IN Pathss(v,v1), z4 <= p) AND EXISTS (z4 IN Pathss(u,v2), z4 <= p)))))) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, EXISTS (r2 IN p2, EXISTS (s2 IN q2, ac(r2,s2))) OR (v1 ELT p2 AND v2 ELT q2) OR (v2 ELT p2 AND v1 ELT q2) )))))" \
+z3="edgecm - (2*dimm - 3)" all -v i=minimal3.cfg
