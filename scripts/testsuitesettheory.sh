@@ -21,84 +21,84 @@ $PTH/flagcalc -r 10 20 100 -a s="FORALL (e IN [E], [ac]([idxt](e,0),[idxt](e,1))
 $PTH/flagcalc -r 10 20 100 -a s="FORALL (n IN [NN]([st]([E])), [ac]([idxt]([idxs]([E],n),0),[idxt]([idxs]([E],n),1)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 12 10 -a s="FORALL (b IN [V], FORALL (a IN [V], [st]([Pathss](a,b)) == [pct](a,b)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 6 10 10 -a s="FORALL (b IN [V], FORALL (a IN [V], FORALL (p IN [Pathss](a,b), FORALL (m IN [NN]([st](p)-1), [ac]([idxt](p,m),[idxt](p,m+1))))))" all -v i=minimal3.cfg
-$PTH/flagcalc -d testbip8.dat -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" all
-$PTH/flagcalc -r 8 10 1000 -a s="[cr1] IFF FORALL (v IN [V], FORALL (c IN [Cycless](v), [st](c) > 3))" all -v i=minimal3.cfg
+$PTH/flagcalc -d testbip8.dat -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), mod([st](c),2) == 0))" all
+$PTH/flagcalc -r 8 10 1000 -a s="[cr1] IFF FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), [st](c) > 3))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 8 100 -a s="[treec] IFF FORALL (a IN [V], FORALL (b IN [V], [st]([Pathss](a,b)) == 1))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (a IN [V], FORALL (b IN [V], [st]([Pathss](a,b)) <= 1))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cycless](a)) == 0)" all -v i=minimal3.cfg
-$PTH/flagcalc -r 9 6 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cycless](a)) == 0)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cyclesvs](a)) == 0)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 6 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cyclesvs](a)) == 0)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 15 50 -a s="[conn1c] IFF FORALL (a IN [V], FORALL (b IN [V], [Pathss](a,b) != [Nulls]))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), FORALL (w IN c, [TupletoSet](c) ELT [Cycless](w))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), FORALL (w IN c, [TupletoSet](c) ELT [Cyclesvs](w))))" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a s="EXISTS (r IN [P]([V]), EXISTS (l IN [P]([V]), (l CUP r) == [V] AND [bipc](l,r)))" all
-$PTH/flagcalc -r 9 10 100 -a s="(EXISTS (r IN [P]([V]), EXISTS (l IN [P]([V]), (l CUP r) == [V] AND [bipc](l,r)))) IFF FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN [NN]([dimm]+1), [cyclet](n)) == SUM (v IN [V], SUM (c IN [Cycless](v), 1/[st](c)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 10 100 -a s="(EXISTS (r IN [P]([V]), EXISTS (l IN [P]([V]), (l CUP r) == [V] AND [bipc](l,r)))) IFF FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), mod([st](c),2) == 0))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN [NN]([dimm]+1), [cyclet](n)) == SUM (v IN [V], SUM (c IN [Cyclesvs](v), 1/[st](c)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 33 1000 -a s="SUM (v IN [V], [vdt](v))/2 == [edgecm]" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10 100 -a s="SUM (e IN [E], 1) == [edgecm]" all -v i=minimal3.cfg
-$PTH/flagcalc -r 8 10 100 -a s="FORALL (v IN [V], [st]([Cycless](v)) == [cyclest](v))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10 1000 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), SUM (a IN c, SUM (b IN c, [ac](b,a)))/2 >= [lt](c)))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), FORALL (w IN c, EXISTS (d IN [Cycless](w), [TupletoSet](d) == [TupletoSet](c)))))" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a s="EXISTS (c IN [Cycless](0), EXISTS (d IN [Cycless](0), c != d AND [TupletoSet](c) == [TupletoSet](d)))" all
-$PTH/flagcalc -d f="abc" -a s="EXISTS (c IN [Cycless](0), EXISTS (d IN [Cycless](0), c != d AND [TupletoSet](c) == [TupletoSet](d)))" all
+$PTH/flagcalc -r 8 10 100 -a s="FORALL (v IN [V], [st]([Cyclesvs](v)) == [cyclesvt](v))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 1000 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), SUM (a IN c, SUM (b IN c, [ac](b,a)))/2 >= [lt](c)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), FORALL (w IN c, EXISTS (d IN [Cyclesvs](w), [TupletoSet](d) == [TupletoSet](c)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a s="EXISTS (c IN [Cyclesvs](0), EXISTS (d IN [Cyclesvs](0), c != d AND [TupletoSet](c) == [TupletoSet](d)))" all
+$PTH/flagcalc -d f="abc" -a s="EXISTS (c IN [Cyclesvs](0), EXISTS (d IN [Cyclesvs](0), c != d AND [TupletoSet](c) == [TupletoSet](d)))" all
 $PTH/flagcalc -r 20 95 100 -a s="TALLY (v IN [V], [vdt](v))/2 == [edgecm]" all -v i=minimal3.cfg
 $PTH/flagcalc -r 15 52.5 10000 -a s="COUNT (v IN [V], [vdt](v) % 2 == 1) % 2 == 0" all -v i=minimal3.cfg
 $PTH/flagcalc -r 15 52.5 10000 -a i="COUNT (v IN [V], [vdt](v) % 2 == 1)" all -v i=minimal3.cfg
-$PTH/flagcalc -r 6 7.5 1 -a e="[Cycless](0)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 6 7.5 1 -a e="[Cyclesvs](0)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a p="[idxs]([Pathss](0,1),0)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcdef" -a p="[idxs]([Pathss](0,5),0)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 10 22.5 1 -a e="[V] CUP [E]" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="[Pathss](0,2) CUP [Pathss](0,3)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="[V] CUP [E]" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc" -a e="[Pathss](0,1) CUP [Pathss](0,2)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="BIGCUPD (v IN [V], [Cycless](v))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUPD (v IN [V], [Cyclesvs](v))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 8 14 100 -g o=out.dat all overwrite -v i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a e="BIGCUPD (v IN [V], [Cycless](v))" all -v set i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], [Cycless](v))" all -v set i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], BIGCUP (c IN [Cycless](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUPD (v IN [V], [Cyclesvs](v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], [Cyclesvs](v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN [V], BIGCUP (c IN [Cyclesvs](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cyclesvs](v), [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc d" -a e="SET (x IN [V], [st](SET (e IN [E], x ELT e, e)) > 0, x)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN [V], SET (c IN [Cycless](v), [st](c) % 2 == 1, [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN [V], SET (c IN [Cycless](v), [st](c) % 2 == 0, [TupletoSet](c)))" all -v set i=minimal3.cfg
-$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), [st](c) % 2 == 0, [TupletoSet](c)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN [V], SET (c IN [Cyclesvs](v), [st](c) % 2 == 1, [TupletoSet](c)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN [V], SET (c IN [Cyclesvs](v), [st](c) % 2 == 0, [TupletoSet](c)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUP (v IN [V], SET (c IN [Cyclesvs](v), [st](c) % 2 == 0, [TupletoSet](c)))" all -v set i=minimal3.cfg
 $PTH/flagcalc -d f="abcd=efgh" -a a="SUM (v IN [V], [vdt](v) > [dimm]/2, 1)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 16 60 100 -a s="SUM (v IN [V], [vdt](v) > [dimm]/4, 1) == COUNT (v IN [V], [vdt](v) > [dimm]/4)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 16 60 1000 -a s="FORALL (v IN [V], [vdt](v) > 0, EXISTS (u IN [V], [ac](u,v)))" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abc" -a e="SET (v IN [V], SET (u IN [V], SET (t IN [V], t)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc" -a e="SETD (v IN [V], SETD (u IN [V], SETD (t IN [V], t)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (a IN c, EXISTS (b IN c, a ELT e AND b ELT e AND a != b)), e)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), [idxt](c,n) ELT e AND [idxt](c,(n + 1) % [st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -r 8 14 100 -a s="[cr1]" e2="BIGCUP (v IN [V], [Cycless](v))" all -v set i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="-abcdea" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcde" -a e="BIGCUP (v IN [V], SET (c IN [Cycless](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cyclesvs](v), SET (e IN [E], EXISTS (a IN c, EXISTS (b IN c, a ELT e AND b ELT e AND a != b)), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cyclesvs](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), [idxt](c,n) ELT e AND [idxt](c,(n + 1) % [st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 8 14 100 -a s="[cr1]" e2="BIGCUP (v IN [V], [Cyclesvs](v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN [V], SET (c IN [Cyclesvs](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdea" -a e="BIGCUP (v IN [V], SET (c IN [Cyclesvs](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a e="BIGCUP (v IN [V], SET (c IN [Cyclesvs](v), SET (e IN [E], EXISTS (n IN [NN]([st](c)), c(n) ELT e AND c((n+1)%[st](c)) ELT e), e)))" all -v set i=minimal3.cfg
 $PTH/flagcalc -r 8 14 100 -a f="abcd" a2="[cliquem]>3" all -v set i=minimal3.cfg
-$PTH/flagcalc -d f="abcde" -a e="BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a e="BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set i=minimal3.cfg
 $PTH/flagcalc -r 4 3 1 -a s="FORALL (s IN P(P(V)), EXISTS (t IN P(V), t ELT s) OR st(s) == 0)" all
 $PTH/flagcalc -d f="abc" -a e="SET (v IN V, SET (u IN V, SET (t IN V, t)))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e))))" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="abcde" -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e))))" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="{3+2,SUM (v IN V, v), {1}}" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc=def=ghi" -a e="BIGCUP (v IN V, {v+1})" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc=def=ghi" -a e="SET (v IN V, {v+1})" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,<<<<1>>,5,6>>,2,3>>" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd=ef=ghi" -a e="{SET (v IN V, FORALL (c IN Cycless(v), st(c) % 2 == 0), v)}" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcd=efghi" -a e="{SET (v IN V, FORALL (c IN Cycless(v), (st(c) % 2) == 0), v)}" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="-abcdefdgha" -a e="Cycless(0)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="-abcdefdgha" -a e="BIGCUP (v IN V, SET (c IN Cycless(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=ef=ghi" -a e="{SET (v IN V, FORALL (c IN Cyclesvs(v), st(c) % 2 == 0), v)}" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd=efghi" -a e="{SET (v IN V, FORALL (c IN Cyclesvs(v), (st(c) % 2) == 0), v)}" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdefdgha" -a e="Cyclesvs(0)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdefdgha" -a e="BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="SET (es IN P(E), st(es) != 0, es(0)(0))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcdef" -a a="MAX (n IN NN(st(Cycless(0)(0))), Cycless(0)(0)(n))" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN P(V), st(v) > 0, st(Cycless(v(0))))>>(1)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN P(V), st(v) > 0, st(Cycless(v(0))))>>(2)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcdef" -a a="MAX (n IN NN(st(Cyclesvs(0)(0))), Cyclesvs(0)(0)(n))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN P(V), st(v) > 0, st(Cyclesvs(v(0))))>>(1)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN P(V), st(v) > 0, st(Cyclesvs(v(0))))>>(2)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc=def=ghi" -a e="SETD (n IN st(V), SETD (i IN n, {i}))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abcdefg" -a e="SET (s IN Setpartition(V), s)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="SET (s IN Setpartition(V), s)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 7 20 100 -a s="conn1c" s2="Knc(dimm,1)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
 
 # Diestel 5.2.4 (Brooks 1941)
 
-$PTH/flagcalc -r 7 10.5 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0 AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 7 10.5 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0 AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 8 14 1000 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 12 33 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="Chit <= Deltam" all -v i=minimal3.cfg
-$PTH/flagcalc -r 12 33 200 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cycless(0)) == 1 IMPLIES FORALL (c IN Cycless(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="Chigreedyt <= Deltam" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cyclesvs(0)) == 1 IMPLIES FORALL (c IN Cyclesvs(0), st(c) % 2 == 0 AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cyclesvs(0)) == 1 IMPLIES FORALL (c IN Cyclesvs(0), st(c) % 2 == 0 AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 1000 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cyclesvs(0)) == 1 IMPLIES FORALL (c IN Cyclesvs(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 33 100 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cyclesvs(0)) == 1 IMPLIES FORALL (c IN Cyclesvs(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="Chit <= Deltam" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 33 200 -a s="conn1c" s2="NOT Knc(dimm,1) AND st(Cyclesvs(0)) == 1 IMPLIES FORALL (c IN Cyclesvs(0), st(c) % 2 == 0  AND st(c) == dimm)" s3="Chigreedyt <= Deltam" all -v i=minimal3.cfg
 
 # Diestel 5.2.1
 
@@ -120,8 +120,8 @@ $PTH/flagcalc -r 38 50 100000 -a s="girthm > 4 AND Chigreedyt > 4" all -v i=mini
 
 # Diestel 1.3.1
 
-$PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="MAX (v IN V, MAX (c IN Cycless(v), st(c))) >= deltam + 1" all -v i=minimal3.cfg
-$PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="EXISTS (v IN V, EXISTS (c IN Cycless(v), st(c) >= deltam + 1))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="MAX (v IN V, MAX (c IN Cyclesvs(v), st(c))) >= deltam + 1" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 30 100 -a s="deltam >= 2" s2="EXISTS (v IN V, EXISTS (c IN Cyclesvs(v), st(c) >= deltam + 1))" all -v i=minimal3.cfg
 
 # Diestel 1.3.1
 
@@ -131,11 +131,11 @@ $PTH/flagcalc -r 12 30 100 -a s="EXISTS (v1 IN V, EXISTS (v2 IN V, EXISTS (p IN 
 # Diestel 5.3.2 (Vizing 1964)
 
 $PTH/flagcalc -r 8 14 100 -a s="Deltam <= Chiprimet && Chiprimet <= Deltam + 1" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="abc=defg" f="abcd=efgh" f="abc=de" -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abc=defg" f="abcd=efgh" f="abc=de" -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
 
 # Diestel 5.3.1 (Konig 1916)
 
-$PTH/flagcalc -r 8 14 10000 -a s="FORALL (v IN [V], FORALL (c IN [Cycless](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 10000 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
 
 # Diestel 2.1.1
 
@@ -149,7 +149,7 @@ $PTH/flagcalc -r 8 14 2000 -a s="FORALL (p IN Setpartition(V), (EXISTS (es IN P(
 
 # Diestel 5.3.3 (Csaba et al 2016)
 
-$PTH/flagcalc -r 5 4 10 -r 6 7.5 10 -r 7 10.5 10 -r 8 14 10 -r 9 18 10 -a s="FORALL (n IN NN(10), FORALL (d IN NN(10), Chiprimet == Deltam IF (FORALL (v IN V, (vdt(v) == d) AND dimm == n AND d >= n/2 AND n >= 4 AND n % 2 == 0))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 4 10 -r 6 7.5 10 -r 7 10.5 10 -r 8 14 10 -a s="FORALL (n IN NN(9), FORALL (d IN NN(9), Chiprimet == Deltam IF (FORALL (v IN V, (vdt(v) == d) AND dimm == n AND d >= n/2 AND n >= 4 AND n % 2 == 0))))" all -v i=minimal3.cfg
 
 $PTH/flagcalc -r 6 7.5 100 -a z="Chiprimegreedyt - Chiprimet" all -v i=minimal3.cfg
 
@@ -163,10 +163,27 @@ $PTH/flagcalc -r 8 14 300 -a s="FORALL (vs IN P(V), NOT EXISTS (o IN Setpartitio
 s2="FORALL (v1 IN V, FORALL (v2 IN V, v1 != v2 AND NOT ac(v1,v2), EXISTS (vs IN P(V), EXISTS (m IN Setpartition(vs), st(m) == 4, FORALL (p IN m, FORALL (q IN p, FORALL (r IN p, EXISTS (z IN Pathss(q,r), z <= p))) OR (v1 ELT p AND v2 ELT p AND FORALL (u IN p, FORALL (v IN p, (EXISTS (z IN Pathss(u,v1), z <= p) AND EXISTS (z2 IN Pathss(v2,v), z2 <= p)) OR (EXISTS (z3 IN Pathss(v,v1), z3 <= p) AND EXISTS (z4 IN Pathss(u,v2), z4 <= p)))))) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, EXISTS (r2 IN p2, EXISTS (s2 IN q2, ac(r2,s2))) OR (v1 ELT p2 AND v2 ELT q2) OR (v2 ELT p2 AND v1 ELT q2) ))))))" \
 z3="edgecm == 2*dimm - 3" all -v i=minimal3.cfg
 
-$PTH/flagcalc -r 8 14 300 -a s="FORALL (vs IN P(V), NOT EXISTS (o IN Setpartition(vs), st(o) == 4, FORALL (p IN o, FORALL (q IN p, FORALL (r IN p, q != r, EXISTS (z IN Pathss(q,r), z <= p)))) AND FORALL (p1 IN o, FORALL (q1 IN o, q1 != p1, Nsadjc(p1,q1)))))" \
-s2="FORALL (ne IN NE, EXISTS (vs IN P(V), EXISTS (m IN Setpartition(vs), st(m) == 4, FORALL (p IN m, FORALL (q IN p, FORALL (r IN p, EXISTS (z IN Pathss(q,r), z <= p))) OR (ne(0) ELT p AND ne(1) ELT p AND FORALL (u IN p, FORALL (v IN p, (EXISTS (z IN Pathss(u,ne(0)), z <= p) AND EXISTS (z2 IN Pathss(ne(1),v), z2 <= p)) OR (EXISTS (z3 IN Pathss(v,ne(0)), z3 <= p) AND EXISTS (z4 IN Pathss(u,ne(1)), z4 <= p)))))) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, Nsadjc(p2,q2) OR (ne(0) ELT p2 AND ne(1) ELT q2) OR (ne(1) ELT p2 AND ne(0) ELT q2) )) )))" \
+$PTH/flagcalc -r 8 14 300 -a s="FORALL (vs IN P(V), NOT EXISTS (o IN Setpartition(vs), st(o) == 4, FORALL (p IN o, FORALL (q IN p, FORALL (r IN p, q != r, EXISTS (z IN Pathss(q,r), z <= p)))) AND FORALL (p1 IN o, FORALL (q1 IN o, q1 != p1, Nssc(p1,q1)))))" \
+s2="FORALL (ne IN NE, EXISTS (vs IN P(V), EXISTS (m IN Setpartition(vs), st(m) == 4, FORALL (p IN m, FORALL (q IN p, FORALL (r IN p, EXISTS (z IN Pathss(q,r), z <= p))) OR (ne(0) ELT p AND ne(1) ELT p AND FORALL (u IN p, FORALL (v IN p, (EXISTS (z IN Pathss(u,ne(0)), z <= p) AND EXISTS (z2 IN Pathss(ne(1),v), z2 <= p)) OR (EXISTS (z3 IN Pathss(v,ne(0)), z3 <= p) AND EXISTS (z4 IN Pathss(u,ne(1)), z4 <= p)))))) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, Nssc(p2,q2) OR (ne(0) ELT p2 AND ne(1) ELT q2) OR (ne(1) ELT p2 AND ne(0) ELT q2) )) )))" \
+z3="edgecm == 2*dimm - 3" all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 8 14 1500 -a s="FORALL (vs IN P(V), NOT EXISTS (o IN Setpartition(vs), st(o) == 4, FORALL (p IN o, connvsc(p,E)) AND FORALL (p1 IN o, FORALL (q1 IN o, q1 != p1, Nssc(p1,q1)))))" \
+s2="FORALL (ne IN NE, EXISTS (vs IN P(V), EXISTS (m IN Setpartition(vs), st(m) == 4, FORALL (p IN m, connvsc(p, E CUP {ne})) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, Nssc(p2,q2) OR (ne(0) ELT p2 AND ne(1) ELT q2) OR (ne(1) ELT p2 AND ne(0) ELT q2) )) )))" \
 z3="edgecm == 2*dimm - 3" all -v i=minimal3.cfg
 
 
+# Diestel Theorem 3.3.6(i) (Global version of Menger's Theorem) Note that the native kconnc is much faster than the count of independent paths, and here that speedup is a matter of the native code being to the left of the IFF
 
+$PTH/flagcalc -r 5 5 300 -a s="FORALL (k IN dimm, kconnc(k) IFF FORALL (v1 IN V, FORALL (v2 IN V, v1 != v2, EXISTS (ps IN P(Pathss(v1,v2)), st(ps) >= k, FORALL (p1 IN ps, FORALL (p2 IN ps, p1 != p2, FORALL (v3 IN p1, v3 != v1 AND v3 != v2, FORALL (v4 IN p2, v4 != v1 AND v4 != v2, v3 != v4))))))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 300 -a s="FORALL (k IN dimm, kconnc(k) IFF FORALL (v1 IN V, FORALL (v2 IN V, v1 != v2, EXISTS (ps IN P(Pathss(v1,v2)), st(ps) >= k, FORALL (p1 IN ps, FORALL (p2 IN ps, p1 != p2, p1 CAP p2 <= {v1,v2}))))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 300 -a s="FORALL (k IN dimm, FORALL (v1 IN V, FORALL (v2 IN V, v1 != v2, EXISTS (ps IN P(Pathss(v1,v2)), st(ps) >= k, FORALL (p1 IN ps, FORALL (p2 IN ps, p1 != p2, p1 CAP p2 <= {v1,v2}))))) IFF kconnc(k))" all -v i=minimal3.cfg
+
+# Diestel Theorem 3.3.1 (Menger 1927)
+
+$PTH/flagcalc -r 5 5 50 -a z="FORALL (A IN P(V), FORALL (B IN P(V), A CAP B == Nulls, MIN (X IN P(V), Separatesc(A,B,X), st(X)) == MAX (ps IN Setpartition(V), FORALL (p IN ps, EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), q <= p) ))), st(ps)) ))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 50 -a z="FORALL (T IN Setpartition(V), st(T) == 2, FORALL (A IN P(T(0)), FORALL (B IN P(T(1)), MIN (X IN P(V), Separatesc(A,B,X), st(X)) == MAX (ps IN Setpartition(V), FORALL (p IN ps, EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), q <= p) ))), st(ps)) )) )" all -v i=minimal3.cfg
+
+# Diestel Theorem 7.4.1 (Regularity lemma), specifically "admits an epsilon-regular partition with partition size k <= M"
+
+# $PTH/flagcalc -r 8 14 300 -a z="EXISTS (vp IN Setpartition(V), st(vp(0)) <= 0.1*st(vp(1)) AND st(vp) <= 5 AND FORALL (n IN st(vp)-1, n > 0, vp(n) == vp(n+1)), FORALL (i IN st(vp), FORALL (j IN st(vp), i != j, Nsst(vp(i),vp(j))/(st(vp(i)*st(vp(j)) "
 

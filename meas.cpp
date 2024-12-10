@@ -757,7 +757,7 @@ public:
 class connectedmeas : public meas
 {
 public:
-    connectedmeas(mrecords* recin) : meas(recin, "connm", "Connected components") {}
+    connectedmeas(mrecords* recin) : meas(recin, "connm", "Connected components number greater than parameter") {}
 
     double takemeas( const int idx, const params& ps ) override {
         graphtype* g = (*rec->gptrs)[idx];
@@ -1397,7 +1397,7 @@ public:
 
 
 class kconnectedcrit : public crit {
-// Diestel, Grath Theory, p. 6-7
+// Diestel, Grath Theory, p. 11
 
     public:
 
@@ -1426,7 +1426,7 @@ class kconnectedcrit : public crit {
 
 
 class kappatally : public tally {
-// Diestel, Graph Theory, page 7
+// Diestel, Graph Theory, page 12
 
 public:
 
@@ -1666,11 +1666,11 @@ public:
 
 };
 
-class cyclestally : public tally {
+class cyclesvtally : public tally {
 
 public:
 
-    cyclestally( mrecords* recin ) : tally( recin, "cyclest", "cycles tally")
+    cyclesvtally( mrecords* recin ) : tally( recin, "cyclesvt", "cycles around a vertex tally")
     {
         ps.clear();
         valms p1;
@@ -1686,8 +1686,34 @@ public:
         //osadjacencymatrix(std::cout, g);
         if (ps.size() == 1) {
             // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
-            return cyclescount(g,ns,ps[0].v.iv); // undirected (cf. Diestel p 6-10) is half of directed
-        }
+            return cyclesvcount(g,ns,ps[0].v.iv); // undirected (cf. Diestel p 6-10) is half of directed
+        } else
+            std::cout << "Incorrect number of parameters passed to cyclesvtally\n";
+        return 0;
+    }
+
+};
+
+class cyclestally : public tally {
+
+public:
+
+    cyclestally( mrecords* recin ) : tally( recin, "cyclest", "All cycles tally")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        //osadjacencymatrix(std::cout, g);
+        if (ps.size() == 0) {
+            // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
+            return cyclescount(g,ns); // undirected (cf. Diestel p 6-10) is half of directed
+        } else
+            std::cout << "Incorrect number of parameters passed to cyclestally\n";
         return 0;
     }
 
@@ -2006,12 +2032,12 @@ public:
 };
 
 
-class Nsadjcrit : public crit {
+class Nsscrit : public crit {
     // Diestel p. ??
     // note it doesn't check the case of overlapping sets
 public:
 
-    Nsadjcrit( mrecords* recin ) : crit( recin, "Nsadjc", "Vertex sets adjacent")
+    Nsscrit( mrecords* recin ) : crit( recin, "Nssc", "Neighboring vertex sets")
     {
         ps.clear();
         valms p1;
@@ -2039,10 +2065,60 @@ public:
                 }
                 s2->reset();
             }
+            delete s1;
+            delete s2;
             return res;
             // }
         }
-        std::cout << "Wrong number or types of parameters passed to Nsadjc\n";
+        std::cout << "Wrong number or types of parameters passed to Nssc\n";
+        return false;
+    }
+
+};
+
+class Nsstally : public tally {
+    // cf. Diestel p. 187
+    // note it doesn't check the case of overlapping sets
+public:
+
+    Nsstally( mrecords* recin ) : tally( recin, "Nsst", "Number of X-Y edges (X,Y disjoint sets)")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
+            auto s1 = ps[0].seti->getitrpos();
+            auto s2 = ps[1].seti->getitrpos();
+            int res = 0;
+
+            bool* vertices = (bool*)malloc(g->dim * sizeof(bool));
+            memset (vertices, false, g->dim * sizeof(bool));
+            while (!s2->ended())
+                vertices[s2->getnext().v.iv] = true;
+
+            while (!s1->ended())
+            {
+                vertextype v1 = s1->getnext().v.iv;
+                for (int i = 0; i < g->dim; ++i) {
+                    if (vertices[i])
+                        res += g->adjacencymatrix[v1*g->dim + i] ? 1 : 0;
+                }
+            }
+            delete s1;
+            delete s2;
+            return res;
+            // }
+        }
+        std::cout << "Wrong number or types of parameters passed to Nsst\n";
         return false;
     }
 
@@ -2446,3 +2522,227 @@ public:
     }
 };
 
+class Separatescrit : public crit
+// Diestel p. --
+// FORALL (v1 IN A, FORALL (v2 IN B, FORALL (p IN Pathss(v1,v2), p CAP X != Nulls)))
+{
+    public:
+
+
+    bool takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 3 || (ps[0].t != mtset && ps[0].t != mttuple) || (ps[1].t != mtset && ps[1].t != mttuple)
+            || (ps[2].t != mtset && ps[2].t != mttuple))
+        {
+            std::cout << "Wrong number or types of parameters to Separatesc\n";
+            return false;
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        auto itrA = ps[0].seti->getitrpos();
+        auto itrB = ps[1].seti->getitrpos();
+        auto itrC = ps[2].seti->getitrpos();
+
+        bool* C = (bool*)malloc(g->dim * sizeof(bool));
+        memset (C, false, g->dim * sizeof(bool));
+        while (!itrC->ended())
+            C[itrC->getnext().v.iv] = true;;
+        delete itrC;
+
+        bool res = true;
+        while (!itrA->ended() && res)
+        {
+            vertextype v1 = itrA->getnext().v.iv;
+            while (!itrB->ended() && res)
+            {
+                vertextype v2 = itrB->getnext().v.iv;
+                std::vector<std::vector<vertextype>> out {};
+                pathsbetweentuples( g, ns, v1, v2, out );
+                for (auto p : out)
+                {
+                    bool found = false;
+                    for (auto v : p)
+                    {
+                        found = found || C[v];
+                        if (found)
+                            break;
+                    }
+                    res = res && found;
+                    if (!res)
+                        break;
+                }
+            }
+            if (res)
+                itrB->reset();
+        }
+
+        delete C;
+        delete itrA;
+        delete itrB;
+        return res;
+    }
+
+
+
+    Separatescrit( mrecords* recin ) : crit( recin, "Separatesc", "Sets A and B separated by set X")
+    {
+        ps.clear();
+        valms v;
+        v.t = mtset;
+        ps.push_back(v);
+        ps.push_back(v);
+        ps.push_back(v);
+        pssz = 3;
+    }
+};
+
+
+class connvsscrit : public crit
+//
+{
+    public:
+
+
+    bool takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 2 || (ps[0].t != mtset && ps[0].t != mttuple) || (ps[1].t != mtset && ps[1].t != mttuple))
+        {
+            std::cout << "Wrong number or types of parameters to connvssc\n";
+            return false;
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        auto itrA = ps[0].seti->getitrpos();
+        auto itrB = ps[1].seti->getitrpos();
+
+        bool res = false;
+        while (!itrA->ended() && !res)
+        {
+            vertextype v1 = itrA->getnext().v.iv;
+            while (!itrB->ended() && !res)
+            {
+                vertextype v2 = itrB->getnext().v.iv;
+                res = res || pathsbetweenmin( g, ns, v1, v2, 1);
+
+            }
+            if (!res)
+                itrB->reset();
+        }
+
+        delete itrA;
+        delete itrB;
+        return res;
+    }
+
+
+
+    connvsscrit( mrecords* recin ) : crit( recin, "connvssc", "Something in set A has a path to set B")
+    {
+        ps.clear();
+        valms v;
+        v.t = mtset;
+        ps.push_back(v);
+        ps.push_back(v);
+        pssz = 2;
+    }
+};
+
+
+class connvcrit : public crit
+//
+{
+public:
+
+
+    bool takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 2 || ps[0].t != mtdiscrete || ps[1].t != mtdiscrete)
+        {
+            std::cout << "Wrong number or types of parameters to connvc\n";
+            return false;
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        return pathsbetweenmin( g, ns, ps[0].v.iv, ps[1].v.iv, 1);
+    }
+
+
+
+    connvcrit( mrecords* recin ) : crit( recin, "connvc", "exists at least one path from a to b")
+    {
+        ps.clear();
+        valms v;
+        v.t = mtdiscrete;
+        ps.push_back(v);
+        ps.push_back(v);
+        pssz = 2;
+    }
+};
+
+class connvscrit : public crit
+//
+{
+public:
+
+
+    bool takemeas( const int idx, const params& ps) override
+    {
+        if (ps.size() != 2 || (ps[0].t != mtset && ps[0].t != mttuple) || (ps[1].t != mtset && ps[1].t != mttuple))
+        {
+            std::cout << "Wrong number or types of parameters to connvsc\n";
+            return false;
+        }
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        auto vitr = ps[0].seti->getitrpos();
+        auto edgeitr = ps[1].seti->getitrpos();
+
+        bool* vertices = (bool*)malloc(g->dim * sizeof(bool));
+        memset (vertices, false, g->dim * sizeof(bool));
+        while (!vitr->ended())
+            vertices[vitr->getnext().v.iv] = true;
+
+        graphtype* gsub = new graphtype(g->dim);
+        memset (gsub->adjacencymatrix, false, g->dim * g->dim * sizeof(bool));
+        while (!edgeitr->ended())
+        {
+            valms e = edgeitr->getnext();
+            auto eitr = e.seti->getitrpos();
+            vertextype v1 = eitr->getnext().v.iv;
+            vertextype v2 = eitr->getnext().v.iv;
+            delete eitr;
+            if (vertices[v1] && vertices[v2]) // ... or (different functionality) add "&& g->adjacencymatrix[v1*g->dim + v2]"
+            {
+                gsub->adjacencymatrix[v1 * g->dim + v2] = true;
+                gsub->adjacencymatrix[v2 * g->dim + v1] = true;
+            }
+        }
+
+        delete vitr;
+        delete edgeitr;
+        auto nssub = new neighborstype(gsub);
+        nssub->computeneighborslist();
+        bool res = connectedsubsetcount(gsub,nssub,vertices,2) <= 1;
+        delete vertices;
+        delete gsub;
+        delete nssub;
+        return res;
+
+    }
+
+
+
+    connvscrit( mrecords* recin ) : crit( recin, "connvsc", "Set is connected using given edges")
+    {
+        ps.clear();
+        valms v;
+        v.t = mtset;
+        ps.push_back(v);
+        ps.push_back(v);
+        pssz = 2;
+    }
+};

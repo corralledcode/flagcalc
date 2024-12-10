@@ -2143,6 +2143,90 @@ int connectedcount(graphtype *g, neighborstype *ns, const int breaksize) {
     return res;
 }
 
+int connectedsubsetcount(graphtype *g, neighborstype *ns, bool* vertices, const int breaksize) {
+    int dim = g->dim;
+    if (dim <= 0)
+        return 0;
+
+    int* visited = (int*)malloc(dim*sizeof(int));
+
+    // memset(visited, -1, dim*sizeof(int)); // to test... as a replacement for the next four lines
+    for (int i = 0; i < dim; ++i)
+    {
+        visited[i] = -1;
+    }
+
+    int first = 0;
+    while (!vertices[first] && first < dim)
+        ++first;
+
+    visited[first] = first;
+    int res = 1;
+    bool allvisited = false;
+    while (!allvisited)
+    {
+        bool changed = false;
+        for ( int i = 0; i < dim; ++i)
+        {
+            if (!vertices[i])
+                continue;
+            if (visited[i] >= 0)
+            {
+                int j = 0;
+                while (j < ns->degrees[i])
+                {
+                    while (!vertices[ns->neighborslist[i*dim+j]] && j < ns->degrees[i])
+                        ++j;
+                    // for (int j = 0; j < ns->degrees[i]; ++j)
+                    // {
+                    if (j < ns->degrees[i])
+                    {
+                        vertextype nextv = ns->neighborslist[i*dim+j];
+                        // loop = if a neighbor of vertex i is found in visited
+                        // and that neighbor is not the origin of vertex i
+
+                        if (visited[nextv] < 0)
+                        {
+                            visited[nextv] = i;
+                            changed = true;
+                        }
+                    }
+                    ++j;
+                }
+
+            }
+        }
+        if (!changed) {
+            allvisited = true;
+            int firstunvisited = first;
+            int lastfirstunvisited = first;
+            while( allvisited && (firstunvisited < dim))
+            {
+                allvisited = allvisited && (visited[firstunvisited] != -1);
+                lastfirstunvisited = firstunvisited++;
+                while (!vertices[firstunvisited] && firstunvisited < dim)
+                    ++firstunvisited;
+            }
+            if (allvisited)
+            {
+                free (visited);
+                return res;
+            }
+            res++;
+            if (breaksize >=0 && res >= breaksize)
+            {
+                free (visited);
+                return res;
+            }
+            visited[lastfirstunvisited] = lastfirstunvisited;
+            changed = true;
+        }
+    }
+    return res;
+}
+
+
+
 bool kconnectedfn( graphtype* g, neighborstype* ns, const int k ) {
 
     bool res = true;
@@ -2151,6 +2235,7 @@ bool kconnectedfn( graphtype* g, neighborstype* ns, const int k ) {
         auto test = new kconnectedtest(g,ns,i);
         int c = nchoosek(g->dim,i);
         res = res && enumsizedsubsetsquick(0,i,nullptr, 0,g->dim,&cnt,c, test);
+        delete test;
     }
 
     return res;
@@ -2186,6 +2271,33 @@ int pathsbetweencount( graphtype* g, neighborstype* ns, vertextype v1, vertextyp
         auto ns2 = new neighborstype(g2);
         res += pathsbetweencount(g2,ns2, v,v2);
         delete ns2;
+    }
+    delete g2;
+    return res;
+}
+
+int pathsbetweenmin( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, int min) {
+    if (v1 == v2 || min <= 0)
+        return 1;
+    auto g2 = new graphtype(g->dim);
+    //copygraph( g, g2 );
+    bool res = false;
+    for (int i = 0; i < ns->degrees[v1]; ++i) {
+        copygraph( g, g2 );
+        vertextype v = ns->neighborslist[v1*g->dim + i];
+        for (int j = 0; j < ns->degrees[v1]; ++j)
+        {
+            vertextype v3 = ns->neighborslist[v1*g->dim + j];
+            g2->adjacencymatrix[v1*g->dim + v3] = false;
+            g2->adjacencymatrix[v3*g->dim + v1] = false;
+        }
+        // g2->adjacencymatrix[v1*g->dim + v] = false;
+        // g2->adjacencymatrix[v*g->dim + v1] = false;
+        auto ns2 = new neighborstype(g2);
+        res += pathsbetweenmin(g2,ns2, v,v2, min) ? true : false;
+        delete ns2;
+        if (res >= min)
+            break;
     }
     delete g2;
     return res;
@@ -2231,6 +2343,7 @@ void pathsbetweentuplesinternal( graphtype* g, neighborstype* ns, vertextype v1,
 
 
 
+
 void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<std::vector<vertextype>>& out )
 {
     // std::cout << "v1 == " << v1 << ", v2 == " << v2 << "\n";
@@ -2239,7 +2352,7 @@ void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertext
     pathsbetweentuplesinternal( g, ns, v2, v1, existingpath, out );
 }
 
-int cyclescountinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
+int cyclesvcountinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
 
     if (v1 == v2)
         return 1;
@@ -2267,7 +2380,7 @@ int cyclescountinternal( graphtype* g, neighborstype* ns, vertextype v1, vertext
 }
 
 
-int cyclescount( graphtype* g, neighborstype* ns, vertextype v1 )
+int cyclesvcount( graphtype* g, neighborstype* ns, vertextype v1 )
 {
     auto g2 = new graphtype(g->dim);
     //copygraph( g, g2 );
@@ -2280,7 +2393,7 @@ int cyclescount( graphtype* g, neighborstype* ns, vertextype v1 )
 
         auto ns2 = new neighborstype(g2);
 
-        res += cyclescountinternal(g2,ns2, v,v1);
+        res += cyclesvcountinternal(g2,ns2, v,v1);
         // for (int j = 0; j < ns->degrees[v]; ++j)
         // {
             // vertextype v3 = ns->neighborslist[v*g->dim + j];
@@ -2293,7 +2406,7 @@ int cyclescount( graphtype* g, neighborstype* ns, vertextype v1 )
     return res;
 }
 
-void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out )
+void cyclesvset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out )
 {
     auto g2 = new graphtype(g->dim);
     std::vector<std::vector<vertextype>> internalout {};
@@ -2359,4 +2472,110 @@ void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::
             internalout[j-1].clear();
     }*/
     delete g2;
+}
+
+void cyclesset( graphtype* g, neighborstype* ns, std::vector<std::vector<vertextype>>& out )
+{
+    auto g2 = new graphtype(g->dim);
+    std::vector<std::vector<vertextype>> internalout {};
+
+    copygraph( g, g2 );
+
+    vertextype v = 0;
+    while (v < g->dim)
+    {
+        for (int i = 0; i < ns->degrees[v]; ++i) {
+            vertextype v1 = ns->neighborslist[v*g->dim + i];
+            g2->adjacencymatrix[v1*g->dim + v] = false;
+            g2->adjacencymatrix[v*g->dim + v1] = false;
+
+            auto ns2 = new neighborstype(g2);
+
+            pathsbetweentuples(g2,ns2, v,v1, out);
+
+            // for (int j = 0; j < ns->degrees[v1]; ++j)
+            // {
+            // vertextype v3 = ns->neighborslist[v1*g->dim + j];
+            // g2->adjacencymatrix[v1*g->dim + v3] = false;
+            // g2->adjacencymatrix[v3*g->dim + v1] = false;
+            // }
+            delete ns2;
+        }
+        for (auto p : out)
+            p.push_back(v);
+        ++v;
+    }
+
+/*
+
+    for (int i = 0; i < ns->degrees[v]; ++i)
+    {
+        copygraph( g, g2 );
+        vertextype v2 = ns->neighborslist[v*g->dim + i];
+        g2->adjacencymatrix[v*g->dim + v2] = false;
+        g2->adjacencymatrix[v2*g->dim + v] = false;
+        auto ns2 = new neighborstype(g2);
+        pathsbetweentuples(g2,ns2, v, v2, out);
+        delete ns2;
+    }
+
+    for (auto p : internalout)
+        p.push_back(v);
+*/
+
+    /*
+    for (int i = 0; i+1 < internalout.size(); ++i) {
+        bool dupe = false;
+        int j;
+        for (j = i+1; !dupe && j < internalout.size(); ++j)
+        {
+            if (internalout[i].size() == internalout[j].size()) {
+                int k = 0;
+                bool match = true;
+                while (dupe && k < internalout[i].size())
+                {
+                    match = match && (internalout[i][k] == internalout[j][internalout[j].size()-1-k]);
+                    k++;
+                }
+                dupe = dupe || match;
+            }
+        }
+        if (!internalout[i].empty())
+            out.push_back(internalout[i]);
+        if (dupe)
+            internalout[j-1].clear();
+    }*/
+    delete g2;
+}
+
+
+int cyclescount( graphtype* g, neighborstype* ns )
+{
+    auto g2 = new graphtype(g->dim);
+    //copygraph( g, g2 );
+    int res = 0;
+    copygraph( g, g2 );
+    int v1 = 0;
+    while (v1 < g->dim)
+    {
+        for (int i = 0; i < ns->degrees[v1]; ++i) {
+            vertextype v = ns->neighborslist[v1*g->dim + i];
+            g2->adjacencymatrix[v1*g->dim + v] = false;
+            g2->adjacencymatrix[v*g->dim + v1] = false;
+
+            auto ns2 = new neighborstype(g2);
+
+            res += cyclesvcountinternal(g2,ns2, v,v1);
+            // for (int j = 0; j < ns->degrees[v]; ++j)
+            // {
+            // vertextype v3 = ns->neighborslist[v*g->dim + j];
+            // g2->adjacencymatrix[v*g->dim + v3] = false;
+            // g2->adjacencymatrix[v3*g->dim + v] = false;
+            // }
+            delete ns2;
+        }
+        ++v1;
+    }
+    delete g2;
+    return res;
 }

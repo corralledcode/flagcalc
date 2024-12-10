@@ -191,12 +191,19 @@ int pathsbetweencount( graphtype* g, neighborstype* ns, vertextype v1, vertextyp
 
 void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<std::vector<vertextype>>& out );
 
-int cyclescount( graphtype* g, neighborstype* ns, vertextype v1 );
+int cyclesvcount( graphtype* g, neighborstype* ns, vertextype v1 );
 
-void cyclesset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out );
+void cyclesvset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out );
 
+int pathsbetweenmin( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, int min);
 
+int connectedsubsetcount(graphtype *g, neighborstype *ns, bool* vertices, const int breaksize);
 
 graphtype* cyclegraph( const int dim );
+
+void cyclesset( graphtype* g, neighborstype* ns, std::vector<std::vector<vertextype>>& out );
+
+int cyclescount( graphtype* g, neighborstype* ns );
+
 
 #endif //GRAPHS_H

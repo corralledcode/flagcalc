@@ -1245,7 +1245,7 @@ public:
 
 };
 
-class setitrcycles : public setitrmodeone
+class setitrcyclesv : public setitrmodeone
 {
 public:
     vertextype v;
@@ -1258,7 +1258,7 @@ public:
             return;
         totality.clear();
         std::vector<std::vector<vertextype>> out {};
-        cyclesset(g,ns,v,out);
+        cyclesvset(g,ns,v,out);
 
         // for (int i = 0; i < out.size(); ++i)
         // {
@@ -1286,8 +1286,61 @@ public:
         pos = -1;
     }
 
-    setitrcycles( graphtype* gin, neighborstype* nsin, vertextype vin )
+    setitrcyclesv( graphtype* gin, neighborstype* nsin, vertextype vin )
         : g{gin}, ns{nsin}, v{vin}
+    {
+    }
+
+    ~setitrcyclesv()
+    {
+        for (auto p : totality)
+            delete p.seti;
+    }
+
+};
+
+class setitrcycles : public setitrmodeone
+{
+public:
+    graphtype* g;
+    neighborstype* ns;
+
+    void compute() override
+    {
+        if (computed)
+            return;
+        totality.clear();
+        std::vector<std::vector<vertextype>> out {};
+        cyclesset(g,ns,out);
+
+        // for (int i = 0; i < out.size(); ++i)
+        // {
+        // std::cout << "{";
+        // for (int j = 0; j < out[i].size(); ++j)
+        // std::cout << out[i][j] << ", ";
+        // std::cout << "}" << std::endl;
+        // }
+
+        totality.resize(out.size());
+        int j = 0;
+        for (auto cycle : out)
+        {
+            std::vector<valms> pathvalms;
+            pathvalms.resize(cycle.size());
+            for (int i = 0; i < cycle.size(); ++i)
+            {
+                pathvalms[i].t = mtdiscrete;
+                pathvalms[i].v.iv = cycle[i];
+            }
+            totality[j].t = mttuple;
+            totality[j++].seti = new setitrtuple(pathvalms);
+        }
+        computed = true;
+        pos = -1;
+    }
+
+    setitrcycles( graphtype* gin, neighborstype* nsin )
+        : g{gin}, ns{nsin}
     {
     }
 
@@ -1920,7 +1973,7 @@ public:
 
 };
 
-class Cyclesset : public set
+class Cyclesvset : public set
 {
 public:
 
@@ -1928,28 +1981,53 @@ public:
     {
         if (ps.size() != 1)
         {
-            std::cout << "Incorrect number of parameters to Cyclesset\n";
+            std::cout << "Incorrect number of parameters to Cyclesvset\n";
             exit(1);
         }
         if (ps[0].t != mtdiscrete)
         {
-            std::cout << "Incorrect parameter types passed to Cyclesset\n";
+            std::cout << "Incorrect parameter types passed to Cyclesvset\n";
             exit(1);
         }
 
         auto g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        auto res = new setitrcycles(g,ns,ps[0].v.iv);
+        auto res = new setitrcyclesv(g,ns,ps[0].v.iv);
         return res;
     }
 
-    Cyclesset( mrecords* recin ) : set(recin,"Cycless", "Cycles from a vertex")
+    Cyclesvset( mrecords* recin ) : set(recin,"Cyclesvs", "Cycles from a vertex")
     {
         valms v;
         ps.clear();
         v.t = mtdiscrete;
         ps.push_back(v);
         pssz = 1;
+    }
+
+};
+
+class Cyclesset : public set
+{
+public:
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() != 0)
+        {
+            std::cout << "Incorrect number of parameters to Cycless\n";
+            exit(1);
+        }
+
+        auto g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto res = new setitrcycles(g,ns);
+        return res;
+    }
+
+    Cyclesset( mrecords* recin ) : set(recin,"Cycless", "All cycles")
+    {
+        pssz = 0;
     }
 
 };

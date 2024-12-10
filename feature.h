@@ -1696,7 +1696,11 @@ public:
         auto (ec) = critfactory<ecrit>;
         auto (eadjc) = critfactory<eadjcrit>;
         auto (bipc) = critfactory<bipcrit>;
-        auto (Nsadjc) = critfactory<Nsadjcrit>;
+        auto (Nssc) = critfactory<Nsscrit>;
+        auto (Separatesc) = critfactory<Separatescrit>;
+        auto (connvssc) = critfactory<connvsscrit>;
+        auto (connvc) = critfactory<connvcrit>;
+        auto (connvsc) = critfactory<connvscrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1713,7 +1717,11 @@ public:
         crsfactory.push_back(ec);
         crsfactory.push_back(eadjc);
         crsfactory.push_back(bipc);
-        crsfactory.push_back(Nsadjc);
+        crsfactory.push_back(Nssc);
+        crsfactory.push_back(Separatesc);
+        crsfactory.push_back(connvssc);
+        crsfactory.push_back(connvc);
+        crsfactory.push_back(connvsc);
 
         // ...
 
@@ -1774,11 +1782,13 @@ public:
         auto (pct) = tallyfactory<pctally>;
         auto (idxt) = tallyfactory<idxtally>;
         auto (Nt) = tallyfactory<Ntally>;
-        auto (cyclest) = tallyfactory<cyclestally>;
+        auto (cyclesvt) = tallyfactory<cyclesvtally>;
         auto (Chit) = tallyfactory<Chitally>;
         auto (Chigreedyt) = tallyfactory<Chigreedytally>;
         auto (Chiprimet) = tallyfactory<Chiprimetally>;
         auto (Chiprimegreedyt) = tallyfactory<Chiprimegreedytally>;
+        auto (Nsst) = tallyfactory<Nsstally>;
+        auto (cyclest) = tallyfactory<cyclestally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(cyclet);
@@ -1789,12 +1799,13 @@ public:
         tysfactory.push_back(pct);
         tysfactory.push_back(idxt);
         tysfactory.push_back(Nt);
-        tysfactory.push_back(cyclest);
+        tysfactory.push_back(cyclesvt);
         tysfactory.push_back(Chit);
         tysfactory.push_back(Chigreedyt);
         tysfactory.push_back(Chiprimet);
         tysfactory.push_back(Chiprimegreedyt);
-
+        tysfactory.push_back(Nsst);
+        tysfactory.push_back(cyclest);
 
         // ...
 
@@ -1811,9 +1822,10 @@ public:
         auto (idxs) = setfactory<idxset>;
         auto (TtoS) = setfactory<TupletoSet>;
         auto (Paths) = setfactory<Pathsset>;
-        auto (Cycles) = setfactory<Cyclesset>;
+        auto (Cyclesvs) = setfactory<Cyclesvset>;
         auto (Setpartitions) = setfactory<Setpartition>;
         auto (NEs) = setfactory<NEset>;
+        auto (Cycless) = setfactory<Cyclesset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1824,9 +1836,10 @@ public:
         stsfactory.push_back(idxs);
         stsfactory.push_back(TtoS);
         stsfactory.push_back(Paths);
-        stsfactory.push_back(Cycles);
+        stsfactory.push_back(Cyclesvs);
         stsfactory.push_back(Setpartitions);
         stsfactory.push_back(NEs);
+        stsfactory.push_back(Cycless);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));

@@ -984,7 +984,7 @@ valms evalformula::eval( formulaclass& fc)
     {
         valms set1 = eval(*fc.fcright );
         valms set2 = eval( *fc.fcleft );
-        if (set1.t == mtset && set2.t == mtset)
+        if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
         {
             if (fc.fo == formulaoperator::founion)
                 res.seti = new setitrunion(set1.seti,set2.seti);
