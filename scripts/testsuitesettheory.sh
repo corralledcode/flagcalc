@@ -159,6 +159,14 @@ $PTH/flagcalc -r 8 14 10000 -a s="Chit >= 5" s2="EXISTS (so IN P(V), EXISTS (p I
 
 # Diestel Corollary 7.3.2
 
-$PTH/flagcalc -r 8 14 300 -a s="NOT EXISTS (o IN Setpartition(V), st(o) == 4, FORALL (p IN o, FORALL (q IN p, FORALL (r IN p, q != r, EXISTS (z IN Pathss(q,r), z <= p)))) AND FORALL (p1 IN o, FORALL (q1 IN o, q1 != p1, EXISTS (r1 IN p1, EXISTS (s1 IN q1, ac(r1,s1))))))" \
-s2="FORALL (v1 IN V, FORALL (v2 IN V, v1 != v2 AND NOT ac(v1,v2), EXISTS (m IN Setpartition(V), st(m) == 4, FORALL (p IN m, FORALL (q IN p, FORALL (r IN p, EXISTS (z IN Pathss(q,r), z <= p))) OR (v1 ELT p AND v2 ELT p AND FORALL (u IN p, FORALL (v IN p, (EXISTS (z IN Pathss(u,v1), z <= p) AND EXISTS (z2 IN Pathss(v2,v), z2 <= p)) OR (EXISTS (z3 IN Pathss(v,v1), z4 <= p) AND EXISTS (z4 IN Pathss(u,v2), z4 <= p)))))) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, EXISTS (r2 IN p2, EXISTS (s2 IN q2, ac(r2,s2))) OR (v1 ELT p2 AND v2 ELT q2) OR (v2 ELT p2 AND v1 ELT q2) )))))" \
-z3="edgecm - (2*dimm - 3)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 300 -a s="FORALL (vs IN P(V), NOT EXISTS (o IN Setpartition(vs), st(o) == 4, FORALL (p IN o, FORALL (q IN p, FORALL (r IN p, q != r, EXISTS (z IN Pathss(q,r), z <= p)))) AND FORALL (p1 IN o, FORALL (q1 IN o, q1 != p1, EXISTS (r1 IN p1, EXISTS (s1 IN q1, ac(r1,s1)))))))" \
+s2="FORALL (v1 IN V, FORALL (v2 IN V, v1 != v2 AND NOT ac(v1,v2), EXISTS (vs IN P(V), EXISTS (m IN Setpartition(vs), st(m) == 4, FORALL (p IN m, FORALL (q IN p, FORALL (r IN p, EXISTS (z IN Pathss(q,r), z <= p))) OR (v1 ELT p AND v2 ELT p AND FORALL (u IN p, FORALL (v IN p, (EXISTS (z IN Pathss(u,v1), z <= p) AND EXISTS (z2 IN Pathss(v2,v), z2 <= p)) OR (EXISTS (z3 IN Pathss(v,v1), z3 <= p) AND EXISTS (z4 IN Pathss(u,v2), z4 <= p)))))) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, EXISTS (r2 IN p2, EXISTS (s2 IN q2, ac(r2,s2))) OR (v1 ELT p2 AND v2 ELT q2) OR (v2 ELT p2 AND v1 ELT q2) ))))))" \
+z3="edgecm == 2*dimm - 3" all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 8 14 300 -a s="FORALL (vs IN P(V), NOT EXISTS (o IN Setpartition(vs), st(o) == 4, FORALL (p IN o, FORALL (q IN p, FORALL (r IN p, q != r, EXISTS (z IN Pathss(q,r), z <= p)))) AND FORALL (p1 IN o, FORALL (q1 IN o, q1 != p1, Nsadjc(p1,q1)))))" \
+s2="FORALL (ne IN NE, EXISTS (vs IN P(V), EXISTS (m IN Setpartition(vs), st(m) == 4, FORALL (p IN m, FORALL (q IN p, FORALL (r IN p, EXISTS (z IN Pathss(q,r), z <= p))) OR (ne(0) ELT p AND ne(1) ELT p AND FORALL (u IN p, FORALL (v IN p, (EXISTS (z IN Pathss(u,ne(0)), z <= p) AND EXISTS (z2 IN Pathss(ne(1),v), z2 <= p)) OR (EXISTS (z3 IN Pathss(v,ne(0)), z3 <= p) AND EXISTS (z4 IN Pathss(u,ne(1)), z4 <= p)))))) AND FORALL (p2 IN m, FORALL (q2 IN m, p2 != q2, Nsadjc(p2,q2) OR (ne(0) ELT p2 AND ne(1) ELT q2) OR (ne(1) ELT p2 AND ne(0) ELT q2) )) )))" \
+z3="edgecm == 2*dimm - 3" all -v i=minimal3.cfg
+
+
+
+

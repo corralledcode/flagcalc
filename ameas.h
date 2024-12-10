@@ -1617,6 +1617,45 @@ public:
 
 };
 
+class NEset : public set
+{
+public:
+    graphtype* ginv;
+
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        // auto itr = f.getsetitr();
+        auto g = (*rec->gptrs)[idx];
+        ginv = new graphtype(g->dim);
+        for (int i = 0; i+1 <= g->dim; ++i)
+        {
+            ginv->adjacencymatrix[i*g->dim + i] = false;
+            for (int j = i+1; j <= g->dim; ++j)
+            {
+                bool val = !g->adjacencymatrix[i*g->dim + j];
+                ginv->adjacencymatrix[i*g->dim + j] = val;
+                ginv->adjacencymatrix[j*g->dim + i] = val;
+            }
+        }
+        ginv->adjacencymatrix[(g->dim-1)*g->dim + g->dim-1] = false;
+
+        auto itr = new setitredges(ginv);
+        return itr;
+    }
+
+    NEset( mrecords* recin ) : set(recin,"NE", "Graph non-edges set")
+    {
+        pssz = 0;
+    }
+
+    ~NEset()
+    {
+        delete ginv;
+    }
+
+};
+
+
 
 
 class CPset : public set

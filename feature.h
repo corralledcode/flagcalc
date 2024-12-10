@@ -1696,6 +1696,7 @@ public:
         auto (ec) = critfactory<ecrit>;
         auto (eadjc) = critfactory<eadjcrit>;
         auto (bipc) = critfactory<bipcrit>;
+        auto (Nsadjc) = critfactory<Nsadjcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1712,6 +1713,7 @@ public:
         crsfactory.push_back(ec);
         crsfactory.push_back(eadjc);
         crsfactory.push_back(bipc);
+        crsfactory.push_back(Nsadjc);
 
         // ...
 
@@ -1811,6 +1813,7 @@ public:
         auto (Paths) = setfactory<Pathsset>;
         auto (Cycles) = setfactory<Cyclesset>;
         auto (Setpartitions) = setfactory<Setpartition>;
+        auto (NEs) = setfactory<NEset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1823,6 +1826,7 @@ public:
         stsfactory.push_back(Paths);
         stsfactory.push_back(Cycles);
         stsfactory.push_back(Setpartitions);
+        stsfactory.push_back(NEs);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));

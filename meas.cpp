@@ -1946,6 +1946,110 @@ public:
 
 };
 
+class Nset : public set {
+    // Diestel p. ??
+public:
+
+    Nset( mrecords* recin ) : set( recin, "Ns", "Set of neighbors of a vertex set")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        if (ps.size() == 1) {
+            auto s = ps[0].seti->getitrpos();
+            // if (setitrint* s = dynamic_cast<setitrint*>(ps[0].seti))
+            // {
+            bool* S = (bool*)malloc(g->dim * sizeof(bool));
+            memset(S,false,g->dim*sizeof(bool));
+            while (!s->ended())
+            {
+                auto v = s->getnext();
+                S[v.v.iv] = true;
+            }
+            bool* N = (bool*)malloc(g->dim * sizeof(bool));
+            memset(N,false,g->dim * sizeof(bool));
+            int cnt = 0;
+            std::vector<valms> nbrs {};
+            for (int i = 0; i < g->dim; ++i)
+                if (S[i])
+                    for (int j = 0; j < ns->degrees[i]; ++j)
+                    {
+                        vertextype nbr = ns->neighborslist[i*g->dim + j];
+                        if (!N[nbr] && !S[nbr])
+                        {
+                            valms v;
+                            v.t = mtdiscrete;
+                            v.v.iv = nbr;
+                            nbrs.push_back(v);
+                            cnt++;
+                        }
+                        N[nbr] = true;
+                    }
+            delete N;
+            delete S;
+            delete s;
+            return new setitrmodeone(nbrs);
+            // }
+        }
+        std::cout << "Wrong number of parameters or parameter types passed to Nset\n";
+        return 0;
+    }
+
+};
+
+
+class Nsadjcrit : public crit {
+    // Diestel p. ??
+    // note it doesn't check the case of overlapping sets
+public:
+
+    Nsadjcrit( mrecords* recin ) : crit( recin, "Nsadjc", "Vertex sets adjacent")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtset;
+        ps.push_back(p1);
+        ps.push_back(p1);
+        pssz = 2;
+    }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
+            auto s1 = ps[0].seti->getitrpos();
+            auto s2 = ps[1].seti->getitrpos();
+            bool res = false;
+            while (!s1->ended() && !res)
+            {
+                vertextype v1 = s1->getnext().v.iv;
+                while (!s2->ended() && !res)
+                {
+                    vertextype v2 = s2->getnext().v.iv;
+                    res = res || g->adjacencymatrix[v1*g->dim + v2];
+                }
+                s2->reset();
+            }
+            return res;
+            // }
+        }
+        std::cout << "Wrong number or types of parameters passed to Nsadjc\n";
+        return false;
+    }
+
+};
+
+
+
 
 // following code around chromatic numbers found online
 
