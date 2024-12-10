@@ -155,7 +155,7 @@ $PTH/flagcalc -r 6 7.5 100 -a z="Chiprimegreedyt - Chiprimet" all -v i=minimal3.
 
 # Diestel Conjecture p. 184 (Hadwiger 1943), Corollary 7.3.3
 
-$PTH/flagcalc -r 9 18 10000 -a s="Chit >= 4" s2="EXISTS (p IN Setpartition(V), FORALL (s IN p, FORALL (t IN p, s != t, EXISTS (u IN s, EXISTS (v IN t, ac(u,v))))) AND st(p) >= 4)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 10000 -a s="Chit >= 5" s2="EXISTS (so IN P(V), EXISTS (p IN Setpartition(so), st(p) >= 5, FORALL (q IN p, FORALL (r2 IN q, FORALL (s2 IN q, r2 != s2, EXISTS (z IN Pathss(r2,s2), z <= q)))) AND FORALL (s IN p, FORALL (t IN p, s != t, EXISTS (u IN s, EXISTS (v IN t, ac(u,v)))))))" all -v i=minimal3.cfg
 
 # Diestel Corollary 7.3.2
 
