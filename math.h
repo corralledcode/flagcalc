@@ -21,7 +21,6 @@ bool is_number(const std::string& s);
 bool is_real(const std::string& s);
 
 
-
 enum class logicalconnective {lcand, lcor};
 
 struct logicalsentence {
@@ -139,7 +138,16 @@ union vals
     // std::pair<int,int> pv {};
 };
 
-enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtset, mttuple };
+enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtset, mttuple, mtstring };
+
+inline std::map<measuretype,std::string> measuretypenames {
+    {mtbool, "mtbool"},
+    {mtdiscrete, "mtdiscrete"},
+    {mtcontinuous, "mtcontinuous"},
+    {mtset, "mtset"},
+    {mttuple, "mttuple"},
+    {mtstring, "mtstring"}};
+
 
 class setitr;
 class itrpos;
@@ -176,6 +184,11 @@ struct valms
     int setsize;
     setitr* seti;
 };
+
+using params = std::vector<valms>;
+
+using namedparams = std::vector<std::pair<std::string,valms>>;
+
 
 struct valspair
 {
@@ -1331,6 +1344,19 @@ inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variab
     return i-1;
 }
 
+inline int lookup_litnamedparameter( const std::string& tok, std::vector<std::string>& variablenames) {
+    bool found = false;
+    int i = 0;
+    while (!found && i < variablenames.size()) {
+        found = variablenames[i] == tok;
+        ++i;
+    }
+    if (!found)
+        return -1;
+    return i-1;
+}
+
+
 
 struct formulavalue {
     valms v;
@@ -1418,6 +1444,7 @@ formulaclass* parseformula(
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
     const std::vector<std::string>& litnames,
+    namedparams& ps,
     std::vector<qclass*>& variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs  );
 

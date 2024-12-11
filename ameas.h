@@ -27,6 +27,7 @@ class crit;
 class meas;
 class tally;
 class set;
+class mstr;
 
 template<typename T>
 class ameas
@@ -52,6 +53,7 @@ union amptrs {
     tally* ts;
     set* ss;
     set* os; // ordered set aka tuple
+    mstr* rs;
 };
 
 struct ams
@@ -60,7 +62,6 @@ struct ams
     amptrs a;
 };
 
-using params = std::vector<valms>;
 
 struct itn
 {
@@ -159,6 +160,14 @@ public:
     set( mrecords* recin , const std::string shortnamein, const std::string namein)
         : pameas<setitr*>( recin, shortnamein, namein ) {}
     set() : pameas<setitr*>( nullptr, "_abst", "_abstract (error)" ) {};
+};
+
+class mstr : public pameas<std::string>
+{
+public:
+    mstr( mrecords* recin , const std::string shortnamein, const std::string namein)
+        : pameas<std::string>( recin, shortnamein, namein ) {}
+    mstr() : pameas<std::string>( nullptr, "_abst", "_abstract (error)" ) {};
 };
 
 
@@ -834,6 +843,8 @@ class sentofcrit : public crit
 public:
     formulaclass* fc;
     std::vector<qclass*> variables;
+    namedparams ps;
+    std::vector<int> variablereferences;
 
     bool takemeas(const int idx) override
     {
@@ -872,30 +883,50 @@ public:
         }
     }
 
+
     bool takemeas(const int idx, const params& ps) override
     {
+        if (ps.size() != this->ps.size())
+        {
+            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
+            exit(1);
+        }
+        for (int i = 0; i < ps.size(); ++i)
+            variables[variablereferences[i]]->qs = ps[i];
         return takemeas(idx);
     }
 
-
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
-                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin, const std::string& fstr )
-        : crit( recin,  "sn", "Sentence " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin, variables,&global_fnptrs);
+                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
+                const namedparams& psin, const std::string& fstr, const std::string shortnamein = "" )
+        : crit( recin,  shortnamein == "" ? "sn" : shortnamein, "Sentence " + fstr ), ps{psin} {
+        variablereferences.resize(this->ps.size());
+        int i = 0;
+        for (auto np : ps)
+        {
+            auto qc = new qclass;
+            qc->name = np.first;
+            qc->secondorder = false;
+            qc->criterion = nullptr;
+            qc->superset = nullptr;
+            qc->qs = np.second;
+            variablereferences[i++] = variables.size();
+            variables.push_back(qc);
+        }
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
     };
 
     ~sentofcrit() {
         delete fc;
-        // for (int i = 0; i < rec->sz; ++i)
-        // {
+        for (int i = 0; i < rec->sz; ++i)
+        {
             // for (int j = 0; j < variables.size(); ++j)
                 // delete rec->variablesv[i][j];
-            // delete variables[i];
-        // }
+            delete variables[i];
+        }
     }
 
 };
-
 
 
 class formmeas : public meas
@@ -903,6 +934,8 @@ class formmeas : public meas
 public:
     formulaclass* fc;
     std::vector<qclass*> variables {};
+    namedparams ps;
+    std::vector<int> variablereferences;
 
     double takemeas(const int idx) override
     {
@@ -932,15 +965,39 @@ public:
         }
     }
 
+
     double takemeas(const int idx, const params& ps) override
     {
+        if (ps.size() != this->ps.size())
+        {
+            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
+            exit(1);
+        }
+        for (int i = 0; i < ps.size(); ++i)
+            variables[variablereferences[i]]->qs = ps[i];
         return takemeas(idx);
     }
 
     formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin,
-        const std::vector<std::string>& litnamesin, const std::string& fstr )
-        : meas( recin,  "fm", "Formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,variables, &global_fnptrs);
+        const std::vector<std::string>& litnamesin,
+        const namedparams& psin, const std::string& fstr, const std::string shortnamein = "" )
+        : meas( recin,  shortnamein == "" ? "fm" : shortnamein, "Formula " + fstr ),
+            ps{psin}
+    {
+        variablereferences.resize(this->ps.size());
+        int i = 0;
+        for (auto np : ps)
+        {
+            auto qc = new qclass;
+            qc->name = np.first;
+            qc->secondorder = false;
+            qc->criterion = nullptr;
+            qc->superset = nullptr;
+            qc->qs = np.second;
+            variablereferences[i++] = variables.size();
+            variables.push_back(qc);
+        }
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
     }
     ~formmeas() {
         delete fc;
@@ -954,6 +1011,9 @@ class formtally : public tally
 public:
     formulaclass* fc;
     std::vector<qclass*> variables;
+    namedparams ps;
+    std::vector<int> variablereferences;
+
 
     int takemeas(const int idx) override
     {
@@ -994,14 +1054,36 @@ public:
 
     int takemeas(const int idx, const params& ps) override
     {
+        if (ps.size() != this->ps.size())
+        {
+            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
+            exit(1);
+        }
+        for (int i = 0; i < ps.size(); ++i)
+            variables[variablereferences[i]]->qs = ps[i];
         return takemeas(idx);
     }
 
 
     formtally( mrecords* recin , const std::vector<int>& litnumpsin,
-                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin, const std::string& fstr )
-        : tally( recin,  "ft", "Int-valued formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,variables,&global_fnptrs);
+        const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
+        const namedparams& psin, const std::string& fstr, const std::string shortnamein = "" )
+            : tally( recin,  shortnamein == "" ? "ft" : shortnamein, "Int-valued formula " + fstr ),
+            ps{psin} {
+        variablereferences.resize(this->ps.size());
+        int i = 0;
+        for (auto np : ps)
+        {
+            auto qc = new qclass;
+            qc->name = np.first;
+            qc->secondorder = false;
+            qc->criterion = nullptr;
+            qc->superset = nullptr;
+            qc->qs = np.second;
+            variablereferences[i++] = variables.size();
+            variables.push_back(qc);
+        }
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
     };
 
     ~formtally() {
@@ -1022,6 +1104,8 @@ class formset : public set
 public:
     formulaclass* fc;
     std::vector<qclass*> variables;
+    namedparams ps;
+    std::vector<int> variablereferences;
 
     setitr* takemeas(const int idx) override
     {
@@ -1078,15 +1162,36 @@ public:
 
     setitr* takemeas(const int idx, const params& ps) override
     {
+        if (ps.size() != this->ps.size())
+        {
+            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
+            exit(1);
+        }
+        for (int i = 0; i < ps.size(); ++i)
+            variables[variablereferences[i]]->qs = ps[i];
         return takemeas(idx);
     }
 
 
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
-                const std::vector<measuretype>& littypesin,
-                const std::vector<std::string>& litnamesin, const std::string& fstr )
-        : set( recin,  "st", "Set-valued formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin, variables,&global_fnptrs);
+        const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
+        const namedparams& psin, const std::string& fstr, const std::string shortnamein = "")
+            : set( recin,  shortnamein == "" ? "st" : shortnamein, "Set-valued formula " + fstr ),
+            ps{psin} {
+        variablereferences.resize(this->ps.size());
+        int i = 0;
+        for (auto np : ps)
+        {
+            auto qc = new qclass;
+            qc->name = np.first;
+            qc->secondorder = false;
+            qc->criterion = nullptr;
+            qc->superset = nullptr;
+            qc->qs = np.second;
+            variablereferences[i++] = variables.size();
+            variables.push_back(qc);
+        }
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
     };
 
     ~formset() {
@@ -1107,6 +1212,9 @@ class formtuple : public set
 public:
     formulaclass* fc;
     std::vector<qclass*> variables;
+    namedparams ps;
+    std::vector<int> variablereferences;
+
 
     setitr* takemeas(const int idx) override
     {
@@ -1163,15 +1271,37 @@ public:
 
     setitr* takemeas(const int idx, const params& ps) override
     {
+        if (ps.size() != this->ps.size())
+        {
+            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
+            exit(1);
+        }
+        for (int i = 0; i < ps.size(); ++i)
+            variables[variablereferences[i]]->qs = ps[i];
         return takemeas(idx);
     }
 
 
     formtuple( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-                const std::string& fstr )
-        : set( recin,  "fp", "Tuple-valued formula " + fstr) {
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin, variables,&global_fnptrs);
+                namedparams& psin,
+                const std::string& fstr, const std::string shortnamein = "" )
+        : set( recin,  shortnamein == "" ? "fp" : shortnamein, "Tuple-valued formula " + fstr),
+            ps{psin} {
+        variablereferences.resize(this->ps.size());
+        int i = 0;
+        for (auto np : ps)
+        {
+            auto qc = new qclass;
+            qc->name = np.first;
+            qc->secondorder = false;
+            qc->criterion = nullptr;
+            qc->superset = nullptr;
+            qc->qs = np.second;
+            variablereferences[i++] = variables.size();
+            variables.push_back(qc);
+        }
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
     };
 
     ~formtuple() {
@@ -1185,6 +1315,101 @@ public:
     }
 
 };
+
+class formstring : public mstr
+{
+public:
+    formulaclass* fc;
+    std::vector<qclass*> variables;
+    namedparams ps;
+    std::vector<int> variablereferences;
+
+
+    std::string takemeas(const int idx) override
+    {
+        std::vector<valms> literals;
+        literals.resize(rec->literals.size());
+        for (int i = 0; i < rec->literals.size(); ++i)
+        {
+            literals[i] = rec->literals[i][idx];
+        }
+        rec->efv[idx]->literals = &literals;
+        evalmformula* ef = rec->efv[idx];
+        ef->variables.resize(this->variables.size());
+        for (int i = 0; i < this->variables.size(); ++i)
+        {
+            ef->variables[i] = new qclass;
+            ef->variables[i]->name = this->variables[i]->name;
+            ef->variables[i]->qs = this->variables[i]->qs;
+            ef->variables[i]->superset = this->variables[i]->superset;
+            ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        }
+        ef->idx = idx;
+        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
+        // ef->populatevariablesbound = &pv;
+        valms r = ef->eval(*fc);
+        switch (r.t)
+        {
+        case mtset:
+        case mttuple:
+            return "Set or tuple size == " + std::to_string(r.seti->getsize());
+        case measuretype::mtbool:
+            return r.v.bv ? "true" : "false";
+        case measuretype::mtdiscrete:
+            return std::to_string(r.v.iv);
+        case measuretype::mtcontinuous:
+            return std::to_string(r.v.dv);
+        }
+    }
+
+    std::string takemeas(const int idx, const params& ps) override
+    {
+        if (ps.size() != this->ps.size())
+        {
+            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
+            exit(1);
+        }
+        for (int i = 0; i < ps.size(); ++i)
+            variables[variablereferences[i]]->qs = ps[i];
+        return takemeas(idx);
+    }
+
+
+    formstring( mrecords* recin , const std::vector<int>& litnumpsin,
+                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
+                namedparams& psin,
+                const std::string& fstr, const std::string shortnamein = "" )
+        : mstr( recin,  shortnamein == "" ? "fr" : shortnamein, "String-valued formula " + fstr),
+            ps{psin} {
+        variablereferences.resize(this->ps.size());
+        int i = 0;
+        for (auto np : ps)
+        {
+            auto qc = new qclass;
+            qc->name = np.first;
+            qc->secondorder = false;
+            qc->criterion = nullptr;
+            qc->superset = nullptr;
+            qc->qs = np.second;
+            variablereferences[i++] = variables.size();
+            variables.push_back(qc);
+        }
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
+    };
+
+    ~formstring() {
+        delete fc;
+        // for (int i = 0; i < rec->sz; ++i)
+        // {
+            // for (int j = 0; j < variables.size(); ++j)
+                // delete rec->variablesv[i][j];
+            // delete variables[i];
+        // }
+    }
+
+};
+
+
 
 
 
@@ -1609,7 +1834,7 @@ public:
         return nullptr;;
     }
 
-    Pset( mrecords* recin ) : set(recin,"P", "Powerset")
+    Pset( mrecords* recin ) : set(recin,"Ps", "Powerset")
     {
         valms v;
         v.t = mtset;
@@ -1622,6 +1847,61 @@ public:
         // delete itr;
     }
 };
+
+class Permset : public set
+{
+    setitrmodeone* res {};
+public:
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        if (res)
+            for (auto v : res->totality)
+                delete v.seti;
+        if (ps.size() == 1)
+        {
+            auto itr = ps[0].seti->getitrpos();
+            std::vector<valms> v {};
+            while (!itr->ended())
+                v.push_back(itr->getnext());
+            delete itr;
+            std::vector<std::vector<int>> ps = getpermutations(v.size());
+            std::vector<valms> totalitylocal {};
+            for (auto p : ps)
+            {
+                std::vector<valms> tot {};
+                for (auto i : p)
+                    tot.push_back(v[i]);
+                valms v;
+                v.t = mttuple;
+                v.seti = new setitrmodeone(tot);
+                totalitylocal.push_back(v);
+            }
+
+            res = new setitrmodeone(totalitylocal);
+            return res;
+        }
+        std::cout << "Error in Permset::takemeas\n";
+        exit(1);
+        return nullptr;;
+    }
+
+    Permset( mrecords* recin ) : set(recin,"Perms", "Set of permutation tuples")
+    {
+        valms v;
+        v.t = mtset;
+        ps.clear();
+        ps.push_back(v);
+        pssz = 1;
+    }
+    ~Permset()
+    {
+        if (res)
+            for (auto v : res->totality)
+                delete v.seti;
+    }
+};
+
+
 
 class Vset : public set
 {
@@ -1696,7 +1976,7 @@ public:
         return itr;
     }
 
-    NEset( mrecords* recin ) : set(recin,"NE", "Graph non-edges set")
+    NEset( mrecords* recin ) : set(recin,"nE", "Graph non-edges set")
     {
         pssz = 0;
     }

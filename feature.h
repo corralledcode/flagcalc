@@ -1672,6 +1672,8 @@ protected:
     std::vector<set*(*)(mrecords*)> stsfactory {};
     std::vector<set*> oss {};
     std::vector<set*(*)(mrecords*)> ossfactory {};
+    std::vector<mstr*> mrs {};
+    std::vector<mstr*(*)(mrecords*)> mrsfactory {};
 
 public:
     virtual void listoptions() override {
@@ -1826,6 +1828,7 @@ public:
         auto (Setpartitions) = setfactory<Setpartition>;
         auto (NEs) = setfactory<NEset>;
         auto (Cycless) = setfactory<Cyclesset>;
+        auto (Perms) = setfactory<Permset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1840,6 +1843,7 @@ public:
         stsfactory.push_back(Setpartitions);
         stsfactory.push_back(NEs);
         stsfactory.push_back(Cycless);
+        stsfactory.push_back(Perms);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -2107,6 +2111,15 @@ void populatewi(workspace* _ws, chkmeasaitem<T>* wi, std::vector<T>& threaddata,
 }
 
 
+struct storedprocstruct
+{
+    std::string name;
+    ams a;
+    namedparams ps;
+    std::string body;
+    int iidx;
+};
+
 
 class checkcriterionfeature : public abstractcheckcriterionfeature {
 protected:
@@ -2120,6 +2133,188 @@ protected:
     std::vector<int> litnumps {};
     std::vector<measuretype> littypes {};
     std::vector<std::string> litnames {};
+    std::vector<storedprocstruct> storedprocedures {};
+
+
+
+
+    int lookupstoredprocedure( const std::string sin )
+    {
+        for (auto i = 0; i < storedprocedures.size(); ++i)
+        {
+            auto sps = storedprocedures[i];
+            if (sin == sps.name) {
+                if (sps.iidx < 0)
+                {
+                    ams a = sps.a;
+                    namedparams ps = sps.ps;
+                    std::string s = bindformula(sps.body, sps.a.t, 0 );
+
+                    params ps2 {};
+                    for (auto p : ps)
+                        ps2.push_back(p.second);
+
+                    // the following due to compile error "jump to case label"
+                    sentofcrit* cs;
+                    formtally* ts;
+                    formmeas* ms;
+                    formset* ss;
+                    formtuple* os;
+                    formstring* rs;
+                    switch (a.t)
+                    {
+                    case mtbool:
+                        cs = new sentofcrit(&rec,litnumps,littypes,litnames, ps , s, sps.name);
+                        a.a.cs = cs;
+                        a.a.cs->ps = ps2;
+                        a.a.cs->negated = false;
+                        crs.push_back(a.a.cs);
+                        break;
+                    case mtdiscrete:
+                        ts = new formtally(&rec,litnumps,littypes,litnames, ps, s, sps.name);
+                        a.a.ts = ts;
+                        a.a.ts->ps = ps2;
+                        tys.push_back(a.a.ts);
+                        break;
+                    case mtcontinuous:
+                        ms = new formmeas(&rec,litnumps,littypes,litnames, ps,s, sps.name);
+                        a.a.ms = ms;
+                        a.a.ms->ps = ps2;
+                        mss.push_back(a.a.ms);
+                        break;
+                    case mtset:
+                        ss = new formset(&rec,litnumps,littypes,litnames, ps, s, sps.name);
+                        a.a.ss = ss;
+                        a.a.ss->ps = ps2;
+                        sts.push_back(a.a.ss);
+                        break;
+                    case mttuple:
+                        os = new formtuple(&rec,litnumps,littypes,litnames,ps, s, sps.name);
+                        a.a.os = os;
+                        a.a.os->ps = ps2;
+                        oss.push_back(a.a.os);
+                        break;
+                    case mtstring:
+                        rs = new formstring(&rec,litnumps,littypes,litnames,ps, s, sps.name);
+                        a.a.rs = rs;
+                        a.a.rs->ps = ps2;
+                        mrs.push_back(a.a.rs);
+                        break;
+                    }
+
+                    auto it = newiteration(a.t,0,a,true);
+                    iter.push_back(it);
+
+                    int j = iter.size()-1;
+                    litnumps.resize(j+1);
+                    litnumps[j] = ps.size();
+                    littypes.resize(j+1);
+                    littypes[j] = a.t;
+                    litnames.resize(j+1);
+                    litnames[j] = sps.name;
+                    sps.iidx = j;
+                    storedprocedures[i] = sps;
+                    return sps.iidx;
+                } else
+                    return sps.iidx;
+            }
+        }
+        return -1;
+
+    }
+
+
+
+
+
+    void addstoredproc( const std::string sin )
+    {
+
+        std::vector<std::string> parsedstring = parsecomponents( sin );
+        if (parsedstring.size() > 1)
+        {
+            ams a {};
+            a.t = mtbool;
+            bool found = false;
+            for (auto tname : measuretypenames)
+                if (parsedstring[0] == tname.second)
+                {
+                    a.t = tname.first;
+                    found = true;
+                }
+            if (!found)
+            {
+                std::cout << "Unknown stored procedure type " << parsedstring[0]
+                    << "; using " << measuretypenames[a.t] << std::endl;
+            }
+
+            std::string name = parsedstring[1];
+            if (lookupiter(name) >= 0)
+            {
+                std::cout << "Stored procedure name already exists (" << name << ")" << std::endl;
+                return;
+            }
+
+
+            params ps {};
+            std::vector<qclass*> variables;
+            namedparams variablenames {};
+
+            int i = 2;
+            if (parsedstring.size() >= 4 && parsedstring[i] == "(")
+            {
+                ++i;
+                std::vector<std::string> psstring {};
+                while (i < parsedstring.size() && parsedstring[i] != ")")
+                    psstring.push_back(parsedstring[i++]);
+                ++i;
+
+                for (int j = 0; j < psstring.size(); j += 3)
+                {
+                    std::string ptype = psstring[j];
+                    std::string pname = psstring[j+1];
+                    valms v;
+                    v.t = mtdiscrete;
+                    bool found = false;
+                    for (auto tname : measuretypenames)
+                        if (ptype == tname.second)
+                        {
+                            v.t = tname.first;
+                            found = true;
+                        }
+                    if (!found)
+                    {
+                        std::cout << "Unknown stored procedure variable type " << ptype
+                            << "; using " << measuretypenames[v.t] << std::endl;
+                    }
+                    ps.push_back(v);
+                    // auto qc = new qclass();
+                    // qc->name = pname;
+                    // variables.push_back(qc);
+                    variablenames.push_back({pname,v});
+                }
+            }
+
+            std::string form {};
+            for ( ; i < parsedstring.size(); ++i)
+                form += parsedstring[i] + " ";
+
+            // std::cout << name << ": " << form << std::endl;
+
+            storedprocstruct sps;
+
+            sps.name = name;
+            sps.body = form;
+            sps.ps = variablenames;
+            sps.a = a;
+            sps.iidx = -1;
+            storedprocedures.push_back(sps);
+
+        } else
+        {
+            std::cout << "Empty stored procedure" << std::endl;
+        }
+    }
 
     int lookupiter( const std::string sin )
     {
@@ -2314,8 +2509,9 @@ protected:
             int idx = lookupiter(out[i]);
             if (idx < 0)
             {
-
-                idx = addmeas( out[i],mtin, roundin );
+                idx = lookupstoredprocedure(out[i]);
+                if (idx < 0)
+                    idx = addmeas( out[i],mtin, roundin );
             }
 
             if (idx < 0)
@@ -2337,8 +2533,9 @@ protected:
             int idx = lookupiter(out2[i]);
             if (idx < 0)
             {
-
-                idx = addmeas( out2[i],mtin, roundin );
+                idx = lookupstoredprocedure(out2[i]);
+                if (idx < 0)
+                    idx = addmeas( out2[i],mtin, roundin );
                 if (idx < 0)
                     continue;
             }
@@ -2477,6 +2674,7 @@ public:
 
 
             compactcmdline ccl;
+            namedparams paramnames {};
             if (parsedargs[i].first == "default")
             {
                 ccl.t = "c";
@@ -2491,7 +2689,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtbool,ccl.i);
                 ams a;
                 a.t = measuretype::mtbool;
-                a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames,s);
+                a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames, paramnames,s);
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
@@ -2505,7 +2703,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtcontinuous,ccl.i);
                 ams a;
                 a.t = measuretype::mtcontinuous;
-                a.a.ms = new formmeas(&rec,litnumps,littypes,litnames, s);
+                a.a.ms = new formmeas(&rec,litnumps,littypes,litnames, paramnames, s);
                 auto it = newiteration(mtcontinuous,ccl.i,a);
                 iter.push_back(it);
                 continue;
@@ -2519,7 +2717,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtdiscrete,ccl.i);
                 ams a;
                 a.t = measuretype::mtdiscrete;
-                a.a.ts = new formtally(&rec,litnumps,littypes,litnames, s);
+                a.a.ts = new formtally(&rec,litnumps,littypes,litnames, paramnames, s);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
                 continue;
@@ -2533,7 +2731,7 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtset,ccl.i);
                 ams a;
                 a.t = measuretype::mtset;
-                a.a.ss = new formset(&rec,litnumps,littypes,litnames, s);
+                a.a.ss = new formset(&rec,litnumps,littypes,litnames, paramnames, s);
                 auto it = newiteration(mtset,ccl.i,a);
                 iter.push_back(it);
                 continue;
@@ -2547,9 +2745,47 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mttuple,ccl.i);
                 ams a;
                 a.t = measuretype::mttuple;
-                a.a.os = new formtuple(&rec,litnumps,littypes,litnames,s);
+                a.a.os = new formtuple(&rec,litnumps,littypes,litnames,paramnames,s);
                 auto it = newiteration(mttuple,ccl.i,a);
                 iter.push_back(it);
+                continue;
+            }
+
+
+            if (ccl.t == "sp") // Stored procedure
+            {
+                addstoredproc(parsedargs[i].second);
+                continue;
+            }
+
+            if (ccl.t == "isp") // Stored procedures from a file
+            {
+                std::vector<std::string> filedata;
+                readfromfile(parsedargs[i].second, filedata );
+
+                std::vector<std::vector<std::string>> tmp {};
+                for (auto d : filedata)
+                {
+                    std::vector<std::string> tmp2;
+                    tmp2.clear();
+                    tmp2.push_back(d);
+                    tmp.push_back(tmp2);
+                }
+
+                for (auto t : tmp)
+                    for (auto s : t)
+                        addstoredproc(s);
+
+//                for (auto t : tmp) {
+//                    for (auto s : t)
+//                        std::cout << s << ", // ";
+//                    std::cout << std::endl;
+//                }
+//                std::cout << std::endl;
+
+//                exit(1);
+
+
                 continue;
             }
 
@@ -2801,7 +3037,6 @@ public:
             }
 
 
-
             if (ccl.t == "is")
             {
 
@@ -2814,7 +3049,7 @@ public:
                     std::string s = bindformula(q,mtbool,ccl.i);
                     ams a;
                     a.t = measuretype::mtbool;
-                    a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames, s);
+                    a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames, paramnames, s);
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
@@ -2843,7 +3078,7 @@ public:
                     std::string s = bindformula(q,mtcontinuous,ccl.i);
                     ams a;
                     a.t = measuretype::mtcontinuous;
-                    a.a.ms = new formmeas(&rec,litnumps,littypes,litnames,s);
+                    a.a.ms = new formmeas(&rec,litnumps,littypes,litnames,paramnames,s);
                     auto it = newiteration(mtcontinuous,ccl.i,a);
                     iter.push_back(it);
                     litnumps.resize(iter.size());

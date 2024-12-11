@@ -2261,6 +2261,7 @@ inline formulaclass* parseformulainternal(
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
     const std::vector<std::string>& litnames,
+    namedparams& ps,
     std::vector<qclass*>* variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs )
 {
@@ -2277,8 +2278,8 @@ inline formulaclass* parseformulainternal(
             }
             formulavalue fv {};
 
-            auto fcleft = parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs);
-            auto fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs);
+            auto fcleft = parseformulainternal(q,pos,litnumps,littypes, litnames, ps,  variables,fnptrs);
+            auto fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, ps,   variables,fnptrs);
 
             auto fc = fccombine(fv,fcleft,fcright, formulaoperator::foderef);
 
@@ -2299,7 +2300,7 @@ inline formulaclass* parseformulainternal(
             fv.ss.elts.clear();
             fv.ss.elts.resize(argcount);
             for (int i = 0; i < argcount; ++i)
-                fv.ss.elts[argcount - i - 1] = parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs);
+                fv.ss.elts[argcount - i - 1] = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,   variables,fnptrs);
 
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
 
@@ -2331,17 +2332,17 @@ inline formulaclass* parseformulainternal(
                 exit(-1);
             }
             // --pos2;
-            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, variables,fnptrs);
+            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps,  variables,fnptrs);
             qc->name = q[++pos2];
             qc->criterion = nullptr;
             variables->push_back(qc);
 
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,  variables,fnptrs);
 
             // if (pos+1 < pos1)
             if (argcnt == 3)
             {
-                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, variables, fnptrs);
+                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  variables, fnptrs);
             }
             // qc->qs.t = qc->superset->v.v.seti->t;
 
@@ -2380,15 +2381,16 @@ inline formulaclass* parseformulainternal(
         if (is_operator(tok))
         {
             formulaoperator o = lookupoperator(tok);
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, ps,  variables,fnptrs);
             formulaclass* fcleft = nullptr;
             if (o != formulaoperator::fonot)
             {
-                fcleft = parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs);
+                fcleft = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,  variables,fnptrs);
             }
             if (fcright)
                 return fccombine({},fcleft,fcright,o);
         }
+
         int v = lookup_variable(tok,*variables);
         if (v >= 0) {
 
@@ -2405,7 +2407,7 @@ inline formulaclass* parseformulainternal(
                     fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
                     fc->v.vs.name = tok;
                     fc->v.vs.ps.clear();
-                    fc->v.vs.ps.push_back(parseformulainternal(q,pos,litnumps,littypes, litnames, variables,fnptrs));
+                    fc->v.vs.ps.push_back(parseformulainternal(q,pos,litnumps,littypes, litnames, ps, variables,fnptrs));
                     fc->v.qc = (*variables)[v];
                 } else
                 {
@@ -2473,7 +2475,7 @@ inline formulaclass* parseformulainternal(
 
                     std::vector<formulaclass*> psrev {};
                     for (int i = 0; i < argcnt; ++i) {
-                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs));
+                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, variables,fnptrs));
                     }
                     for (int i = psrev.size()-1; i >= 0; --i)
                         fv.lit.ps.push_back(psrev[i]);
@@ -2497,7 +2499,7 @@ inline formulaclass* parseformulainternal(
         }
 
         if (is_function(tok)) {
-            std::vector<formulaclass*> ps {};
+            std::vector<formulaclass*> psoffunction {};
             // double (*f2)(std::vector<double>&);
             int argcnt = 0;
             for (auto f : *fnptrs)
@@ -2509,15 +2511,15 @@ inline formulaclass* parseformulainternal(
                 {
                     pos += 2;
                     for (int i = 0; i < argcnt; ++i) {
-                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, variables,fnptrs));
+                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, variables,fnptrs));
                     }
                     for (int i = psrev.size()-1; i >= 0; --i)
-                        ps.push_back(psrev[i]);
+                        psoffunction.push_back(psrev[i]);
                     formulavalue fv {};
                     if (auto search = fnptrs->find(tok); search != fnptrs->end())
                     {
                         fv.fns.fn = search->second.first;
-                        fv.fns.ps = ps;
+                        fv.fns.ps = psoffunction;
                         fv.v.t = mtcontinuous;
                         return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
                     } else
@@ -2572,16 +2574,17 @@ formulaclass* parseformula(
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
     const std::vector<std::string>& litnames,
+    namedparams& ps,
     std::vector<qclass*>& variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs )
 {
     if (sentence != "") {
-        variables.clear();
+        // variables.clear();
         std::vector<std::string> c = parsecomponents(sentence);
         
         std::vector<std::string> components = Shuntingyardalg(c,litnumps);
         int pos = -1;
-        return parseformulainternal( components,pos, litnumps, littypes, litnames, &variables,fnptrs);
+        return parseformulainternal( components,pos, litnumps, littypes, litnames, ps, &variables,fnptrs);
     } else {
         auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
         return fc;

@@ -205,5 +205,7 @@ void cyclesset( graphtype* g, neighborstype* ns, std::vector<std::vector<vertext
 
 int cyclescount( graphtype* g, neighborstype* ns );
 
+std::vector<std::vector<int>> getpermutations( const int i );
+
 
 #endif //GRAPHS_H
