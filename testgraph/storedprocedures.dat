@@ -2,31 +2,37 @@ mtbool Bipartiteviacycles
 
 FORALL (v1 IN V, FORALL (c IN Cyclesvs(v1), st(c) % 2 == 0))
 
-END END
+END
 
 mtbool Bipartiteviabipcrit
 
 EXISTS (p IN Setpartition(V), st(p) == 2, bipc(p(0),p(1)))
 
-END END
+END
 
 mtbool Cycleoflength ( mtdiscrete n )
 
 EXISTS (c IN Cycless, st(c) == n)
 
-END END
+END
 
 mtbool HasKnminor ( mtdiscrete n )
 
 EXISTS (s IN Ps(V), EXISTS (p IN Setpartition(s), st(p) == n, FORALL (q IN p, FORALL (r IN p, r != q, Nssc(q,r)) AND connvsc(q,E))))
 
-END END
+END
 
 mtcontinuous epsilon
 
 0.1
 
-END END
+END
+
+mtcontinuous n_0 ( mtcontinuous d, mtdiscrete g )
+
+g % 2 == 0 ? 2 * SUM (i IN g/2, (d - 1)^i) : 1 + d * SUM (i IN (g - 1)/2, (d - 1)^i)
+
+END
 
 mtbool HasHminor ( mtset U, mtset F )
 
@@ -34,4 +40,4 @@ EXISTS (s IN Ps(V), EXISTS (p IN Setpartition(s), st(p) == st(U),
     FORALL (q IN p, connvsc(q,E)) AND
         EXISTS (f IN Perms(NN(st(p))), FORALL (i IN st(p), FORALL (j IN st(p), i < j, Nssc(p(f(i)),p(f(j))) IF {i,j} ELT F)))))
 
-END END
+END
