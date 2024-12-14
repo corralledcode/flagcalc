@@ -442,7 +442,7 @@ public:
 
         Tm sum = 0;
         int cnt = 0;
-        double max = 0;
+        double max = - std::numeric_limits<double>::infinity();
         double min = std::numeric_limits<double>::infinity();
         for (int i = 0; i < res.size(); ++i ) {
             if (res[i]) {
@@ -510,7 +510,7 @@ public:
 
         Tm sum = 0;
         int cnt = 0;
-        double max = 0;
+        double max = - std::numeric_limits<double>::infinity();
         double min = std::numeric_limits<double>::infinity();
         for (int i = 0; i < this->parentbool.size(); ++i ) {
             if (this->parentbool[i]) {

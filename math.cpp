@@ -140,17 +140,24 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         }
         if (!bracketed && ch == '-') {
             if (components.size() > 0) {
-                bool keyword = false;
-                for (auto k : operatorsmap)
-                    keyword = keyword || k.first == components[components.size()-1];
-                if (!keyword && components[components.size()-1] != "(") {
+                // bool keyword = false;
+                // for (auto k : operatorsmap)
+                    // keyword = keyword || k.first == components[components.size()-1];
+                // if (!keyword && components[components.size()-1] != "(") {
                     if (partial != "") {
                         components.push_back(partial);
                         partial = "";
                     }
-                    components.push_back("-");
+                    if (components[components.size()-1] == "(")
+                        partial = "-";
+                    else
+                        components.push_back("-");
                     continue;
-                }
+                // }
+            } else
+            {
+                partial = "-";
+                continue;
             }
         }
         if (ch == '*') {
@@ -695,7 +702,7 @@ bool eval2arytupleeq( setitr* in1, setitr* in2, const formulaoperator fo )
 
 
 
-valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
+valms evalformula::evalpslit( const int idx, namedparams& context, std::vector<valms>& psin )
 {
     valms res;
     res.t = measuretype::mtbool;
@@ -705,42 +712,20 @@ valms evalformula::evalpslit( const int idx, std::vector<valms>& psin )
 
 
 
-valms evalformula::evalvariable( std::string& vname, std::vector<int>& vidxin ) {
-    // if (!populated && (vname == "E" || vname == "V" || vname == "NE")) {
-/*
-        int e = lookup_variable("E",*variables);
-        int v = lookup_variable("V",*variables);
-        int ne = lookup_variable("NE",*variables);
-        if (e >= 0)
-        {
-            delete (*variables)[e];
-            variables->erase(variables->begin()+ e);
-        }
-        if (v >= 0)
-        {
-            delete (*variables)[v];
-            variables->erase(variables->begin()+ v);
-        }
-        if (ne >= 0)
-        {
-            delete (*variables)[ne];
-            variables->erase(variables->begin() + ne);
-        }
-*/
-        // (*populatevariablesbound)();
-        // populated = true;
-    // }
+valms evalformula::evalvariable( variablestruct v, namedparams& context, std::vector<int>& vidxin ) {
 
-    int i = lookup_variable(vname,variables);
+    if (v.l < 0)
+        v.l = lookup_variable(v.name,context);
     valms res;
-    if (i < 0)
+    if (v.l < 0)
     {
         res.t = mtdiscrete;
         res.v.iv = 0;
+        std::cout << "Unknown variable " << v.name << std::endl;
     } else
     {
         if (vidxin.size() == 0)
-            res = variables[i]->qs;
+            res = context[v.l].second;
         else {
             if (vidxin.size() != 1)
             {
@@ -748,7 +733,7 @@ valms evalformula::evalvariable( std::string& vname, std::vector<int>& vidxin ) 
             } else
             {
                 int index = vidxin[0];
-                auto pos = variables[i]->qs.seti->getitrpos();
+                auto pos = context[v.l].second.seti->getitrpos();
                 int i = 0;
                 if (!pos->ended())
                     while (!pos->ended() && i++ <= index)
@@ -766,22 +751,9 @@ valms evalformula::evalvariable( std::string& vname, std::vector<int>& vidxin ) 
     return res;
 }
 
-inline int pairlookup( const intpair p, const int dim)
-{
-    int gapidx = dim;
-    int idx = gapidx;
-    int i;
-    for (i = 0; (i != p.i) && (i < dim); ++i)
-    {
-        --gapidx;
-        idx += gapidx;
-    }
-    if (i == p.i)
-        return idx + i - p.j;
-    return 0;
-}
 
-valms evalformula::eval( formulaclass& fc)
+
+valms evalformula::eval( formulaclass& fc, namedparams& context)
 {
 
     valms res;
@@ -814,7 +786,7 @@ valms evalformula::eval( formulaclass& fc)
             // for (int i = 0; i < fc.v.ss.elts.size(); ++i)
                 // tot.push_back(eval(*fc.v.ss.elts[i]));
             // res.seti = new setitrmodeone(tot);
-            res.seti = new setitrformulae( this, fc.v.ss.elts ); // doesn't compute in time, that is, misses variables in a quantifier
+            res.seti = new setitrformulae( this, fc.v.ss.elts, context ); // doesn't compute in time, that is, misses variables in a quantifier
             return res;
         }
     }
@@ -826,7 +798,7 @@ valms evalformula::eval( formulaclass& fc)
 
         std::vector<double> ps;
         for (auto f : fc.v.fns.ps) {
-            auto a = eval(*f);
+            auto a = eval(*f,context);
             valms r;
             switch (a.t)
             {
@@ -847,13 +819,13 @@ valms evalformula::eval( formulaclass& fc)
     if (fc.fo == formulaoperator::foderef)
     {
 
-        auto v = eval(*fc.fcright);
+        auto v = eval(*fc.fcright,context);
         if (v.t != measuretype::mtset && v.t != measuretype::mttuple)
             std::cout << "Non-set or tuple variable being dereferenced\n";
         auto pos = v.seti->getitrpos();
         int i = 0;
         valms res;
-        auto idx = eval(*fc.fcleft);
+        auto idx = eval(*fc.fcleft,context);
         switch (idx.t) {
         case mtbool: idx.v.iv = idx.v.bv ? 1 : 0;
             break;
@@ -878,14 +850,14 @@ valms evalformula::eval( formulaclass& fc)
         if (fc.v.vs.ps.empty())
         {
             std::vector<int> ps {};
-            res = evalvariable(fc.v.vs.name,ps);
+            res = evalvariable(fc.v.vs, context, ps);
         } else {
             std::vector<int> ps {};
             for (auto f : fc.v.vs.ps) {
-                ps.push_back(eval(*f).v.iv);
+                ps.push_back(eval(*f, context).v.iv);
                 // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
             }
-            res = evalvariable(fc.v.vs.name,ps);
+            res = evalvariable(fc.v.vs, context,ps);
         }
         return res;
     }
@@ -893,8 +865,8 @@ valms evalformula::eval( formulaclass& fc)
     if (fc.fo == formulaoperator::foelt)
     {
         res.t = measuretype::mtbool;
-        valms set = eval(*fc.fcright );
-        valms itm = eval( *fc.fcleft );
+        valms set = eval(*fc.fcright,context );
+        valms itm = eval( *fc.fcleft,context );
         if (set.t == mtset || set.t == mttuple)
         {
             auto pos = set.seti->getitrpos();
@@ -982,8 +954,8 @@ valms evalformula::eval( formulaclass& fc)
     if (fc.fo == formulaoperator::founion || fc.fo == formulaoperator::fointersection
         || fc.fo == formulaoperator::fodupeunion)
     {
-        valms set1 = eval(*fc.fcright );
-        valms set2 = eval( *fc.fcleft );
+        valms set1 = eval(*fc.fcright, context );
+        valms set2 = eval( *fc.fcleft, context );
         if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
         {
             if (fc.fo == formulaoperator::founion)
@@ -1009,16 +981,22 @@ valms evalformula::eval( formulaclass& fc)
         res.v.bv = true;
 
         res.t = mtbool;
-        valms v = eval(*fc.v.qc->superset);
+        valms v = eval(*fc.fcright->boundvariable->superset, context);
+        // valms v = eval(*fc.v.qc->superset);
         bool needtodeletevseti = false;
         if (v.t == mtdiscrete || v.t == mtcontinuous)
         {
             if (v.t == mtcontinuous)
                 v.v.iv = (int)v.v.dv;
-            v.seti = new setitrint(v.v.iv-1);
+            if (v.v.iv >= 0)
+                v.seti = new setitrint(v.v.iv-1);
+            else
+                v.seti = new setitrint(-1);
             v.t = mtset;
             needtodeletevseti = true;
         }
+        if (v.t == mtbool)
+            std::cout << "Cannot use mtbool for quantifier superset\n";
         auto criterion = fc.v.qc->criterion;
         int maxint = -1;
 //                switch (v.t) {
@@ -1036,19 +1014,19 @@ valms evalformula::eval( formulaclass& fc)
 //                    memset(ss->elts,true,(maxint+1)*sizeof(bool));
 //                    supersetpos = ss->getitrpos();
 //                    supersetsize = maxint;
-//                }
-
-        int i = lookup_variable(fc.v.qc->name, variables);
+//
+        context.push_back({fc.fcright->boundvariable->name,fc.fcright->boundvariable->qs});
+        int i = context.size()-1;
         supersetpos->reset();
         // variables[i]->qs.t = v.seti->t;
         if (fc.fo == formulaoperator::foqexists || fc.fo == formulaoperator::foqforall)
         {
-            res.t = mtbool;
             while ((!supersetpos->ended()) && res.v.bv) {
-                variables[i]->qs = supersetpos->getnext();
+                context[i].second = supersetpos->getnext();
+                // variables[i]->qs = supersetpos->getnext();
                 valms c;
                 if (criterion) {
-                    c = eval(*criterion);
+                    c = eval(*criterion, context);
                     if (c.t == mtbool && !c.v.bv)
                         continue;
                     if (c.t != mtbool) {
@@ -1060,9 +1038,9 @@ valms evalformula::eval( formulaclass& fc)
                 // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
                 // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
                 if (fc.fo == formulaoperator::foqexists)
-                    res.v.bv = res.v.bv && !eval(*fc.fcright).v.bv;
+                    res.v.bv = res.v.bv && !eval(*fc.fcright, context).v.bv;
                 if (fc.fo == formulaoperator::foqforall)
-                    res.v.bv = res.v.bv && eval(*fc.fcright).v.bv;
+                    res.v.bv = res.v.bv && eval(*fc.fcright, context).v.bv;
                 // std::cout << fc.v.qc->qs.v.iv << " iv \n";
             }
             if (fc.fo == formulaoperator::foqexists)
@@ -1074,7 +1052,7 @@ valms evalformula::eval( formulaclass& fc)
         {
             res.t = mtcontinuous;
             double min = std::numeric_limits<double>::infinity();
-            double max = 0;
+            double max = -std::numeric_limits<double>::infinity();
             int count = 0;
             if (fc.fo == formulaoperator::foqsum)
                 res.v.dv = 0;
@@ -1082,10 +1060,11 @@ valms evalformula::eval( formulaclass& fc)
                 res.v.dv = 1;;
             while (!supersetpos->ended() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
             {
-                variables[i]->qs = supersetpos->getnext();
+                context[i].second = supersetpos->getnext();
+                // variables[i]->qs = supersetpos->getnext();
                 valms c;
                 if (criterion) {
-                    c = eval(*criterion);
+                    c = eval(*criterion, context);
                     if (c.t == mtbool && !c.v.bv)
                         continue;
                     if (c.t != mtbool) {
@@ -1097,7 +1076,7 @@ valms evalformula::eval( formulaclass& fc)
                 // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
                 // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
                 // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
-                auto v = eval(*fc.fcright);
+                auto v = eval(*fc.fcright, context);
                 if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
                     || fc.fo == formulaoperator::foqmax)
                     res.v.dv = 0;
@@ -1163,10 +1142,11 @@ valms evalformula::eval( formulaclass& fc)
             res.v.iv = 0;
             while (!supersetpos->ended())
             {
-                variables[i]->qs = supersetpos->getnext();
+                context[i].second = supersetpos->getnext();
+                // variables[i]->qs = supersetpos->getnext();
                 valms c;
                 if (criterion) {
-                    c = eval(*criterion);
+                    c = eval(*criterion, context);
                     if (c.t == mtbool && !c.v.bv)
                         continue;
                     if (c.t != mtbool) {
@@ -1174,7 +1154,7 @@ valms evalformula::eval( formulaclass& fc)
                         exit(1);
                     }
                 }
-                auto v = eval(*fc.fcright);
+                auto v = eval(*fc.fcright, context);
                 if (fc.fo == formulaoperator::foqcount)
                     switch (v.t)
                     {
@@ -1219,10 +1199,11 @@ valms evalformula::eval( formulaclass& fc)
             std::vector<valms> tot {};
             while (!supersetpos->ended())
             {
-                variables[i]->qs = supersetpos->getnext();
+                context[i].second = supersetpos->getnext();
+                // variables[i]->qs = supersetpos->getnext();
                 valms c;
                 if (criterion) {
-                    c = eval(*criterion);
+                    c = eval(*criterion, context);
                     if (c.t == mtbool && !c.v.bv)
                         continue;
                     if (c.t != mtbool) {
@@ -1230,7 +1211,7 @@ valms evalformula::eval( formulaclass& fc)
                         exit(1);
                     }
                 }
-                auto v = eval(*fc.fcright);
+                auto v = eval(*fc.fcright, context);
                 tot.push_back(v);
             }
             res.seti = new setitrmodeone(tot);
@@ -1242,10 +1223,11 @@ valms evalformula::eval( formulaclass& fc)
             std::vector<valms> tot {};
             while (!supersetpos->ended())
             {
-                variables[i]->qs = supersetpos->getnext();
+                context[i].second = supersetpos->getnext();
+                // variables[i]->qs = supersetpos->getnext();
                 valms c;
                 if (criterion) {
-                    c = eval(*criterion);
+                    c = eval(*criterion, context);
                     if (c.t == mtbool && !c.v.bv)
                         continue;
                     if (c.t != mtbool) {
@@ -1253,7 +1235,7 @@ valms evalformula::eval( formulaclass& fc)
                         exit(1);
                     }
                 }
-                auto v = eval(*fc.fcright);
+                auto v = eval(*fc.fcright, context);
                 bool match = false;
                 for (int i = 0; !match && i < tot.size(); i++)
                 {
@@ -1343,10 +1325,11 @@ valms evalformula::eval( formulaclass& fc)
             res.seti = nullptr;
             while (!supersetpos->ended())
             {
-                variables[i]->qs = supersetpos->getnext();
+                context[i].second = supersetpos->getnext();
+                // variables[i]->qs = supersetpos->getnext();
                 valms c;
                 if (criterion) {
-                    c = eval(*criterion);
+                    c = eval(*criterion, context);
                     if (c.t == mtbool && !c.v.bv)
                         continue;
                     if (c.t != mtbool) {
@@ -1354,7 +1337,7 @@ valms evalformula::eval( formulaclass& fc)
                         exit(1);
                     }
                 }
-                auto v = eval(*fc.fcright);
+                auto v = eval(*fc.fcright, context);
                 switch (fc.fo)
                 {
                 case formulaoperator::foqunion:
@@ -1377,12 +1360,13 @@ valms evalformula::eval( formulaclass& fc)
 
         if (needtodeletevseti)
             delete v.seti;
+        context.resize(i);
 
         return res;
     }
 
 
-    if ((fc.fo == formulaoperator::foliteral) || (fc.fcleft == nullptr && fc.fcright==nullptr)) {
+    if ((fc.fo == formulaoperator::foliteral)) {
        if (fc.v.lit.ps.empty())
        {
            if (fc.v.lit.l >= 0 && fc.v.lit.l < literals->size()) {
@@ -1399,17 +1383,64 @@ valms evalformula::eval( formulaclass& fc)
            }
        } else {
            std::vector<valms> ps {};
+           int i = 0;
            for (auto f : fc.v.lit.ps) {
-               ps.push_back(eval(*f));
+               ps.push_back(eval(*f, context));
                // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
+               // std::cout << fc.v.lit.ps[i++]->v.qc->qs.t << "\n";
            }
-           res = evalpslit(fc.v.lit.l,ps);
+           res = evalpslit(fc.v.lit.l, context, ps);
+        }
+        return res;
+    }
+
+    if (fc.fo == formulaoperator::foswitch)
+    {
+        valms resleft = eval(*fc.fcleft, context);
+        bool b = false;
+        switch (resleft.t)
+        {
+        case mtbool: b = resleft.v.bv; break;
+            case mtcontinuous: b = !(abs(resleft.v.dv) < ABSCUTOFF); break;
+        case mtdiscrete: b = resleft.v.iv != 0; break;
+        case mtset:
+        case mttuple:
+            auto itr = resleft.seti->getitrpos();
+            b = !itr->ended();
+            delete itr;
+            break;
+        // case string:
+        }
+        if (b)
+        {
+            if (fc.fcright->fo  == formulaoperator::focases)
+                res = eval(*fc.fcright->fcleft, context);
+            else
+            {
+                std::cout << "Expecting ':' after '?'\n";
+                valms v;
+                v.t = mtbool;
+                v.v.bv = false;
+                res = v;
+            }
+        } else
+        {
+            if (fc.fcright->fo  == formulaoperator::focases)
+                res = eval(*fc.fcright->fcright, context);
+            else
+            {
+                std::cout << "Expecting ':' after '?'\n";
+                valms v;
+                v.t = mtbool;
+                v.v.bv = false;
+                res = v;
+            }
         }
         return res;
     }
 
 
-    valms resright = eval(*fc.fcright);
+    valms resright = eval(*fc.fcright, context);
 
     if (fc.fo == formulaoperator::fonot)
     {
@@ -1443,7 +1474,7 @@ valms evalformula::eval( formulaclass& fc)
                 || (fc.fo == formulaoperator::foxor)
                 || (fc.fo == formulaoperator::foiff))
             {
-                valms resleft = eval(*fc.fcleft);
+                valms resleft = eval(*fc.fcleft, context);
                 switch (resleft.t)
                 {
                 case mtbool: res.v.bv = eval2ary<bool,bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
@@ -1472,7 +1503,7 @@ valms evalformula::eval( formulaclass& fc)
                 || (fc.fo == formulaoperator::foxor)
                 || (fc.fo == formulaoperator::foiff))
             {
-                valms resleft = eval(*fc.fcleft);
+                valms resleft = eval(*fc.fcleft, context);
 
                 switch (resleft.t)
                 {
@@ -1503,7 +1534,7 @@ valms evalformula::eval( formulaclass& fc)
                 || (fc.fo == formulaoperator::foxor)
                 || (fc.fo == formulaoperator::foiff))
             {
-                valms resleft = eval(*fc.fcleft);
+                valms resleft = eval(*fc.fcleft, context);
 
                 switch (resleft.t)
                 {
@@ -1532,7 +1563,7 @@ valms evalformula::eval( formulaclass& fc)
     }
 
 
-    valms resleft = eval(*fc.fcleft);
+    valms resleft = eval(*fc.fcleft, context);
 
     res.t = fc.v.v.t;
     // if (!booleanops(fc.fo) && (res.t == mtbool))
@@ -1542,25 +1573,6 @@ valms evalformula::eval( formulaclass& fc)
         res.t = mtbool;
         switch(resleft.t)
         {
-            /*
-        case mtpair:
-            switch (resright.t)
-            {
-        case mtpair:
-            {
-                if (fc.fo == formulaoperator::foe || fc.fo == formulaoperator::fone)
-                    res.v.bv = (resleft.v.p->i == resright.v.p->i
-                                && resleft.v.p->j == resright.v.p->j) != (fc.fo == formulaoperator::fone);
-                else
-                    if (resleft.v.p->i == resright.v.p->i)
-                        res.v.bv = eval2aryeq<valms,valms>(resleft.v.p->j, resright.v.p->j,fc.fo);
-                    else
-                        res.v.bv = eval2aryeq<valms,valms>(resleft.v.p->i, resright.v.p->i, fc.fo);
-                break;
-            }
-                std::cout << "Error in evalformula::eval comparing int pair to non-int-pair\n";
-            }
-            break; */
         case mtbool:
             switch (resright.t)
             {
@@ -1738,7 +1750,7 @@ inline int operatorprecedence( const std::string& tok1, const std::string& tok2)
 inline bool is_function(std::string tok) {
     bool res = !tok.empty();
     for (auto c : tok)
-        res = res && isalnum(c);
+        res = res && (isalnum(c) || c == '_');
     if (tok.size() > 0)
         res = res && isalpha(tok[0]);
     return res;
@@ -1754,7 +1766,7 @@ inline bool is_literal(std::string tok) {
 inline bool is_variable(std::string tok) {
     bool res = tok.size() > 0 && isalpha(tok[0]);
     for (int i = 1; res && (i < tok.size()); ++i) {
-        res = res && isalnum(tok[i]);
+        res = res && (isalnum(tok[i]) || tok[i] == '_');
     }
     return res;
 }
@@ -1801,7 +1813,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             }
             continue;
         }
-        if ((is_operator(tok) && !is_quantifier(tok)) || tok == "IN") {
+        if (is_operator(tok) && !is_quantifier(tok)) {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
                 while ((ostok != "(") && (ostok != "{") && ostok != "<<" && (operatorprecedence(ostok,tok) >= 0)) {
@@ -1817,7 +1829,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             continue;
         }
 
-        if (tok != "IN" && (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok)))
+        if (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok))
         {
             // if (litnumps[get_literal(tok)] > 0)
             // {
@@ -2112,36 +2124,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         std::cout << "Error mismatched parentheses (loc 1)\n";
                         return output;
                     }
-                    if (ostok == SHUNTINGYARDDEREFKEY) {
-                        // output.insert(output.begin(), SHUNTINGYARDDEREFKEY);
-                        int a = 0;
-                        if (!argcount.empty())
-                        {
-                            a = argcount[argcount.size()-1];
-                            argcount.resize(argcount.size()-1);
-                        } else
-                            std::cout << "Mismatched argcount\n";
-                        bool w = false;
-                        if (!werevalues.empty())
-                        {
-                            w = werevalues[werevalues.size()-1];
-                            werevalues.resize(werevalues.size()-1);
-                        } else
-                            std::cout << "Mismatched werevalues (right paren branch)\n";
-                        if (w == true)
-                            ++a;
-
-
-                        output.insert(output.begin(), std::to_string(a));
-                        output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
-                        // output.insert(output.begin(),SHUNTINGYARDDEREFKEY);
-
-                        operatorstack.resize(operatorstack.size()-2);
-                    }
-                    else {
-                        output.insert(output.begin(),ostok);
-                        operatorstack.resize(operatorstack.size()-1);
-                    }
+                    output.insert(output.begin(),ostok);
+                    operatorstack.resize(operatorstack.size()-1);
                     if (!operatorstack.empty())
                         ostok = operatorstack[operatorstack.size()-1];
                     else
@@ -2262,7 +2246,6 @@ inline formulaclass* parseformulainternal(
     const std::vector<measuretype>& littypes,
     const std::vector<std::string>& litnames,
     namedparams& ps,
-    std::vector<qclass*>* variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs )
 {
     while( pos+1 < q.size()) {
@@ -2278,8 +2261,8 @@ inline formulaclass* parseformulainternal(
             }
             formulavalue fv {};
 
-            auto fcleft = parseformulainternal(q,pos,litnumps,littypes, litnames, ps,  variables,fnptrs);
-            auto fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, ps,   variables,fnptrs);
+            auto fcleft = parseformulainternal(q,pos,litnumps,littypes, litnames, ps, fnptrs);
+            auto fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, ps,  fnptrs);
 
             auto fc = fccombine(fv,fcleft,fcright, formulaoperator::foderef);
 
@@ -2300,7 +2283,7 @@ inline formulaclass* parseformulainternal(
             fv.ss.elts.clear();
             fv.ss.elts.resize(argcount);
             for (int i = 0; i < argcount; ++i)
-                fv.ss.elts[argcount - i - 1] = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,   variables,fnptrs);
+                fv.ss.elts[argcount - i - 1] = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,  fnptrs);
 
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
 
@@ -2332,17 +2315,18 @@ inline formulaclass* parseformulainternal(
                 exit(-1);
             }
             // --pos2;
-            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps,  variables,fnptrs);
+            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
             qc->name = q[++pos2];
             qc->criterion = nullptr;
-            variables->push_back(qc);
+            // variables->push_back(qc);
 
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,  variables,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
+            fcright->boundvariable = qc;
 
             // if (pos+1 < pos1)
             if (argcnt == 3)
             {
-                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  variables, fnptrs);
+                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  fnptrs);
             }
             // qc->qs.t = qc->superset->v.v.seti->t;
 
@@ -2351,6 +2335,7 @@ inline formulaclass* parseformulainternal(
             formulavalue fv {};
             fv.qc = qc;
             auto fc = fccombine(fv,fcleft,fcright,o);
+
             pos = pos2;
             return fc;
 #else
@@ -2381,58 +2366,16 @@ inline formulaclass* parseformulainternal(
         if (is_operator(tok))
         {
             formulaoperator o = lookupoperator(tok);
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, ps,  variables,fnptrs);
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes, litnames, ps, fnptrs);
             formulaclass* fcleft = nullptr;
             if (o != formulaoperator::fonot)
             {
-                fcleft = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,  variables,fnptrs);
+                fcleft = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
             }
             if (fcright)
                 return fccombine({},fcleft,fcright,o);
         }
 
-        int v = lookup_variable(tok,*variables);
-        if (v >= 0) {
-
-            formulavalue fv {};
-            formulaclass* fc;
-            if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
-            {
-                pos += 2;
-                if (q[pos] == "1")
-                {
-                    fv.v.t = (*variables)[v]->qs.t;
-                    fv.v = (*variables)[v]->qs;
-
-                    fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
-                    fc->v.vs.name = tok;
-                    fc->v.vs.ps.clear();
-                    fc->v.vs.ps.push_back(parseformulainternal(q,pos,litnumps,littypes, litnames, ps, variables,fnptrs));
-                    fc->v.qc = (*variables)[v];
-                } else
-                {
-                    if (q[pos] != "1")
-                        std::cout << "Less or more than one parameter used to index into a set or tuple\n";
-                }
-            } else {
-                fv.v.t = (*variables)[v]->qs.t;
-                fv.v = (*variables)[v]->qs;
-                fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
-                fc->v.vs.name = tok;
-                fc->v.vs.ps.clear();
-                fc->v.qc = (*variables)[v];
-            }
-
-            return fc;
-        }
-        // if (tok == "V" || tok == "E" || tok == "NE") {
-            // formulavalue fv {};
-            // fv.v.t = mtset;
-            // auto fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
-            // fc->v.qc = new qclass;
-            // fc->v.qc->name = tok;
-            // return fc;
-        // }
         if (is_truth(tok))
         {
             formulavalue fv {};
@@ -2463,7 +2406,7 @@ inline formulaclass* parseformulainternal(
                 return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
             else
             {
-                if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+                if (pos+1 < q.size() && q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
                 {
                     int argcnt = stoi(q[pos+2]);
                     pos += 2;
@@ -2475,18 +2418,11 @@ inline formulaclass* parseformulainternal(
 
                     std::vector<formulaclass*> psrev {};
                     for (int i = 0; i < argcnt; ++i) {
-                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, variables,fnptrs));
+                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs));
                     }
                     for (int i = psrev.size()-1; i >= 0; --i)
                         fv.lit.ps.push_back(psrev[i]);
 
-                    while (q[pos] == SHUNTINGYARDVARIABLEARGUMENTKEY) {
-                        int argcnt = stoi(q[++pos]);
-                        ++pos;
-                        for (int i = 0; i < argcnt; ++i) {
-
-                        }
-                    }
                     return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                 } else
                 {
@@ -2498,48 +2434,57 @@ inline formulaclass* parseformulainternal(
 
         }
 
-        if (is_function(tok)) {
+        if (is_function(tok))
+        {
             std::vector<formulaclass*> psoffunction {};
             // double (*f2)(std::vector<double>&);
             int argcnt = 0;
+            bool found = false;
             for (auto f : *fnptrs)
-                if (f.first == tok)
-                    argcnt = f.second.second;
-            std::vector<formulaclass*> psrev {};
-            if (q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
-                if (stoi(q[pos+2]) == argcnt)
+            {
+                found = f.first == tok;
+                if (found)
                 {
-                    pos += 2;
-                    for (int i = 0; i < argcnt; ++i) {
-                        psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, variables,fnptrs));
-                    }
-                    for (int i = psrev.size()-1; i >= 0; --i)
-                        psoffunction.push_back(psrev[i]);
-                    formulavalue fv {};
-                    if (auto search = fnptrs->find(tok); search != fnptrs->end())
+                    argcnt = f.second.second;
+                    break;
+                }
+            }
+            if (found) {
+                std::vector<formulaclass*> psrev {};
+                if (pos + 1 < q.size() && q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+                    if (stoi(q[pos+2]) == argcnt)
                     {
-                        fv.fns.fn = search->second.first;
-                        fv.fns.ps = psoffunction;
-                        fv.v.t = mtcontinuous;
-                        return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
+                        pos += 2;
+                        for (int i = 0; i < argcnt; ++i) {
+                            psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs));
+                        }
+                        for (int i = psrev.size()-1; i >= 0; --i)
+                            psoffunction.push_back(psrev[i]);
+                        formulavalue fv {};
+                        if (auto search = fnptrs->find(tok); search != fnptrs->end())
+                        {
+                            fv.fns.fn = search->second.first;
+                            fv.fns.ps = psoffunction;
+                            fv.v.t = mtcontinuous;
+                            return fccombine(fv,nullptr,nullptr,formulaoperator::fofunction);
+                        } else
+                        {
+                            std::cout << "Unknown function " << tok << " in parseformula internal\n";
+                        }
                     } else
                     {
-                        std::cout << "Unknown function " << tok << " in parseformula internal\n";
+                        std::cout << "Error in Shuntingyard around function arguments\n";
+                        exit(1);
                     }
-                } else
+                else
                 {
                     std::cout << "Error in Shuntingyard around function arguments\n";
                     exit(1);
                 }
-            else
-            {
-                std::cout << "Error in Shuntingyard around function arguments\n";
-                exit(1);
+                formulavalue fv {};
+                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
             }
-            formulavalue fv {};
-            return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
         }
-
 
         if (is_number(tok)) { // integer
             formulavalue fv {};
@@ -2557,7 +2502,39 @@ inline formulaclass* parseformulainternal(
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
         }
 
+
+        // conclude it must be a variable
+
+        if (is_variable(tok))
+        {
+            formulavalue fv {};
+            formulaclass* fc;
+            if (pos+1 < q.size() && q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            {
+                pos += 2;
+                if (q[pos] == "1")
+                {
+                    fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+                    fc->v.vs.name = tok;
+                    fc->v.vs.l = -1;
+                    fc->v.vs.ps.clear();
+                    fc->v.vs.ps.push_back(parseformulainternal(q,pos,litnumps,littypes, litnames, ps, fnptrs));
+                } else
+                {
+                    if (q[pos] != "1")
+                        std::cout << "Less or more than one parameter used to index into a set or tuple\n";
+                }
+            } else {
+                fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+                fc->v.vs.name = tok;
+                fc->v.vs.l = -1;
+                fc->v.vs.ps.clear();
+            }
+            return fc;
+        }
     }
+
+
 
 
 
@@ -2574,8 +2551,7 @@ formulaclass* parseformula(
     const std::vector<int>& litnumps,
     const std::vector<measuretype>& littypes,
     const std::vector<std::string>& litnames,
-    namedparams& ps,
-    std::vector<qclass*>& variables,
+    namedparams& nps,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs )
 {
     if (sentence != "") {
@@ -2584,7 +2560,7 @@ formulaclass* parseformula(
         
         std::vector<std::string> components = Shuntingyardalg(c,litnumps);
         int pos = -1;
-        return parseformulainternal( components,pos, litnumps, littypes, litnames, ps, &variables,fnptrs);
+        return parseformulainternal( components,pos, litnumps, littypes, litnames, nps,fnptrs);
     } else {
         auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
         return fc;

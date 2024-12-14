@@ -42,7 +42,8 @@ enum class formulaoperator
     folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt,
     foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
-    foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection};
+    foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection,
+    foswitch, focases, foin};
 
 inline std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -85,7 +86,10 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {"COUNT",formulaoperator::foqcount},
         {"BIGCUP",formulaoperator::foqunion},
         {"BIGCUPD",formulaoperator::foqdupeunion},
-        {"BIGCAP", formulaoperator::foqintersection}};
+        {"BIGCAP", formulaoperator::foqintersection},
+        {"?", formulaoperator::foswitch},
+        {":", formulaoperator::focases},
+        {"IN", formulaoperator::foin}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -110,6 +114,7 @@ struct litstruct
 
 struct variablestruct
 {
+    int l;
     std::string name;
     std::vector<formulaclass*> ps;
 };
@@ -385,7 +390,7 @@ class setitrmodeone : public setitr
         if (!computed)
         {
             compute();
-//            computed = true;
+            computed = true;
         }
         return totality.size();
     }
@@ -398,7 +403,7 @@ class setitrmodeone : public setitr
         if (!computed)
         {
             compute();
-            //computed = true;
+            computed = true;
             pos = -1;
         }
         if (!ended())
@@ -823,6 +828,7 @@ public:
     valms qs;
     formulaclass* superset;
     formulaclass* criterion;
+    formulaclass* value;
     bool secondorder = false;
     void eval( const std::vector<std::string>& q, int& pos)
     {
@@ -1332,28 +1338,14 @@ public:
 
 
 
-inline int lookup_variable( const std::string& tok, std::vector<qclass*>& variables) {
+inline int lookup_variable( const std::string& tok, namedparams& context) {
     bool found = false;
-    int i = 0;
-    while (!found && i < variables.size()) {
-        found = variables[i]->name == tok;
-        ++i;
-    }
+    int i = context.size() - 1;
+    for ( ; i >= 0 && !found; --i)
+        found = context[i].first == tok;
     if (!found)
         return -1;
-    return i-1;
-}
-
-inline int lookup_litnamedparameter( const std::string& tok, std::vector<std::string>& variablenames) {
-    bool found = false;
-    int i = 0;
-    while (!found && i < variablenames.size()) {
-        found = variablenames[i] == tok;
-        ++i;
-    }
-    if (!found)
-        return -1;
-    return i-1;
+    return i+1;
 }
 
 
@@ -1369,6 +1361,7 @@ struct formulavalue {
 
 class formulaclass {
 public:
+    qclass* boundvariable {};
     formulavalue v;
     formulaclass* fcleft;
     formulaclass* fcright;
@@ -1433,8 +1426,13 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foif,6},
                             {formulaoperator::founion,3},
                             {formulaoperator::fodupeunion,3},
-                            {formulaoperator::fointersection,3}};
+                            {formulaoperator::fointersection,3},
+                            {formulaoperator::foswitch,8},
+                            {formulaoperator::focases, 7},
+                                {formulaoperator::foin, 8}};
 
+
+bool is_operator( const std::string& tok );
 
 
 
@@ -1445,7 +1443,6 @@ formulaclass* parseformula(
     const std::vector<measuretype>& littypes,
     const std::vector<std::string>& litnames,
     namedparams& ps,
-    std::vector<qclass*>& variables,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs  );
 
 
@@ -1456,26 +1453,18 @@ class evalformula
 public:
     graphtype* g {};
     std::vector<valms>* literals {};
-    std::vector<measuretype>* littypes {};
-    std::vector<std::string>* litnames {};
+
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
     //std::function<void()>* populatevariablesbound {};
-    std::vector<qclass*> variables {};
+    // std::vector<qclass*> variables {};
 
-    virtual valms evalpslit( const int idx, std::vector<valms>& psin );
-    virtual valms evalvariable( std::string& vname, std::vector<int>& vidxin );
-    virtual valms eval( formulaclass& fc );
+    virtual valms evalpslit( const int idx, namedparams& context, std::vector<valms>& psin );
+    virtual valms evalvariable( variablestruct v, namedparams& context, std::vector<int>& vidxin );
+    virtual valms eval( formulaclass& fc, namedparams& context );
     evalformula();
 
     ~evalformula()
     {
-        for (auto q : variables)
-        {
-            // if (!(q->name == "V" || q->name == "E" || q->name == "NE"))
-                // if (q->qs.t == mtset)
-                    // delete q->qs.seti;
-        //    delete q;
-        }
     }
 
 };
@@ -1528,6 +1517,7 @@ public:
     int size;
     evalformula* ef;
     std::vector<formulaclass*> formulae;
+    namedparams nps;
 
     virtual int getsize() {return formulae.size();}
 
@@ -1545,13 +1535,13 @@ public:
         if (pos >= totality.size())
         {
             totality.resize(pos+1);
-            totality[pos] = ef->eval(*formulae[pos]);
+            totality[pos] = ef->eval(*formulae[pos],nps);
         }
         return totality[pos];
     }
 
-    setitrformulae( evalformula* efin, std::vector<formulaclass*>& fcin)
-        : formulae{fcin}, ef{efin}
+    setitrformulae( evalformula* efin, std::vector<formulaclass*>& fcin, namedparams& npsin )
+        : formulae{fcin}, ef{efin}, nps{npsin}
     {
         totality.clear();
         reset();

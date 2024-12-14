@@ -135,11 +135,11 @@ $PTH/flagcalc -d f="abc=defg" f="abcd=efgh" f="abc=de" -a s="FORALL (v IN [V], F
 
 # Diestel 5.3.1 (Konig 1916)
 
-$PTH/flagcalc -r 8 14 10000 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 1000 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), mod([st](c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
 
 # Diestel 2.1.1
 
-$PTH/flagcalc -r 8 14 2000 -a s="EXISTS (p IN Setpartition(V), bipc(p(0),p(1)) && st(p) == 2)" s2="MAX (es IN Ps(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))), st(es)) == MIN (vs IN Ps(V), FORALL (e IN E, vs CAP e != Nulls), st(vs))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 200 -a s="EXISTS (p IN Setpartition(V), st(p) == 2, bipc(p(0),p(1)))" s2="MAX (es IN Ps(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))), st(es)) == MIN (vs IN Ps(V), FORALL (e IN E, vs CAP e != Nulls), st(vs))" all -v i=minimal3.cfg
 
 # Diestel 2.1.2 (Hall 1935)
 
@@ -187,3 +187,10 @@ $PTH/flagcalc -r 5 5 50 -a z="FORALL (T IN Setpartition(V), st(T) == 2, FORALL (
 
 # $PTH/flagcalc -r 8 14 300 -a z="EXISTS (vp IN Setpartition(V), st(vp(0)) <= 0.1*st(vp(1)) AND st(vp) <= 5 AND FORALL (n IN st(vp)-1, n > 0, vp(n) == vp(n+1)), FORALL (i IN st(vp), FORALL (j IN st(vp), i != j, Nsst(vp(i),vp(j))/(st(vp(i)*st(vp(j)) "
 
+# Diestel Exercise 1.7 (p 10)
+
+$PTH/flagcalc -r 8 14 1000 -a isp=storedprocedures.dat s="n_0(deltam, girthm) <= dimm" all -v i=minimal3.cfg
+
+# Diestel Theorem 1.3.4 (Alon et al 2002)
+
+$PTH/flagcalc -r 8 14 100 -a isp=storedprocedures.dat s="NOT isinf(girthm)" s2="FORALL (d IN dm + 1, d >= 2, FORALL (g IN girthm, n_0(d,g) <= dimm ))" all -v i=minimal3.cfg

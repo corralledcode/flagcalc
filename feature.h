@@ -1881,6 +1881,12 @@ public:
         for (int i = 0; i < sts.size(); ++i) {
             delete sts[i];
         }
+        for (int i = 0; i < oss.size(); ++i) {
+            delete oss[i];
+        }
+        for (int i = 0; i < mrs.size(); ++i) {
+            delete mrs[i];
+        }
     }
 
 
@@ -2138,7 +2144,7 @@ protected:
 
 
 
-    int lookupstoredprocedure( const std::string sin )
+    int lookupstoredprocedure( const std::string sin, const int roundin )
     {
         for (auto i = 0; i < storedprocedures.size(); ++i)
         {
@@ -2148,7 +2154,7 @@ protected:
                 {
                     ams a = sps.a;
                     namedparams ps = sps.ps;
-                    std::string s = bindformula(sps.body, sps.a.t, 0 );
+                    std::string s = bindformula(sps.body, sps.a.t, roundin );
 
                     params ps2 {};
                     for (auto p : ps)
@@ -2202,16 +2208,22 @@ protected:
                         break;
                     }
 
-                    auto it = newiteration(a.t,0,a,true);
+                    auto it = newiteration(a.t,roundin,a,true);
+
+                    // int j = addmeas( sps.name, sps.a.t, roundin);
+                    it->ps = ps2;
                     iter.push_back(it);
 
                     int j = iter.size()-1;
-                    litnumps.resize(j+1);
-                    litnumps[j] = ps.size();
-                    littypes.resize(j+1);
-                    littypes[j] = a.t;
-                    litnames.resize(j+1);
-                    litnames[j] = sps.name;
+                    litnumps.push_back(ps2.size());
+                    littypes.push_back(a.t);
+                    litnames.push_back(sps.name);
+//                    litnumps.resize(j+1);
+//                    litnumps[j] = ps.size();
+//                    littypes.resize(j+1);
+//                    littypes[j] = a.t;
+//                    litnames.resize(j+1);
+//                    litnames[j] = sps.name;
                     sps.iidx = j;
                     storedprocedures[i] = sps;
                     return sps.iidx;
@@ -2257,7 +2269,7 @@ protected:
 
 
             params ps {};
-            std::vector<qclass*> variables;
+            // std::vector<qclass*> variables;
             namedparams variablenames {};
 
             int i = 2;
@@ -2335,6 +2347,8 @@ protected:
                 break;
             case mttuple: sn = a.a.os->shortname;
                 break;
+            case mtstring: sn = a.a.rs->shortname;
+                break;
             }
             if (sn == sin)
                 return iter[i]->iidx;
@@ -2353,22 +2367,27 @@ protected:
         case measuretype::mtbool:
             j = rec.boolrecs.pmsv->size();
             rec.boolrecs.pmsv->push_back(ain.a.cs);
+            resi->ps = ain.a.cs->ps;
             break;
         case measuretype::mtdiscrete:
             j = rec.intrecs.pmsv->size();
             rec.intrecs.pmsv->push_back(ain.a.ts);
+            resi->ps = ain.a.ts->ps;
             break;
         case measuretype::mtcontinuous:
             j = rec.doublerecs.pmsv->size();
             rec.doublerecs.pmsv->push_back(ain.a.ms);
+            resi->ps = ain.a.ms->ps;
             break;
         case measuretype::mtset:
             j = rec.setrecs.pmsv->size();
             rec.setrecs.pmsv->push_back(ain.a.ss);
+            resi->ps = ain.a.ss->ps;
             break;
         case measuretype::mttuple:
             j = rec.tuplerecs.pmsv->size();
             rec.tuplerecs.pmsv->push_back(ain.a.os);
+            resi->ps = ain.a.os->ps;
             break;
         }
 
@@ -2377,7 +2396,7 @@ protected:
         resi->iidx = rec.maxm()+1;
         rec.addm(resi->iidx,resi->t,j);
         resi->hidden = hiddenin;
-        resi->ps.clear();
+        //resi->ps.clear();
         return resi;
 
     }
@@ -2387,7 +2406,7 @@ protected:
         int li = lookupiter(sin);
         if (li >= 0)
             return li;
-        for (int i = 0; i < sts.size(); ++i)
+        for (int i = 0; i < stsfactory.size(); ++i)
         {
             if (sin == sts[i]->shortname)
             {
@@ -2397,16 +2416,20 @@ protected:
                 // iter.push_back(newiteration(mtset,roundin,a,sts[i]->pssz > 0));
                 iter.push_back(newiteration(mtset,roundin,a,true));  // hide also those of pssz == 0
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                litnumps[j] = sts[i]->pssz;
-                littypes.resize(j+1);
-                littypes[j] = a.t;
-                litnames.resize(j+1);
-                litnames[j] = sin;
+
+                litnumps.push_back(sts[i]->pssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+                // litnumps.resize(j+1);
+                // litnumps[j] = sts[i]->pssz;
+                // littypes.resize(j+1);
+                // littypes[j] = a.t;
+                // litnames.resize(j+1);
+                // litnames[j] = sin;
                 return j;
             }
         }
-        for (int i = 0; i < crs.size(); ++i)
+        for (int i = 0; i < crsfactory.size(); ++i)
         {
             if (sin == crs[i]->shortname)
             {
@@ -2416,16 +2439,21 @@ protected:
                 // iter.push_back(newiteration(mtbool,roundin,a,crs[i]->pssz > 0));
                 iter.push_back(newiteration(mtbool,roundin,a,true));
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                litnumps[j] = crs[i]->pssz;
-                littypes.resize(j+1);
-                littypes[j] = a.t;
-                litnames.resize(j+1);
-                litnames[j] = sin;
+
+                litnumps.push_back(crs[i]->pssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+
+                // litnumps.resize(j+1);
+                // litnumps[j] = crs[i]->pssz;
+                // littypes.resize(j+1);
+                // littypes[j] = a.t;
+                // litnames.resize(j+1);
+                // litnames[j] = sin;
                 return j;
             }
         }
-        for (int i = 0; i < mss.size(); ++i)
+        for (int i = 0; i < mssfactory.size(); ++i)
         {
             if (sin == mss[i]->shortname)
             {
@@ -2435,16 +2463,21 @@ protected:
                 // iter.push_back(newiteration(mtcontinuous,roundin,a,mss[i]->pssz > 0));
                 iter.push_back(newiteration(mtcontinuous,roundin,a, true));
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                littypes.resize(j+1);
-                litnumps[j] = mss[i]->pssz;
-                littypes[j] = a.t;
-                litnames.resize(j+1);
-                litnames[j] = sin;
+
+                litnumps.push_back(mss[i]->pssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+
+                // litnumps.resize(j+1);
+                // littypes.resize(j+1);
+                // litnumps[j] = mss[i]->pssz;
+                // littypes[j] = a.t;
+                // litnames.resize(j+1);
+                // litnames[j] = sin;
                 return j;
             }
         }
-        for (int i = 0; i < tys.size(); ++i)
+        for (int i = 0; i < tysfactory.size(); ++i)
         {
             if (sin == tys[i]->shortname)
             {
@@ -2454,16 +2487,22 @@ protected:
                 // iter.push_back(newiteration(mtdiscrete,roundin,a,tys[i]->pssz > 0));
                 iter.push_back(newiteration(mtdiscrete,roundin,a,true));
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                littypes.resize(j+1);
-                litnumps[j] = tys[i]->pssz;
-                littypes[j] = a.t;
-                litnames.resize(j+1);
-                litnames[j] = sin;
+
+
+                litnumps.push_back(tys[i]->pssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+
+                // litnumps.resize(j+1);
+                // littypes.resize(j+1);
+                // litnumps[j] = tys[i]->pssz;
+                // littypes[j] = a.t;
+                // litnames.resize(j+1);
+                // litnames[j] = sin;
                 return j;
             }
         }
-        for (int i = 0; i < oss.size(); ++i)
+        for (int i = 0; i < ossfactory.size(); ++i)
         {
             if (sin == oss[i]->shortname)
             {
@@ -2473,12 +2512,18 @@ protected:
                 // iter.push_back(newiteration(mttuple,roundin,a,oss[i]->pssz > 0));
                 iter.push_back(newiteration(mttuple,roundin,a,true));
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                litnumps[j] = oss[i]->pssz;
-                littypes.resize(j+1);
-                littypes[j] = a.t;
-                litnames.resize(j+1);
-                litnames[j] = sin;
+
+                litnumps.push_back(oss[i]->pssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+
+
+                // litnumps.resize(j+1);
+                // litnumps[j] = oss[i]->pssz;
+                // littypes.resize(j+1);
+                // littypes[j] = a.t;
+                // litnames.resize(j+1);
+                // litnames[j] = sin;
                 return j;
             }
         }
@@ -2509,7 +2554,7 @@ protected:
             int idx = lookupiter(out[i]);
             if (idx < 0)
             {
-                idx = lookupstoredprocedure(out[i]);
+                idx = lookupstoredprocedure(out[i], roundin);
                 if (idx < 0)
                     idx = addmeas( out[i],mtin, roundin );
             }
@@ -2528,16 +2573,19 @@ protected:
 
         for (int i = 0; i < out2.size(); ++i)
         {
+            if (is_operator(out2[i]))
+                continue;
+
             if (is_number(out2[i]))
                 continue;
             int idx = lookupiter(out2[i]);
             if (idx < 0)
             {
-                idx = lookupstoredprocedure(out2[i]);
+                idx = lookupstoredprocedure(out2[i], roundin);
                 if (idx < 0)
                     idx = addmeas( out2[i],mtin, roundin );
-                if (idx < 0)
-                    continue;
+                // if (idx < 0)
+                    // std::cout << " presumed variable " << out2[i] << std::endl;
             }
         }
 
@@ -2649,10 +2697,6 @@ public:
         std::vector<int> dimsc {};
         std::vector<neighbors*> nssc {};
 
-        std::vector<double*> variables;
-
-        //rec = new mrecords;
-
 
         for (int i = 0; i < parsedargs.size(); ++i) {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
@@ -2693,6 +2737,9 @@ public:
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtbool);
                 continue;
             }
             if (ccl.t == "a")
@@ -2706,6 +2753,9 @@ public:
                 a.a.ms = new formmeas(&rec,litnumps,littypes,litnames, paramnames, s);
                 auto it = newiteration(mtcontinuous,ccl.i,a);
                 iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtcontinuous);
                 continue;
             }
 
@@ -2720,6 +2770,9 @@ public:
                 a.a.ts = new formtally(&rec,litnumps,littypes,litnames, paramnames, s);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtdiscrete);
                 continue;
             }
 
@@ -2734,6 +2787,9 @@ public:
                 a.a.ss = new formset(&rec,litnumps,littypes,litnames, paramnames, s);
                 auto it = newiteration(mtset,ccl.i,a);
                 iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtset);
                 continue;
             }
 
@@ -2748,6 +2804,9 @@ public:
                 a.a.os = new formtuple(&rec,litnumps,littypes,litnames,paramnames,s);
                 auto it = newiteration(mttuple,ccl.i,a);
                 iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mttuple);
                 continue;
             }
 
@@ -2808,12 +2867,17 @@ public:
                                 a.a.cs = (*crsfactory[n])(&rec);
                                 a.a.cs->negated = ccl.n;
                                 iter.push_back( newiteration(mtbool,ccl.i,a));
-                                litnumps.resize(iter.size());
-                                litnumps[iter.size()-1] = a.a.cs->pssz;
-                                littypes.resize(iter.size());
-                                littypes[iter.size()-1] = mtbool;
-                                litnames.resize(iter.size());
-                                litnames[iter.size()-1] = parsedargs2[m].first;
+
+                                litnumps.push_back(a.a.cs->pssz);
+                                littypes.push_back(mtbool);
+                                litnames.push_back(parsedargs2[m].first);
+
+                                // litnumps.resize(iter.size());
+                                // litnumps[iter.size()-1] = a.a.cs->pssz;
+                                // littypes.resize(iter.size());
+                                // littypes[iter.size()-1] = mtbool;
+                                // litnames.resize(iter.size());
+                                // litnames[iter.size()-1] = parsedargs2[m].first;
 
                                 if (!parsedargs2[m].second.empty())
                                 {
@@ -2859,12 +2923,20 @@ public:
                             {
                                 a.a.ms = (*mssfactory[n])(&rec);
                                 iter.push_back( newiteration(mtcontinuous,ccl.i,a));
-                                litnumps.resize(iter.size());
-                                litnumps[iter.size()-1] = a.a.ms->pssz;
-                                littypes.resize(iter.size());
-                                littypes[iter.size()-1] = mtcontinuous;
-                                litnames.resize(iter.size());
-                                litnames[iter.size()-1] = parsedargs2[m].first;
+
+
+                                litnumps.push_back(a.a.ms->pssz);
+                                littypes.push_back(mtcontinuous);
+                                litnames.push_back(parsedargs2[m].first);
+
+
+
+                                // litnumps.resize(iter.size());
+                                // litnumps[iter.size()-1] = a.a.ms->pssz;
+                                // littypes.resize(iter.size());
+                                // littypes[iter.size()-1] = mtcontinuous;
+                                // litnames.resize(iter.size());
+                                // litnames[iter.size()-1] = parsedargs2[m].first;
 
                                 if (!parsedargs2[m].second.empty())
                                 {
@@ -2908,12 +2980,18 @@ public:
                             {
                                 a.a.ts = (*tysfactory[n])(&rec);
                                 iter.push_back( newiteration(mtdiscrete,ccl.i,a));
-                                litnumps.resize(iter.size());
-                                litnumps[iter.size()-1] = a.a.ts->pssz;
-                                littypes.resize(iter.size());
-                                littypes[iter.size()-1] = mtdiscrete;
-                                litnames.resize(iter.size());
-                                litnames[iter.size()-1] = parsedargs2[m].first;
+
+
+                                litnumps.push_back(a.a.ts->pssz);
+                                littypes.push_back(mtdiscrete);
+                                litnames.push_back(parsedargs2[m].first);
+
+                                // litnumps.resize(iter.size());
+                                // litnumps[iter.size()-1] = a.a.ts->pssz;
+                                // littypes.resize(iter.size());
+                                // littypes[iter.size()-1] = mtdiscrete;
+                                // litnames.resize(iter.size());
+                                // litnames[iter.size()-1] = parsedargs2[m].first;
 
 
                                 if (!parsedargs2[m].second.empty())
@@ -2975,12 +3053,18 @@ public:
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
-                litnumps.resize(iter.size());
-                litnumps[iter.size()-1] = a.a.cs->pssz;
-                littypes.resize(iter.size());
-                littypes[iter.size()-1] = mtbool;
-                litnames.resize(iter.size());
-                litnames[iter.size()-1] = gi->name;
+
+                litnumps.push_back(a.a.cs->pssz);
+                littypes.push_back(mtbool);
+                litnames.push_back(gi->name);
+
+
+                // litnumps.resize(iter.size());
+                // litnumps[iter.size()-1] = a.a.cs->pssz;
+                // littypes.resize(iter.size());
+                // littypes[iter.size()-1] = mtbool;
+                // litnames.resize(iter.size());
+                // litnames[iter.size()-1] = gi->name;
 
                 continue;
 
@@ -3025,12 +3109,20 @@ public:
                 a.a.ts = new embedstally(&rec,gi->ns,fp);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
-                litnumps.resize(iter.size());
-                litnumps[iter.size()-1] = a.a.ts->pssz;
-                littypes.resize(iter.size());
-                littypes[iter.size()-1] = mtdiscrete;
-                litnames.resize(iter.size());
-                litnames[iter.size()-1] = gi->name;
+
+
+                litnumps.push_back(a.a.ts->pssz);
+                littypes.push_back(mtdiscrete);
+                litnames.push_back(gi->name);
+
+
+
+                // litnumps.resize(iter.size());
+                // litnumps[iter.size()-1] = a.a.ts->pssz;
+                // littypes.resize(iter.size());
+                // littypes[iter.size()-1] = mtdiscrete;
+                // litnames.resize(iter.size());
+                // litnames[iter.size()-1] = gi->name;
 
                 continue;
 
@@ -3053,12 +3145,18 @@ public:
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
-                    litnumps.resize(iter.size());
-                    litnumps[iter.size()-1] = a.a.cs->pssz;
-                    littypes.resize(iter.size());
-                    littypes[iter.size()-1] = mtbool;
-                    litnames.resize(iter.size());
-                    litnames[iter.size()-1] = parsedargs[i].second;
+
+                    litnumps.push_back(a.a.cs->pssz);
+                    littypes.push_back(mtbool);
+                    litnames.push_back(parsedargs[i].first);
+
+
+                    // litnumps.resize(iter.size());
+                    // litnumps[iter.size()-1] = a.a.cs->pssz;
+                    // littypes.resize(iter.size());
+                    // littypes[iter.size()-1] = mtbool;
+                    // litnames.resize(iter.size());
+                    // litnames[iter.size()-1] = parsedargs[i].second;
 
                 }
                 continue;
@@ -3081,12 +3179,17 @@ public:
                     a.a.ms = new formmeas(&rec,litnumps,littypes,litnames,paramnames,s);
                     auto it = newiteration(mtcontinuous,ccl.i,a);
                     iter.push_back(it);
-                    litnumps.resize(iter.size());
-                    litnumps[iter.size()-1] = a.a.ms->pssz;
-                    littypes.resize(iter.size());
-                    littypes[iter.size()-1] = mtcontinuous;
-                    litnames.resize(iter.size());
-                    litnames[iter.size()-1] = parsedargs[i].second;
+
+                    litnumps.push_back(a.a.ms->pssz);
+                    littypes.push_back(mtcontinuous);
+                    litnames.push_back(parsedargs[i].second);
+
+                    // litnumps.resize(iter.size());
+                    // litnumps[iter.size()-1] = a.a.ms->pssz;
+                    // littypes.resize(iter.size());
+                    // littypes[iter.size()-1] = mtcontinuous;
+                    // litnames.resize(iter.size());
+                    // litnames[iter.size()-1] = parsedargs[i].second;
 
                 }
                 continue;
@@ -3139,12 +3242,18 @@ public:
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
-                    litnumps.resize(iter.size());
-                    litnumps[iter.size()-1] = a.a.cs->pssz;
-                    littypes.resize(iter.size());
-                    littypes[iter.size()-1] = mtbool;
-                    litnames.resize(iter.size());
-                    litnames[iter.size()-1] = gi->name;
+
+                    litnumps.push_back(a.a.cs->pssz);
+                    littypes.push_back(mtbool);
+                    litnames.push_back(gi->name);
+
+
+                    // litnumps.resize(iter.size());
+                    // litnumps[iter.size()-1] = a.a.cs->pssz;
+                    // littypes.resize(iter.size());
+                    // littypes[iter.size()-1] = mtbool;
+                    // litnames.resize(iter.size());
+                    // litnames[iter.size()-1] = gi->name;
 
                 }
                 continue;
@@ -3251,6 +3360,9 @@ public:
             a.t = measuretype::mtbool;
             a.a.cs = (*crsfactory[0])(&rec);
             iter.push_back(newiteration(mtbool,0,a));
+            litnames.push_back(a.a.cs->shortname);
+            littypes.push_back(mtbool);
+            litnumps.push_back(a.a.cs->pssz);
         }
 
         rec.gptrs = &glist;
@@ -3291,54 +3403,15 @@ public:
         {
             int ilookup = rec.intlookup(iter[k]->iidx);
             ams alookup = rec.lookup(iter[k]->iidx);
-            if (k > 0)
-            {
-                if (iter[k-1]->t == mtbool)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvalueb( iter[k-1]->iidx, m, threadbool[m]);
-                if (iter[k-1]->t == mtdiscrete)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvaluei( iter[k-1]->iidx, m, threadint[m]);
-                if (iter[k-1]->t == mtcontinuous)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvalued( iter[k-1]->iidx, m, threaddouble[m]);
-                if (iter[k-1]->t == mtset)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvalues( iter[k-1]->iidx, m, threadset[m]);
-                if (iter[k-1]->t == mttuple)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvaluet( iter[k-1]->iidx, m, threadtuple[m]);
-            }
-
-            if (k > 0 && iter[k]->round > iter[k-1]->round)
-            {
-                // ...add here support for andmode and ormode
-                if (iter[k-1]->t == mtbool)
-                    for (int m = 0; m < threadbool.size();++m)
-                        todo[m] = todo[m] && threadbool[m];
-                if (iter[k-1]->t == mtdiscrete)
-                    for (int m = 0; m < threadint.size();++m)
-                        todo[m] = todo[m] && (threadint[m] != 0);
-                if (iter[k-1]->t == mtcontinuous)
-                    for (int m = 0; m < threaddouble.size();++m)
-                        todo[m] = todo[m] && (abs(threaddouble[m]) > ABSCUTOFF);
-                if (iter[k-1]->t == mtset)
-                    for (int m = 0; m < threadset.size(); ++m)
-                        todo[m] = todo[m] && threadset[m]->getsize()>0;
-                if (iter[k-1]->t == mttuple)
-                    for (int m = 0; m < threadtuple.size(); ++m)
-                        todo[m] = todo[m] && threadtuple[m]->getsize()>0;
-
-                alltodo = false;
-
-            }
 
             if (!litnumps.empty())
                 if (litnumps[k] > 0 && iter[k]->hidden)
                     continue;
 
-            // if (iter[k]->hidden)
-                // continue;
+            if (iter[k]->ps.size() > 0)
+                continue;
+
+
 
 
 
@@ -3370,6 +3443,8 @@ public:
                     runthreadspartial<setitr*>(ilookup,iter[k]->ps,rec.tuplerecs,&todo);
 
             }
+
+
 
 
             if (iter[k]->t == mtbool)
@@ -3406,8 +3481,28 @@ public:
                         threadtuple[m] = rec.tuplerecs.fetch(m,ilookup, iter[k]->ps);
                 }
 
+
+            if (iter[k]->t == mtbool)
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvalueb( iter[k]->iidx, m, threadbool[m]);
+            if (iter[k]->t == mtdiscrete)
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvaluei( iter[k]->iidx, m, threadint[m]);
+            if (iter[k]->t == mtcontinuous)
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvalued( iter[k]->iidx, m, threaddouble[m]);
+            if (iter[k]->t == mtset)
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvalues( iter[k]->iidx, m, threadset[m]);
+            if (iter[k]->t == mttuple)
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvaluet( iter[k]->iidx, m, threadtuple[m]);
+
+
             if (iter[k]->hidden)
                 continue;
+
+
 
             if (iter[k]->t == mtbool)
             {
@@ -3537,6 +3632,34 @@ public:
                             std::cout << "Dynamic cast error to graphitem*\n";
                         }
                     }
+                }
+            }
+
+
+            if (k+1 < iter.size()) {
+                int nextnonhidden = k+1;
+                while (nextnonhidden < iter.size() && iter[nextnonhidden]->hidden)
+                    ++nextnonhidden;
+                if (nextnonhidden < iter.size() && iter[nextnonhidden]->round > iter[k]->round)
+                {
+                    if (iter[k]->t == mtbool)
+                        for (int m = 0; m < threadbool.size();++m)
+                            todo[m] = todo[m] && threadbool[m];
+                    if (iter[k]->t == mtdiscrete)
+                        for (int m = 0; m < threadint.size();++m)
+                            todo[m] = todo[m] && (threadint[m] != 0);
+                    if (iter[k]->t == mtcontinuous)
+                        for (int m = 0; m < threaddouble.size();++m)
+                            todo[m] = todo[m] && (abs(threaddouble[m]) > ABSCUTOFF);
+                    if (iter[k]->t == mtset)
+                        for (int m = 0; m < threadset.size(); ++m)
+                            todo[m] = todo[m] && threadset[m]->getsize()>0;
+                    if (iter[k]->t == mttuple)
+                        for (int m = 0; m < threadtuple.size(); ++m)
+                            todo[m] = todo[m] && threadtuple[m]->getsize()>0;
+
+                    alltodo = false;
+
                 }
             }
 
@@ -3805,7 +3928,7 @@ protected:
                 outof = stoi(rgparams[0]);
 
             unsigned const thread_count = std::thread::hardware_concurrency();
-            //unsigned const thread_count = 1;
+            // unsigned const thread_count = 1;
 
             int cnt2 = 0;
             const double section = double(outof) / double(thread_count);

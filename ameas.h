@@ -237,8 +237,8 @@ public:
             delete res[i];
         for (int i = 0; i < computed.size(); ++i)
             delete computed[i];
-        // res.clear();
-        // computed.clear();
+        res.clear();
+        computed.clear();
         // for (auto m : *msv)
             // delete m;
         // delete msv;
@@ -274,8 +274,8 @@ public:
         for (auto i = 0; i < pmsv->size(); ++i )
             if ((*pmsv)[i]->shortname == sin)
                 return i;
-        // std::cout << "Unknown literal " << sin << std::endl;
-        // exit(-1);
+        std::cout << "Unknown literal " << sin << std::endl;
+        exit(-1);
         return -1;
     }
     virtual int findms( const pameas<T>* pamin)
@@ -311,9 +311,9 @@ public:
                 }
             } else
             {
-                pres[i].b = (bool*)malloc(szin*sizeof(bool));
-                pres[i].r = (T*)malloc(szin*sizeof(T));
-                memset(pres[i].b,false,szin*sizeof(bool));
+                pres[i*blocksize].b = (bool*)malloc(szin*sizeof(bool));
+                pres[i*blocksize].r = (T*)malloc(szin*sizeof(T));
+                memset(pres[i*blocksize].b,false,szin*sizeof(bool));
             }
         }
     }
@@ -377,12 +377,12 @@ public:
 
         } else
         {
-            if (!pres[iidx].b[idx])
+            if (!pres[iidx*blocksize].b[idx])
             {
-                pres[iidx].r[idx] = (*this->pmsv)[iidx]->takemeas(idx,ps);
-                pres[iidx].b[idx] = true;
+                pres[iidx*blocksize].r[idx] = (*this->pmsv)[iidx]->takemeas(idx,ps);
+                pres[iidx*blocksize].b[idx] = true;
             }
-            return pres[iidx].r[idx];
+            return pres[iidx*blocksize].r[idx];
 
         }
     }
@@ -453,37 +453,6 @@ public:
     }
 };
 
-inline void populatevariables(std::vector<qclass*>* variables ) {
-    // auto Vv = new qclass;
-    // auto Ev = new qclass;
-    // auto NEv = new qclass;
-
-    // Vv->qs.v.iset = (bool*)malloc(g->dim * sizeof(bool));
-    // memset(Vv->qs.v.iset,true,g->dim * sizeof(bool));
-    // Vv->qs.setsize = g->dim;
-    // Vv->name = "V";
-    // Vv->qs.t = mtset;
-    // Vv->qs.v.iset = nullptr;
-    // Ev->qs.v.iset = (bool*)malloc(g->dim*g->dim * sizeof(bool));
-    // for (int i = 0; i < g->dim*g->dim; ++i)
-        // Ev->qs.v.iset[i] = g->adjacencymatrix[i];
-    // Ev->qs.setsize = g->dim*g->dim;
-    // Ev->name = "E";
-    // Ev->qs.t = mtset;
-    // Ev->qs.v.iset = nullptr;
-    // NEv->qs.v.iset = (bool*)malloc(g->dim * g->dim * sizeof(bool));
-    // for (int i = 0; i < g->dim*g->dim; ++i)
-        // NEv->qs.v.iset[i] = !g->adjacencymatrix[i];
-    // for (int i = 0; i < g->dim; ++i)
-        // NEv->qs.v.iset[i*g->dim + i] = false;
-    // NEv->name = "NE";
-    // NEv->qs.setsize = g->dim*g->dim;
-    // NEv->qs.t = mtset;
-    // NEv->qs.v.iset = nullptr;
-    // variables->push_back(Vv);
-    // variables->push_back(Ev);
-    // variables->push_back(NEv);
-}
 
 
 class evalmformula : public evalformula
@@ -494,8 +463,8 @@ public:
     //std::vector<qclass*> variables {};
     mrecords* rec;
 
-    valms evalpslit( const int l, params& psin ) override;
-    valms evalvariable(std::string& vname, std::vector<int>& vidxin) override;
+    valms evalpslit( const int l, namedparams& nps, params& psin ) override;
+    // valms evalvariable(std::string& vname, namedparams& nps, std::vector<int>& vidxin) override;
 
     evalmformula( mrecords* recin );
 
@@ -516,11 +485,11 @@ public:
     thrrecords<double> doublerecs;
     thrrecords<setitr*> setrecs;
     thrrecords<setitr*> tuplerecs;
+    thrrecords<std::string> stringrecs;
     std::map<int,std::pair<measuretype,int>> m;
     std::vector<evalmformula*> efv {};
     std::vector<valms*> literals {};
-    std::vector<qclass*> variables {};
-
+    // std::vector<qclass*> variables {};
 
     void addliteralvalueb( const int iidx, const int idx, bool v )
     {
@@ -643,11 +612,10 @@ public:
 inline evalmformula::evalmformula( mrecords* recin ) : evalformula(), rec{recin}
 {
 
-    // populatevariables(&variables);
 }
 
 
-inline valms evalmformula::evalpslit( const int l, params& psin )
+inline valms evalmformula::evalpslit( const int l, namedparams& context, params& psin )
 {
     ams a = rec->lookup(l);
 
@@ -786,65 +754,14 @@ inline bool istuplezero( itrpos* tuplein )
 }
 
 
-inline valms evalmformula::evalvariable(std::string& vname, std::vector<int>& vidxin)
-{
-    valms res;
-    graphtype* g = (*rec->gptrs)[idx];
-
-    int i = (lookup_variable(vname,variables));
-    if (i >= 0)
-        return evalformula::evalvariable(vname,vidxin);
-    /*if (vname == "V") {
-        res.setsize = g->dim;
-        res.t = mtset;
-        res.v.iset = (bool*)malloc(g->dim*sizeof(bool));
-        memset(res.v.iset,true,g->dim*sizeof(bool));
-        //rec->variables[i]->qs = res;
-        return res;
-    }
-    if (vname == "E") {
-        res.setsize = g->dim; //g->dim*(g->dim-1)/2;
-        res.t = mtpairset;
-        res.v.iset = (bool*)malloc((g->dim*(g->dim-1)/2)*sizeof(bool));
-        int gapidx = g->dim-1;
-        int idx = gapidx;
-        for (int i = 0; i < g->dim; ++i)
-        {
-            for (int j = i+1; j < g->dim; ++j)
-                res.v.iset[idx + i - j] = g->adjacencymatrix[i*g->dim + j];
-            --gapidx;
-            idx += gapidx;
-        }
-        //rec->variables[i]->qs = res;
-        return res;
-    }
-    if (vname == "NE")
-    {
-        res.setsize = g->dim; //g->dim*(g->dim-1)/2;
-        res.t = mtpairset;
-        res.v.iset = (bool*)malloc((g->dim*(g->dim-1)/2)*sizeof(bool));
-        int gapidx = g->dim-1;
-        int idx = gapidx;
-        for (int i = 0; i < g->dim; ++i)
-        {
-            for (int j = i+1; j < g->dim; ++j)
-                res.v.iset[idx - j] = !g->adjacencymatrix[i*g->dim + j];
-            --gapidx;
-            idx += gapidx;
-        }
-        //rec->variables[i]->qs = res;
-        return res;
-    }*/
-}
-
 
 class sentofcrit : public crit
 {
 public:
     formulaclass* fc;
-    std::vector<qclass*> variables;
-    namedparams ps;
-    std::vector<int> variablereferences;
+    // std::vector<qclass*> variables;
+    namedparams nps;
+    std::vector<int> npreferences;
 
     bool takemeas(const int idx) override
     {
@@ -854,21 +771,25 @@ public:
         {
             literals[i] = rec->literals[i][idx];
         }
-        rec->efv[idx]->literals = &literals;
-        evalmformula* ef = rec->efv[idx];
-        ef->variables.resize(this->variables.size());
-        for (int i = 0; i < this->variables.size(); ++i)
-        {
-            ef->variables[i] = new qclass;
-            ef->variables[i]->name = this->variables[i]->name;
-            ef->variables[i]->qs = this->variables[i]->qs;
-            ef->variables[i]->superset = this->variables[i]->superset;
-            ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        }
+        evalmformula* ef = new evalmformula(rec);
+
+            // rec->efv[idx];
+        ef->literals = &literals;
+        // ef->variables.resize(this->variables.size());
+        // for (int i = 0; i < this->variables.size(); ++i)
+        // {
+            // ef->variables[i] = new qclass;
+            // ef->variables[i]->name = this->variables[i]->name;
+            // ef->variables[i]->qs = this->variables[i]->qs;
+            // ef->variables[i]->superset = this->variables[i]->superset;
+            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        // }
+        namedparams npslocal = nps;
         ef->idx = idx;
         // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
         // ef->populatevariablesbound = &pv;
-        valms r = ef->eval(*fc);
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
         switch (r.t)
         {
         case measuretype::mtbool: return negated != r.v.bv;
@@ -892,38 +813,33 @@ public:
             exit(1);
         }
         for (int i = 0; i < ps.size(); ++i)
-            variables[variablereferences[i]]->qs = ps[i];
+        {
+            nps[npreferences[i]].second = ps[i];
+        }
         return takemeas(idx);
     }
 
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-                const namedparams& psin, const std::string& fstr, const std::string shortnamein = "" )
-        : crit( recin,  shortnamein == "" ? "sn" : shortnamein, "Sentence " + fstr ), ps{psin} {
-        variablereferences.resize(this->ps.size());
+                const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
+        : crit( recin,  shortnamein == "" ? "sn" : shortnamein, "Sentence " + fstr ), nps{npsin} {
+        npreferences.resize(this->nps.size());
         int i = 0;
-        for (auto np : ps)
+        ps.clear();
+        for (auto np : nps)
         {
-            auto qc = new qclass;
-            qc->name = np.first;
-            qc->secondorder = false;
-            qc->criterion = nullptr;
-            qc->superset = nullptr;
-            qc->qs = np.second;
-            variablereferences[i++] = variables.size();
-            variables.push_back(qc);
+            npreferences[i] = i;
+            i++;
+            valms v;
+            v.t = np.second.t;
+            ps.push_back(v);
         }
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
+        pssz = ps.size();
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
     ~sentofcrit() {
         delete fc;
-        for (int i = 0; i < rec->sz; ++i)
-        {
-            // for (int j = 0; j < variables.size(); ++j)
-                // delete rec->variablesv[i][j];
-            delete variables[i];
-        }
     }
 
 };
@@ -934,8 +850,8 @@ class formmeas : public meas
 public:
     formulaclass* fc;
     std::vector<qclass*> variables {};
-    namedparams ps;
-    std::vector<int> variablereferences;
+    namedparams nps;
+    std::vector<int> npreferences;
 
     double takemeas(const int idx) override
     {
@@ -943,18 +859,21 @@ public:
         literals.resize(rec->literals.size());
         for (int i = 0; i < rec->literals.size(); ++i)
             literals[i] = rec->literals[i][idx];
-        rec->efv[idx]->literals = &literals;
-        evalmformula* ef = rec->efv[idx];
-        ef->variables.resize(this->variables.size());
-        for (int i = 0; i < variables.size(); ++i)
-        {
-            ef->variables[i] = new qclass;
-            ef->variables[i]->name = this->variables[i]->name;
-            ef->variables[i]->qs = this->variables[i]->qs;
-            ef->variables[i]->superset = this->variables[i]->superset;
-        }
+        evalmformula* ef = new evalmformula(rec);
+        // evalmformula* ef = rec->efv[idx];
+        ef->literals = &literals;
+        // ef->variables.resize(this->variables.size());
+        // for (int i = 0; i < variables.size(); ++i)
+        // {
+            // ef->variables[i] = new qclass;
+            // ef->variables[i]->name = this->variables[i]->name;
+            // ef->variables[i]->qs = this->variables[i]->qs;
+            // ef->variables[i]->superset = this->variables[i]->superset;
+        // }
+        namedparams npslocal = nps;
         ef->idx = idx;
-        valms r = ef->eval(*fc);
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
         switch (r.t)
         {
         case measuretype::mtbool: return (double)r.v.bv;
@@ -974,36 +893,42 @@ public:
             exit(1);
         }
         for (int i = 0; i < ps.size(); ++i)
-            variables[variablereferences[i]]->qs = ps[i];
+        {
+            nps[npreferences[i]].second = ps[i];
+        }
         return takemeas(idx);
     }
 
     formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin,
         const std::vector<std::string>& litnamesin,
-        const namedparams& psin, const std::string& fstr, const std::string shortnamein = "" )
+        const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
         : meas( recin,  shortnamein == "" ? "fm" : shortnamein, "Formula " + fstr ),
-            ps{psin}
+            nps{npsin}
     {
-        variablereferences.resize(this->ps.size());
+        npreferences.resize(this->nps.size());
+        ps.clear();
         int i = 0;
-        for (auto np : ps)
+        for (auto np : nps)
         {
-            auto qc = new qclass;
-            qc->name = np.first;
-            qc->secondorder = false;
-            qc->criterion = nullptr;
-            qc->superset = nullptr;
-            qc->qs = np.second;
-            variablereferences[i++] = variables.size();
-            variables.push_back(qc);
+            npreferences[i] = i;
+            i++;
+            valms v;
+            v.t = np.second.t;
+            ps.push_back(v);
         }
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
+        pssz = ps.size();
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     }
     ~formmeas() {
         delete fc;
+        for (int i = 0; i < variables.size(); ++i)
+        {
+            // for (int j = 0; j < variables.size(); ++j)
+            // delete rec->variablesv[i][j];
+            delete variables[i];
+        }
     }
 };
-
 
 
 class formtally : public tally
@@ -1011,8 +936,8 @@ class formtally : public tally
 public:
     formulaclass* fc;
     std::vector<qclass*> variables;
-    namedparams ps;
-    std::vector<int> variablereferences;
+    namedparams nps;
+    std::vector<int> npreferences;
 
 
     int takemeas(const int idx) override
@@ -1023,21 +948,28 @@ public:
         {
             literals[i] = rec->literals[i][idx];
         }
-        rec->efv[idx]->literals = &literals;
-        evalmformula* ef = rec->efv[idx];
-        ef->variables.resize(this->variables.size());
-        for (int i = 0; i < this->variables.size(); ++i)
-        {
-            ef->variables[i] = new qclass;
-            ef->variables[i]->name = this->variables[i]->name;
-            ef->variables[i]->qs = this->variables[i]->qs;
-            ef->variables[i]->superset = this->variables[i]->superset;
-            ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        }
+        evalmformula* ef = new evalmformula(rec);
+
+        // rec->efv[idx];
+        ef->literals = &literals;
+        // evalmformula* ef = rec->efv[idx];
+
+        // ef->variables.resize(this->variables.size());
+        // for (int i = 0; i < this->variables.size(); ++i)
+        // {
+            // ef->variables[i] = new qclass;
+            // ef->variables[i]->name = this->variables[i]->name;
+            // ef->variables[i]->qs = this->variables[i]->qs;
+            // ef->variables[i]->superset = this->variables[i]->superset;
+            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        // }
         ef->idx = idx;
         // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
         // ef->populatevariablesbound = &pv;
-        valms r = ef->eval(*fc);
+        namedparams npslocal = nps;
+
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
         switch (r.t)
         {
         case measuretype::mtbool: return r.v.bv ? 1 : 0;
@@ -1060,40 +992,33 @@ public:
             exit(1);
         }
         for (int i = 0; i < ps.size(); ++i)
-            variables[variablereferences[i]]->qs = ps[i];
+            nps[npreferences[i]].second = ps[i];
         return takemeas(idx);
     }
 
 
     formtally( mrecords* recin , const std::vector<int>& litnumpsin,
         const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-        const namedparams& psin, const std::string& fstr, const std::string shortnamein = "" )
+        const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
             : tally( recin,  shortnamein == "" ? "ft" : shortnamein, "Int-valued formula " + fstr ),
-            ps{psin} {
-        variablereferences.resize(this->ps.size());
+            nps{npsin} {
+        npreferences.resize(this->nps.size());
+        ps.clear();
         int i = 0;
-        for (auto np : ps)
+        for (auto np : nps)
         {
-            auto qc = new qclass;
-            qc->name = np.first;
-            qc->secondorder = false;
-            qc->criterion = nullptr;
-            qc->superset = nullptr;
-            qc->qs = np.second;
-            variablereferences[i++] = variables.size();
-            variables.push_back(qc);
+            npreferences[i] = i;
+            i++;
+            valms v;
+            v.t = np.second.t;
+            ps.push_back(v);
         }
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
+        pssz = ps.size();
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps,&global_fnptrs);
     };
 
     ~formtally() {
         delete fc;
-        // for (int i = 0; i < rec->sz; ++i)
-        // {
-            // for (int j = 0; j < variables.size(); ++j)
-                // delete rec->variablesv[i][j];
-            // delete variables[i];
-        // }
     }
 
 };
@@ -1103,9 +1028,8 @@ class formset : public set
 {
 public:
     formulaclass* fc;
-    std::vector<qclass*> variables;
-    namedparams ps;
-    std::vector<int> variablereferences;
+    namedparams nps;
+    std::vector<int> npreferences;
 
     setitr* takemeas(const int idx) override
     {
@@ -1115,21 +1039,31 @@ public:
         {
             literals[i] = rec->literals[i][idx];
         }
-        rec->efv[idx]->literals = &literals;
-        evalmformula* ef = rec->efv[idx];
-        ef->variables.resize(this->variables.size());
-        for (int i = 0; i < this->variables.size(); ++i)
-        {
-            ef->variables[i] = new qclass;
-            ef->variables[i]->name = this->variables[i]->name;
-            ef->variables[i]->qs = this->variables[i]->qs;
-            ef->variables[i]->superset = this->variables[i]->superset;
-            ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        }
+        // rec->efv[idx]->literals = &literals;
+        evalmformula* ef = new evalmformula(rec);
+
+        // rec->efv[idx];
+        ef->literals = &literals;
+
+
+        // evalmformula* ef = rec->efv[idx];
+
+        // ef->variables.resize(this->variables.size());
+        // for (int i = 0; i < this->variables.size(); ++i)
+        // {
+            // ef->variables[i] = new qclass;
+            // ef->variables[i]->name = this->variables[i]->name;
+            // ef->variables[i]->qs = this->variables[i]->qs;
+            // ef->variables[i]->superset = this->variables[i]->superset;
+            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        // }
+        namedparams npslocal = nps;
+
         ef->idx = idx;
         // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
         // ef->populatevariablesbound = &pv;
-        valms r = ef->eval(*fc);
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
         switch (r.t)
         {
         case mtset:
@@ -1168,40 +1102,33 @@ public:
             exit(1);
         }
         for (int i = 0; i < ps.size(); ++i)
-            variables[variablereferences[i]]->qs = ps[i];
+            nps[npreferences[i]].second = ps[i];
         return takemeas(idx);
     }
 
 
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
         const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-        const namedparams& psin, const std::string& fstr, const std::string shortnamein = "")
+        const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "")
             : set( recin,  shortnamein == "" ? "st" : shortnamein, "Set-valued formula " + fstr ),
-            ps{psin} {
-        variablereferences.resize(this->ps.size());
+            nps{npsin} {
+        ps.clear();
+        npreferences.resize(this->nps.size());
         int i = 0;
-        for (auto np : ps)
+        for (auto np : nps)
         {
-            auto qc = new qclass;
-            qc->name = np.first;
-            qc->secondorder = false;
-            qc->criterion = nullptr;
-            qc->superset = nullptr;
-            qc->qs = np.second;
-            variablereferences[i++] = variables.size();
-            variables.push_back(qc);
+            npreferences[i] = i;
+            i++;
+            valms v;
+            v.t = np.second.t;
+            ps.push_back(v);
         }
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
+        pssz = ps.size();
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
     ~formset() {
         delete fc;
-        // for (int i = 0; i < rec->sz; ++i)
-        // {
-            // for (int j = 0; j < variables.size(); ++j)
-                // delete rec->variablesv[i][j];
-            // delete variables[i];
-        // }
     }
 
 };
@@ -1211,9 +1138,8 @@ class formtuple : public set
 {
 public:
     formulaclass* fc;
-    std::vector<qclass*> variables;
-    namedparams ps;
-    std::vector<int> variablereferences;
+    namedparams nps;
+    std::vector<int> npreferences;
 
 
     setitr* takemeas(const int idx) override
@@ -1224,21 +1150,28 @@ public:
         {
             literals[i] = rec->literals[i][idx];
         }
-        rec->efv[idx]->literals = &literals;
-        evalmformula* ef = rec->efv[idx];
-        ef->variables.resize(this->variables.size());
-        for (int i = 0; i < this->variables.size(); ++i)
-        {
-            ef->variables[i] = new qclass;
-            ef->variables[i]->name = this->variables[i]->name;
-            ef->variables[i]->qs = this->variables[i]->qs;
-            ef->variables[i]->superset = this->variables[i]->superset;
-            ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        }
+        evalmformula* ef = new evalmformula(rec);
+
+        // rec->efv[idx];
+        ef->literals = &literals;
+
+        // evalmformula* ef = rec->efv[idx];
+        // ef->variables.resize(this->variables.size());
+        // for (int i = 0; i < this->variables.size(); ++i)
+        // {
+            // ef->variables[i] = new qclass;
+            // ef->variables[i]->name = this->variables[i]->name;
+            // ef->variables[i]->qs = this->variables[i]->qs;
+            // ef->variables[i]->superset = this->variables[i]->superset;
+            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        // }
         ef->idx = idx;
+        namedparams npslocal = nps;
+
         // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
         // ef->populatevariablesbound = &pv;
-        valms r = ef->eval(*fc);
+        valms r = ef->eval(*fc,npslocal);
+        delete ef;
         switch (r.t)
         {
         case mtset:
@@ -1277,41 +1210,35 @@ public:
             exit(1);
         }
         for (int i = 0; i < ps.size(); ++i)
-            variables[variablereferences[i]]->qs = ps[i];
+            nps[npreferences[i]].second = ps[i];
         return takemeas(idx);
     }
 
 
     formtuple( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-                namedparams& psin,
+                namedparams& npsin,
                 const std::string& fstr, const std::string shortnamein = "" )
         : set( recin,  shortnamein == "" ? "fp" : shortnamein, "Tuple-valued formula " + fstr),
-            ps{psin} {
-        variablereferences.resize(this->ps.size());
+            nps{npsin} {
+        ps.clear();
+        npreferences.resize(this->nps.size());
         int i = 0;
-        for (auto np : ps)
+        for (auto np : nps)
         {
-            auto qc = new qclass;
-            qc->name = np.first;
-            qc->secondorder = false;
-            qc->criterion = nullptr;
-            qc->superset = nullptr;
-            qc->qs = np.second;
-            variablereferences[i++] = variables.size();
-            variables.push_back(qc);
+            npreferences[i] = i;
+            i++;
+            valms v;
+            v.t = np.second.t;
+            ps.push_back(v);
         }
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
+        pssz = ps.size();
+
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
     ~formtuple() {
         delete fc;
-        // for (int i = 0; i < rec->sz; ++i)
-        // {
-            // for (int j = 0; j < variables.size(); ++j)
-                // delete rec->variablesv[i][j];
-            // delete variables[i];
-        // }
     }
 
 };
@@ -1320,10 +1247,8 @@ class formstring : public mstr
 {
 public:
     formulaclass* fc;
-    std::vector<qclass*> variables;
-    namedparams ps;
-    std::vector<int> variablereferences;
-
+    namedparams nps;
+    std::vector<int> npreferences;
 
     std::string takemeas(const int idx) override
     {
@@ -1333,21 +1258,28 @@ public:
         {
             literals[i] = rec->literals[i][idx];
         }
-        rec->efv[idx]->literals = &literals;
-        evalmformula* ef = rec->efv[idx];
-        ef->variables.resize(this->variables.size());
-        for (int i = 0; i < this->variables.size(); ++i)
-        {
-            ef->variables[i] = new qclass;
-            ef->variables[i]->name = this->variables[i]->name;
-            ef->variables[i]->qs = this->variables[i]->qs;
-            ef->variables[i]->superset = this->variables[i]->superset;
-            ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        }
+        evalmformula* ef = new evalmformula(rec);
+
+        // rec->efv[idx];
+        ef->literals = &literals;
+
+        // evalmformula* ef = rec->efv[idx];
+        // ef->variables.resize(this->variables.size());
+        // for (int i = 0; i < this->variables.size(); ++i)
+        // {
+            // ef->variables[i] = new qclass;
+            // ef->variables[i]->name = this->variables[i]->name;
+            // ef->variables[i]->qs = this->variables[i]->qs;
+            // ef->variables[i]->superset = this->variables[i]->superset;
+            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
+        // }
         ef->idx = idx;
+        namedparams npslocal = nps;
+
         // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
         // ef->populatevariablesbound = &pv;
-        valms r = ef->eval(*fc);
+        valms r = ef->eval(*fc,npslocal);
+        delete ef;
         switch (r.t)
         {
         case mtset:
@@ -1370,41 +1302,34 @@ public:
             exit(1);
         }
         for (int i = 0; i < ps.size(); ++i)
-            variables[variablereferences[i]]->qs = ps[i];
+            nps[npreferences[i]].second = ps[i];
         return takemeas(idx);
     }
 
 
     formstring( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-                namedparams& psin,
+                namedparams& npsin,
                 const std::string& fstr, const std::string shortnamein = "" )
         : mstr( recin,  shortnamein == "" ? "fr" : shortnamein, "String-valued formula " + fstr),
-            ps{psin} {
-        variablereferences.resize(this->ps.size());
+            nps{npsin} {
+        ps.clear();
+        npreferences.resize(this->nps.size());
         int i = 0;
-        for (auto np : ps)
+        for (auto np : nps)
         {
-            auto qc = new qclass;
-            qc->name = np.first;
-            qc->secondorder = false;
-            qc->criterion = nullptr;
-            qc->superset = nullptr;
-            qc->qs = np.second;
-            variablereferences[i++] = variables.size();
-            variables.push_back(qc);
+            npreferences[i] = i;
+            i++;
+            valms v;
+            v.t = np.second.t;
+            ps.push_back(v);
         }
-        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,ps,variables, &global_fnptrs);
+        pssz = ps.size();
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
     ~formstring() {
         delete fc;
-        // for (int i = 0; i < rec->sz; ++i)
-        // {
-            // for (int j = 0; j < variables.size(); ++j)
-                // delete rec->variablesv[i][j];
-            // delete variables[i];
-        // }
     }
 
 };
