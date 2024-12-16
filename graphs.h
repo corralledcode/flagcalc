@@ -8,6 +8,11 @@
 #include <ostream>
 #include <vector>
 
+#define KNMAXCLIQUESIZE 15
+#define INDNMAXINDSIZE 15
+#define GRAPH_PRECOMPUTECYCLESCNT 15
+
+
 using vertextype = int;
 using vltype = std::string();
 
@@ -115,6 +120,33 @@ struct FP {
     bool invert; // use non-neighbors if degree is more than half available
 };
 
+inline graphtype* edgegraph( neighborstype* ns )
+{
+
+    std::vector<std::pair<int, int>> neighbors {};
+    for (int i = 0; i+1 < ns->dim; ++i)
+        for (int j = i+1; j < ns->dim; ++j)
+            if (ns->g->adjacencymatrix[i*ns->dim + j])
+                neighbors.push_back(std::make_pair(i, j));
+    int dim = neighbors.size();
+    auto gout = new graphtype(dim);
+    for (int k = 0; k+1 < dim; ++k)
+    {
+        gout->adjacencymatrix[k*dim + k] = false;
+        for (int l = k+1; l < dim; ++l)
+        {
+            gout->adjacencymatrix[k*dim + l] = neighbors[k].first == neighbors[l].first
+                                                || neighbors[k].first == neighbors[l].second
+                                                || neighbors[k].second == neighbors[l].first
+                                                || neighbors[k].second == neighbors[l].second;
+            gout->adjacencymatrix[l*dim + k] = gout->adjacencymatrix[k*dim + l];
+        }
+    }
+    gout->adjacencymatrix[(dim-1)*dim + dim-1] = false;
+    return gout;
+}
+
+
 using graphmorphism = std::vector<std::pair<vertextype,vertextype>>;
 
 int cmpwalk( neighbors ns, FP w1, FP w2 );
@@ -166,6 +198,8 @@ int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
 
 bool kconnectedfn( graphtype* g, neighborstype* ns, int k );
 
+bool ledgeconnectedfn( graphtype* g, neighborstype* ns, const int k );
+
 
 
 //bool areisomorphic( graphtype g1, graphtype g2, neighbors ns1, neighbors ns2 );
@@ -204,6 +238,8 @@ graphtype* cyclegraph( const int dim );
 void cyclesset( graphtype* g, neighborstype* ns, std::vector<std::vector<vertextype>>& out );
 
 int cyclescount( graphtype* g, neighborstype* ns );
+
+void copygraph( graphtype* g1, graphtype* g2 );
 
 std::vector<std::vector<int>> getpermutations( const int i );
 

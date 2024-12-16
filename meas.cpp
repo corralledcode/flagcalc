@@ -7,8 +7,6 @@
 #include <unordered_set>
 
 
-#define GRAPH_PRECOMPUTECYCLESCNT 15
-
 class kncrit : public crit
 {
 public:
@@ -32,7 +30,8 @@ public:
         bool found = false;
         int foundcnt = 0;
         int j = 0;
-        while ((foundcnt < mincnt) && (j < (subsets.size()/n))) {
+        const int l = subsets.size()/n;
+        while (foundcnt < mincnt && j < l) {
             found = true;
             for (auto i = 0; found && (i < n); ++i) {
                 for (auto k = i+1; found && (k < n); ++k)
@@ -55,6 +54,55 @@ public:
 
 
 };
+
+class indncrit : public crit
+{
+public:
+    const int n;
+    bool takemeas( const int idx, const params& ps) override {
+        int mincnt;
+        if (ps.empty() || ps[0].t != mtdiscrete)
+            mincnt = 1;
+        else
+            mincnt = ps[0].v.iv;
+
+        if (n <= 0)
+            return true;
+
+        graphtype* g = (*rec->gptrs)[idx];
+        int dim = g->dim;
+
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,n,nullptr,0,dim,&subsets);
+
+        bool found = false;
+        int foundcnt = 0;
+        int j = 0;
+        const int l = subsets.size()/n;
+        while (foundcnt < mincnt && j < l) {
+            found = true;
+            for (auto i = 0; found && (i < n); ++i) {
+                for (auto k = i+1; found && (k < n); ++k)
+                    found = found && !g->adjacencymatrix[dim*subsets[j*n + i] + subsets[j*n + k]];
+            }
+            foundcnt += (found ? 1 : 0);
+            ++j;
+        }
+        return negated != (foundcnt >= mincnt);
+    }
+
+    indncrit( mrecords* recin , const int nin) : crit(recin ,"indn"+std::to_string(nin),"independent set of size" + std::to_string(nin) + " criterion"), n{nin}
+    {
+        ps.clear();
+        pssz = 1;
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        ps.push_back(p1);
+    }
+
+
+};
+
 
 class knpcrit : public crit {
 protected:
@@ -89,7 +137,7 @@ public:
         // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
     }
 
-    knpcrit( mrecords* recin  ) : crit( recin ,"Knc","Parameterized K_n criterion (parameter is complete set size)") {
+    knpcrit( mrecords* recin  ) : crit( recin ,"Knc","Parameterized K_n criterion (parameters are complete set size and min count)") {
         populatekns();
         ps.clear();
         valms p1;
@@ -104,6 +152,57 @@ public:
             delete kn;
     }
 };
+
+class indnpcrit : public crit {
+protected:
+    std::vector<indncrit*> indns {};
+public:
+    void populateindns() {
+        indns.resize(INDNMAXINDSIZE);
+        for (int i = 0; i < INDNMAXINDSIZE; ++i) {
+            auto indn = new indncrit(rec,i);
+            indns[i] = indn;
+        }
+    }
+    bool takemeas( const int idx, const params& ps ) override {
+
+        params newps {};
+        if (ps.size() >= 1 && ps[0].t == measuretype::mtdiscrete) {
+            int indsz = ps[0].v.iv;
+            int mincnt = 1;
+            if (ps.size() == 2 && ps[1].t == measuretype::mtdiscrete)
+            {
+                mincnt = ps[1].v.iv;
+                newps.push_back(ps[1]);
+            }
+            if (0<=indsz && indsz <= INDNMAXINDSIZE)
+            {
+                return negated != indns[indsz]->takemeas(idx,newps);
+            } else {
+                std::cout<< "Increase INDNMAXINDSIZE compiler define (current value " + std::to_string(INDNMAXINDSIZE) + ")";
+                return false;
+            }
+        }
+        // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
+    }
+
+    indnpcrit( mrecords* recin  ) : crit( recin ,"indnc","Parameterized Ind_n criterion (parameters are independent set size and min count)") {
+        populateindns();
+        ps.clear();
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        p1.v.iv = 0;
+        ps.push_back(p1);
+        ps.push_back(p1);
+        pssz = 2;
+    }
+    ~indnpcrit() {
+        for (auto indn : indns)
+            delete indn;
+    }
+};
+
+
 
 class Kntally : public tally
 {
@@ -128,7 +227,8 @@ public:
         bool found = false;
         int foundcnt = 0;
         int j = 0;
-        while (j < (subsets.size()/ksz)) {
+        const int l = subsets.size()/ksz;
+        while (j < l) {
             found = true;
             for (auto i = 0; found && (i < ksz); ++i) {
                 for (auto k = i+1; found && (k < ksz); ++k)
@@ -141,6 +241,54 @@ public:
     }
 
     Kntally( mrecords* recin ) : tally( recin, "Knt", "K_n embeddings tally" )
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        p1.v.iv = 0;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+};
+
+class indntally : public tally
+{
+public:
+    int takemeas( const int idx, const params& ps ) override
+    {
+        int ksz = 0;
+        if (ps.size() >= 1 && ps[0].t == mtdiscrete)
+        {
+            ksz = ps[0].v.iv;
+        }
+
+        if (ksz <= 0)
+            return true;
+
+        graphtype* g = (*rec->gptrs)[idx];
+        int dim = g->dim;
+
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,ksz,nullptr,0,dim,&subsets);
+
+        bool found = false;
+        int foundcnt = 0;
+        int j = 0;
+        const int l = subsets.size()/ksz;
+        while (j < l) {
+            found = true;
+            for (auto i = 0; found && (i < ksz); ++i) {
+                for (auto k = i+1; found && (k < ksz); ++k)
+                    found = found && !g->adjacencymatrix[dim*subsets[j*ksz + i] + subsets[j*ksz + k]];
+            }
+            foundcnt += (found ? 1 : 0);
+            ++j;
+        }
+        return foundcnt;
+    }
+
+    indntally( mrecords* recin ) : tally( recin, "indnt", "ind_n embeddings tally" )
     {
         ps.clear();
         valms p1;
@@ -1448,11 +1596,62 @@ public:
 
         return k+1;
     }
-
-
-
-
 };
+
+class ledgeconnectedcrit : public crit {
+// Diestel, Grath Theory, p. 12
+
+    public:
+
+    ledgeconnectedcrit( mrecords* recin ) : crit( recin, "ledgeconnc", "Graph l-edge-connected ")
+    {
+        ps.clear();
+        valms p1;
+        p1.t = mtdiscrete;
+        p1.v.iv = 1;
+        ps.push_back(p1);
+        pssz = 1;
+    }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        int l = 0;
+        if (ps.size() > 0 && ps[0].t == mtdiscrete)
+            l = ps[0].v.iv;
+
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        return ledgeconnectedfn( g, ns, l);
+    }
+};
+
+
+class lambdatally : public tally {
+// Diestel, Graph Theory, page 12
+
+public:
+
+    lambdatally( mrecords* recin ) : tally( recin, "lambdat", "lambda: max l-edge-connectedness")
+    {
+        ps.clear();
+        pssz = 0;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+
+        int l = g->dim;
+        bool res = false;
+        while (!res && l >= 0)
+            res = ledgeconnectedfn( g, ns, l-- );
+        return l+1;
+    }
+};
+
+
 
 
 
@@ -2437,31 +2636,6 @@ public:
 };
 
 
-inline graphtype* edgegraph( neighborstype* ns )
-{
-
-    std::vector<std::pair<int, int>> neighbors {};
-    for (int i = 0; i+1 < ns->dim; ++i)
-        for (int j = i+1; j < ns->dim; ++j)
-            if (ns->g->adjacencymatrix[i*ns->dim + j])
-                neighbors.push_back(std::make_pair(i, j));
-    int dim = neighbors.size();
-    auto gout = new graphtype(dim);
-    for (int k = 0; k+1 < dim; ++k)
-    {
-        gout->adjacencymatrix[k*dim + k] = false;
-        for (int l = k+1; l < dim; ++l)
-        {
-            gout->adjacencymatrix[k*dim + l] = neighbors[k].first == neighbors[l].first
-                                                || neighbors[k].first == neighbors[l].second
-                                                || neighbors[k].second == neighbors[l].first
-                                                || neighbors[k].second == neighbors[l].second;
-            gout->adjacencymatrix[l*dim + k] = gout->adjacencymatrix[k*dim + l];
-        }
-    }
-    gout->adjacencymatrix[(dim-1)*dim + dim-1] = false;
-    return gout;
-}
 
 class Chiprimetally : public tally
 {

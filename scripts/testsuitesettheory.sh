@@ -194,3 +194,9 @@ $PTH/flagcalc -r 8 14 1000 -a isp=storedprocedures.dat s="n_0(deltam, girthm) <=
 # Diestel Theorem 1.3.4 (Alon et al 2002)
 
 $PTH/flagcalc -r 8 14 100 -a isp=storedprocedures.dat s="NOT isinf(girthm)" s2="FORALL (d IN dm + 1, d >= 2, FORALL (g IN girthm, n_0(d,g) <= dimm ))" all -v i=minimal3.cfg
+
+# Diestel Prop 1.4.2 (p. 12)
+
+$PTH/flagcalc -d octahedron.dat -a z="lambdat" z="kappat" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 10000 -a s="dimm>1" s2="kappat <= lambdat && lambdat <= deltam" all -v i=minimal3.cfg
+

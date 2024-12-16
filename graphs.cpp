@@ -1782,8 +1782,51 @@ public:
 
 };
 
+class ledgeconnectedtest : public quicktest {
+public:
+    graphtype* gtemp;
+    neighborstype* nstemp;
+    std::vector<std::pair<int,int>> edges;
+    const int seqsize;
+    bool test(int* testseq) {
+        const int edgecnt = edges.size();
+        bool* subsetv = (bool*)malloc(edgecnt*sizeof(bool));
+        memset(subsetv,true,edgecnt*sizeof(bool));
+        int idx = 0;
+        if (seqsize > 0)
+            subsetv[testseq[idx++]] = false;
+        while (idx < seqsize) {
+            subsetv[testseq[idx]] = false;
+            ++idx;
+        }
 
+        int dim = gtemp->dim;
+        auto gptr = new graphtype(dim);
+        memset(gptr->adjacencymatrix,false,dim*dim*sizeof(bool));
+        for (int i = 0; i < edgecnt; ++i) {
+            vertextype v1 = edges[i].first;
+            vertextype v2 = edges[i].second;
+            int offset1 = v1*dim + v2;
+            int offset2 = v2*dim + v1;
+            gptr->adjacencymatrix[offset1] = subsetv[i];
+            gptr->adjacencymatrix[offset2] = subsetv[i];
+        }
 
+        auto nsptr = new neighbors(gptr);
+        // osadjacencymatrix(std::cout, gtemp);
+        // osadjacencymatrix(std::cout, gptr);
+        auto c = connectedcount(gptr,nsptr,2);
+        free(nsptr);
+        free(gptr);
+        delete subsetv;
+        return (c > 1 ? false : true);
+    }
+    ledgeconnectedtest( graphtype* gtempin, neighborstype* nstempin,
+        std::vector<std::pair<int,int>>& edgesin,
+        const int seqsizein)
+        : gtemp{gtempin},  nstemp{nstempin}, edges{edgesin}, seqsize{seqsizein} {}
+
+};
 
 
 
@@ -2228,9 +2271,9 @@ int connectedsubsetcount(graphtype *g, neighborstype *ns, bool* vertices, const 
 
 
 bool kconnectedfn( graphtype* g, neighborstype* ns, const int k ) {
-
+// Diestel p. 12
     bool res = true;
-    for (int i = 0; res && (i < k); ++i) {
+    for (int i = 0; res && i < k; ++i) {
         int cnt = 0;
         auto test = new kconnectedtest(g,ns,i);
         int c = nchoosek(g->dim,i);
@@ -2241,6 +2284,31 @@ bool kconnectedfn( graphtype* g, neighborstype* ns, const int k ) {
     return res;
 
 }
+
+bool ledgeconnectedfn( graphtype* g, neighborstype* ns, const int l ) {
+// Diestel p. 12
+
+    std::vector<std::pair<int, int>> edges {};
+    int dim = g->dim;
+    for (int i = 0; i+1 < dim; ++i)
+        for (int j = i+1; j < dim; ++j)
+            if (g->adjacencymatrix[i*dim + j])
+                edges.push_back(std::make_pair(i, j));
+
+    bool res = true;
+
+    for (int i = 0; res && i < l; ++i) {
+        int cnt = 0;
+        auto test = new ledgeconnectedtest(g,ns,edges, i);
+        int c = nchoosek(edges.size(),i);
+        res = res && enumsizedsubsetsquick(0,i,nullptr, 0,edges.size(),&cnt,c, test);
+        delete test;
+    }
+
+    return res;
+
+}
+
 
 void copygraph( graphtype* g1, graphtype* g2 ) {
     if (g1->dim != g2->dim) {

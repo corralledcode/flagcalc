@@ -453,66 +453,70 @@ template<typename T, typename T1, typename T2>
 T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
 {
     T res;
-    if (fo == formulaoperator::foplus) {
-        res = in1 + in2;
-    }
-    if (fo == formulaoperator::fominus) {
-        res = in1 - in2;
-    }
-    if (fo == formulaoperator::fotimes) {
-        res = in1 * in2;
-    }
-    if (fo == formulaoperator::fodivide) {
-        res = (T)in1 / (T)in2;
-    }
-    if (fo == formulaoperator::foexponent) {
-        res = pow(in1, in2);
-    }
-    if (fo == formulaoperator::fomodulus)
+    switch (fo)
     {
+    case(formulaoperator::foplus):
+        res = in1 + in2;
+        break;
+    case (formulaoperator::fominus):
+        res = in1 - in2;
+        break;
+    case (formulaoperator::fotimes):
+        res = in1 * in2;
+        break;
+    case(formulaoperator::fodivide):
+        res = (T)in1 / (T)in2;
+        break;
+    case(formulaoperator::foexponent):
+        res = pow(in1, in2);
+        break;
+    case(formulaoperator::fomodulus):
         res = (int)in1 % (int)in2;
-    }
-    if (fo == formulaoperator::foand) {
+        break;
+    case(formulaoperator::foand):
         res = in1 && in2;
-    }
-    if (fo == formulaoperator::foor) {
+        break;
+    case(formulaoperator::foor):
         res = in1 || in2;
-    }
-    if (fo == formulaoperator::foxor) {
+        break;
+    case(formulaoperator::foxor):
         res = in1 != in2;
-    }
-    if (fo == formulaoperator::foimplies) {
+        break;
+    case(formulaoperator::foimplies):
         res = (!in1) || in2;
-    }
-    if (fo == formulaoperator::foif) {
+    case(formulaoperator::foif):
         res = in1 || (!in2);
-    }
-    if (fo == formulaoperator::foiff) {
+        break;
+    case(formulaoperator::foiff):
         res = in1 == in2;
+        break;
     }
     return res;
 }
 
 template<typename T1, typename T2>
-bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo) {
+bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo)
+{
     bool res;
-    if (fo == formulaoperator::foe) {
+    switch (fo) {
+    case(formulaoperator::foe):
         res = abs(in1 - in2) < ABSCUTOFF;
-    }
-    if (fo == formulaoperator::folte) {
+        break;
+    case(formulaoperator::folte):
         res = in1 <= in2;
-    }
-    if (fo == formulaoperator::folt) {
+        break;
+    case(formulaoperator::folt):
         res = in1 < in2;
-    }
-    if (fo == formulaoperator::fogte) {
+        break;
+    case(formulaoperator::fogte):
         res = in1 >= in2;
-    }
-    if (fo == formulaoperator::fogt) {
+        break;
+    case (formulaoperator::fogt):
         res = in1 > in2;
-    }
-    if (fo == formulaoperator::fone) {
+        break;
+    case(formulaoperator::fone):
         res = abs(in1 - in2) >= ABSCUTOFF;
+        break;
     }
     return res;
 }
@@ -1401,7 +1405,7 @@ valms evalformula::eval( formulaclass& fc, namedparams& context)
         switch (resleft.t)
         {
         case mtbool: b = resleft.v.bv; break;
-            case mtcontinuous: b = !(abs(resleft.v.dv) < ABSCUTOFF); break;
+        case mtcontinuous: b = !(abs(resleft.v.dv) < ABSCUTOFF); break;
         case mtdiscrete: b = resleft.v.iv != 0; break;
         case mtset:
         case mttuple:

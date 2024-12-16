@@ -9,7 +9,7 @@ $PTH/flagcalc -d testgraph5.dat testgraph4.dat testgraph30.dat -f all -i sorted
 $PTH/flagcalc -r 10 18 100 -a a="[dm] * [dimm] == 2 * [edgecm]" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 18 2000 -a c=cr1 s2="[edgecm] > [dimm]^2/4" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 15 3000 -a ft="abcd" s="[cliquem] < 4" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 15 2000 -a s="[Deltam] > 2" s2="[dimm] < [Deltam]/([Deltam]-2) * ([Deltam] - 1)^[radiusm]" all -g o=out6.dat overwrite passed -v i=minimal3.cfg
+$PTH/flagcalc -r 10 15 200000 -a s="[Deltam] > 2" s2="[dimm] < [Deltam]/([Deltam]-2) * ([Deltam] - 1)^[radiusm]" all -g o=out6.dat overwrite passed -v i=minimal3.cfg
 $PTH/flagcalc -d out6.dat -a nf="embeddings.dat" m2=girthm m2=circm all -v i=minimal3.cfg
 $PTH/flagcalc -d out6.dat -a is="sentence.dat" s2="[radiusm] <= [diamm] AND [diamm] <= 2*[radiusm]" all -v i=minimal3.cfg
 $PTH/flagcalc -d out4.dat -a ia="sentence.dat" s2="[diamc](2)" all -v i=minimal3.cfg
@@ -38,6 +38,7 @@ $PTH/flagcalc -r 8 4 100 -a s="EXISTS (y IN [Sizedsubset]([V],3), EXISTS (v IN [
 $PTH/flagcalc -r 8 4 100 -a s="EXISTS (y IN [Sizedsubset]([V],4), EXISTS (v IN [V], EXISTS (u IN [V], EXISTS (t IN [V], EXISTS (w IN [V], t ELT y AND u ELT y AND v ELT y AND w ELT y AND t != u AND t != v AND u != v AND t != w AND u != w AND v != w)))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 10 10 -a s="FORALL (s IN [Ps]([V]), FORALL (t IN [Ps]([V]), (s CUP t) == [V] IMPLIES FORALL (x IN [V], x ELT (s CUP t))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 10 5 -a s="FORALL (s IN [Ps]([V]), FORALL (t IN [Ps]([V]), (s CUP t) != [V] IMPLIES EXISTS (x IN [V], NOT (x ELT (s CUP t)))))" all -v i=minimal3.cfg
+
 
 
 

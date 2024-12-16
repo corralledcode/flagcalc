@@ -42,6 +42,12 @@
 
 #define THREADCHECKCRITERION
 
+#define COMMENTSTARTDELIMITER "/*"
+#define COMMENTENDDELIMITER "*/"
+#define COMMENTENTIRELINEDELIMITER "////"
+// please don't use entire line delimiter for comments until rewriting readfromfile to include newlines;
+// as it stands, using the entirelinedelimiter comments until the END line is reached
+
 
 class feature {
 protected:
@@ -1694,6 +1700,7 @@ public:
         auto (diamc) = critfactory<diametercrit>;
         auto (conn1c) = critfactory<connected1crit>;
         auto (kconnc) = critfactory<kconnectedcrit>;
+        auto (ledgeconnc) = critfactory<ledgeconnectedcrit>;
         auto (ac) = critfactory<acrit>;
         auto (ec) = critfactory<ecrit>;
         auto (eadjc) = critfactory<eadjcrit>;
@@ -1703,6 +1710,7 @@ public:
         auto (connvssc) = critfactory<connvsscrit>;
         auto (connvc) = critfactory<connvcrit>;
         auto (connvsc) = critfactory<connvscrit>;
+        auto (indnpc) = critfactory<indnpcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1715,6 +1723,7 @@ public:
         crsfactory.push_back(diamc);
         crsfactory.push_back(conn1c);
         crsfactory.push_back(kconnc);
+        crsfactory.push_back(ledgeconnc);
         crsfactory.push_back(ac);
         crsfactory.push_back(ec);
         crsfactory.push_back(eadjc);
@@ -1724,6 +1733,7 @@ public:
         crsfactory.push_back(connvssc);
         crsfactory.push_back(connvc);
         crsfactory.push_back(connvsc);
+        crsfactory.push_back(indnpc);
 
         // ...
 
@@ -1776,8 +1786,10 @@ public:
         // add any new tally types to the list here...
 
         auto (Knt) = tallyfactory<Kntally>;
+        auto (indnt) = tallyfactory<indntally>;
         auto (cyclet) = tallyfactory<cycletally>;
         auto (kappat) = tallyfactory<kappatally>;
+        auto (lambdat) = tallyfactory<lambdatally>;
         auto (vdt) = tallyfactory<vdtally>;
         auto (st) = tallyfactory<sizetally>;
         auto (lt) = tallyfactory<lengthtally>;
@@ -1793,8 +1805,10 @@ public:
         auto (cyclest) = tallyfactory<cyclestally>;
 
         tysfactory.push_back(Knt);
+        tysfactory.push_back(indnt);
         tysfactory.push_back(cyclet);
         tysfactory.push_back(kappat);
+        tysfactory.push_back(lambdat);
         tysfactory.push_back(vdt);
         tysfactory.push_back(st);
         tysfactory.push_back(lt);
@@ -1920,6 +1934,94 @@ inline void readfromfile( std::string ifname, std::vector<std::string>& out )
         std::cout << "Couldn't open file for reading " << ifname << "\n";
     }
 }
+
+inline void removecomments( std::vector<std::string> streamstr, std::vector<std::string>& streamout )
+{
+    bool incomment = false;
+    bool entirelinecomment = false;
+    int i = 0;
+    streamout.clear();
+    std::string workingstr;
+    if (streamstr.size() > 0)
+        workingstr = streamstr[0];
+    std::string outstr {};
+    while (i < streamstr.size())
+    {
+        if (!incomment)
+        {
+            auto commentstartpos = workingstr.find(COMMENTSTARTDELIMITER);
+            if (commentstartpos != std::string::npos)
+            {
+                incomment = true;
+                entirelinecomment = false;
+                outstr = workingstr.substr(0, commentstartpos);
+                workingstr = workingstr.substr(commentstartpos+strlen(COMMENTSTARTDELIMITER),workingstr.size()-commentstartpos-strlen(COMMENTSTARTDELIMITER));
+            }
+            else
+            {
+                commentstartpos = workingstr.find(COMMENTENTIRELINEDELIMITER);
+                if (commentstartpos != std::string::npos)
+                {
+                    incomment = true;
+                    entirelinecomment = true;
+                    outstr = workingstr.substr(0, commentstartpos);
+                    workingstr = workingstr.substr(commentstartpos+strlen(COMMENTENTIRELINEDELIMITER),workingstr.size()-commentstartpos-strlen(COMMENTENTIRELINEDELIMITER));
+                } else
+                {
+                    outstr = workingstr;
+                    streamout.push_back(outstr);
+                    outstr.clear();
+                    ++i;
+                    if (i < streamstr.size())
+                        workingstr = streamstr[i];
+                    continue;
+                }
+            }
+        }
+        if (incomment)
+        {
+            int commentendpos;
+            int delimsize;
+            if (!entirelinecomment) {
+                commentendpos = workingstr.find(COMMENTENDDELIMITER);
+                delimsize = strlen(COMMENTENDDELIMITER);
+            } else {
+                commentendpos = workingstr.find('\n');
+                if (commentendpos == std::string::npos) {
+                    commentendpos = workingstr.size()-1;
+                }
+                delimsize = 1;
+            }
+            if (commentendpos != std::string::npos)
+            {
+                incomment = false;
+                workingstr = workingstr.substr(commentendpos + delimsize, workingstr.size()-commentendpos - delimsize);
+                continue;
+            }
+            else
+            {
+                streamout.push_back(outstr);
+                outstr.clear();
+                ++i;
+                if (i < streamstr.size())
+                    workingstr = streamstr[i];
+                continue;
+            }
+        }
+
+    }
+
+}
+
+
+
+inline void readfromfileandremovecomments(std::string ifname, std::vector<std::string>& out )
+{
+    std::vector<std::string> streamstr;
+    readfromfile(ifname, streamstr);
+    removecomments(streamstr, out);
+}
+
 
 
 struct compactcmdline
@@ -2820,7 +2922,7 @@ public:
             if (ccl.t == "isp") // Stored procedures from a file
             {
                 std::vector<std::string> filedata;
-                readfromfile(parsedargs[i].second, filedata );
+                readfromfileandremovecomments(parsedargs[i].second, filedata );
 
                 std::vector<std::vector<std::string>> tmp {};
                 for (auto d : filedata)
@@ -2835,12 +2937,12 @@ public:
                     for (auto s : t)
                         addstoredproc(s);
 
-//                for (auto t : tmp) {
-//                    for (auto s : t)
-//                        std::cout << s << ", // ";
-//                    std::cout << std::endl;
-//                }
-//                std::cout << std::endl;
+                // for (auto t : tmp) {
+                //    for (auto s : t)
+                //        std::cout << s << ", ";
+                //    std::cout << std::endl;
+                // }
+                // std::cout << std::endl;
 
 //                exit(1);
 
