@@ -1,0 +1,10 @@
+/* Octahedron, and a graph H with kappa(H) = 2 but lambda(H) = 4: Diestel p. 12 */
+
+abc def ade bef cfd
+
+END END
+
+abc bcd efg hij
+aef bfg cge bhi cij djh
+
+END END

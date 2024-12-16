@@ -28,6 +28,8 @@ mtcontinuous epsilon
 
 END
 
+/* Diestel p 12 */ /* and more commenting... */
+
 mtcontinuous n_0 ( mtcontinuous d, mtdiscrete g )
 
 g % 2 == 0 ? 2 * SUM (i IN g/2, (d - 1)^i) : 1 + d * SUM (i IN (g - 1)/2, (d - 1)^i)
