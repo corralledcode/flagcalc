@@ -68,6 +68,7 @@ class mindegreemeasure : public measure {
 public:
     virtual std::string shortname() {return "deltam";}
 
+
     double takemeasure( const graphtype* g, const neighbors* ns ) {
         int min = ns->maxdegree;
         for (auto n = 0; n < ns->dim; ++n) {

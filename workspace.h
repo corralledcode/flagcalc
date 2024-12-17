@@ -39,6 +39,9 @@
 #define VERBOSE_APPLYSET "set"
 #define VERBOSE_SETVERBOSE "allsets"
 
+#define VERBOSE_APPLYSTRING "strmeas"
+#define VERBOSE_APPLYGRAPH "measg"
+
 #define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj pd"
 #define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj pd"
 
@@ -630,13 +633,22 @@ inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t
             break;
         case mtset:
         case mttuple:
-             std::string pre2 = pre + "\t";
-             auto itr2 = v.seti->getitrpos();
-             newline = true;
-             osset( os, itr2, pre2, v.t, alreadyindented );
-             os << (e ? "\n" : ",\n ");
-             alreadyindented = false;
-             break;
+            {
+                std::string pre2 = pre + "\t";
+                auto itr2 = v.seti->getitrpos();
+                newline = true;
+                osset( os, itr2, pre2, v.t, alreadyindented );
+                os << (e ? "\n" : ",\n ");
+                alreadyindented = false;
+                break;
+            }
+        case mtstring:
+            os << v.v.rv << ", ";
+            break;
+        case mtgraph:
+            osadjacencymatrix(os, v.v.nsv->g);
+            os << "\n";
+            break;
         }
     }
     if (!newline)
@@ -688,6 +700,7 @@ public:
                     // sum += this->meas[i];
                     // max = this->meas[i] > max ? this->meas[i] : max;
                     // cnt++;
+                    delete pos;
                 }
             }
         }
@@ -757,6 +770,7 @@ public:
                     // sum += this->meas[i];
                     // max = this->meas[i] > max ? this->meas[i] : max;
                     // cnt++;
+                    delete pos;
                 }
             }
         }
@@ -785,15 +799,88 @@ public:
 };
 
 
+template<typename Tc>
+class checkstringitem : public chkmeasaitem<Tc> {
+public:
+    checkstringitem(pameas<Tc>& pamin ) : chkmeasaitem<Tc>(pamin) {
+        this->classname = "APPLYSTRINGCRITERION";
+        this->verbositylevel = VERBOSE_APPLYSTRING;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        std::vector<std::pair<Tc,int>> count = {};
+        count.clear();
+        count.resize(0);
+        //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+        os << "String "<< this->pam.getname() << " results of graphs:\n";
+        for (int n = 0; n < this->res.size(); ++n) {
+            if (!this->parentbool[n])
+                continue;
+            if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
+                os << this->gnames[n]<<", number " << n+1 << " out of " << this->parentboolcnt;
+                os << ": " << this->res[n] << "\n";
+            }
+            bool found = false;
+            for (int i = 0; !found && (i < count.size()); ++i)
+            {
+                if (count[i].first == this->res[n]) {
+                    count[i].second += 1;
+                    found = true;
+                }
+            }
+            if (!found)
+                count.push_back({this->res[n],1});
+        }
+
+        for (int i = 0; i < count.size(); ++i)
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << this->parentboolcnt << ", " << (double)count[i].second / (double)this->parentboolcnt << "\n";
 
 
+        return true;
+    }
+};
 
+template<typename Tc>
+class checkgraphitem : public chkmeasaitem<Tc> {
+public:
+    checkgraphitem(pameas<Tc>& pamin ) : chkmeasaitem<Tc>(pamin) {
+        this->classname = "APPLYGRAPHCRITERION";
+        this->verbositylevel = VERBOSE_APPLYGRAPH;
+    }
+    void freemem() override {
 
+        // graph items are already freed by graphitem freemem
 
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
 
-
-
-
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        for (int n = 0; n < this->res.size(); ++n)
+        {
+            osadjacencymatrix(os, this->res[n]->g);
+            os << "\n";
+        }
+        return true;
+    }
+};
 
 
 

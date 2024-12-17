@@ -86,8 +86,8 @@ $PTH/flagcalc -d f="-abcdefdgha" -a e="Cyclesvs(0)" all -v set allsets i=minimal
 $PTH/flagcalc -d f="-abcdefdgha" -a e="BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c(n) ELT e AND c((n+1)%st(c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcde" -a e="SET (es IN Ps(E), st(es) != 0, es(0)(0))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcdef" -a a="MAX (n IN NN(st(Cyclesvs(0)(0))), Cyclesvs(0)(0)(n))" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v(0))))>>(1)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abc=def=ghi" -a p="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v(0))))>>(2)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a a="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v(0))))>>(1)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc=def=ghi" -a a="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v(0))))>>(2)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc=def=ghi" -a e="SETD (n IN st(V), SETD (i IN n, {i}))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="SET (s IN Setpartition(V), s)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 7 20 100 -a s="conn1c" s2="Knc(dimm,1)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
@@ -199,4 +199,8 @@ $PTH/flagcalc -r 8 14 100 -a isp=storedprocedures.dat s="NOT isinf(girthm)" s2="
 
 $PTH/flagcalc -d octahedron.dat -a z="lambdat" z="kappat" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 14 10000 -a s="dimm>1" s2="kappat <= lambdat && lambdat <= deltam" all -v i=minimal3.cfg
+
+# Diestel Theorem 1.4.3 (p. 13) (Mader 1972)
+
+$PTH/flagcalc -r 8 14 100 -a s="FORALL (k IN dimm, k > 0 AND dm >= 4*k, EXISTS (U IN Ps(V), kconnc(SubgraphonUg(U),k+1) AND dm(SubgraphonUg(U))/2 > dm/2 - k))" all -v i=minimal3.cfg
 

@@ -11,8 +11,13 @@
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <regex>
+
+#include "graphio.h"
 
 #include "graphs.h"
+
+#define ABSCUTOFF 0.000001
 
 class qclass;
 class evalformula;
@@ -137,13 +142,11 @@ union vals
     bool bv;
     double dv;
     int iv;
-    // bool* iset;
-    // intpair ip;
-    valspair* p;
-    // std::pair<int,int> pv {};
+    neighborstype* nsv; // which has g built in
+    std::string* rv;
 };
 
-enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtset, mttuple, mtstring };
+enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtset, mttuple, mtstring, mtgraph };
 
 inline std::map<measuretype,std::string> measuretypenames {
     {mtbool, "mtbool"},
@@ -151,7 +154,8 @@ inline std::map<measuretype,std::string> measuretypenames {
     {mtcontinuous, "mtcontinuous"},
     {mtset, "mtset"},
     {mttuple, "mttuple"},
-    {mtstring, "mtstring"}};
+    {mtstring, "mtstring"},
+    {mtgraph, "mtgraph"}};
 
 
 class setitr;
@@ -160,46 +164,51 @@ class itrpos;
 bool setsubseteq( itrpos* in1, itrpos* in2);
 bool tupleeq( itrpos* in1, itrpos* in2);
 
-
-
-/*
-template<typename T>
-class setitrfactory
-{
-protected:
-    std::vector<T*> setitrs {};
-public:
-    T* getsetitr()
-    {
-        setitrs.push_back(new T);
-        return setitrs.back();
-    };
-    ~setitrfactory()
-    {
-        for (auto s : setitrs)
-            delete s;
-    }
-};
-*/
-
 struct valms
 {
-    measuretype t;
+    measuretype t = mtbool;
     vals v;
-    int setsize;
     setitr* seti;
+//    valms() : valms(mtbool,{},nullptr) {};
+//    valms( measuretype tin, vals vin, setitr* setiin );
+//    ~valms()
+//    {
+//        if (t == mtgraph)
+//        {
+//            delete v.nsv->g;
+//            delete v.nsv;
+//        } else
+//        if (t == mtstring)
+//            delete v.rv;
+//    };
 };
+
+void mtconvertboolto( const bool vin, valms& vout );
+void mtconvertdiscreteto( const int vin, valms& vout );
+void mtconvertcontinuousto( const double vin, valms& vout );
+void mtconvertsetto( setitr* vin, valms& vout );
+void mtconverttupleto( setitr* vin, valms& vout );
+void mtconvertstringto( std::string* vin, valms& vout );
+void mtconvertgraphto( neighborstype* vin, valms& vout );
+void mtconverttobool( const valms& vin, bool& vout );
+void mtconverttodiscrete( const valms& vin, int& vout );
+void mtconverttocontinuous( const valms& vin, double& vout );
+void mtconverttoset( const valms& vin, setitr*& vout );
+void mtconverttotuple( const valms& vin, setitr*& vout );
+void mtconverttostring( const valms& vin, std::string*& vout );
+void mtconverttograph( const valms& vin, neighborstype*& vout );
+
+void mtconverttype1( const valms& vin, valms& vout );
+void mtconverttype2( const valms& vin, valms& vout );
+
+
+
+
+
 
 using params = std::vector<valms>;
 
 using namedparams = std::vector<std::pair<std::string,valms>>;
-
-
-struct valspair
-{
-    valms i;
-    valms j;
-};
 
 class setitr;
 
@@ -207,8 +216,6 @@ class itrpos;
 
 class setitr
 {
-protected:
-    // std::vector<itrpos*> itrs {};
 public:
     std::vector<valms> totality {};
 
@@ -223,7 +230,10 @@ public:
     virtual valms getnext()
     {
         ++pos;
-        return {};
+        valms v;
+        v.t = mtbool;
+        v.v.bv = false;
+        return v;
     }
     setitr() {}
     virtual ~setitr();
@@ -291,10 +301,6 @@ inline setitr::~setitr()
         // delete itr;
     // itrs.clear();
 }
-
-
-
-
 
 inline bool operator==(const valms& a1, const valms& a2)
 {
@@ -375,9 +381,6 @@ inline bool operator>=(const valms& a1, const valms& a2)
 {
     return a2 <= a1;
 }
-
-
-
 
 class setitrmodeone : public setitr
 {
@@ -1008,63 +1011,6 @@ public:
     setitredges( graphtype* gin ) : g{gin} {}
 };
 
-class setitrpairs : public setitr
-{
-    public:
-    itrpos* setA;
-
-    int posAprime = -1;
-
-    int getsize() override
-    {
-        int s = setA->getsize();
-        return s*(s-1)/2;
-    }
-
-    void reset() override
-    {
-        pos = -1;
-        setA->reset();
-        posAprime = -1;
-    }
-    bool ended() override {return setA->ended() && posAprime == setA->getsize() - 2;}
-    valms getnext() override
-    {
-        if (++pos < totality.size())
-            return totality[pos];
-        valms r;
-        r.t = mtset;
-        auto subset = new setitrsubset(setA);
-        r.seti = subset;
-        while (!setA->ended() && setA->pos < 1)
-            setA->getnext();
-        if (posAprime < setA->pos-1)
-            ++posAprime;
-        else
-        {
-            setA->getnext();
-            posAprime = 0;
-        }
-        subset->superset = setA;
-        memset(subset->itrbool->elts, false, (subset->itrbool->maxint+1)*sizeof(bool));
-        subset->itrbool->elts[setA->pos] = true;
-        subset->itrbool->elts[posAprime] = true;
-        r.setsize = 2;
-        totality.resize(pos+1);
-        totality[pos] = r;
-        // std::cout << posAprime << ", " << setA->pos << std::endl;
-        return totality[pos];
-    }
-    setitrpairs(setitr* Ain) : setA{Ain->getitrpos()} {}
-    ~setitrpairs() override
-    {
-        delete setA;
-        for (auto t : totality)
-            delete t.seti;
-        //setitr::~setitr();
-    }
-};
-
 class setitrsizedsubset : public setitr
 {
 public:
@@ -1156,7 +1102,7 @@ public:
             subset->itrbool->elts[setA->pos] = true;
         for (int i = 0; i < size-1; ++i)
             subset->itrbool->elts[posAprimes[i]] = true;
-        r.setsize = size;
+        // r.setsize = size;
         totality.resize(pos+1);
         totality[pos] = r;
         // std::cout << "pos " << pos << ": ";
@@ -1338,7 +1284,7 @@ public:
 
 
 
-inline int lookup_variable( const std::string& tok, namedparams& context) {
+inline int lookup_variable( const std::string& tok, const namedparams& context) {
     bool found = false;
     int i = context.size() - 1;
     for ( ; i >= 0 && !found; --i)
@@ -1357,6 +1303,7 @@ struct formulavalue {
     qclass* qc;
     variablestruct vs;
     setstruct ss;
+    bool subgraph;
 };
 
 class formulaclass {
@@ -1429,7 +1376,7 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::fointersection,3},
                             {formulaoperator::foswitch,8},
                             {formulaoperator::focases, 7},
-                                {formulaoperator::foin, 8}};
+                            {formulaoperator::foin, 8}};
 
 
 bool is_operator( const std::string& tok );
@@ -1448,18 +1395,13 @@ formulaclass* parseformula(
 
 class evalformula
 {
-
-
 public:
     graphtype* g {};
-    std::vector<valms>* literals {};
-
+    std::vector<valms> literals {};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
-    //std::function<void()>* populatevariablesbound {};
-    // std::vector<qclass*> variables {};
 
-    virtual valms evalpslit( const int idx, namedparams& context, std::vector<valms>& psin );
-    virtual valms evalvariable( variablestruct v, namedparams& context, std::vector<int>& vidxin );
+    virtual valms evalpslit( const int idx, namedparams& context, neighborstype* subgraph, std::vector<valms>& psin );
+    virtual valms evalvariable( variablestruct& v, namedparams& context, std::vector<int>& vidxin );
     virtual valms eval( formulaclass& fc, namedparams& context );
     evalformula();
 
@@ -1510,52 +1452,369 @@ inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> boun
     return false;
 }
 
-class setitrformulae : public setitr
+
+
+inline void mtconvertboolto( const bool vin, valms& vout )
 {
-public:
-
-    int size;
-    evalformula* ef;
-    std::vector<formulaclass*> formulae;
-    namedparams nps;
-
-    virtual int getsize() {return formulae.size();}
-
-    virtual bool ended() {return pos+1 >= getsize();}
-    virtual valms getnext()
+    switch (vout.t)
     {
-        ++pos;
-        if (pos >= getsize())
+        case mtbool: vout.v.bv = vin;
+            break;
+        case mtdiscrete: vout.v.iv = vin ? 1 : 0;
+            break;
+            case mtcontinuous: vout.v.dv = vin ? 1 : 0;
+            break;
+        case mtset: vout.seti = vin ? new setitrint(1) : new setitrint(0);
+            break;
+        case mttuple: vout.seti = vin ? new setitrint(1) : new setitrint(0);
+            break;
+        case mtstring: vout.v.rv = new std::string(vin ? "true" : "false");
+            break;
+        case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin ? 1 : 0));
+            break;
+    }
+}
+inline void mtconvertdiscreteto( const int vin, valms& vout )
+{
+    switch (vout.t)
+    {
+    case mtbool: vout.v.bv = vin != 0 ? true : false;
+        break;
+    case mtdiscrete: vout.v.iv = vin;
+        break;
+    case mtcontinuous: vout.v.dv = vin != 0 ? 1 : 0;
+        break;
+    case mtset: vout.seti = new setitrint(vin);
+        break;
+    case mttuple: vout.seti = new setitrint(vin);
+        break;
+    case mtstring: vout.v.rv = new std::string(std::to_string(vin));
+        break;
+    case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin));
+        break;
+    }
+}
+inline void mtconvertcontinuousto( const double vin, valms& vout )
+{
+    switch (vout.t)
+    {
+    case mtbool: vout.v.bv = abs(vin) >= ABSCUTOFF ? true : false;
+        break;
+    case mtdiscrete: vout.v.iv = (int)vin;
+        break;
+    case mtcontinuous: vout.v.dv = vin;
+        break;
+    case mtset: vout.seti = new setitrint((int)vin);
+        break;
+    case mttuple: vout.seti = new setitrint((int)vin);
+        break;
+    case mtstring: vout.v.rv = new std::string(std::to_string(vin));
+        break;
+    case mtgraph: vout.v.nsv = new neighborstype(new graphtype((int)vin));
+        break;
+    }
+}
+inline void mtconvertsetto( setitr* vin, valms& vout )
+{
+    switch (vout.t)
+    {
+    case mtbool: vout.v.bv = vin->getsize() > 0 ? true : false;
+        break;
+    case mtdiscrete: vout.v.iv = vin->getsize();
+        break;
+    case mtcontinuous: vout.v.dv = vin->getsize();
+        break;
+    case mtset: vout.seti = vin;
+        break;
+    case mttuple: vout.seti = vin;
+        break;
+    case mtstring: vout.v.rv = new std::string("{ SET of size " + std::to_string(vin->getsize()) + "}");
+        break;
+    case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin->getsize()));
+        break;
+    }
+}
+inline void mtconverttupleto( setitr* vin, valms& vout )
+{
+    switch (vout.t)
+    {
+    case mtbool: vout.v.bv = vin->getsize() > 0 ? true : false;
+        break;
+    case mtdiscrete: vout.v.iv = vin->getsize();
+        break;
+    case mtcontinuous: vout.v.dv = vin->getsize();
+        break;
+    case mtset: vout.seti = vin;
+        break;
+    case mttuple: vout.seti = vin;
+        break;
+    case mtstring: vout.v.rv = new std::string("< TUPLE of size " + std::to_string(vin->getsize()) + ">");
+        break;
+    case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin->getsize()));
+        break;
+    }
+}
+inline void mtconvertstringto( std::string* vin, valms& vout )
+{
+    switch (vout.t)
+    {
+    case mtbool: vout.v.bv = stoi(*vin) != 0 ? true : false;
+        break;
+    case mtdiscrete: vout.v.iv = stoi(*vin);
+        break;
+    case mtcontinuous: vout.v.dv = stod(*vin);
+        break;
+    case mtset:
+    case mttuple: {
+        const std::regex r2 {"([[:alpha:]]\\w*)"};
+        std::vector<valms> out2 {};
+        for (std::sregex_iterator p2(vin->begin(),vin->end(),r2); p2!=std::sregex_iterator{}; ++p2)
         {
             valms v;
-            v.t = mtdiscrete;
-            v.v.iv = 0;
-            return v;
+            v.t = mtstring;
+            v.v.rv = new std::string;
+            *v.v.rv = (*p2)[1];
+            out2.push_back(v);
         }
-        if (pos >= totality.size())
+        vout.seti = new setitrmodeone(out2);
+        break;
+    }
+    case mtstring:
         {
-            totality.resize(pos+1);
-            totality[pos] = ef->eval(*formulae[pos],nps);
+            vout.v.rv = vin;
+            break;
         }
-        return totality[pos];
+    case mtgraph:
+        {
+            vout.v.nsv = new neighborstype(new graphtype(vin->size()));
+            std::vector<std::string> temp {};
+            temp.push_back(*vin);
+            auto g = igraphstyle(temp);
+            vout.v.nsv = new neighbors(g);
+            break;
+        }
     }
-
-    setitrformulae( evalformula* efin, std::vector<formulaclass*>& fcin, namedparams& npsin )
-        : formulae{fcin}, ef{efin}, nps{npsin}
+}
+inline void mtconvertgraphto( neighborstype* vin, valms& vout )
+{
+    switch (vout.t)
     {
-        totality.clear();
-        reset();
-        // to do... search the fcin for unbound variables, and compute now if any are found
-        int n = 0;
-        bool variablefound = false;
-        while (n < fcin.size() && !variablefound)
-            variablefound = searchfcforvariable(fcin[n++]);
-        if (variablefound)
-            while (!ended())
-                getnext();
+    case mtbool: vout.v.dv = vin->g->dim > 0 ? true : false;
+        break;
+    case mtdiscrete: vout.v.iv = vin->g->dim;
+        break;
+    case mtcontinuous: vout.v.dv = vin->g->dim;
+        break;
+    case mtset:
+    case mttuple:
+        {
+            std::vector<valms> out2 {};
+            int dim = vin->g->dim;
+            if (vin->g->vertexlabels.size() == dim)
+                for (int i = 0; i < dim; ++i)
+                {
+                    valms v;
+                    v.t = mtstring;
+                    v.v.rv = new std::string(vin->g->vertexlabels[i]);
+                    out2.push_back(v);
+                }
+                else
+                for (int i = 0; i < dim; ++i)
+                {
+                    valms v;
+                    v.t = mtstring;
+                    v.v.rv = new std::string(std::to_string(i));
+                    out2.push_back(v);
+                }
+            vout.seti = new setitrmodeone(out2);
+            break;
+        }
+    case mtstring: {
+        std::stringstream ss {};
+        osmachinereadablegraph(ss,vin->g);
+        vout.v.rv = new std::string(ss.str());
+        break;
     }
-};
+    case mtgraph: vout.v.nsv = vin;
+        break;
+    }
+}
+inline void mtconverttobool( const valms& vin, bool& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: vout = vin.v.bv; break;
+    case mtdiscrete: vout = vin.v.iv != 0 ? true : false; break;
+    case mtcontinuous: vout = abs(vin.v.dv) >= ABSCUTOFF ? true : false; break;
+    case mtset:
+    case mttuple: vout = vin.seti->getsize() > 0 ? true : false; break;
+    case mtstring: vout = stoi(*vin.v.rv) != 0 ? true : false; break;
+    case mtgraph: vout = vin.v.nsv->g->dim > 0 ? true : false; break;
+    }
+}
+inline void mtconverttodiscrete( const valms& vin, int& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: vout = (int)vin.v.bv; break;
+    case mtdiscrete: vout = vin.v.iv; break;
+    case mtcontinuous: vout = (int)vin.v.dv; break;
+    case mtset:
+    case mttuple: vout = vin.seti->getsize(); break;
+    case mtstring: vout = stoi(*vin.v.rv); break;
+    case mtgraph: vout = vin.v.nsv->g->dim; break;
+    }
+}
+inline void mtconverttocontinuous( const valms& vin, double& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: vout = vin.v.bv ? 1 : 0; break;
+    case mtdiscrete: vout = vin.v.iv; break;
+    case mtcontinuous: vout = vin.v.dv; break;
+    case mtset:
+    case mttuple: vout = vin.seti->getsize(); break;
+    case mtstring: vout = stod(*vin.v.rv); break;
+    case mtgraph: vout = vin.v.nsv->g->dim; break;
+    }
+}
+inline void mtconverttoset( const valms& vin, setitr*& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
+    case mtdiscrete: {vout = new setitrint(vin.v.iv); break; // verify works with any negative not just -1
+            }
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
+    case mtset:
+    case mttuple: vout = vin.seti; break;
+    case mtstring:
+        {
+            const std::regex r2 {"([[:alpha:]]\\w*)"};
+            std::vector<valms> out2 {};
+            for (std::sregex_iterator p2(vin.v.rv->begin(),vin.v.rv->end(),r2); p2!=std::sregex_iterator{}; ++p2)
+            {
+                valms v {};
+                v.t = mtstring;
+                v.v.rv = new std::string((*p2)[1]);
+                out2.push_back(v);
+            }
+            vout = new setitrmodeone(out2);
+            break;
+        }
+    case mtgraph:
+        {
+            vout = new setitrint(vin.v.nsv->g->dim); break;
+        }
+    }
+}
+inline void mtconverttotuple( const valms& vin, setitr*& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
+    case mtdiscrete: {vout = new setitrint(vin.v.iv); break;} // verify works with any negative not just -1
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
+    case mtset:
+    case mttuple: {vout = vin.seti; break;}
+    case mtstring:
+        {
+            const std::regex r2 {"([[:alpha:]]\\w*)"};
+            std::vector<valms> out2 {};
+            for (std::sregex_iterator p2(vin.v.rv->begin(),vin.v.rv->end(),r2); p2!=std::sregex_iterator{}; ++p2)
+            {
+                valms v {};
+                v.t = mtstring;
+                v.v.rv = new std::string((*p2)[1]);
+                out2.push_back(v);
+            }
+            vout = new setitrmodeone(out2);
+            break;
+        }
+    case mtgraph:
+        {
+            vout = new setitrint(vin.v.nsv->g->dim); break;
+        }
+    }
+}
+inline void mtconverttostring( const valms& vin, std::string*& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: *vout = vin.v.bv ? "true" : "false" ; break;
+    case mtdiscrete: *vout = std::to_string(vin.v.iv); break;
+    case mtcontinuous: *vout = std::to_string(vin.v.dv); break;
+    case mtset:
+    case mttuple: *vout = "{ SET of size " + std::to_string(vin.seti->getsize()) + "}";
+    case mtstring: *vout = "< TUPLE of size " + std::to_string(vin.seti->getsize()) + ">";
+    case mtgraph:
+        std::stringstream ss {};
+        osmachinereadablegraph(ss,vin.v.nsv->g);
+        *vout = ss.str();
+        break;
+    }
+}
+inline void mtconverttograph( const valms& vin, neighborstype*& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: {vout = new neighborstype(new graphtype(vin.v.bv ? 1 : 0)); break;}
+    case mtdiscrete: {vout = new neighborstype(new graphtype(vin.v.iv)); break;}
+    case mtcontinuous: {vout = new neighborstype(new graphtype((int)vin.v.dv)); break;}
+    case mtset:
+    case mttuple:
+        {
+            int dim = vin.seti->getsize();
+            vout = new neighborstype(new graphtype(dim));
+            auto pos = vin.seti->getitrpos();
+            int i = 0;
+            vout->g->vertexlabels.resize(dim);
+            while (!pos->ended()) {
+                std::string* temp = &vout->g->vertexlabels[i++];
+                mtconverttostring(pos->getnext(), temp );
+            }
+            break;
+        }
+    case mtstring:
+        {
+            vout = new neighborstype(new graphtype(vin.v.rv->size()));
+            std::vector<std::string> temp {};
+            temp.push_back(*vin.v.rv);
+            auto g = igraphstyle(temp);
+            vout = new neighbors(g);
+            break;
+        }
+    case mtgraph: vout = vin.v.nsv;
+        break;
+    }
+}
+inline void mtconverttype1( const valms& vin, valms& vout )
+{
+    switch (vin.t)
+    {
+        case measuretype::mtbool: mtconvertboolto(vin.v.bv,vout); break;
+        case measuretype::mtdiscrete: mtconvertdiscreteto(vin.v.iv,vout); break;
+        case measuretype::mtcontinuous: mtconvertcontinuousto(vin.v.dv,vout); break;
+        case measuretype::mtset: mtconvertsetto(vin.seti,vout); break;
+        case measuretype::mttuple: mtconverttupleto(vin.seti,vout); break;
+        case measuretype::mtstring: mtconvertstringto(vin.v.rv,vout); break;
+        case measuretype::mtgraph: mtconvertgraphto(vin.v.nsv,vout); break;
+    }
 
+}
+inline void mtconverttype2( const valms& vin, valms& vout )
+{
+    switch (vout.t)
+    {
+    case measuretype::mtbool: mtconverttobool(vin,vout.v.bv); break;
+    case measuretype::mtdiscrete: mtconverttodiscrete(vin,vout.v.iv); break;
+    case measuretype::mtcontinuous: mtconverttocontinuous(vin,vout.v.dv); break;
+    case measuretype::mtset: mtconverttoset( vin, vout.seti); break;
+    case measuretype::mttuple: mtconverttotuple(vin,vout.seti); break;
+    case measuretype::mtstring: mtconverttostring(vin,vout.v.rv); break;
+    case measuretype::mtgraph: mtconverttograph(vin,vout.v.nsv); break;
+    }
+}
 
 
 

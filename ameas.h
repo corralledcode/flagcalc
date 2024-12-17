@@ -7,11 +7,12 @@
 
 #define KNMAXCLIQUESIZE 12
 
-#define ABSCUTOFF 0.000001
 
 #include <cstring>
 #include <functional>
 #include <stdexcept>
+
+#include "graphio.h"
 #include "math.h"
 #include "graphs.h"
 
@@ -27,7 +28,8 @@ class crit;
 class meas;
 class tally;
 class set;
-class mstr;
+class strmeas;
+class gmeas;
 
 template<typename T>
 class ameas
@@ -53,7 +55,8 @@ union amptrs {
     tally* ts;
     set* ss;
     set* os; // ordered set aka tuple
-    mstr* rs;
+    strmeas* rs;
+    gmeas* gs;
 };
 
 struct ams
@@ -68,7 +71,7 @@ struct itn
     int round;
     measuretype t;
     int iidx;
-    params ps;
+    namedparams nps;
     bool hidden;
 };
 
@@ -88,6 +91,8 @@ inline bool operator==(const ams& a1, const ams& a2)
         case measuretype::mtset:
             return false;
             // return a1.a.ss == a2.a.ss;
+        case measuretype::mtstring:
+            return a1.a.rs == a2.a.rs;
     }
 }
 
@@ -107,8 +112,21 @@ template<typename T>
 class pameas : public ameas<T>
 {
 public:
-    params ps {};
-    int pssz = 0;
+    namedparams nps {};
+    int npssz = 0;
+    std::vector<int> npreferences {};
+
+    void bindnamedparams()
+    {
+        npreferences.resize(this->nps.size());
+        int i = 0;
+        for (auto np : nps)
+        {
+            npreferences[i] = i;
+            ++i;
+        }
+        npssz = nps.size();
+    }
     virtual std::string getname()
     {
         return this->name;
@@ -117,8 +135,24 @@ public:
     {
         return {};
     }
+    virtual T takemeas( neighborstype* ns, const params& ps )
+    {
+        T out;
+        return out;
+    }
     virtual T takemeas(const int idx, const params& ps )
     {
+        if (ps.size() != npssz)
+        {
+            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << this->shortname << ", expecting " << this->nps.size() << "." << std::endl;
+            exit(1);
+        }
+        for (int i = 0; i < ps.size(); ++i)
+        {
+            nps[npreferences[i]].second = ps[i];
+        }
+        neighborstype* ns = (*this->rec->nsptrs)[idx];
+
         return takemeas(idx);
     }
 
@@ -127,6 +161,13 @@ public:
     {}
 };
 
+
+class meas : public pameas<double>
+{
+public:
+    meas( mrecords* recin , const std::string shortnamein, const std::string name)
+        : pameas<double>(recin,  shortnamein, name) {}
+};
 
 class crit : public pameas<bool>
 {
@@ -138,13 +179,6 @@ public:
     }
     crit( mrecords* recin , const std::string shortnamein, const std::string name)
         : pameas<bool>(recin,  shortnamein, name) {}
-};
-
-class meas : public pameas<double>
-{
-public:
-    meas( mrecords* recin , const std::string shortnamein, const std::string name)
-        : pameas<double>(recin,  shortnamein, name) {}
 };
 
 class tally : public pameas<int>
@@ -162,12 +196,19 @@ public:
     set() : pameas<setitr*>( nullptr, "_abst", "_abstract (error)" ) {};
 };
 
-class mstr : public pameas<std::string>
+class strmeas : public pameas<std::string*>
 {
 public:
-    mstr( mrecords* recin , const std::string shortnamein, const std::string namein)
-        : pameas<std::string>( recin, shortnamein, namein ) {}
-    mstr() : pameas<std::string>( nullptr, "_abst", "_abstract (error)" ) {};
+    strmeas( mrecords* recin , const std::string shortnamein, const std::string namein)
+        : pameas<std::string*>( recin, shortnamein, namein ) {}
+    strmeas() : pameas<std::string*>( nullptr, "_abst", "_abstract (error)" ) {};
+};
+
+class gmeas : public pameas<neighborstype*>
+{
+public:
+    gmeas( mrecords* recin , const std::string shortnamein, const std::string name)
+        : pameas<neighborstype*>(recin,  shortnamein, name) {}
 };
 
 
@@ -301,7 +342,7 @@ public:
                 plookup[i*szin+j] = new params[blocksize]; //(params*)malloc(blocksize*sizeof(params));
 
             }
-            if ((*pmsv)[i]->pssz > 0)
+            if ((*pmsv)[i]->npssz > 0)
             {
                 for (int k = 0; k < blocksize; ++k)
                 {
@@ -426,17 +467,6 @@ class thrrecords : public precords<T>
 {
 public:
 
-    // T fetch( const int idx, const int iidx ) override
-    // {
-        // return precords<T>::fetch(idx,iidx);
-    // }
-
-
-    // T fetch( const int idx, const int iidx, const params& ps) override
-    // {
-        // return precords<T>::fetch(idx,iidx,ps);
-    // }
-
     virtual void threadfetch( const int startidx, const int stopidx, const int iidx, const params& ps)
     {
         for (int i = startidx; i < stopidx; ++i)
@@ -459,19 +489,17 @@ class evalmformula : public evalformula
 {
 public:
 
-    int idx;
-    //std::vector<qclass*> variables {};
+    int idx = -1;
+    neighborstype* ns {};
     mrecords* rec;
 
-    valms evalpslit( const int l, namedparams& nps, params& psin ) override;
-    // valms evalvariable(std::string& vname, namedparams& nps, std::vector<int>& vidxin) override;
-
-    evalmformula( mrecords* recin );
-
+    valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& psin ) override;
+    valms eval( formulaclass& fc, namedparams& context ) override;
+    valms evalinternal( formulaclass& fc, namedparams& context );
+    evalmformula( mrecords* recin, const int idxin );
+    evalmformula( mrecords* recin, neighborstype* nsin );
+    ~evalmformula() {}
 };
-
-
-
 
 class mrecords
 {
@@ -485,11 +513,17 @@ public:
     thrrecords<double> doublerecs;
     thrrecords<setitr*> setrecs;
     thrrecords<setitr*> tuplerecs;
-    thrrecords<std::string> stringrecs;
+    thrrecords<std::string*> stringrecs;
+    thrrecords<neighborstype*> graphrecs;
     std::map<int,std::pair<measuretype,int>> m;
     std::vector<evalmformula*> efv {};
     std::vector<valms*> literals {};
-    // std::vector<qclass*> variables {};
+    // std::vector<evalmformula*> npsefv {};
+
+    // void addef( evalmformula* efin )
+    // {
+        // npsefv.push_back( efin );
+    // }
 
     void addliteralvalueb( const int iidx, const int idx, bool v )
     {
@@ -525,6 +559,20 @@ public:
             setmsize(iidx + 1);
         literals[iidx][idx].t = mttuple;
         literals[iidx][idx].seti = v;
+    }
+    void addliteralvaluer( const int iidx, const int idx, std::string* v )
+    {
+        if (iidx >= msz)
+            setmsize(iidx + 1);
+        literals[iidx][idx].t = mtstring;
+        literals[iidx][idx].v.rv = v;
+    }
+    void addliteralvalueg( const int iidx, const int idx, neighborstype* v )
+    {
+        if (iidx >= msz)
+            setmsize(iidx + 1);
+        literals[iidx][idx].t = mtgraph;
+        literals[iidx][idx].v.nsv = v;
     }
 
 
@@ -562,6 +610,12 @@ public:
         case measuretype::mttuple:
             res.a.os = (set*)(*tuplerecs.pmsv)[m[i].second];
             return res;
+        case measuretype::mtstring:
+            res.a.rs = (strmeas*)(*stringrecs.pmsv)[m[i].second];
+            return res;
+        case measuretype::mtgraph:
+            res.a.gs = (gmeas*)(*graphrecs.pmsv)[m[i].second];
+            return res;
         }
     }
 
@@ -578,10 +632,12 @@ public:
         doublerecs.setsize(sz);
         setrecs.setsize(sz);
         tuplerecs.setsize(sz);
+        stringrecs.setsize(sz);
+        graphrecs.setsize(sz);
         efv.resize(sz);
         for (int i = 0; i < sz; ++i)
         {
-            efv[i] = new evalmformula(this);
+            efv[i] = new evalmformula(this, i);
         }
 
     }
@@ -604,116 +660,142 @@ public:
             delete efv[i];
         for (int i = 0; i < msz; ++i)
             delete literals[i];
-        // for (int i = 0; i < sz; ++i)
-            // delete variablesv[i];
     }
 };
 
-inline evalmformula::evalmformula( mrecords* recin ) : evalformula(), rec{recin}
-{
+inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalformula(), rec{recin}, idx{idxin} {}
+inline evalmformula::evalmformula( mrecords* recin, neighborstype* nsin ) : evalformula(), rec{recin}, ns{nsin} {}
 
-}
-
-
-inline valms evalmformula::evalpslit( const int l, namedparams& context, params& psin )
+inline valms evalmformula::evalpslit( const int l, namedparams& context, neighborstype* subgraph, params& psin )
 {
     ams a = rec->lookup(l);
 
-    params tmpps {};
+    namedparams tmpps {};
 
     switch (a.t)
     {
     case mtbool:
-        tmpps = a.a.cs->ps;
+        tmpps = a.a.cs->nps;
         break;
     case mtdiscrete:
-        tmpps = a.a.ts->ps;
+        tmpps = a.a.ts->nps;
         break;
     case mtcontinuous:
-        tmpps = a.a.ms->ps;
+        tmpps = a.a.ms->nps;
         break;
     case mtset:
-        tmpps = a.a.ss->ps;
+        tmpps = a.a.ss->nps;
         break;
     case mttuple:
-        tmpps = a.a.os->ps;
+        tmpps = a.a.os->nps;
+        break;
+    case mtgraph:
+        tmpps = a.a.gs->nps;
+        break;
+    case mtstring:
+        tmpps = a.a.rs->nps;
         break;
     }
 
     for (int i = 0; i < tmpps.size(); ++i)
-            switch(tmpps[i].t)
-            {
-                case measuretype::mtbool:
-                    switch (psin[i].t)
-                    {
-                        case measuretype::mtbool: break;
-                        case measuretype::mtcontinuous: psin[i].v.bv = !(abs(psin[i].v.dv) < 0.0000001);
-                            psin[i].t = mtbool;
-                            break;
-                        case mtdiscrete: psin[i].v.bv = (bool)psin[i].v.iv;
-                            psin[i].t = mtbool;
-                            break;
-                    }
-                   break;
-                case measuretype::mtdiscrete:
-                    switch (psin[i].t)
-                    {
-                        case measuretype::mtbool: psin[i].v.iv = (int)psin[i].v.bv;
-                            psin[i].t = mtdiscrete;
-                            break;
-                        case measuretype::mtcontinuous: psin[i].v.iv = std::lround(psin[i].v.dv);
-                            psin[i].t = mtdiscrete;
-                            break;
-                        case mtdiscrete: break;
-                    }
-                    break;
-                case measuretype::mtcontinuous:
-                    switch (psin[i].t)
-                    {
-                        case measuretype::mtbool: psin[i].v.dv = (double)psin[i].v.bv;
-                            psin[i].t = mtcontinuous;
-                            break;
-                        case measuretype::mtcontinuous: break;
-                        case mtdiscrete: psin[i].v.dv = (double)psin[i].v.iv;
-                            psin[i].t = mtcontinuous;
-                            break;
-                    }
-                    break;
-                case measuretype::mtset:
-                    if (psin[i].t != mtset && psin[i].t != mttuple)
-                    {
-                        std::cout << "Set or tuple type required as parameter number " << i << "\n";
-                        exit(1);
-                    }
-                    break;
-                case measuretype::mttuple:
-                    if (psin[i].t != mttuple && psin[i].t != mtset)
-                    {
-                        std::cout << "Tuple or set type required as parameter number " << i << "\n";
-                        exit(1);
-                    }
-                    break;
+    {
+        valms tempps = psin[i];
+        tempps.t = tmpps[i].second.t;
+        mtconverttype1(psin[i],tempps);
+        psin[i] = tempps;
+    }
 
-                /*
-                case measuretype::mtpair:
-                    switch (psin[i].t)
-                    {
-                    case measuretype::mtbool: psin[i].v.ip.i = 1;
-                        psin[i].v.ip.j = 1;
-                        break;
-                    case measuretype::mtcontinuous: psin[i].v.ip.i = (int)psin[i].v.dv;
-                        psin[i].v.ip.j = (int)psin[i].v.dv;
-                        break;
-                    case mtdiscrete: psin[i].v.ip.i = psin[i].v.iv;
-                        psin[i].v.ip.j = psin[i].v.iv;
-                        break;
-                    case mtpair:
-                        break;
-                    }*/
-            }
-
+/*
+        switch(tmpps[i].second.t)
+        {
+        case measuretype::mtbool:
+        switch (psin[i].t)
+        {
+            case measuretype::mtbool: break;
+            case measuretype::mtcontinuous: psin[i].v.bv = !(abs(psin[i].v.dv) < 0.0000001);
+            psin[i].t = mtbool;
+            break;
+            case mtdiscrete: psin[i].v.bv = (bool)psin[i].v.iv;
+            psin[i].t = mtbool;
+            break;
+            default:
+            psin[i].t = tmpps[i].second.t;
+            psin[i].v.bv = false;
+            break;
+        }
+        break;
+        case measuretype::mtdiscrete:
+            switch (psin[i].t)
+        {
+    case measuretype::mtbool: psin[i].v.iv = (int)psin[i].v.bv;
+            psin[i].t = mtdiscrete;
+            break;
+    case measuretype::mtcontinuous: psin[i].v.iv = std::lround(psin[i].v.dv);
+            psin[i].t = mtdiscrete;
+            break;
+    case mtdiscrete: break;
+    default:
+        psin[i].t = tmpps[i].second.t;
+            psin[i].v.iv = 0;
+            break;
+        }
+            break;
+    case measuretype::mtcontinuous:
+        switch (psin[i].t)
+        {
+    case measuretype::mtbool: psin[i].v.dv = (double)psin[i].v.bv;
+            psin[i].t = mtcontinuous;
+            break;
+    case measuretype::mtcontinuous: break;
+    case mtdiscrete: psin[i].v.dv = (double)psin[i].v.iv;
+            psin[i].t = mtcontinuous;
+            break;
+    default:
+        psin[i].t = tmpps[i].second.t;
+            psin[i].v.dv = 0;
+            break;
+        }
+            break;
+    case measuretype::mtset:
+        if (psin[i].t != mtset && psin[i].t != mttuple)
+        {
+            std::cout << "Set or tuple type required as parameter number " << i << "\n";
+            exit(1);
+        }
+            break;
+    case measuretype::mttuple:
+        if (psin[i].t != mttuple && psin[i].t != mtset)
+        {
+            std::cout << "Tuple or set type required as parameter number " << i << "\n";
+            exit(1);
+        }
+            break;
+        }
+*/
     valms r;
     r.t = a.t;
+    if (subgraph)
+    {
+        switch (r.t)
+        {
+        case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(subgraph,psin);
+            return r;
+        case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(subgraph,psin);
+            return r;
+        case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(subgraph,psin);
+            return r;
+        case measuretype::mtset: r.seti = a.a.ss->takemeas(subgraph,psin);
+            return r;
+        case measuretype::mttuple: r.seti = a.a.os->takemeas(subgraph,psin);
+            return r;
+        case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(subgraph,psin);
+            return r;
+        case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(subgraph,psin);
+            return r;
+        }
+
+    }
+
     switch (r.t)
     {
     case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(idx,psin);
@@ -725,6 +807,10 @@ inline valms evalmformula::evalpslit( const int l, namedparams& context, params&
     case measuretype::mtset: r.seti = a.a.ss->takemeas(idx,psin);
         return r;
     case measuretype::mttuple: r.seti = a.a.os->takemeas(idx,psin);
+        return r;
+    case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(idx,psin);
+        return r;
+    case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(idx,psin);
         return r;
     }
 
@@ -743,10 +829,20 @@ inline bool istuplezero( itrpos* tuplein )
         case measuretype::mtcontinuous: iszero = iszero && abs(v.v.dv) <= ABSCUTOFF; break;
         case measuretype::mtset: iszero = iszero && v.seti->getsize() == 0; break;
         case measuretype::mttuple:
-            auto itr = v.seti->getitrpos();
-            iszero = iszero && istuplezero(itr);
-            delete itr;
-            break;
+            {
+                auto itr = v.seti->getitrpos();
+                iszero = iszero && istuplezero(itr);
+                delete itr;
+                break;
+            }
+        case measuretype::mtstring:
+            {
+                return v.v.rv->size() > 0;
+            }
+        case measuretype::mtgraph:
+            {
+                return v.v.nsv->g->dim > 0;
+            }
         }
     }
     return iszero;
@@ -754,87 +850,96 @@ inline bool istuplezero( itrpos* tuplein )
 }
 
 
+class setitrformulae : public setitr
+{
+public:
+
+    int size;
+    evalmformula* ef;
+    mrecords* rec;
+    std::vector<formulaclass*> formulae;
+    namedparams nps;
+
+    virtual int getsize() {return formulae.size();}
+
+    virtual bool ended() {return pos+1 >= getsize();}
+    virtual valms getnext()
+    {
+        ++pos;
+        if (pos >= getsize())
+        {
+            valms v;
+            v.t = mtdiscrete;
+            v.v.iv = 0;
+            return v;
+        }
+        if (pos >= totality.size())
+        {
+            totality.resize(pos+1);
+            totality[pos] = ef->eval(*formulae[pos],nps);
+        }
+        return totality[pos];
+    }
+
+    setitrformulae( mrecords* recin, const int idxin, std::vector<formulaclass*>& fcin, namedparams& npsin )
+        : formulae{fcin}, rec{recin}, nps{npsin}
+    {
+        ef = new evalmformula(rec,idxin);
+
+        totality.clear();
+        reset();
+        // to do... search the fcin for unbound variables, and compute now if any are found
+        // int n = 0;
+        // bool variablefound = false;
+        // while (n < fcin.size() && !variablefound)
+            // variablefound = searchfcforvariable(fcin[n++]);
+        // if (variablefound)
+            while (!ended())
+                getnext();
+    }
+
+    ~setitrformulae()
+    {
+        delete ef;
+    }
+};
+
+
+
 
 class sentofcrit : public crit
 {
 public:
     formulaclass* fc;
-    // std::vector<qclass*> variables;
-    namedparams nps;
-    std::vector<int> npreferences;
 
+    bool takemeas( neighborstype* ns, params& psin )
+    {
+        evalmformula* ef = new evalmformula(rec,ns);
+        namedparams npslocal = nps;
+        const valms r = ef->eval(*fc, npslocal);
+        delete ef;
+        bool out;
+        mtconverttobool(r,out);
+        return out;
+    }
     bool takemeas(const int idx) override
     {
-        std::vector<valms> literals;
-        literals.resize(rec->literals.size());
-        for (int i = 0; i < rec->literals.size(); ++i)
-        {
-            literals[i] = rec->literals[i][idx];
-        }
-        evalmformula* ef = new evalmformula(rec);
-
-            // rec->efv[idx];
-        ef->literals = &literals;
-        // ef->variables.resize(this->variables.size());
-        // for (int i = 0; i < this->variables.size(); ++i)
-        // {
-            // ef->variables[i] = new qclass;
-            // ef->variables[i]->name = this->variables[i]->name;
-            // ef->variables[i]->qs = this->variables[i]->qs;
-            // ef->variables[i]->superset = this->variables[i]->superset;
-            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        // }
+        evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
-        ef->idx = idx;
-        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
-        // ef->populatevariablesbound = &pv;
-        valms r = ef->eval(*fc, npslocal);
+        const valms r = ef->eval(*fc, npslocal);
         delete ef;
-        switch (r.t)
-        {
-        case measuretype::mtbool: return negated != r.v.bv;
-        case measuretype::mtdiscrete: return negated != (bool)r.v.iv;
-        case measuretype::mtcontinuous: return negated != (bool)r.v.dv;
-        case measuretype::mtset: return negated != (r.seti->getsize()>0);
-        case measuretype::mttuple:
-            auto itr = r.seti->getitrpos();
-            bool res = negated != !istuplezero(itr);
-            delete itr;
-            return res;
-        }
-    }
-
-
-    bool takemeas(const int idx, const params& ps) override
-    {
-        if (ps.size() != this->ps.size())
-        {
-            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
-            exit(1);
-        }
-        for (int i = 0; i < ps.size(); ++i)
-        {
-            nps[npreferences[i]].second = ps[i];
-        }
-        return takemeas(idx);
+        bool out;
+        mtconverttobool(r,out);
+        return out;
     }
 
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
                 const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
-        : crit( recin,  shortnamein == "" ? "sn" : shortnamein, "Sentence " + fstr ), nps{npsin} {
-        npreferences.resize(this->nps.size());
-        int i = 0;
-        ps.clear();
-        for (auto np : nps)
-        {
-            npreferences[i] = i;
-            i++;
-            valms v;
-            v.t = np.second.t;
-            ps.push_back(v);
-        }
-        pssz = ps.size();
+        : crit( recin,  shortnamein == "" ? "sn" : shortnamein, "Sentence " + fstr )
+    {
+        nps = npsin;
+        bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
@@ -849,84 +954,40 @@ class formmeas : public meas
 {
 public:
     formulaclass* fc;
-    std::vector<qclass*> variables {};
-    namedparams nps;
-    std::vector<int> npreferences;
+
+    double takemeas( neighborstype* ns, params& psin )
+    {
+        evalmformula* ef = new evalmformula(rec,ns);
+        namedparams npslocal = nps;
+        const valms r = ef->eval(*fc, npslocal);
+        delete ef;
+        bool out;
+        mtconverttobool(r,out);
+        return out;
+    }
 
     double takemeas(const int idx) override
     {
-        std::vector<valms> literals;
-        literals.resize(rec->literals.size());
-        for (int i = 0; i < rec->literals.size(); ++i)
-            literals[i] = rec->literals[i][idx];
-        evalmformula* ef = new evalmformula(rec);
-        // evalmformula* ef = rec->efv[idx];
-        ef->literals = &literals;
-        // ef->variables.resize(this->variables.size());
-        // for (int i = 0; i < variables.size(); ++i)
-        // {
-            // ef->variables[i] = new qclass;
-            // ef->variables[i]->name = this->variables[i]->name;
-            // ef->variables[i]->qs = this->variables[i]->qs;
-            // ef->variables[i]->superset = this->variables[i]->superset;
-        // }
+        evalmformula* ef = new evalmformula(rec, idx);
         namedparams npslocal = nps;
-        ef->idx = idx;
         valms r = ef->eval(*fc, npslocal);
         delete ef;
-        switch (r.t)
-        {
-        case measuretype::mtbool: return (double)r.v.bv;
-        case measuretype::mtdiscrete: return (double)r.v.iv;
-        case measuretype::mtcontinuous: return r.v.dv;
-        case measuretype::mtset: return (double)r.seti->getsize();
-        case measuretype::mttuple: return (double)r.seti->getsize(); // ??
-        }
-    }
-
-
-    double takemeas(const int idx, const params& ps) override
-    {
-        if (ps.size() != this->ps.size())
-        {
-            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
-            exit(1);
-        }
-        for (int i = 0; i < ps.size(); ++i)
-        {
-            nps[npreferences[i]].second = ps[i];
-        }
-        return takemeas(idx);
+        double out;
+        mtconverttocontinuous(r,out);
+        return out;
     }
 
     formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin,
         const std::vector<std::string>& litnamesin,
         const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
-        : meas( recin,  shortnamein == "" ? "fm" : shortnamein, "Formula " + fstr ),
-            nps{npsin}
+        : meas( recin,  shortnamein == "" ? "fm" : shortnamein, "Formula " + fstr )
     {
-        npreferences.resize(this->nps.size());
-        ps.clear();
-        int i = 0;
-        for (auto np : nps)
-        {
-            npreferences[i] = i;
-            i++;
-            valms v;
-            v.t = np.second.t;
-            ps.push_back(v);
-        }
-        pssz = ps.size();
+        nps = npsin;
+        bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     }
     ~formmeas() {
         delete fc;
-        for (int i = 0; i < variables.size(); ++i)
-        {
-            // for (int j = 0; j < variables.size(); ++j)
-            // delete rec->variablesv[i][j];
-            delete variables[i];
-        }
     }
 };
 
@@ -935,85 +996,33 @@ class formtally : public tally
 {
 public:
     formulaclass* fc;
-    std::vector<qclass*> variables;
-    namedparams nps;
-    std::vector<int> npreferences;
-
-
-    int takemeas(const int idx) override
+    int takemeas(neighborstype* ns, const params& ps) override
     {
-        std::vector<valms> literals;
-        literals.resize(rec->literals.size());
-        for (int i = 0; i < rec->literals.size(); ++i)
-        {
-            literals[i] = rec->literals[i][idx];
-        }
-        evalmformula* ef = new evalmformula(rec);
-
-        // rec->efv[idx];
-        ef->literals = &literals;
-        // evalmformula* ef = rec->efv[idx];
-
-        // ef->variables.resize(this->variables.size());
-        // for (int i = 0; i < this->variables.size(); ++i)
-        // {
-            // ef->variables[i] = new qclass;
-            // ef->variables[i]->name = this->variables[i]->name;
-            // ef->variables[i]->qs = this->variables[i]->qs;
-            // ef->variables[i]->superset = this->variables[i]->superset;
-            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        // }
-        ef->idx = idx;
-        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
-        // ef->populatevariablesbound = &pv;
+        evalmformula* ef = new evalmformula(rec,ns);
         namedparams npslocal = nps;
-
         valms r = ef->eval(*fc, npslocal);
         delete ef;
-        switch (r.t)
-        {
-        case measuretype::mtbool: return r.v.bv ? 1 : 0;
-        case measuretype::mtdiscrete: return r.v.iv;
-        case measuretype::mtcontinuous: return (int)r.v.dv;
-        case measuretype::mtset: return r.seti->getsize();
-        case measuretype::mttuple:
-            auto itr = r.seti->getitrpos();
-            bool res = !istuplezero(itr);
-            delete itr;
-            return res;
-        }
+        int out;
+        mtconverttodiscrete(r,out);
+        return out;
     }
-
-    int takemeas(const int idx, const params& ps) override
+    int takemeas(const int idx) override
     {
-        if (ps.size() != this->ps.size())
-        {
-            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
-            exit(1);
-        }
-        for (int i = 0; i < ps.size(); ++i)
-            nps[npreferences[i]].second = ps[i];
-        return takemeas(idx);
+        evalmformula* ef = new evalmformula(rec,idx);
+        namedparams npslocal = nps;
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
+        int out;
+        mtconverttodiscrete(r,out);
+        return out;
     }
-
 
     formtally( mrecords* recin , const std::vector<int>& litnumpsin,
         const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
         const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
-            : tally( recin,  shortnamein == "" ? "ft" : shortnamein, "Int-valued formula " + fstr ),
-            nps{npsin} {
-        npreferences.resize(this->nps.size());
-        ps.clear();
-        int i = 0;
-        for (auto np : nps)
-        {
-            npreferences[i] = i;
-            i++;
-            valms v;
-            v.t = np.second.t;
-            ps.push_back(v);
-        }
-        pssz = ps.size();
+            : tally( recin,  shortnamein == "" ? "ft" : shortnamein, "Int-valued formula " + fstr ) {
+        nps = npsin;
+        bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps,&global_fnptrs);
     };
 
@@ -1028,102 +1037,35 @@ class formset : public set
 {
 public:
     formulaclass* fc;
-    namedparams nps;
-    std::vector<int> npreferences;
-
-    setitr* takemeas(const int idx) override
+    setitr* takemeas( neighborstype* ns, const params& psin ) override
     {
-        std::vector<valms> literals;
-        literals.resize(rec->literals.size());
-        for (int i = 0; i < rec->literals.size(); ++i)
-        {
-            literals[i] = rec->literals[i][idx];
-        }
-        // rec->efv[idx]->literals = &literals;
-        evalmformula* ef = new evalmformula(rec);
-
-        // rec->efv[idx];
-        ef->literals = &literals;
-
-
-        // evalmformula* ef = rec->efv[idx];
-
-        // ef->variables.resize(this->variables.size());
-        // for (int i = 0; i < this->variables.size(); ++i)
-        // {
-            // ef->variables[i] = new qclass;
-            // ef->variables[i]->name = this->variables[i]->name;
-            // ef->variables[i]->qs = this->variables[i]->qs;
-            // ef->variables[i]->superset = this->variables[i]->superset;
-            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        // }
+        evalmformula* ef = new evalmformula(rec,ns);
         namedparams npslocal = nps;
-
-        ef->idx = idx;
-        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
-        // ef->populatevariablesbound = &pv;
         valms r = ef->eval(*fc, npslocal);
         delete ef;
-        switch (r.t)
-        {
-        case mtset:
-        case mttuple:
-            return r.seti;
-            break;
-        case measuretype::mtbool:
-        case measuretype::mtdiscrete:
-        case measuretype::mtcontinuous:
-            std::vector<valms> t {};
-            valms v;
-            v.t = r.t;
-            switch (r.t)
-            {
-            case mtbool:
-                v.v.bv = r.v.bv;
-                break;
-                case mtdiscrete:
-                    v.v.iv = r.v.iv;
-                break;
-                case mtcontinuous:
-                    v.v.dv = r.v.dv;
-                break;
-            }
-            t.push_back(v);
-            auto s = new setitrmodeone(t);
-            return s;
-        }
-    }
 
-    setitr* takemeas(const int idx, const params& ps) override
+        setitr* seti;
+        mtconverttoset(r,seti);
+        return seti;
+    }
+    setitr* takemeas(const int idx) override
     {
-        if (ps.size() != this->ps.size())
-        {
-            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
-            exit(1);
-        }
-        for (int i = 0; i < ps.size(); ++i)
-            nps[npreferences[i]].second = ps[i];
-        return takemeas(idx);
-    }
+        evalmformula* ef = new evalmformula(rec,idx);
+        namedparams npslocal = nps;
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
 
+        setitr* seti;
+        mtconverttoset(r,seti);
+        return seti;
+    }
 
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
         const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
         const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "")
-            : set( recin,  shortnamein == "" ? "st" : shortnamein, "Set-valued formula " + fstr ),
-            nps{npsin} {
-        ps.clear();
-        npreferences.resize(this->nps.size());
-        int i = 0;
-        for (auto np : nps)
-        {
-            npreferences[i] = i;
-            i++;
-            valms v;
-            v.t = np.second.t;
-            ps.push_back(v);
-        }
-        pssz = ps.size();
+            : set( recin,  shortnamein == "" ? "st" : shortnamein, "Set-valued formula " + fstr ) {
+        nps = npsin;
+        bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
@@ -1138,102 +1080,37 @@ class formtuple : public set
 {
 public:
     formulaclass* fc;
-    namedparams nps;
-    std::vector<int> npreferences;
 
+    setitr* takemeas( neighborstype* ns, const params& psin ) override
+    {
+        evalmformula* ef = new evalmformula(rec,ns);
+        namedparams npslocal = nps;
+        valms r = ef->eval(*fc,npslocal);
+        delete ef;
+        setitr* seti;
+        mtconverttotuple(r,seti);
+        return seti;
+    }
 
     setitr* takemeas(const int idx) override
     {
-        std::vector<valms> literals;
-        literals.resize(rec->literals.size());
-        for (int i = 0; i < rec->literals.size(); ++i)
-        {
-            literals[i] = rec->literals[i][idx];
-        }
-        evalmformula* ef = new evalmformula(rec);
-
-        // rec->efv[idx];
-        ef->literals = &literals;
-
-        // evalmformula* ef = rec->efv[idx];
-        // ef->variables.resize(this->variables.size());
-        // for (int i = 0; i < this->variables.size(); ++i)
-        // {
-            // ef->variables[i] = new qclass;
-            // ef->variables[i]->name = this->variables[i]->name;
-            // ef->variables[i]->qs = this->variables[i]->qs;
-            // ef->variables[i]->superset = this->variables[i]->superset;
-            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        // }
-        ef->idx = idx;
+        evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
-
-        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
-        // ef->populatevariablesbound = &pv;
         valms r = ef->eval(*fc,npslocal);
         delete ef;
-        switch (r.t)
-        {
-        case mtset:
-        case mttuple:
-            return r.seti;
-            break;
-        case measuretype::mtbool:
-        case measuretype::mtdiscrete:
-        case measuretype::mtcontinuous:
-            std::vector<valms> t {};
-            valms v;
-            v.t = r.t;
-            switch (r.t)
-            {
-            case mtbool:
-                v.v.bv = r.v.bv;
-                break;
-                case mtdiscrete:
-                    v.v.iv = r.v.iv;
-                break;
-                case mtcontinuous:
-                    v.v.dv = r.v.dv;
-                break;
-            }
-            t.push_back(v);
-            auto s = new setitrmodeone(t);
-            return s;
-        }
+        setitr* seti;
+        mtconverttotuple(r,seti);
+        return seti;
     }
-
-    setitr* takemeas(const int idx, const params& ps) override
-    {
-        if (ps.size() != this->ps.size())
-        {
-            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
-            exit(1);
-        }
-        for (int i = 0; i < ps.size(); ++i)
-            nps[npreferences[i]].second = ps[i];
-        return takemeas(idx);
-    }
-
 
     formtuple( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
                 namedparams& npsin,
                 const std::string& fstr, const std::string shortnamein = "" )
-        : set( recin,  shortnamein == "" ? "fp" : shortnamein, "Tuple-valued formula " + fstr),
-            nps{npsin} {
-        ps.clear();
-        npreferences.resize(this->nps.size());
-        int i = 0;
-        for (auto np : nps)
-        {
-            npreferences[i] = i;
-            i++;
-            valms v;
-            v.t = np.second.t;
-            ps.push_back(v);
-        }
-        pssz = ps.size();
-
+        : set( recin,  shortnamein == "" ? "fp" : shortnamein, "Tuple-valued formula " + fstr)
+    {
+        nps = npsin;
+        bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
@@ -1243,88 +1120,42 @@ public:
 
 };
 
-class formstring : public mstr
+
+class formstring : public strmeas
 {
 public:
     formulaclass* fc;
-    namedparams nps;
-    std::vector<int> npreferences;
 
-    std::string takemeas(const int idx) override
+    std::string* takemeas(neighborstype* ns, const params& ps) override
     {
-        std::vector<valms> literals;
-        literals.resize(rec->literals.size());
-        for (int i = 0; i < rec->literals.size(); ++i)
-        {
-            literals[i] = rec->literals[i][idx];
-        }
-        evalmformula* ef = new evalmformula(rec);
-
-        // rec->efv[idx];
-        ef->literals = &literals;
-
-        // evalmformula* ef = rec->efv[idx];
-        // ef->variables.resize(this->variables.size());
-        // for (int i = 0; i < this->variables.size(); ++i)
-        // {
-            // ef->variables[i] = new qclass;
-            // ef->variables[i]->name = this->variables[i]->name;
-            // ef->variables[i]->qs = this->variables[i]->qs;
-            // ef->variables[i]->superset = this->variables[i]->superset;
-            // ef->variables[i]->secondorder = this->variables[i]->secondorder;
-        // }
-        ef->idx = idx;
+        evalmformula* ef = new evalmformula(rec,ns);
         namedparams npslocal = nps;
-
-        // auto pv = std::function<void()>(std::bind(populatevariables,(*rec->gptrs)[idx],&ef->variables));
-        // ef->populatevariablesbound = &pv;
         valms r = ef->eval(*fc,npslocal);
         delete ef;
-        switch (r.t)
-        {
-        case mtset:
-        case mttuple:
-            return "Set or tuple size == " + std::to_string(r.seti->getsize());
-        case measuretype::mtbool:
-            return r.v.bv ? "true" : "false";
-        case measuretype::mtdiscrete:
-            return std::to_string(r.v.iv);
-        case measuretype::mtcontinuous:
-            return std::to_string(r.v.dv);
-        }
+        std::string* out = new std::string();
+        mtconverttostring(r,out);
+        return out;
     }
 
-    std::string takemeas(const int idx, const params& ps) override
+    std::string* takemeas(const int idx) override
     {
-        if (ps.size() != this->ps.size())
-        {
-            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << shortname << ", expecting " << this->ps.size() << "." << std::endl;
-            exit(1);
-        }
-        for (int i = 0; i < ps.size(); ++i)
-            nps[npreferences[i]].second = ps[i];
-        return takemeas(idx);
+        evalmformula* ef = new evalmformula(rec,idx);
+        namedparams npslocal = nps;
+        valms r = ef->eval(*fc,npslocal);
+        delete ef;
+        std::string* out = new std::string();
+        mtconverttostring(r,out);
+        return out;
     }
-
 
     formstring( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
                 namedparams& npsin,
                 const std::string& fstr, const std::string shortnamein = "" )
-        : mstr( recin,  shortnamein == "" ? "fr" : shortnamein, "String-valued formula " + fstr),
-            nps{npsin} {
-        ps.clear();
-        npreferences.resize(this->nps.size());
-        int i = 0;
-        for (auto np : nps)
-        {
-            npreferences[i] = i;
-            i++;
-            valms v;
-            v.t = np.second.t;
-            ps.push_back(v);
-        }
-        pssz = ps.size();
+        : strmeas( recin,  shortnamein == "" ? "fr" : shortnamein, "String-valued formula " + fstr)
+    {
+        nps = npsin;
+        bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
     };
 
@@ -1335,8 +1166,47 @@ public:
 };
 
 
+class formgraph : public gmeas
+{
+public:
+    formulaclass* fc;
+
+    neighborstype* takemeas(neighborstype* ns, const params& ps) override
+    {
+        evalmformula* ef = new evalmformula(rec,ns);
+        namedparams npslocal = nps;
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
+        neighborstype* out;
+        mtconverttograph(r,out);
+        return out;
+    }
 
 
+    neighborstype* takemeas(const int idx) override
+    {
+        evalmformula* ef = new evalmformula(rec,idx);
+        namedparams npslocal = nps;
+        valms r = ef->eval(*fc, npslocal);
+        delete ef;
+        neighborstype* out;
+        mtconverttograph(r,out);
+        return out;
+    }
+
+    formgraph( mrecords* recin , const std::vector<int>& litnumpsin,
+                const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
+                const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
+        : gmeas( recin,  shortnamein == "" ? "fg" : shortnamein, "Graph-valued formula " + fstr )
+    {
+        nps = npsin;
+        bindnamedparams();
+        fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
+    };
+    ~formgraph() {
+        delete fc;
+    }
+};
 
 
 
@@ -1581,107 +1451,6 @@ public:
 
         return r;
 
-/*
-
-        if (pos == -1)
-        {
-            valms r;
-            r.t = mtset;
-            auto subset = new setitrsubset(inprocesssupersetpos);
-            r.seti = subset;
-            supersetpos->reset();
-            // subsetitr.setsuperset(supersetitr->getitrpos());
-            memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
-            // valms res;
-            // res.t = mtset;
-            // res.seti = &subsetitr;
-            // std::cout << "subset ";
-            // for (int j = 0; j <= subset->maxint; ++j)
-                // std::cout << subset->elts[j] << ", ";
-            // std::cout << "\n";
-            totality.resize(++pos+1);
-            subset->computed = false;
-            subset->reset();
-            totality[pos] = r;
-            // std::cout << "..size == " << subset->getsize() << "\n";
-            return r;
-        }
-
-        if (++possubsetsv < numberofsubsets)
-        {
-            valms r;
-            r.t = mtset;
-            auto subset = new setitrsubset(inprocesssupersetpos);
-            r.seti = subset;
-            // valms res;
-            // res.t = mtset;
-            // res.seti = &subsetitr;
-            memset(subset->elts, false, (subset->maxint+1)*sizeof(bool));
-            for (int j = 0; j < subsetsize; ++j)
-                subset->elts[subsetsv[possubsetsv*subsetsize + j]] = true;
-            // if (subset.size() > 0)
-            subset->elts[subset->maxint] = true;
-            // std::cout << "subset ";
-            // for (int j = 0; j <= subset->maxint; ++j)
-                // std::cout << subset->elts[j] << ", ";
-            // std::cout << "\n";
-            // ++possubsetsv;
-            subset->computed = false;
-            subset->reset();
-            totality.resize(++pos+1);
-            totality[pos] = r;
-            // std::cout << "..size == " << subset->getsize() << "\n";
-            return r;
-        }
-
-
-        possubsetsv = -1;
-        ++subsetsize;
-        if (subsetsize < subsets.size())
-        {
-            subsetsv.clear();
-            enumsizedsubsets(0,subsetsize,nullptr,0,subsets.size()-1,&subsetsv);
-            numberofsubsets = subsetsv.size()/subsetsize;
-            // subset->totality.clear();
-            // subset->reset();
-            if (subsetsv.size() == 0)
-            {
-                std::cout << "Error infinite loop in Powerset\n";
-                exit(1);
-                valms v;
-                return v;
-            }
-            return getnext();
-        } else
-        {
-            if (!supersetpos->ended())
-            {
-                subsets.push_back(supersetpos->getnext());
-                subsetsize = 0;
-                numberofsubsets = 1;
-                subsetsv.clear();
-                possubsetsv = -1;
-                inprocesssupersetitr.totality.clear();
-                inprocesssupersetitr.totality.resize(subsets.size());
-                for (int i = 0; i < subsets.size(); ++i)
-                {
-                    valms v = subsets[i];
-                    inprocesssupersetitr.totality[i] = v;
-                }
-                inprocesssupersetitr.reset();
-                inprocesssupersetpos->reset();
-                // subset->totality.clear();
-                // subset->setmaxint(subsets.size());
-                // subset->reset();
-                // subsetitr.setsuperset(inprocesssupersetpos);
-                return getnext();
-            } else
-            {
-                std::cout << "Error: powerset ended already\n";
-                valms v;
-                return v;
-            }
-        }*/
     }
 
     int getsize() override
@@ -1741,35 +1510,19 @@ int getsetsize( valms v)
 class Pset : public set
 {
 public:
-    // setitrfactory<setitrpowerset> f;
-    //setitrpowerset* itr {};
+
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        // auto itr = f.getsetitr();
-        if (ps.size() == 1)
-        {
-            // delete itr;
-            // itr = new setitrpowerset(ps[0].seti);
-            // return itr;
-            auto itr = new setitrpowerset(ps[0].seti);
-            return itr;
-        }
-        std::cout << "Error in Pset::takemeas\n";
-        exit(1);
-        return nullptr;;
+        auto itr = new setitrpowerset(ps[0].seti);
+        return itr;
     }
 
     Pset( mrecords* recin ) : set(recin,"Ps", "Powerset")
     {
-        valms v;
+        valms v {};
         v.t = mtset;
-        ps.clear();
-        ps.push_back(v);
-        pssz = 1;
-    }
-    ~Pset()
-    {
-        // delete itr;
+        nps.push_back(std::pair{"set",v});
+        bindnamedparams();
     }
 };
 
@@ -1812,11 +1565,10 @@ public:
 
     Permset( mrecords* recin ) : set(recin,"Perms", "Set of permutation tuples")
     {
-        valms v;
+        valms v {};
         v.t = mtset;
-        ps.clear();
-        ps.push_back(v);
-        pssz = 1;
+        nps.push_back(std::pair{"set",v});
+        bindnamedparams();
     }
     ~Permset()
     {
@@ -1832,29 +1584,26 @@ class Vset : public set
 {
 public:
     std::vector<setitrint*> itr {};
-    setitr* takemeas(const int idx) override
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-        // auto itr = f.getsetitr();
-        auto g = (*rec->gptrs)[idx];
-        // if (itr.size() <= idx)
-            // itr.resize(idx+1);
-        // itr[idx] = new setitrint(g->dim-1);
-        // itr->setmaxint(g->dim-1);
-        // memset(itr[idx]->elts,true,(itr[idx]->maxint+1)*sizeof(bool));
-        // itr[idx]->computed = false;
-        // itr[idx]->reset();
-        // return itr[idx];
+        auto g = ns->g;
         auto itr = new setitrint(g->dim-1);
         memset(itr->elts,true,(itr->maxint+1)*sizeof(bool));
         itr->computed = false;
         itr->reset();
         return itr;
     }
-    Vset( mrecords* recin ) : set(recin,"V", "Graph vertices set")
+
+    setitr* takemeas(const int idx) override
     {
-        ps.clear();
-        pssz = 0;
+        auto g = (*rec->gptrs)[idx];
+        auto itr = new setitrint(g->dim-1);
+        memset(itr->elts,true,(itr->maxint+1)*sizeof(bool));
+        itr->computed = false;
+        itr->reset();
+        return itr;
     }
+    Vset( mrecords* recin ) : set(recin,"V", "Graph vertices set") {}
 };
 
 class Eset : public set
@@ -1862,27 +1611,21 @@ class Eset : public set
 public:
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        // auto itr = f.getsetitr();
         auto g = (*rec->gptrs)[idx];
         auto itr = new setitredges(g);
         return itr;
     }
-
-    Eset( mrecords* recin ) : set(recin,"E", "Graph edges set")
-    {
-        pssz = 0;
-    }
+    Eset( mrecords* recin ) : set(recin,"E", "Graph edges set") {}
 
 };
 
-class NEset : public set
+class nEset : public set
 {
 public:
     graphtype* ginv;
 
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        // auto itr = f.getsetitr();
         auto g = (*rec->gptrs)[idx];
         ginv = new graphtype(g->dim);
         for (int i = 0; i+1 <= g->dim; ++i)
@@ -1896,102 +1639,24 @@ public:
             }
         }
         ginv->adjacencymatrix[(g->dim-1)*g->dim + g->dim-1] = false;
-
         auto itr = new setitredges(ginv);
         return itr;
     }
 
-    NEset( mrecords* recin ) : set(recin,"nE", "Graph non-edges set")
-    {
-        pssz = 0;
-    }
+    nEset( mrecords* recin ) : set(recin,"nE", "Graph non-edges set") {}
 
-    ~NEset()
+    ~nEset()
     {
         delete ginv;
     }
 
 };
 
-
-
-
-class CPset : public set
-// Set cross-product
-{
-public:
-    setitrcp* f {};
-    setitr* takemeas(const int idx, const params& ps ) override
-    {
-        delete f;
-        if (ps.size() == 2)
-        {
-            auto setA = ps[0].seti;
-            auto setB = ps[1].seti;
-            f = new setitrcp(setA,setB);
-            return f;
-        }
-        std::cout << "Error in CPset::takemeas\n";
-        return f;
-    }
-
-    CPset( mrecords* recin ) : set(recin,"CP", "set cross-product")
-    {
-        valms v;
-        v.t = mtset;
-        ps.clear();
-        ps.push_back(v);
-        ps.push_back(v);
-        pssz = 2;
-    }
-};
-
-
-/*
-
-class Pairset : public set
-{
-public:
-    setitrpairs* f {};
-    setitr* takemeas(const int idx, const params& ps ) override
-    {
-        delete f;
-        if (ps.size() == 1)
-        {
-            auto setA = ps[0].seti;
-            f = new setitrpairs(setA);
-            return f;
-        }
-        std::cout << "Error in Pairset::takemeas\n";
-        return f;
-    }
-
-    Pairset( mrecords* recin ) : set(recin,"Pair", "set pair")
-    {
-        valms v;
-        v.t = mtset;
-        ps.clear();
-        ps.push_back(v);
-        pssz = 1;
-    }
-    ~Pairset()
-    {
-        delete f;
-    }
-};
-
-
-*/
-
 class Sizedsubset : public set
 {
 public:
-    // std::vector<setitrsizedsubset*> f {};
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        //delete f;
-        // if (f.size()<=idx)
-            // f.resize(idx+1);
         if (ps.size() == 2)
         {
             auto size = ps[1].v.iv;
@@ -2011,11 +1676,10 @@ public:
     {
         valms v;
         v.t = mtset;
-        ps.clear();
-        ps.push_back(v);
+        nps.push_back(std::pair{"set",v});
         v.t = mtdiscrete;
-        ps.push_back(v);
-        pssz = 2;
+        nps.push_back(std::pair{"size",v});
+        bindnamedparams();
     }
     ~Sizedsubset()
     {
@@ -2043,9 +1707,8 @@ public:
     {
         valms v;
         v.t = mtset;
-        ps.clear();
-        ps.push_back(v);
-        pssz = 1;
+        nps.push_back(std::pair{"set",v});
+        bindnamedparams();
     }
     ~Setpartition()
     {
@@ -2053,6 +1716,35 @@ public:
     }
 };
 
+/* TO DO
+class Setsizedpartition : public set
+{
+public:
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        if (ps.size() == 2)
+        {
+            auto setA = ps[0].seti;
+            auto s = ps[1].v.iv;
+            auto f = new setitrsetpartitions(setA);
+            return f;
+        }
+        std::cout << "Error in Sizedsubset::takemeas\n";
+        return nullptr;
+    }
+
+    Setsizedpartition( mrecords* recin ) : set(recin,"Setpartition", "Set partitions")
+    {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"set",v});
+        bindnamedparams();
+    }
+    ~Setsizedpartition()
+    {
+        //        delete f;
+    }
+}; */
 
 
 class NNset : public set
@@ -2079,14 +1771,9 @@ public:
     NNset( mrecords* recin ) : set(recin,"NN", "Natural numbers finite set")
     {
         valms v;
-        ps.clear();
         v.t = mtdiscrete;
-        ps.push_back(v);
-        pssz = 1;
-    }
-    ~NNset()
-    {
-//        delete f;
+        nps.push_back(std::pair{"n",v});
+        bindnamedparams();
     }
 };
 
@@ -2101,6 +1788,115 @@ class Nullset : public set
 
     Nullset( mrecords* recin ) : set(recin,"Nulls", "Null (empty) set"), itr{new setitrint(-1)} {}
 };
+
+class Subgraphsset: public set
+{
+    public:
+    Subgraphsset( mrecords* recin ) : set(recin, "Subgraphs", "set of subgraphs") {}
+};
+
+class InducedSubgraphsset: public set
+{ // Diestel p. 4
+public:
+    InducedSubgraphsset( mrecords* recin ) : set(recin, "InducedSubgraphss", "set of induced subgraphs") {}
+};
+
+class GraphonVEgmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        auto Upos = ps[0].seti->getitrpos();
+        auto Fpos = ps[1].seti->getitrpos();
+        int dim = Upos->getsize();
+        auto gout = new graphtype(dim);
+        int i = 0;
+        gout->vertexlabels.resize(dim);
+        auto vlabel = new std::string;
+        while (!Upos->ended())
+        {
+            mtconverttostring(Upos->getnext(),vlabel);
+            gout->vertexlabels[i++] = *vlabel;
+        }
+        memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
+        delete vlabel;
+        while (!Fpos->ended())
+        {
+            auto pairitr = Fpos->getnext().seti->getitrpos();
+            if (pairitr->getsize() != 2)
+                std::cout << "Error non edge in set passed to GraphonVEg\n";
+            else
+            {
+                auto v1 = pairitr->getnext().v.iv;
+                auto v2 = pairitr->getnext().v.iv;
+                if (v1 < dim && v2 < dim)
+                {
+                    gout->adjacencymatrix[v1*dim + v2] = true;
+                    gout->adjacencymatrix[v2*dim + v1] = true;
+                }
+            }
+        }
+        neighborstype* out = new neighborstype(gout);
+        return out;
+    }
+    GraphonVEgmeas( mrecords* recin ) : gmeas(recin,"GraphonVEg", "graph on given vertices and edges")
+    {
+        valms v1;
+        valms v2;
+        v1.t = mtset;
+        v2.t = mtset;
+        nps.push_back(std::pair{"U",v1});
+        nps.push_back(std::pair{"F",v2});
+        bindnamedparams();
+    }
+};
+
+class SubgraphonUgmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto g = ns->g;
+        int dimg = ns->dim;
+        auto Upos = ps[0].seti->getitrpos();
+        int dim = Upos->getsize();
+        auto gout = new graphtype(dim);
+        int* vmap = (int*)(malloc(dim*sizeof(int)));
+        int i = 0;
+        gout->vertexlabels.resize(dim);
+        while (!Upos->ended())
+        {
+            int j = Upos->getnext().v.iv;
+            vmap[i] = j;
+            gout->vertexlabels[i] = ns->g->vertexlabels[j];
+            ++i;
+        }
+        memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
+        for (int i = 0; i+1 < dim; ++i)
+            for (int j = i+1; j < dim; ++j)
+            {
+                bool adj = g->adjacencymatrix[vmap[i]*dimg + vmap[j]];
+                gout->adjacencymatrix[i*dim + j] = adj;
+                gout->adjacencymatrix[j*dim + i] = adj;
+            }
+        delete vmap;
+        neighborstype* out = new neighborstype(gout);
+        return out;
+    }
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    SubgraphonUgmeas( mrecords* recin ) : gmeas(recin,"SubgraphonUg", "Induced subgraph on given vertices")
+    {
+        valms v1;
+        v1.t = mtset;
+        nps.push_back(std::pair{"U",v1});
+        bindnamedparams();
+    }
+};
+
 
 class TupletoSet : public set
 {
@@ -2135,11 +1931,10 @@ class TupletoSet : public set
 
     TupletoSet( mrecords* recin ) : set(recin, "TupletoSet", "Converts a tuple to a set")
     {
-        valms v;
-        ps.clear();
+        valms v {};
         v.t = mttuple;
-        ps.push_back(v);
-        pssz = 1;
+        nps.push_back(std::pair{"tuple",v});
+        bindnamedparams();
     }
 };
 
@@ -2168,12 +1963,11 @@ public:
 
     Pathsset( mrecords* recin ) : set(recin,"Pathss", "Paths between two vertices set (ordered)")
     {
-        valms v;
-        ps.clear();
+        valms v {};
         v.t = mtdiscrete;
-        ps.push_back(v);
-        ps.push_back(v);
-        pssz = 2;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        bindnamedparams();
     }
 
 };
@@ -2203,11 +1997,10 @@ public:
 
     Cyclesvset( mrecords* recin ) : set(recin,"Cyclesvs", "Cycles from a vertex")
     {
-        valms v;
-        ps.clear();
+        valms v {};
         v.t = mtdiscrete;
-        ps.push_back(v);
-        pssz = 1;
+        nps.push_back(std::pair{"v",v});
+        bindnamedparams();
     }
 
 };
@@ -2230,10 +2023,7 @@ public:
         return res;
     }
 
-    Cyclesset( mrecords* recin ) : set(recin,"Cycless", "All cycles")
-    {
-        pssz = 0;
-    }
+    Cyclesset( mrecords* recin ) : set(recin,"Cycless", "All cycles") {}
 
 };
 
