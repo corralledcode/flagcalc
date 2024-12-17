@@ -1873,9 +1873,11 @@ public:
 
         auto (Chip) = tuplefactory<Chituple>;
         auto (Chigreedyp) = tuplefactory<Chigreedytuple>;
+        auto (Sp) = tuplefactory<Stuple>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
+        ossfactory.push_back(Sp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));

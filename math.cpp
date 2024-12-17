@@ -12,6 +12,7 @@
 
 #include <complex>
 #include <cstring>
+#include <oneapi/tbb/detail/_task.h>
 
 #include "feature.h"
 #include "graphs.h"
@@ -89,7 +90,20 @@ inline std::vector<std::string> parsecomponents( std::string str) {
     std::string partial {};
     std::vector<std::string> components {};
     bool bracketed = false;
+    bool instring = false;
     for (auto ch : str) {
+        if (instring)
+        {
+            instring = ch != '"' || (ch == '"' && partial.size() > 0 && partial[partial.size()-1] == '\\');
+            if (instring)
+                partial += ch;
+            else
+            {
+                components.push_back(partial);
+                partial = "";
+                continue;
+            }
+        }
         if (ch == ' ') {
             if (partial != "") {
                 components.push_back(partial);
@@ -287,6 +301,11 @@ inline std::vector<std::string> parsecomponents( std::string str) {
             partial = ">";
             continue;
         }
+        if (ch == '"')
+        {
+            instring = true;
+            continue;
+        }
         if (partial.size() > 0 && partial[partial.size()-1] == '!')
         {
             if (partial.size() > 1)
@@ -447,8 +466,6 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqdupeunion
             || fo == formulaoperator::foqintersection);
 }
-
-
 
 template<typename T, typename T1, typename T2>
 T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
@@ -761,7 +778,6 @@ valms evalformula::eval( formulaclass& fc, namedparams& context) {}
 
 valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 {
-
     valms res;
     if (fc.fo == formulaoperator::foliteral) {
         if (fc.v.lit.ps.empty())
@@ -1015,6 +1031,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             res.v.bv = false;
             return res;
         }
+    }
+
+    if (fc.fo == formulaoperator::fonaming)
+    {
+        valms v = evalinternal(*fc.fcright->boundvariable->superset, context);
+        context.push_back({fc.fcright->boundvariable->name,v});
+        res = evalinternal(*fc.fcright, context);
+        context.resize(context.size()-1);
+        return res;
     }
 
     if (quantifierops(fc.fo)) {
@@ -1810,6 +1835,14 @@ inline bool is_quantifier( std::string tok ) {
     // return tok == QUANTIFIER_FORALL || tok == QUANTIFIER_EXISTS;
 }
 
+inline bool is_naming(std::string tok)
+{
+    for (auto q : operatorsmap)
+        if (tok == q.first)
+            return q.second == formulaoperator::fonaming;
+    return false;
+}
+
 
 
 
@@ -1834,7 +1867,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             }
             continue;
         }
-        if (is_operator(tok) && !is_quantifier(tok)) {
+        if (is_operator(tok) && !is_quantifier(tok) && !is_naming(tok)) {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
                 while ((ostok != "(") && (ostok != "{") && ostok != "<<" && (operatorprecedence(ostok,tok) >= 0)) {
@@ -1849,11 +1882,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             operatorstack.push_back(tok);
             continue;
         }
-
-        if (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok))
+        if (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok) || is_naming(tok))
         {
-            // if (litnumps[get_literal(tok)] > 0)
-            // {
             if (n < components.size())
                 if (components[n] == "(")
                 {
@@ -1880,9 +1910,6 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     werevalues.push_back(true);
                 }
             }
-            // }
-            // else
-            // output.insert(output.begin(),tok);
             continue;
         }
 
@@ -2177,11 +2204,11 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             if (operatorstack.size() > 0)
             {
                 ostok = operatorstack[operatorstack.size()-1];
-                if (is_operator(ostok) && !is_quantifier(ostok)) {
+                if (is_operator(ostok) && !is_quantifier(ostok) && !is_naming(ostok)) {
                     // continue;
                 } else
                     if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok)
-                        || ostok == SHUNTINGYARDDEREFKEY)
+                        || is_naming(ostok) || ostok == SHUNTINGYARDDEREFKEY)
                     {
                         int a = 0;
                         if (!argcount.empty())
@@ -2204,7 +2231,6 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
                         output.insert(output.begin(),ostok);
                         operatorstack.resize(operatorstack.size()-1);
-
                     }
                 // continue;
             }
@@ -2248,17 +2274,11 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         output.insert(output.begin(),ostok);
         operatorstack.resize(operatorstack.size()-1);
     }
-
     // for (auto o : output)
         // std::cout << o << ", ";
     // std::cout << "\n";
-
     return output;
-
 }
-
-
-
 
 inline formulaclass* parseformulainternal(
     std::vector<std::string>& q,
@@ -2310,6 +2330,57 @@ inline formulaclass* parseformulainternal(
 
         }
 
+        if (is_naming(tok))
+        {
+            auto qc = new qclass;
+            int argcnt;
+            if (q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            {
+                argcnt = stoi(q[++pos]);
+                if (argcnt != 2)
+                    std::cout << "Wrong number (" << argcnt << ") of arguments to a 'NAMING'\n";
+            }
+            int pos2 = pos+1;
+            int namingcount = 0;
+            std::string AStok = "AS";
+            for (auto s : operatorsmap)
+                if (s.second == formulaoperator::foas)
+                {
+                    AStok = s.first;
+                    break;
+                }
+            while (pos2+1 <= q.size() && (q[pos2] != AStok || namingcount >= 1)) {
+                namingcount += is_naming(q[pos2]) ? 1 : 0;
+                namingcount -= q[pos2] == AStok ? 1 : 0;
+                ++pos2;
+            }
+            if (pos2 >= q.size()) {
+                std::cout << "'Naming' not containing an 'AS'\n";
+                exit(-1);
+            }
+
+            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
+            qc->name = q[++pos2];
+            qc->criterion = nullptr;
+
+            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
+            fcright->boundvariable = qc;
+
+            // if (argcnt == 3)
+            // {
+                // qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  fnptrs);
+            // }
+
+            formulaclass* fcleft = nullptr;
+            formulaoperator o = lookupoperator(tok);
+            formulavalue fv {};
+            fv.qc = qc;
+            auto fc = fccombine(fv,fcleft,fcright,o);
+
+            pos = pos2;
+            return fc;
+
+        }
 
         if (is_quantifier(tok)) {
 
@@ -2324,32 +2395,35 @@ inline formulaclass* parseformulainternal(
                 if (argcnt != 3 && argcnt != 2)
                     std::cout << "Wrong number (" << argcnt << ") of arguments to a quantifier\n";
             }
+            std::string INtok = "IN";
+            for (auto s : operatorsmap)
+                if (s.second == formulaoperator::foin)
+                {
+                    INtok = s.first;
+                    break;
+                }
             int pos2 = pos+1;
             int quantcount = 0;
-            while (pos2+1 <= q.size() && (q[pos2] != "IN" || quantcount >= 1)) {
+            while (pos2+1 <= q.size() && (q[pos2] != INtok || quantcount >= 1)) {
                 quantcount += is_quantifier(q[pos2]) ? 1 : 0;
-                quantcount -= q[pos2] == "IN" ? 1 : 0;
+                quantcount -= q[pos2] == INtok ? 1 : 0;
                 ++pos2;
             }
             if (pos2 >= q.size()) {
                 std::cout << "Quantifier not containing an 'IN'\n";
                 exit(-1);
             }
-            // --pos2;
             qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
             qc->name = q[++pos2];
             qc->criterion = nullptr;
-            // variables->push_back(qc);
 
             formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
             fcright->boundvariable = qc;
 
-            // if (pos+1 < pos1)
             if (argcnt == 3)
             {
                 qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  fnptrs);
             }
-            // qc->qs.t = qc->superset->v.v.seti->t;
 
             formulaclass* fcleft = nullptr;
             formulaoperator o = lookupoperator(tok);

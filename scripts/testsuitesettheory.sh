@@ -202,5 +202,13 @@ $PTH/flagcalc -r 8 14 10000 -a s="dimm>1" s2="kappat <= lambdat && lambdat <= de
 
 # Diestel Theorem 1.4.3 (p. 13) (Mader 1972)
 
-$PTH/flagcalc -r 8 14 100 -a s="FORALL (k IN dimm, k > 0 AND dm >= 4*k, EXISTS (U IN Ps(V), kconnc(SubgraphonUg(U),k+1) AND dm(SubgraphonUg(U))/2 > dm/2 - k))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 50 1000 -a s="FORALL (k IN dimm, k > 0 AND dm >= 4*k, EXISTS (U IN Ps(V), kconnc(SubgraphonUg(U),k+1) AND dm(SubgraphonUg(U))/2 > dm/2 - k))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 50 1000 -a s="FORALL (k IN dimm, k > 0 AND dm >= 4*k, EXISTS (U IN Ps(V), NAMING (SU AS SubgraphonUg(U), kconnc(SU,k+1) AND dm(SU)/2 > dm/2 - k)))" all -v i=minimal3.cfg
 
+$PTH/flagcalc -r 12 30.5 100 -a a="st(Cyclesvs(0)) + st(Cyclesvs(0)) + st(Cyclesvs(0))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 30.5 100 -a a="NAMING (C AS Cyclesvs(0), st(C) + st(C) + st(C))" all -v i=minimal3.cfg
+
+
+# Diestel Proposition 1.4.1 (p 10)
+
+$PTH/flagcalc -r 8 14 1000 -a s1="conn1c" s2="EXISTS (p IN Perms(V), FORALL (n IN dimm+1, conn1c(SubgraphonUg(Sp(p,n)))))" all -v i=minimal3.cfg

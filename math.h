@@ -48,7 +48,7 @@ enum class formulaoperator
     foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection,
-    foswitch, focases, foin};
+    foswitch, focases, foin, fonaming, foas};
 
 inline std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -94,7 +94,9 @@ inline std::map<std::string,formulaoperator> operatorsmap
         {"BIGCAP", formulaoperator::foqintersection},
         {"?", formulaoperator::foswitch},
         {":", formulaoperator::focases},
-        {"IN", formulaoperator::foin}};
+        {"IN", formulaoperator::foin},
+        {"NAMING", formulaoperator::fonaming},
+        {"AS", formulaoperator::foas}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -817,13 +819,6 @@ class setitrset : public setitrmodeone
     }
 };
 
-class setitrinitialsegment : public setitr
-{
-public:
-
-};
-
-
 
 class qclass {
 public:
@@ -1351,6 +1346,7 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foqunion,0},
                             {formulaoperator::foqdupeunion,0},
                             {formulaoperator::foqintersection,0},
+                            {formulaoperator::fonaming,0},
                             {formulaoperator::foexponent,1},
                             {formulaoperator::fotimes,2},
                             {formulaoperator::fodivide,2},
@@ -1376,7 +1372,8 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::fointersection,3},
                             {formulaoperator::foswitch,8},
                             {formulaoperator::focases, 7},
-                            {formulaoperator::foin, 8}};
+                            {formulaoperator::foin, 8},
+                            {formulaoperator::foas, 8}};
 
 
 bool is_operator( const std::string& tok );

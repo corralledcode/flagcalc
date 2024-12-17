@@ -1493,19 +1493,53 @@ public:
     {
         delete supersetpos;
     }
-
-
 };
 
-
-/*
-int getsetsize( valms v)
+class setitrInitialsegment : public setitr
 {
-    int res = 0;
-    for (int i = 0; i < v.setsize; ++i)
-        res += v.v.iset[i] ? 1 : 0;
-    return res;
-}*/
+public:
+    itrpos* superset {};
+    int cutoff;
+    void setsuperset( itrpos* supersetposin )
+    {
+        superset = supersetposin;
+        reset();
+    }
+    int getsize() override
+    {
+        return cutoff;
+    }
+    valms getnext() override
+    {
+        valms res;
+        if (++pos < totality.size())
+            return totality[pos];
+        res = superset->getnext();
+        totality.resize(pos + 1);
+        if (pos >= 0)
+            totality[pos] = res;
+        return res;
+    }
+    void reset() override
+    {
+        superset->reset();
+        pos = -1;
+    }
+    bool ended() override
+    {
+        return pos + 1 >= cutoff;
+    }
+    setitrInitialsegment(itrpos* supersetin, const int cutoffin) : superset{supersetin}, cutoff{cutoffin}
+    {
+        t = superset->parent->t;
+        pos = -1;
+    };
+    setitrInitialsegment() : superset{}
+    {
+        t = mtdiscrete;
+        pos = -1;
+    };
+};
 
 class Pset : public set
 {
@@ -1532,9 +1566,9 @@ class Permset : public set
 public:
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        if (res)
-            for (auto v : res->totality)
-                delete v.seti;
+        // if (res)
+            // for (auto v : res->totality)
+                // delete v.seti;
         if (ps.size() == 1)
         {
             auto itr = ps[0].seti->getitrpos();
@@ -1576,6 +1610,25 @@ public:
             for (auto v : res->totality)
                 delete v.seti;
     }
+};
+
+class Stuple : public set
+{
+public:
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        return new setitrInitialsegment(ps[0].seti->getitrpos(),ps[1].v.iv);
+    }
+    Stuple( mrecords* recin ) : set(recin,"Sp", "Tuple initial segment")
+    {
+        valms v;
+        v.t = mttuple;
+        nps.push_back(std::pair{"tuple",v});
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"n",v});
+        bindnamedparams();
+    }
+
 };
 
 
@@ -1861,25 +1914,28 @@ public:
         auto Upos = ps[0].seti->getitrpos();
         int dim = Upos->getsize();
         auto gout = new graphtype(dim);
-        int* vmap = (int*)(malloc(dim*sizeof(int)));
-        int i = 0;
-        gout->vertexlabels.resize(dim);
-        while (!Upos->ended())
+        if (dim > 0)
         {
-            int j = Upos->getnext().v.iv;
-            vmap[i] = j;
-            gout->vertexlabels[i] = ns->g->vertexlabels[j];
-            ++i;
-        }
-        memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
-        for (int i = 0; i+1 < dim; ++i)
-            for (int j = i+1; j < dim; ++j)
+            int* vmap = (int*)(malloc(dim*sizeof(int)));
+            int i = 0;
+            gout->vertexlabels.resize(dim);
+            while (!Upos->ended())
             {
-                bool adj = g->adjacencymatrix[vmap[i]*dimg + vmap[j]];
-                gout->adjacencymatrix[i*dim + j] = adj;
-                gout->adjacencymatrix[j*dim + i] = adj;
+                int j = Upos->getnext().v.iv;
+                vmap[i] = j;
+                gout->vertexlabels[i] = ns->g->vertexlabels[j];
+                ++i;
             }
-        delete vmap;
+            memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
+            for (int i = 0; i+1 < dim; ++i)
+                for (int j = i+1; j < dim; ++j)
+                {
+                    bool adj = g->adjacencymatrix[vmap[i]*dimg + vmap[j]];
+                    gout->adjacencymatrix[i*dim + j] = adj;
+                    gout->adjacencymatrix[j*dim + i] = adj;
+                }
+            delete vmap;
+        }
         neighborstype* out = new neighborstype(gout);
         return out;
     }
