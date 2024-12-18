@@ -1854,6 +1854,77 @@ public:
     InducedSubgraphsset( mrecords* recin ) : set(recin, "InducedSubgraphss", "set of induced subgraphs") {}
 };
 
+inline void extendverticestocomponent( graphtype* g, neighborstype* ns, bool* vertices )
+{
+    const int dim = g->dim;
+    bool changed = true;
+    bool* donevertices = new bool[dim];
+    memset(donevertices,0,sizeof(bool)*dim);
+    while (changed)
+    {
+        changed = false;
+        for (int i=0; i < dim; ++i)
+        {
+            if (vertices[i] && !donevertices[i]) {
+                for (int j = 0; j < ns->degrees[i]; ++j )
+                {
+                    const int v = ns->neighborslist[i*dim + j];
+                    changed = changed || !vertices[v];
+                    vertices[v] = true;
+                }
+                donevertices[i] = true;
+            }
+        }
+    }
+    delete donevertices;
+}
+
+class Componentsset : public set
+// Diestel p 12
+{
+public:
+    setitr* takemeas( neighborstype* ns, const params& ps ) override
+    {
+        auto g = ns->g;
+        setitrint* verticesset = new setitrint(g->dim-1);
+        const int dim = g->dim;
+        bool* vertices = new bool[dim];
+        memset(vertices,0,sizeof(bool)*dim);
+        std::vector<valms> tot {};
+        for (int i = 0; i < dim; )
+        {
+            auto itr = verticesset->getitrpos();
+            setitrsubset* component = new setitrsubset(itr);
+            memset(component->itrbool->elts,0, sizeof(bool)*dim);
+            component->itrbool->elts[i] = true;
+            extendverticestocomponent(g,ns,component->itrbool->elts);
+            for (int j = 0; j < dim; ++j)
+                vertices[j] = vertices[j] || component->itrbool->elts[j];
+            valms v;
+            v.t = mtset;
+            v.seti = component;
+            tot.push_back(v);
+            ++i;
+            while (vertices[i] && i < dim)
+                ++i;
+        }
+        delete vertices;
+        return new setitrmodeone(tot);
+    }
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    Componentsset( mrecords* recin ) : set(recin, "Componentss", "set of graph components") {}
+};
+
+class Maxconnectedgmeas : public gmeas
+{
+
+};
+
+
 class GraphonVEgmeas : public gmeas
 {
 public:
@@ -1918,12 +1989,29 @@ public:
         {
             int* vmap = (int*)(malloc(dim*sizeof(int)));
             int i = 0;
-            gout->vertexlabels.resize(dim);
+            bool labelled = g->vertexlabels.size() == dimg;
+            if (labelled)
+                gout->vertexlabels.resize(dim);
             while (!Upos->ended())
             {
-                int j = Upos->getnext().v.iv;
-                vmap[i] = j;
-                gout->vertexlabels[i] = ns->g->vertexlabels[j];
+                auto v = Upos->getnext();
+                if (v.t == mtstring && labelled)
+                {
+                    for (int k = 0; k < dimg; ++k)
+                        if (g->vertexlabels[k] == *v.v.rv)
+                        {
+                            vmap[i] = k;
+                            gout->vertexlabels[i] = *v.v.rv;
+                            break;
+                        }
+                } else
+                {
+                    int vidx;
+                    mtconverttodiscrete(v,vidx);
+                    vmap[i] = vidx;
+                    if (labelled)
+                        gout->vertexlabels[i] = ns->g->vertexlabels[vidx];
+                }
                 ++i;
             }
             memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
@@ -1953,6 +2041,30 @@ public:
     }
 };
 
+
+class Ggmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        std::vector<std::string> tempstrv {};
+        tempstrv.push_back(*ps[0].v.rv);
+        auto g = igraphstyle(tempstrv);
+        auto out = new neighbors(g);
+        return out;
+    }
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
+    Ggmeas( mrecords* recin ) : gmeas(recin,"Gg", "Graph on given string")
+    {
+        valms v1;
+        v1.t = mtstring;
+        nps.push_back(std::pair{"s",v1});
+        bindnamedparams();
+    }
+};
 
 class TupletoSet : public set
 {

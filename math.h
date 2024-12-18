@@ -50,7 +50,7 @@ enum class formulaoperator
     foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection,
     foswitch, focases, foin, fonaming, foas};
 
-inline std::map<std::string,formulaoperator> operatorsmap
+inline const std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
         {"*",formulaoperator::fotimes},
         {"/",formulaoperator::fodivide},
@@ -743,6 +743,9 @@ public:
         t = mtdiscrete;
         pos = -1;
     };
+    ~setitrsubset() {
+        delete itrbool;
+    }
 
 };
 
@@ -1408,48 +1411,11 @@ public:
 
 };
 
-inline bool quantifierops( const formulaoperator fo );
+// outdated by map in math.cpp
+// inline bool quantifierops( const formulaoperator fo );
 
 
-inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> bound = {})
-{
-    if (!fc)
-        return false;
-    if (quantifierops(fc->fo))
-    {
-        bound.push_back(fc->v.qc->name);
-        if (searchfcforvariable(fc->v.qc->superset,bound))
-            return true;
-        if (searchfcforvariable(fc->fcright, bound) || searchfcforvariable(fc->fcleft, bound))
-            return true;
-    }
-    if (fc->fo == formulaoperator::fovariable)
-    {
-        for (auto s : bound)
-            if (fc->v.vs.name == s)
-                return false;
-        return true;
-    }
-    if (fc->fcleft && searchfcforvariable(fc->fcleft,bound))
-        return true;
-    if (fc->fcright && searchfcforvariable(fc->fcright,bound))
-        return true;
-    if (fc->fo == formulaoperator::fofunction)
-        for (auto p : fc->v.fns.ps)
-            if (searchfcforvariable(p,bound))
-                return true;
-    if (fc->fo == formulaoperator::foconstant)
-        for (auto p : fc->v.ss.elts)
-            if (searchfcforvariable(p,bound))
-                return true;
-    if (fc->fo == formulaoperator::foliteral)
-        for (auto p : fc->v.lit.ps)
-            if (searchfcforvariable(p,bound))
-                return true;
-    return false;
-}
-
-
+inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> bound = {});
 
 inline void mtconvertboolto( const bool vin, valms& vout )
 {

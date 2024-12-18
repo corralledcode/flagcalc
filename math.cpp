@@ -41,6 +41,13 @@ inline bool is_real(const std::string& s)
     return end != s.c_str() && *end == '\0' && val != HUGE_VAL;
 }
 
+inline bool is_string(const std::string& s)
+{
+    if (s.size() >= 2)
+        if (s[0] == '"' && s[s.size()-1] == '"')
+            return true;
+}
+
 inline bool evalsentence( logicalsentence ls, std::vector<bool> literals ) {
 
     bool res;
@@ -95,14 +102,13 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         if (instring)
         {
             instring = ch != '"' || (ch == '"' && partial.size() > 0 && partial[partial.size()-1] == '\\');
-            if (instring)
-                partial += ch;
-            else
+            partial += ch;
+            if (!instring)
             {
                 components.push_back(partial);
                 partial = "";
-                continue;
             }
+            continue;
         }
         if (ch == ' ') {
             if (partial != "") {
@@ -303,6 +309,9 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         }
         if (ch == '"')
         {
+            if (partial != "")
+                components.push_back(partial);
+            partial = "\"";
             instring = true;
             continue;
         }
@@ -428,6 +437,61 @@ inline logicalsentence parsesentence( const std::string sentence ) {
 
 class formulaclass;
 
+/*
+inline const std::unordered_map<formulaoperator,bool> booleanops {
+                            {formulaoperator::foqexists,false},
+                            {formulaoperator::foqforall,false},
+                            {formulaoperator::foqsum,false},
+                            {formulaoperator::foqproduct,false},
+                            {formulaoperator::foqmin,false},
+                            {formulaoperator::foqmax,false},
+                            {formulaoperator::foqrange,false},
+                            {formulaoperator::foqaverage,false},
+                            {formulaoperator::foqtally,false},
+                            {formulaoperator::foqcount,false},
+                            {formulaoperator::foqset,false},
+                            {formulaoperator::foqdupeset,false},
+                            {formulaoperator::foqunion,false},
+                            {formulaoperator::foqdupeunion,false},
+                            {formulaoperator::foqintersection,false},
+                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foexponent,false},
+                            {formulaoperator::fotimes,false},
+                            {formulaoperator::fodivide,false},
+                            {formulaoperator::fomodulus,false},
+                            {formulaoperator::foplus,false},
+                            {formulaoperator::fominus,false},
+                            {formulaoperator::foe,false},
+                            {formulaoperator::folte,false},
+                            {formulaoperator::folt,false},
+                            {formulaoperator::fogte,false},
+                            {formulaoperator::fogt,false},
+                            {formulaoperator::fone,false},
+                            {formulaoperator::foelt,false},
+                            {formulaoperator::fonot,false},
+                            {formulaoperator::foand,true},
+                            {formulaoperator::foor,true},
+                            {formulaoperator::foxor,true},
+                            {formulaoperator::foimplies,true},
+                            {formulaoperator::foiff,true},
+                            {formulaoperator::foif,true},
+                            {formulaoperator::founion,false},
+                            {formulaoperator::fodupeunion,false},
+                            {formulaoperator::fointersection,false},
+                            {formulaoperator::foswitch,false},
+                            {formulaoperator::focases, false},
+                            {formulaoperator::foin, false},
+                            {formulaoperator::foas, false},
+                            {formulaoperator::fotrue, false},
+                            {formulaoperator::fofalse, false},
+                            {formulaoperator::foconstant, false},
+                            {formulaoperator::fofunction, false},
+                            {formulaoperator::foliteral, false},
+                            {formulaoperator::foderef, false},
+                            {formulaoperator::fovariable, false}};
+*/
+
+/* actually faster than using the above map */
 inline bool booleanops( const formulaoperator fo)
 {
     return (fo == formulaoperator::foand
@@ -437,7 +501,60 @@ inline bool booleanops( const formulaoperator fo)
             || fo == formulaoperator::foxor
             || fo == formulaoperator::foif);
 }
-
+/*
+inline const std::unordered_map<formulaoperator,bool> equalityops {
+                            {formulaoperator::foqexists,false},
+                            {formulaoperator::foqforall,false},
+                            {formulaoperator::foqsum,false},
+                            {formulaoperator::foqproduct,false},
+                            {formulaoperator::foqmin,false},
+                            {formulaoperator::foqmax,false},
+                            {formulaoperator::foqrange,false},
+                            {formulaoperator::foqaverage,false},
+                            {formulaoperator::foqtally,false},
+                            {formulaoperator::foqcount,false},
+                            {formulaoperator::foqset,false},
+                            {formulaoperator::foqdupeset,false},
+                            {formulaoperator::foqunion,false},
+                            {formulaoperator::foqdupeunion,false},
+                            {formulaoperator::foqintersection,false},
+                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foexponent,false},
+                            {formulaoperator::fotimes,false},
+                            {formulaoperator::fodivide,false},
+                            {formulaoperator::fomodulus,false},
+                            {formulaoperator::foplus,false},
+                            {formulaoperator::fominus,false},
+                            {formulaoperator::foe,true},
+                            {formulaoperator::folte,true},
+                            {formulaoperator::folt,true},
+                            {formulaoperator::fogte,true},
+                            {formulaoperator::fogt,true},
+                            {formulaoperator::fone,true},
+                            {formulaoperator::foelt,false},
+                            {formulaoperator::fonot,false},
+                            {formulaoperator::foand,false},
+                            {formulaoperator::foor,false},
+                            {formulaoperator::foxor,false},
+                            {formulaoperator::foimplies,false},
+                            {formulaoperator::foiff,false},
+                            {formulaoperator::foif,false},
+                            {formulaoperator::founion,false},
+                            {formulaoperator::fodupeunion,false},
+                            {formulaoperator::fointersection,false},
+                            {formulaoperator::foswitch,false},
+                            {formulaoperator::focases, false},
+                            {formulaoperator::foin, false},
+                            {formulaoperator::foas, false},
+                            {formulaoperator::fotrue, false},
+                            {formulaoperator::fofalse, false},
+                            {formulaoperator::foconstant, false},
+                            {formulaoperator::fofunction, false},
+                            {formulaoperator::foliteral, false},
+                            {formulaoperator::foderef, false},
+                            {formulaoperator::fovariable, false}};
+*/
+/* actually faster than using the above map */
 inline bool equalityops( const formulaoperator fo)
 {
     return (fo == formulaoperator::folte
@@ -448,6 +565,60 @@ inline bool equalityops( const formulaoperator fo)
             || fo == formulaoperator::fone);
 }
 
+/*
+inline const std::unordered_map<formulaoperator,bool> quantifierops {
+                            {formulaoperator::foqexists,true},
+                            {formulaoperator::foqforall,true},
+                            {formulaoperator::foqsum,true},
+                            {formulaoperator::foqproduct,true},
+                            {formulaoperator::foqmin,true},
+                            {formulaoperator::foqmax,true},
+                            {formulaoperator::foqrange,true},
+                            {formulaoperator::foqaverage,true},
+                            {formulaoperator::foqtally,true},
+                            {formulaoperator::foqcount,true},
+                            {formulaoperator::foqset,true},
+                            {formulaoperator::foqdupeset,true},
+                            {formulaoperator::foqunion,true},
+                            {formulaoperator::foqdupeunion,true},
+                            {formulaoperator::foqintersection,true},
+                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foexponent,false},
+                            {formulaoperator::fotimes,false},
+                            {formulaoperator::fodivide,false},
+                            {formulaoperator::fomodulus,false},
+                            {formulaoperator::foplus,false},
+                            {formulaoperator::fominus,false},
+                            {formulaoperator::foe,false},
+                            {formulaoperator::folte,false},
+                            {formulaoperator::folt,false},
+                            {formulaoperator::fogte,false},
+                            {formulaoperator::fogt,false},
+                            {formulaoperator::fone,false},
+                            {formulaoperator::foelt,false},
+                            {formulaoperator::fonot,false},
+                            {formulaoperator::foand,false},
+                            {formulaoperator::foor,false},
+                            {formulaoperator::foxor,false},
+                            {formulaoperator::foimplies,false},
+                            {formulaoperator::foiff,false},
+                            {formulaoperator::foif,false},
+                            {formulaoperator::founion,false},
+                            {formulaoperator::fodupeunion,false},
+                            {formulaoperator::fointersection,false},
+                            {formulaoperator::foswitch,false},
+                            {formulaoperator::focases, false},
+                            {formulaoperator::foin, false},
+                            {formulaoperator::foas, false},
+                            {formulaoperator::fotrue, false},
+                            {formulaoperator::fofalse, false},
+                            {formulaoperator::foconstant, false},
+                            {formulaoperator::fofunction, false},
+                            {formulaoperator::foliteral, false},
+                            {formulaoperator::foderef, false},
+                            {formulaoperator::fovariable, false}};
+
+/* actually faster that using the above map */
 inline bool quantifierops( const formulaoperator fo )
 {
     return (fo == formulaoperator::foqforall
@@ -1042,6 +1213,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         return res;
     }
 
+    // if (quantifierops.find(fc.fo)->second) {
     if (quantifierops(fc.fo)) {
         res.v.bv = true;
 
@@ -1505,6 +1677,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     // {
     // case mtbool:
     if (booleanops(fc.fo))
+    // if (booleanops.find(fc.fo)->second)
     {
         res.t = mtbool;
         switch(resright.t)
@@ -1605,13 +1778,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         return res;
     }
 
-
     valms resleft = evalinternal(*fc.fcleft, context);
 
     res.t = fc.v.v.t;
-    // if (!booleanops(fc.fo) && (res.t == mtbool))
-        // res.t = mtcontinuous;
     if (equalityops(fc.fo))
+    // if (equalityops.find(fc.fo)->second)
     {
         res.t = mtbool;
         switch(resleft.t)
@@ -1826,13 +1997,12 @@ inline std::string get_literal(std::string tok) {
     return "";
 }
 
-
 inline bool is_quantifier( std::string tok ) {
     for (auto q : operatorsmap)
         if (tok == q.first)
             return quantifierops(q.second);
+            // return quantifierops.find(q.second)->second;
     return false;
-    // return tok == QUANTIFIER_FORALL || tok == QUANTIFIER_EXISTS;
 }
 
 inline bool is_naming(std::string tok)
@@ -1857,7 +2027,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
     int n = 0;
     while( n < components.size()) {
         const std::string tok = components[n++];
-        if (is_real(tok) || is_number(tok) || is_truth(tok))
+        if (is_real(tok) || is_number(tok) || is_truth(tok) || is_string(tok))
         {
             output.insert(output.begin(),tok);
             if (!werevalues.empty())
@@ -2622,7 +2792,15 @@ inline formulaclass* parseformulainternal(
             fv.ss.elts.clear();
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
         }
-
+        if (is_string(tok))
+        {
+            formulavalue fv {};
+            std::string tok2 = tok.substr(1,tok.size()-2);
+            fv.v.v.rv = new std::string(tok2);
+            fv.v.t = mtstring;
+            fv.ss.elts.clear();
+            return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
+        }
 
         // conclude it must be a variable
 
@@ -2686,5 +2864,44 @@ formulaclass* parseformula(
         auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
         return fc;
     }
+}
+
+inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> bound)
+{
+    if (!fc)
+        return false;
+    if (quantifierops(fc->fo))
+    // if (quantifierops.find(fc->fo)->second)
+    {
+        bound.push_back(fc->v.qc->name);
+        if (searchfcforvariable(fc->v.qc->superset,bound))
+            return true;
+        if (searchfcforvariable(fc->fcright, bound) || searchfcforvariable(fc->fcleft, bound))
+            return true;
+    }
+    if (fc->fo == formulaoperator::fovariable)
+    {
+        for (auto s : bound)
+            if (fc->v.vs.name == s)
+                return false;
+        return true;
+    }
+    if (fc->fcleft && searchfcforvariable(fc->fcleft,bound))
+        return true;
+    if (fc->fcright && searchfcforvariable(fc->fcright,bound))
+        return true;
+    if (fc->fo == formulaoperator::fofunction)
+        for (auto p : fc->v.fns.ps)
+            if (searchfcforvariable(p,bound))
+                return true;
+    if (fc->fo == formulaoperator::foconstant)
+        for (auto p : fc->v.ss.elts)
+            if (searchfcforvariable(p,bound))
+                return true;
+    if (fc->fo == formulaoperator::foliteral)
+        for (auto p : fc->v.lit.ps)
+            if (searchfcforvariable(p,bound))
+                return true;
+    return false;
 }
 

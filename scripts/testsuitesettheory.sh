@@ -212,3 +212,11 @@ $PTH/flagcalc -r 12 30.5 100 -a a="NAMING (C AS Cyclesvs(0), st(C) + st(C) + st(
 # Diestel Proposition 1.4.1 (p 10)
 
 $PTH/flagcalc -r 8 14 1000 -a s1="conn1c" s2="EXISTS (p IN Perms(V), FORALL (n IN dimm+1, conn1c(SubgraphonUg(Sp(p,n)))))" all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 30 100 10000 -a s="connm == st(Componentss)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 30 100 10000 -a a="connm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 30 100 10000 -a a="st(Componentss)" all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 8 10 1000 -a s="MAX (p IN Setpartition(V), FORALL (a IN p, FORALL (b IN p, a != b, NOT connvssc(a,b))), st(p)) == connm" all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 10 10 1 -a e="Componentss(Gg(\"abc de fgh ijkl\"))" all -v set allsets i=minimal3.cfg

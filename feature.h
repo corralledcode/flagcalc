@@ -1847,6 +1847,7 @@ public:
         auto (Perms) = setfactory<Permset>;
         auto (Subgraphss) = setfactory<Subgraphsset>;
         auto (InducedSubgraphss) = setfactory<InducedSubgraphsset>;
+        auto (Componentss) = setfactory<Componentsset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1864,6 +1865,7 @@ public:
         stsfactory.push_back(Perms);
         stsfactory.push_back(Subgraphss);
         stsfactory.push_back(InducedSubgraphss);
+        stsfactory.push_back(Componentss);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -1883,11 +1885,21 @@ public:
             oss.push_back((*ossfactory[n])(&rec));
         }
 
+        // auto (Gg) = stringfactory<Ggmeas>;
+
+        // rmsfactory.push_back(Chip);
+
+        // for (int n = 0; n < rmsfactory.size(); ++n) {
+        //    oss.push_back((*rmsfactory[n])(&rec));
+        // }
+
         auto (GraphonVEg) = graphfactory<GraphonVEgmeas>;
         auto (SubgraphonUg) = graphfactory<SubgraphonUgmeas>;
+        auto (Gg) = graphfactory<Ggmeas>;
 
         gmsfactory.push_back(GraphonVEg);
         gmsfactory.push_back(SubgraphonUg);
+        gmsfactory.push_back(Gg);
 
         for (int n = 0; n < gmsfactory.size(); ++n) {
             gms.push_back((*gmsfactory[n])(&rec));
