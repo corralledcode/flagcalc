@@ -48,7 +48,8 @@ enum class formulaoperator
     foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection,
-    foswitch, focases, foin, fonaming, foas};
+    foswitch, focases, foin, fonaming, foas,
+    fosetminus, fosetxor};
 
 inline const std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -96,7 +97,9 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {":", formulaoperator::focases},
         {"IN", formulaoperator::foin},
         {"NAMING", formulaoperator::fonaming},
-        {"AS", formulaoperator::foas}};
+        {"AS", formulaoperator::foas},
+        {"SETMINUS", formulaoperator::fosetminus},
+        {"SETXOR", formulaoperator::fosetxor}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -316,8 +319,6 @@ inline bool operator==(const valms& a1, const valms& a2)
         return a1.v.iv == a2.v.iv;
     case measuretype::mtbool:
         return a1.v.bv == a2.v.bv;
-    // case measuretype::mtpair:
-        // return a1.v.p->i == a2.v.p->i && a1.v.p->j == a2.v.p->j;
     case measuretype::mtset:
         { // code below assumes both sets sorted
             std::cout << "early code being used...\n"; // as coded, probably not capable of nested sets...
@@ -602,6 +603,144 @@ public:
     }
 
     setitrintersection(setitr* a, setitr* b) : setA{a}, setB{b}
+    {
+        reset();
+    };
+
+};
+
+class setitrsetminus : public setitrmodeone
+{
+    public:
+    setitr* setA;
+    setitr* setB;
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = -1;
+        totality.clear();
+        std::vector<valms> temp {};
+        while (!Bitr->ended())
+        {
+            bool found = false;
+            valms v = Bitr->getnext();
+            Aitr->reset();
+            while (!found && !Aitr->ended()) {
+                valms omitv = Aitr->getnext();
+                if (v.t == omitv.t)
+                    switch (v.t) {
+                        case mtbool:
+                        case mtdiscrete:
+                        case mtcontinuous:
+                        found = found || v == omitv;
+                        break;
+                        case mtset: {
+                            auto tmpitr1 = v.seti->getitrpos();
+                            auto tmpitr2 = omitv.seti->getitrpos();
+                            found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
+                            delete tmpitr1;
+                            delete tmpitr2;
+                            break;}
+                        case mttuple: {
+                            auto tmpitr1 = v.seti->getitrpos();
+                            auto tmpitr2 = omitv.seti->getitrpos();
+                            found = found || tupleeq( tmpitr1, tmpitr2);
+                            delete tmpitr1;
+                            delete tmpitr2;
+                            break;}
+                        default:
+                            std::cout << "Unsupported type " << v.t << " in setitrunion\n";
+                    }
+            }
+            if (!found)
+                temp.push_back(v);
+        }
+        totality.resize(temp.size());
+        for (int i = 0; i < temp.size(); i++)
+            totality[i] = temp[i];
+        computed = true;
+        reset();
+        delete Aitr;
+        delete Bitr;
+    }
+
+    setitrsetminus(setitr* a, setitr* b) : setA{a}, setB{b}
+    {
+        reset();
+    };
+
+};
+
+
+class setitrsetxor : public setitrmodeone
+{
+public:
+    setitr* setA;
+    setitr* setB;
+
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = -1;
+        std::vector<valms> temp {};
+        std::vector<valms> tempA {};
+        std::vector<valms> tempB {};
+        while (!Aitr->ended())
+            tempA.push_back(Aitr->getnext());
+        while (!Bitr->ended())
+            tempB.push_back(Bitr->getnext());
+        for (int i = 0; i < tempB.size(); i++)
+        {
+            valms v = tempB[i];
+            bool found = false;
+            int j = 0;
+            while (!found && j < tempA.size()) {
+                valms omitv = tempA[j++];
+                if (v.t == omitv.t)
+                    switch (v.t) {
+                        case mtbool:
+                        case mtdiscrete:
+                        case mtcontinuous:
+                        found = found || v == omitv;
+                        break;
+                        case mtset: {
+                            auto tmpitr1 = v.seti->getitrpos();
+                            auto tmpitr2 = omitv.seti->getitrpos();
+                            found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
+                            delete tmpitr1;
+                            delete tmpitr2;
+                            break;}
+                        case mttuple: {
+                            auto tmpitr1 = v.seti->getitrpos();
+                            auto tmpitr2 = omitv.seti->getitrpos();
+                            found = found || tupleeq( tmpitr1, tmpitr2);
+                            delete tmpitr1;
+                            delete tmpitr2;
+                            break;}
+                        default:
+                            std::cout << "Unsupported type " << v.t << " in setitrunion\n";
+                    }
+
+            }
+            if (!found)
+                temp.push_back(v);
+            else
+                tempA.erase(tempA.begin() + j - 1);
+        }
+        for (auto v2 : tempA)
+            temp.push_back(v2);
+        totality.clear();
+        for (auto v : temp)
+            totality.push_back(v);
+        computed = true;
+        reset();
+        delete Aitr;
+        delete Bitr;
+    }
+
+    setitrsetxor(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
     };
@@ -1376,7 +1515,9 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foswitch,8},
                             {formulaoperator::focases, 7},
                             {formulaoperator::foin, 8},
-                            {formulaoperator::foas, 8}};
+                            {formulaoperator::foas, 8},
+                            {formulaoperator::fosetminus, 3},
+                            {formulaoperator::fosetxor, 3}};
 
 
 bool is_operator( const std::string& tok );

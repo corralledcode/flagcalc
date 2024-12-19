@@ -1848,6 +1848,7 @@ public:
         auto (Subgraphss) = setfactory<Subgraphsset>;
         auto (InducedSubgraphss) = setfactory<InducedSubgraphsset>;
         auto (Componentss) = setfactory<Componentsset>;
+        auto (Edgess) = setfactory<Edgesset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1866,6 +1867,7 @@ public:
         stsfactory.push_back(Subgraphss);
         stsfactory.push_back(InducedSubgraphss);
         stsfactory.push_back(Componentss);
+        stsfactory.push_back(Edgess);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -2423,12 +2425,7 @@ protected:
             }
         }
         return -1;
-
     }
-
-
-
-
 
     void addstoredproc( const std::string sin )
     {

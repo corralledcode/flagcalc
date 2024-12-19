@@ -220,3 +220,10 @@ $PTH/flagcalc -r 30 100 10000 -a a="st(Componentss)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 10 1000 -a s="MAX (p IN Setpartition(V), FORALL (a IN p, FORALL (b IN p, a != b, NOT connvssc(a,b))), st(p)) == connm" all -v i=minimal3.cfg
 
 $PTH/flagcalc -r 10 10 1 -a e="Componentss(Gg(\"abc de fgh ijkl\"))" all -v set allsets i=minimal3.cfg
+
+# Diestel Theorem 3.4.1 (Mader 1978)
+
+$PTH/flagcalc -r 6 7.5 10 -a isp=storedprocedures.dat a="MAX (H IN Ps(V), M_H(H))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 7.5 10 -a isp=storedprocedures.dat s="\
+FORALL (H IN Ps(V), NAMING (MHH AS M_H(H), NAMING (VminusH AS V SETMINUS H, EXISTS (p IN Setpartition(VminusH), st(p) >= MHH, \
+  FORALL (s IN p, EXISTS (v1 IN H, EXISTS (v2 IN H, v1 != v2, NAMING (v1v2 AS Pathss(v1,v2), EXISTS (path IN v1v2, path <= (s CUPD {v1,v2}) ))))) ))))" all -v i=minimal3.cfg

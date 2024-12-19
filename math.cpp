@@ -1167,24 +1167,35 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     case formulaoperator::founion:
     case formulaoperator::fointersection:
     case formulaoperator::fodupeunion:
+    case formulaoperator::fosetminus:
+    case formulaoperator::fosetxor:
         {
             valms set1 = evalinternal(*fc.fcright, context );
             valms set2 = evalinternal( *fc.fcleft, context );
             if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
             {
-                if (fc.fo == formulaoperator::founion)
+                switch (fc.fo)
+                {
+                case formulaoperator::founion:
                     res.seti = new setitrunion(set1.seti,set2.seti);
-                else
-                    if (fc.fo == formulaoperator::fointersection)
-                        res.seti = new setitrintersection(set1.seti,set2.seti);
-                    else
-                        res.seti = new setitrdupeunion( set1.seti,set2.seti);
+                    break;
+                case formulaoperator::fointersection:
+                    res.seti = new setitrintersection(set1.seti,set2.seti);
+                    break;
+                case formulaoperator::fodupeunion:
+                    res.seti = new setitrdupeunion( set1.seti,set2.seti);
+                    break;
+                case formulaoperator::fosetminus:
+                    res.seti = new setitrsetminus( set1.seti,set2.seti);
+                    break;
+                case formulaoperator::fosetxor:
+                    res.seti = new setitrsetxor( set1.seti,set2.seti);
+                    break;
+                }
                 res.t = mtset;
-                // res.setsize = res.seti->getsize();
-
             }
             else {
-                std::cout << "Non-matching types in call to CUP, CAP, or CUPD\n";
+                std::cout << "Non-matching types in call to CUP, CAP, CUPD, SETMINUS, or SETXOR\n";
                 res.seti = nullptr;
                 // res.setsize = 0;
             }
@@ -1908,9 +1919,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
 {
     // if (!fc.v.subgraph) {
+    if (idx >= 0)
+    {
         literals.resize(rec->literals.size());
         for (int i = 0; i < rec->literals.size(); ++i)
             literals[i] = rec->literals[i][idx];
+    } else
+    {
+        literals.clear();
+    }
     // } else
     // { // subgraph case
         // literals.clear();

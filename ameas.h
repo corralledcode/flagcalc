@@ -151,9 +151,11 @@ public:
         {
             nps[npreferences[i]].second = ps[i];
         }
-        neighborstype* ns = (*this->rec->nsptrs)[idx];
+        T out;
+        return out;
+//        neighborstype* ns = (*this->rec->nsptrs)[idx];
 
-        return takemeas(idx);
+//        return this->takemeas(idx,ps);
     }
 
     pameas( mrecords* recin , std::string shortnamein, std::string namein)
@@ -912,7 +914,7 @@ class sentofcrit : public crit
 public:
     formulaclass* fc;
 
-    bool takemeas( neighborstype* ns, params& psin )
+    bool takemeas( neighborstype* ns, const params& psin ) override
     {
         evalmformula* ef = new evalmformula(rec,ns);
         namedparams npslocal = nps;
@@ -922,10 +924,17 @@ public:
         mtconverttobool(r,out);
         return out;
     }
-    bool takemeas(const int idx) override
+
+    bool takemeas(const int idx, const params& ps) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
+
+        for (int i = 0; i < ps.size(); ++i)
+        {
+            npslocal[npreferences[i]].second = ps[i];
+        }
+
         const valms r = ef->eval(*fc, npslocal);
         delete ef;
         bool out;
@@ -955,7 +964,7 @@ class formmeas : public meas
 public:
     formulaclass* fc;
 
-    double takemeas( neighborstype* ns, params& psin )
+    double takemeas( neighborstype* ns, const params& psin ) override
     {
         evalmformula* ef = new evalmformula(rec,ns);
         namedparams npslocal = nps;
@@ -966,10 +975,17 @@ public:
         return out;
     }
 
-    double takemeas(const int idx) override
+    double takemeas(const int idx, const params& ps) override
     {
         evalmformula* ef = new evalmformula(rec, idx);
         namedparams npslocal = nps;
+
+        for (int i = 0; i < ps.size(); ++i)
+        {
+            npslocal[npreferences[i]].second = ps[i];
+        }
+
+
         valms r = ef->eval(*fc, npslocal);
         delete ef;
         double out;
@@ -1006,10 +1022,18 @@ public:
         mtconverttodiscrete(r,out);
         return out;
     }
-    int takemeas(const int idx) override
+
+    int takemeas(const int idx, const params& ps) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
+
+        for (int i = 0; i < ps.size(); ++i)
+        {
+            npslocal[npreferences[i]].second = ps[i];
+        }
+
+
         valms r = ef->eval(*fc, npslocal);
         delete ef;
         int out;
@@ -1048,10 +1072,18 @@ public:
         mtconverttoset(r,seti);
         return seti;
     }
-    setitr* takemeas(const int idx) override
+
+    setitr* takemeas(const int idx, const params& ps) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
+
+        for (int i = 0; i < ps.size(); ++i)
+        {
+            npslocal[npreferences[i]].second = ps[i];
+        }
+
+
         valms r = ef->eval(*fc, npslocal);
         delete ef;
 
@@ -1136,7 +1168,6 @@ public:
         mtconverttostring(r,out);
         return out;
     }
-
     std::string* takemeas(const int idx) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
@@ -1181,7 +1212,6 @@ public:
         mtconverttograph(r,out);
         return out;
     }
-
 
     neighborstype* takemeas(const int idx) override
     {
@@ -1545,6 +1575,12 @@ class Pset : public set
 {
 public:
 
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto itr = new setitrpowerset(ps[0].seti);
+        return itr;
+    }
+
     setitr* takemeas(const int idx, const params& ps ) override
     {
         auto itr = new setitrpowerset(ps[0].seti);
@@ -1636,7 +1672,6 @@ public:
 class Vset : public set
 {
 public:
-    std::vector<setitrint*> itr {};
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
         auto g = ns->g;
@@ -1647,8 +1682,11 @@ public:
         return itr;
     }
 
-    setitr* takemeas(const int idx) override
+    setitr* takemeas(const int idx, const params& ps) override
     {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+
         auto g = (*rec->gptrs)[idx];
         auto itr = new setitrint(g->dim-1);
         memset(itr->elts,true,(itr->maxint+1)*sizeof(bool));
@@ -1662,11 +1700,16 @@ public:
 class Eset : public set
 {
 public:
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto itr = new setitredges(ns->g);
+        return itr;
+    }
+
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        auto g = (*rec->gptrs)[idx];
-        auto itr = new setitredges(g);
-        return itr;
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
     }
     Eset( mrecords* recin ) : set(recin,"E", "Graph edges set") {}
 
@@ -1677,9 +1720,9 @@ class nEset : public set
 public:
     graphtype* ginv;
 
-    setitr* takemeas(const int idx, const params& ps ) override
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-        auto g = (*rec->gptrs)[idx];
+        auto g = ns->g;
         ginv = new graphtype(g->dim);
         for (int i = 0; i+1 <= g->dim; ++i)
         {
@@ -1694,6 +1737,12 @@ public:
         ginv->adjacencymatrix[(g->dim-1)*g->dim + g->dim-1] = false;
         auto itr = new setitredges(ginv);
         return itr;
+    }
+
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
     }
 
     nEset( mrecords* recin ) : set(recin,"nE", "Graph non-edges set") {}
@@ -1744,6 +1793,18 @@ public:
 class Setpartition : public set
 {
 public:
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        if (ps.size() == 1)
+        {
+            auto setA = ps[0].seti;
+            auto f = new setitrsetpartitions(setA);
+            return f;
+        }
+        std::cout << "Error in Sizedsubset::takemeas\n";
+        return nullptr;
+    }
+
     setitr* takemeas(const int idx, const params& ps ) override
     {
         if (ps.size() == 1)
@@ -1924,6 +1985,42 @@ class Maxconnectedgmeas : public gmeas
 
 };
 
+class Edgesset : public set {
+public:
+    setitr* takemeas(neighborstype* ns, const params& ps ) override {
+        int dim = ns->g->dim;
+        auto gtemp = new graphtype(dim);
+        copygraph(ns->g,gtemp);
+        auto itr = ps[0].seti->getitrpos();
+        bool* negvertices = new bool[dim];
+        memset(negvertices,true,sizeof(bool)*dim);
+        while (!itr->ended()) {
+            auto v = itr->getnext().v.iv;
+            negvertices[v] = false;
+        }
+        for (auto i = 0; i < dim; ++i) {
+            if (negvertices[i]) {
+                for (auto j = 0; j < dim; ++j) {
+                    gtemp->adjacencymatrix[i*dim+j] = false;
+                    gtemp->adjacencymatrix[j*dim+i] = false;
+                }
+            }
+        }
+        auto out = new setitredges(gtemp);
+        return out;
+    }
+    setitr* takemeas(const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Edgesset( mrecords* recin ) : set(recin, "Edgess", "Edges associated with the given set of vertices") {
+        valms v;
+        nps.push_back(std::pair{"U",v});
+        bindnamedparams();
+    }
+};
+
 
 class GraphonVEgmeas : public gmeas
 {
@@ -1959,6 +2056,7 @@ public:
                     gout->adjacencymatrix[v2*dim + v1] = true;
                 }
             }
+            delete pairitr;
         }
         neighborstype* out = new neighborstype(gout);
         return out;
@@ -1981,11 +2079,11 @@ public:
     neighborstype* takemeas(neighborstype* ns, const params& ps ) override
     {
         auto g = ns->g;
-        int dimg = ns->dim;
+        int dimg = g->dim;
         auto Upos = ps[0].seti->getitrpos();
         int dim = Upos->getsize();
         auto gout = new graphtype(dim);
-        if (dim > 0)
+        if (dim > 1)
         {
             int* vmap = (int*)(malloc(dim*sizeof(int)));
             int i = 0;
@@ -2023,7 +2121,8 @@ public:
                     gout->adjacencymatrix[j*dim + i] = adj;
                 }
             delete vmap;
-        }
+        } else
+            gout->adjacencymatrix[0] = false;;
         neighborstype* out = new neighborstype(gout);
         return out;
     }
