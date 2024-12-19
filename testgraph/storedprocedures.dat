@@ -43,3 +43,42 @@ EXISTS (s IN Ps(V), EXISTS (p IN Setpartition(s), st(p) == st(U),
         EXISTS (f IN Perms(NN(st(p))), FORALL (i IN st(p), FORALL (j IN st(p), i < j, Nssc(p(f(i)),p(f(j))) IF {i,j} ELT F)))))
 
 END
+
+/* Diestel 3.4.1 p 73 (Mader 1978) */
+
+mtset delC ( mtset X, mtset C )
+
+NAMING (subg AS V SETMINUS (X CUPD C), SET (c IN C, EXISTS (v IN subg, ac(v,c)), c))
+
+END
+
+mtbool HpathsmeetXorF( mtset H, mtset X, mtset F )
+
+FORALL (v1 IN H, FORALL (v2 IN H, v1 != v2, FORALL (p IN Pathss(v1,v2), (p CAP H) == {v1,v2}, st(p CAP X) > 0 OR EXISTS (n IN st(p)-1, {p(n),p(n+1)} ELT F))))
+
+END
+
+mtcontinuous M_H( mtset H )
+
+NAMING (VminusH AS V SETMINUS H,
+NAMING (EminusH AS Edgess(VminusH),
+    MIN (X IN Ps(VminusH), st(X) + MIN (F IN Ps(EminusH), HpathsmeetXorF( H, X, F ),
+        NAMING (Y AS V SETMINUS (H CUPD X),
+        NAMING (C_F AS Componentss(GraphonVEg(Y,F)),
+            SUM (C IN C_F, floor(st(
+
+            NAMING (subg AS V SETMINUS (X CUPD C), SET (c IN C, EXISTS (v IN subg, ac(v,c)), c))
+
+            )/2))))))))
+
+END
+
+mtset M_Hset( mtset H )
+
+NAMING (VminusH AS V SETMINUS H,
+NAMING (EminusH AS Edgess(VminusH),
+    SET (X IN Ps(VminusH), SET (F IN Ps(EminusH),
+        NAMING (Y AS V SETMINUS (H CUPD X),
+        NAMING (C_F AS Componentss(GraphonVEg(Y,F)), C_F))))))
+
+END
