@@ -1609,16 +1609,16 @@ public:
         graphtype* g = ns->g;
         vertextype v1 = 0;
         vertextype v2 = 0;
-        if (ps.size() == 2)
-        {
+//        if (ps.size() == 2)
+//        {
             v1 = ps[0].v.iv;
             v2 = ps[1].v.iv;
             return g->adjacencymatrix[v1*g->dim + v2];
-        } else
-        {
-            std::cout << "Wrong number of parameters to ac\n";
-            exit(-1);
-        }
+//        } else
+//        {
+//            std::cout << "Wrong number of parameters to ac\n";
+//            exit(-1);
+//        }
     }
     bool takemeas(const int idx, const params& ps) override
     {
@@ -1626,16 +1626,16 @@ public:
         // neighborstype* ns = (*rec->nsptrs)[idx];
         vertextype v1 = 0;
         vertextype v2 = 0;
-        if (ps.size() == 2)
-        {
+//        if (ps.size() == 2)
+//        {
             v1 = ps[0].v.iv;
             v2 = ps[1].v.iv;
             return g->adjacencymatrix[v1*g->dim + v2];
-        } else
-        {
-            std::cout << "Wrong number of parameters to ac\n";
-            exit(-1);
-        }
+//        } else
+//        {
+//            std::cout << "Wrong number of parameters to ac\n";
+//            exit(-1);
+//        }
     }
 };
 
@@ -1651,12 +1651,12 @@ public:
     }
     bool takemeas(neighborstype* ns, const params& ps) override
     {
-        if (ps.size() == 2) {
-            if (ps[0].t != mtset || ps[1].t != mtset)
-            {
-                std::cout << "Non set types passed to eadjc\n";
-                return false;
-            }
+//        if (ps.size() == 2) {
+//            if (ps[0].t != mtset || ps[1].t != mtset)
+//            {
+//                std::cout << "Non set types passed to eadjc\n";
+//                return false;
+//            }
             bool res;
             auto itra = ps[0].seti->getitrpos();
             auto itrb = ps[1].seti->getitrpos();
@@ -1668,9 +1668,9 @@ public:
             delete itra;
             delete itrb;
             return res;
-        }
-        std::cout << "Incorrect number of parameters passed to eadjc\n";
-        return false;
+//        }
+//        std::cout << "Incorrect number of parameters passed to eadjc\n";
+//        return false;
     }
     bool takemeas(const int idx, const params& ps) override
     {
@@ -1690,17 +1690,17 @@ public:
     }
     int takemeas(neighborstype* ns, const params& ps) override
     {
-        if (ps.size() == 1) {
+//        if (ps.size() == 1) {
             return ps[0].seti->getsize();
-        }
-        return 0;
+//        }
+//        return 0;
     }
     int takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() == 1) {
+//        if (ps.size() == 1) {
             return ps[0].seti->getsize();
-        }
-        return 0;
+//        }
+//        return 0;
     }
 };
 
@@ -1715,19 +1715,19 @@ public:
     }
     int takemeas(neighborstype* ns, const params& ps) override
     {
-        if (ps.size() == 1) {
+//        if (ps.size() == 1) {
             return ps[0].seti->getsize();
-        }
-        std::cout << "Incorrect number of parameters passed to lengthtally\n";
-        return 0;
+//        }
+//        std::cout << "Incorrect number of parameters passed to lengthtally\n";
+//        return 0;
     }
     int takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() == 1) {
+//        if (ps.size() == 1) {
             return ps[0].seti->getsize();
-        }
-        std::cout << "Incorrect number of parameters passed to lengthtally\n";
-        return 0;
+//        }
+//        std::cout << "Incorrect number of parameters passed to lengthtally\n";
+//        return 0;
     }
 };
 
@@ -1747,11 +1747,11 @@ public:
     {
         graphtype* g = ns->g;
         //osadjacencymatrix(std::cout, g);
-        if (ps.size() == 2) {
+//        if (ps.size() == 2) {
             // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
             return pathsbetweencount(g,ns,ps[0].v.iv, ps[1].v.iv);
-        }
-        return 0;
+//        }
+//        return 0;
     }
     int takemeas(const int idx, const params& ps) override
     {
@@ -1773,12 +1773,12 @@ public:
     {
         graphtype* g = ns->g;
         //osadjacencymatrix(std::cout, g);
-        if (ps.size() == 1) {
+//        if (ps.size() == 1) {
             // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
             return cyclesvcount(g,ns,ps[0].v.iv); // undirected (cf. Diestel p 6-10) is half of directed
-        } else
-            std::cout << "Incorrect number of parameters passed to cyclesvtally\n";
-        return 0;
+//        } else
+//            std::cout << "Incorrect number of parameters passed to cyclesvtally\n";
+//        return 0;
     }
     int takemeas(const int idx, const params& ps) override
     {
@@ -1794,12 +1794,12 @@ public:
     {
         graphtype* g = ns->g;
         //osadjacencymatrix(std::cout, g);
-        if (ps.size() == 0) {
+//        if (ps.size() == 0) {
             // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
             return cyclescount(g,ns); // undirected (cf. Diestel p 6-10) is half of directed
-        } else
-            std::cout << "Incorrect number of parameters passed to cyclestally\n";
-        return 0;
+//        } else
+//            std::cout << "Incorrect number of parameters passed to cyclestally\n";
+//        return 0;
     }
     int takemeas(const int idx, const params& ps) override
     {
@@ -1820,8 +1820,8 @@ public:
     }
     bool takemeas( neighborstype* ns, const params& ps) override
     {
-        if (ps.size() != 1)
-            return false;
+//        if (ps.size() != 1)
+//            return false;
         graphtype* g = ns->g;
         auto itr = ps[0].seti->getitrpos();
         bool res = g->adjacencymatrix[g->dim * itr->getnext().v.iv + itr->getnext().v.iv];
@@ -1849,10 +1849,10 @@ public:
     }
     int takemeas( const int idx, const params& ps) override
     {
-        if (ps.size() != 2)
-        {
-            std::cout << "Wrong number of parameters to idxt\n";
-        }
+//        if (ps.size() != 2)
+//        {
+//            std::cout << "Wrong number of parameters to idxt\n";
+//        }
         auto itr = ps[0].seti->getitrpos();
         if (itr->ended())
         {
@@ -1884,10 +1884,10 @@ public:
     }
     setitr* takemeas( const int idx, const params& ps) override
     {
-        if (ps.size() != 2)
-        {
-            std::cout << "Wrong number of parameters to idxs\n";
-        }
+//        if (ps.size() != 2)
+//        {
+//            std::cout << "Wrong number of parameters to idxs\n";
+//        }
         auto itr = ps[0].seti->getitrpos();
         if (itr->ended())
         {
@@ -1918,14 +1918,36 @@ public:
     }
     bool takemeas( neighborstype* ns, const params& ps) override
     {
-        if (ps.size() != 2)
-            return false;
+//        if (ps.size() != 2)
+//            return false;
         graphtype* g = ns->g;
+        bool* eltsleft = nullptr;
+        bool* eltsright = nullptr;
+        int maxintleft;
+        int maxintright;
         bool all = true;
-        if (setitrbool* sl = dynamic_cast<setitrsubset*>(ps[0].seti)->itrbool)
-        {
-            if (setitrbool* sr = dynamic_cast<setitrsubset*>(ps[1].seti)->itrbool)
+        if (setitrint* slparent = dynamic_cast<setitrint*>(ps[0].seti))
+            if (setitrint* srparent = dynamic_cast<setitrint*>(ps[1].seti))
             {
+                eltsleft = slparent->elts;
+                eltsright = srparent->elts;
+                maxintleft = slparent->maxint;
+                maxintright = srparent->maxint;
+            }
+        if (!eltsleft || !eltsright)
+            if (setitrsubset* slparent = dynamic_cast<setitrsubset*>(ps[0].seti))
+                if (setitrsubset* srparent = dynamic_cast<setitrsubset*>(ps[1].seti))
+                {
+                    eltsleft = slparent->itrint->elts;
+                    eltsright = srparent->itrint->elts;
+                    maxintleft = slparent->itrint->maxint;
+                    maxintright = srparent->itrint->maxint;
+                }
+        if (!eltsleft || !eltsright)
+        {
+            std::cout << "Unknown class type passed to bipc, expecting setitrint or setitrsubset\n";
+            return false;
+        }
                 /*
                 for (int i = 0; i <= sl->maxint; ++i)
                     if (sl->elts[i])
@@ -1949,15 +1971,14 @@ public:
                     }
                     */  // the above code commented out per Diestel's definition (p 17)
 
-                for (int i = 0; all && (i < sl->maxint); ++i)
-                    for (int j = i+1; all && (j <= sl->maxint); ++j)
-                        all = !sl->elts[i] || !sl->elts[j] || !(g->adjacencymatrix[i*g->dim + j]);
-                for (int i = 0; all && (i < sr->maxint); ++i)
-                    for (int j = i+1; all && (j <= sr->maxint); ++j)
-                        all = !sr->elts[i] || !sr->elts[j] || !(g->adjacencymatrix[i*g->dim + j]);
-                return all;
-            }
-        }
+        for (int i = 0; all && (i < maxintleft); ++i)
+            for (int j = i+1; all && (j <= maxintleft); ++j)
+                all = !eltsleft[i] || !eltsleft[j] || !(g->adjacencymatrix[i*g->dim + j]);
+        for (int i = 0; all && (i < maxintright); ++i)
+            for (int j = i+1; all && (j <= maxintright); ++j)
+                all = !eltsright[i] || !eltsright[j] || !(g->adjacencymatrix[i*g->dim + j]);
+        return all;
+
         std::cout << "Non-integer (non-vertex) set passed to bipcrit\n";
         return false;
     }
@@ -1981,7 +2002,7 @@ public:
     int takemeas(neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        if (ps.size() == 1) {
+//        if (ps.size() == 1) {
             auto s = ps[0].seti->getitrpos();
             bool* S = (bool*)malloc(g->dim * sizeof(bool));
             memset(S,false,g->dim*sizeof(bool));
@@ -2005,9 +2026,9 @@ public:
             delete S;
             delete s;
             return cnt;
-        }
-        std::cout << "Wrong number of parameters or parameter types passed to Ntally\n";
-        return 0;
+ //       }
+ //       std::cout << "Wrong number of parameters or parameter types passed to Ntally\n";
+ //       return 0;
     }
     int takemeas(const int idx, const params& ps) override
     {
@@ -2030,7 +2051,7 @@ public:
     setitr* takemeas(neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        if (ps.size() == 1) {
+//        if (ps.size() == 1) {
             auto s = ps[0].seti->getitrpos();
             // if (setitrint* s = dynamic_cast<setitrint*>(ps[0].seti))
             // {
@@ -2065,9 +2086,9 @@ public:
             delete s;
             return new setitrmodeone(nbrs);
             // }
-        }
-        std::cout << "Wrong number of parameters or parameter types passed to Nset\n";
-        return 0;
+//        }
+//        std::cout << "Wrong number of parameters or parameter types passed to Nset\n";
+//        return 0;
     }
     setitr* takemeas(const int idx, const params& ps) override
     {
@@ -2094,7 +2115,7 @@ public:
     bool takemeas(neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
+//        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
             auto s1 = ps[0].seti->getitrpos();
             auto s2 = ps[1].seti->getitrpos();
             bool res = false;
@@ -2111,9 +2132,9 @@ public:
             delete s1;
             delete s2;
             return res;
-        }
-        std::cout << "Wrong number or types of parameters passed to Nssc\n";
-        return false;
+//        }
+//        std::cout << "Wrong number or types of parameters passed to Nssc\n";
+//        return false;
     }
     bool takemeas(const int idx, const params& ps) override
     {
@@ -2139,7 +2160,7 @@ public:
     int takemeas(neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
+//        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
             auto s1 = ps[0].seti->getitrpos();
             auto s2 = ps[1].seti->getitrpos();
             int res = 0;
@@ -2160,9 +2181,9 @@ public:
             delete s1;
             delete s2;
             return res;
-        }
-        std::cout << "Wrong number or types of parameters passed to Nsst\n";
-        return false;
+//        }
+//        std::cout << "Wrong number or types of parameters passed to Nsst\n";
+//        return false;
     }
 
     int takemeas(const int idx, const params& ps) override
@@ -2292,10 +2313,10 @@ public:
     Chitally( mrecords* recin ) : tally( recin, "Chit", "Chromatic number of graph using back-tracking algorithm") {}
     int takemeas( neighborstype* ns, const params& ps) override
     {
-        if (ps.size() != 0)
-        {
-            std::cout << "Wrong number of parameters to Chit\n";
-        }
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chit\n";
+//        }
         graphtype* g = ns->g;
         std::vector<std::vector<int> > graph = convertadjacencymatrix(ns);
         int c = g->dim == 0 ? 0 : 1;
@@ -2317,10 +2338,10 @@ public:
     Chituple( mrecords* recin ) : set( recin, "Chip", "Coloring of a graph using back-tracking algorithm") {}
     setitr* takemeas( neighborstype* ns, const params& ps) override
     {
-        if (ps.size() != 0)
-        {
-            std::cout << "Wrong number of parameters to Chip\n";
-        }
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chip\n";
+//        }
         graphtype* g = ns->g;
         std::vector<std::vector<int> > graph = convertadjacencymatrix(ns);
         int c = 1;
@@ -2420,10 +2441,10 @@ public:
     Chigreedytally( mrecords* recin ) : tally( recin, "Chigreedyt", "Chromatic number of graph using greedy algorithm") {}
     int takemeas(neighborstype* ns, const params& ps) override
     {
-        if (ps.size() != 0)
-        {
-            std::cout << "Wrong number of parameters to Chigreedyt\n";
-        }
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chigreedyt\n";
+//        }
         graphtype* g = ns->g;
         auto res = greedyColoring(convertadjacencymatrix(ns));
         return res;
@@ -2441,10 +2462,10 @@ public:
     Chigreedytuple( mrecords* recin ) : set( recin, "Chigreedyp", "Coloring of a graph using greedy algorithm") {}
     setitr* takemeas( neighborstype* ns, const params& ps) override
     {
-        if (ps.size() != 0)
-        {
-            std::cout << "Wrong number of parameters to Chigreedyp\n";
-        }
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chigreedyp\n";
+//        }
         graphtype* g = ns->g;
         auto color = greedyColoringtuple(convertadjacencymatrix(ns));
         std::vector<valms> tot;

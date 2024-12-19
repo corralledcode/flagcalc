@@ -176,16 +176,6 @@ struct valms
     setitr* seti;
 //    valms() : valms(mtbool,{},nullptr) {};
 //    valms( measuretype tin, vals vin, setitr* setiin );
-//    ~valms()
-//    {
-//        if (t == mtgraph)
-//        {
-//            delete v.nsv->g;
-//            delete v.nsv;
-//        } else
-//        if (t == mtstring)
-//            delete v.rv;
-//    };
 };
 
 void mtconvertboolto( const bool vin, valms& vout );
@@ -206,10 +196,8 @@ void mtconverttograph( const valms& vin, neighborstype*& vout );
 void mtconverttype1( const valms& vin, valms& vout );
 void mtconverttype2( const valms& vin, valms& vout );
 
-
-
-
-
+bool mtareequal( const valms& v1, const valms& v2 );
+bool graphsequal( graphtype* g1, graphtype* g2 );
 
 using params = std::vector<valms>;
 
@@ -436,11 +424,12 @@ class setitrmodeone : public setitr
 
 };
 
+
 class setitrunion : public setitrmodeone
 {
-    public:
     setitr* setA;
     setitr* setB;
+    public:
     void compute() override
     {
         auto Aitr = setA->getitrpos();
@@ -747,7 +736,8 @@ public:
 
 };
 
-class setitrbool : public setitrmodeone
+/*
+class setitrbool : public setitrelts
 {
 public:
     int maxint;
@@ -804,23 +794,79 @@ public:
     ~setitrbool() {
         delete elts;
     }
-};
+}; */
 
+class setitrint : public setitrmodeone // has subset functionality built in
+{
+    public:
+    int maxint = -1;
+    bool* elts = nullptr;
+    void compute() override
+    {
+        std::vector<valms> temp {};
+        temp.clear();
+        temp.resize(maxint+1);
+        int j = 0;
+        for (int i = 0; i <= maxint; ++i)
+        {
+            if (elts[i])
+            {
+                temp[j].t = measuretype::mtdiscrete;
+                temp[j++].v.iv = i;
+            }
+        }
+        totality.resize(j);
+        for (int i = 0; i < j; ++i)
+            totality[i] = temp[i];
+        computed = true;
+        reset();
+    }
+    void setmaxint( const int maxintin )
+    {
+        delete elts;
+        maxint = maxintin;
+        if (maxint >= 0)
+        {
+            elts = (bool*)malloc((maxint+1)*sizeof(bool));
+            memset(elts, true, (maxint+1)*sizeof(bool));
+        } else
+            elts = nullptr;
+        computed = false;
+        // totality.clear();
+        reset();
+    }
+    setitrint(const int maxintin)
+    {
+        setmaxint(maxintin);
+        t = mtdiscrete;
+        reset();
+    }
+    setitrint(const int maxintin, bool* eltsin)
+    {
+        maxint = maxintin;
+        elts = eltsin;
+        t = mtdiscrete;
+        reset();
+    }
+    ~setitrint() {
+         delete elts;
+    }
+};
 
 class setitrsubset : public setitr {
 public:
-    setitrbool* itrbool;
+    setitrint* itrint;
     itrpos* superset {};
     void setsuperset( itrpos* supersetposin )
     {
         superset = supersetposin;
-        itrbool->setmaxint(superset->getsize() - 1);
+        itrint->setmaxint(superset->getsize() - 1);
         reset();
     }
 
     int getsize() override
     {
-        return itrbool->getsize();
+        return itrint->getsize();
     }
 
     valms getnext() override
@@ -828,12 +874,12 @@ public:
         if (pos+1 < totality.size())
             return totality[++pos];
 
-        if (!itrbool->computed)
-            itrbool->compute();
+        if (!itrint->computed)
+            itrint->compute();
         valms res;
         int superpos = -1;
-        if (!itrbool->ended())
-            superpos = itrbool->totality[++pos].v.iv;
+        if (!itrint->ended())
+            superpos = itrint->totality[++pos].v.iv;
         if (superpos >= 0)
         {
             if (superset->pos+1 > superpos)
@@ -862,87 +908,444 @@ public:
     void reset() override
     {
         superset->reset();
-        itrbool->reset();
+        itrint->reset();
         pos = -1;
     }
     bool ended() override
     {
-        if (itrbool->computed)
-            return pos + 1 >= itrbool->totality.size();
+        if (itrint->computed)
+            return pos + 1 >= itrint->totality.size();
         else
-            return pos + 1 >= itrbool->getsize();
+            return pos + 1 >= itrint->getsize();
     }
-    setitrsubset(itrpos* supersetin) : superset{supersetin}, itrbool{new setitrbool(supersetin->getsize() - 1)}
+    setitrsubset(itrpos* supersetin) : superset{supersetin}, itrint{new setitrint(supersetin->getsize() - 1)}
     {
         t = superset->parent->t;
         pos = -1;
     };
-    setitrsubset() : superset{}, itrbool{new setitrbool(-1)}
+    setitrsubset(itrpos* supersetin, setitrint* itrintin) : superset{supersetin}, itrint{itrintin} {
+        t = superset->parent->t;
+        pos = -1;
+    }
+    setitrsubset() : superset{}, itrint{new setitrint(-1)}
     {
         t = mtdiscrete;
         pos = -1;
     };
     ~setitrsubset() {
-        delete itrbool;
+        delete itrint;
+        delete superset;
     }
-
 };
 
-class setitrint : public setitrmodeone
-{
-    public:
-    int maxint = -1;
-    bool* elts = nullptr;
-    void compute() override
-    {
-        std::vector<valms> temp {};
-        temp.clear();
-        temp.resize(maxint+1);
-        int j = 0;
-        for (int i = 0; i <= maxint; ++i)
-        {
-            if (elts[i])
-            {
-                temp[j].t = measuretype::mtdiscrete;
-                temp[j++].v.iv = i;
-            }
+inline void fastsetunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+    for (int i = 0; i <= maxint1; ++i)
+        out[i] = elts1[i];
+     for (int i = 0; i <= maxint2; ++i)
+         out[i] = out[i] || elts2[i];
+}
+inline void fastsetintersection( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+    for (int i = 0; i <= maxintout; ++i)
+        out[i] = elts1[i] && elts2[i];
+}
+inline void fastsetminus( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
+    int i;
+    for (i = 0; i <= maxintout; ++i)
+        out[i] = elts1[i] && !elts2[i];
+    for ( ; i <= maxint1; ++i)
+        out[i] = elts1[i];
+}
+inline void fastsetxor( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
+    if (maxint1 <= maxint2) {
+        int i;
+        for (i = 0; i <= maxint1; ++i)
+            out[i] = elts1[i] != elts2[i];
+        for (; i <= maxint2; ++i)
+            out[i] =  elts2[i];
+    } else {
+        int i;
+        for (i = 0; i <= maxint2; ++i)
+            out[i] = elts1[i] != elts2[i];
+        for (; i <= maxint1; ++i)
+            out[i] =  elts1[i];
+    }
+}
+inline bool fastsetsubset( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+    if (maxint1 <= maxint2) {
+        int i;
+        for (i = 0; i <= maxint1; ++i)
+            if (elts1[i] && !elts2[i])
+                return false;
+    } else {
+        int i;
+        for (i = 0; i <= maxint2; ++i)
+            if (elts1[i] && !elts2[i])
+                return false;
+        for (; i <= maxint1; ++i)
+            if (elts1[i])
+                return false;
+    }
+    return true;
+}
+inline bool fastsetpropersubset( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+    bool diff = false;
+    if (maxint1 <= maxint2) {
+        int i;
+        for (i = 0; i <= maxint1; ++i)
+            if (!elts2[i]) {
+                if (elts1[i])
+                    return false;
+            } else
+                if (!elts1[i])
+                    diff = true;
+        for (; i <= maxint2 && !diff; ++i)
+            diff = elts2[i];
+    } else {
+        int i;
+        for (i = 0; i <= maxint2; ++i)
+            if (!elts2[i]) {
+                if (elts1[i])
+                    return false;
+            } else
+                if (!elts1[i])
+                    diff = true;
+        for (; i <= maxint1; ++i)
+            if (elts1[i])
+                return false;
+    }
+    return diff;
+}
+inline bool fastsetequals( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+    if (maxint1 <= maxint2) {
+        int i;
+        for (i = 0; i <= maxint1; ++i)
+            if (elts1[i] != elts2[i])
+                return false;
+        for (; i <= maxint2; ++i)
+            if (elts2[i])
+                return false;
+    } else {
+        int i;
+        for (i = 0; i <= maxint2; ++i)
+            if (elts1[i] != elts2[i])
+                return false;
+        for (; i <= maxint1; ++i)
+            if (elts1[i])
+                return false;
+    }
+    return true;
+}
+inline bool fastboolsetops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
+    int maxintA = setA->maxint;
+    int maxintB = setB->maxint;
+    switch (fo) {
+        case formulaoperator::folte:
+            return fastsetsubset( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::folt:
+            return fastsetpropersubset( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fogte:
+            return fastsetsubset( maxintA, maxintB, setB->elts, setA->elts );
+        case formulaoperator::fogt:
+            return fastsetpropersubset( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::foe:
+            return fastsetequals( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fone:
+            return !fastsetequals( maxintA, maxintB, setA->elts, setB->elts );
+    }
+    return false;
+}
+inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
+    auto maxintA = setA->maxint;
+    auto maxintB = setB->maxint;
+    int maxintout;
+    switch (fo) {
+        case formulaoperator::fodupeunion:
+        case formulaoperator::founion:
+        case formulaoperator::fosetxor:
+            maxintout = maxintA >= maxintB ? maxintA : maxintB;
+            break;
+        case formulaoperator::fointersection:
+            maxintout = maxintA <= maxintB ? maxintA : maxintB;
+            break;
+        case formulaoperator::fosetminus:
+            maxintout = maxintA <= maxintB ? maxintA : maxintB;
+            break;
+        default:
+            std::cout << "Cannot call fastsetops with non-set operator\n";
+    }
+    auto out = new setitrint( maxintout );
+    switch (fo) {
+        case formulaoperator::fodupeunion:
+        case formulaoperator::founion:
+            fastsetunion( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        case formulaoperator::fointersection:
+            fastsetintersection( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        case formulaoperator::fosetminus:
+            fastsetminus( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        case formulaoperator::fosetxor:
+            fastsetxor( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        default:
+            std::cout << "Cannot call fastsetops with non-set operator\n";
+    }
+    out->computed = false;
+    out->reset();
+    return out;
+}
+/* for now the set-valued set operations are the same for tuples as for set */
+inline void fasttupleunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+    fastsetunion(maxint1,maxint2,maxintout,elts1,elts2,out);
+}
+inline void fasttupleintersection( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+    fasttupleintersection(maxint1,maxint2,maxintout,elts1,elts2,out);
+}
+inline void fasttupleminus( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
+    fastsetminus(maxint1,maxint2,maxintout,elts1,elts2,out);
+}
+inline void fasttuplexor( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
+    fastsetxor(maxint1,maxint2,maxintout,elts1,elts2,out);
+}
+inline bool fasttuplesubset( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+// initial segment is same as set subset here
+    return fastsetsubset( maxint1, maxint2, elts1, elts2 );
+}
+inline bool fasttuplepropersubset( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+    return fastsetpropersubset( maxint1, maxint2, elts1, elts2 );
+}
+inline bool fasttupleequals( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+    return fastsetequals( maxint1, maxint2, elts1, elts2 );
+}
+inline bool fastbooltupleops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
+    int maxintA = setA->maxint;
+    int maxintB = setB->maxint;
+    switch (fo) {
+        case formulaoperator::folte:
+            return fasttuplesubset( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::folt:
+            return fasttuplepropersubset( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fogte:
+            return fasttuplesubset( maxintA, maxintB, setB->elts, setA->elts );
+        case formulaoperator::fogt:
+            return fasttuplepropersubset( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::foe:
+            return fasttupleequals( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fone:
+            return !fasttupleequals( maxintA, maxintB, setA->elts, setB->elts );
+    }
+    return false;
+}
+inline setitrint* fasttupleops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
+    auto maxintA = setA->maxint;
+    auto maxintB = setB->maxint;
+    int maxintout;
+    switch (fo) {
+        case formulaoperator::fodupeunion:
+        case formulaoperator::founion:
+        case formulaoperator::fosetxor:
+            maxintout = maxintA > maxintB ? maxintA : maxintB;
+            break;
+        case formulaoperator::fointersection:
+            maxintout = maxintA < maxintB ? maxintA : maxintB;
+            break;
+        case formulaoperator::fosetminus:
+            maxintout = maxintA;
+            break;
+        default:
+            std::cout << "Cannot call fastsetops with non-set operator\n";
+    }
+    auto out = new setitrint( maxintout );
+    switch (fo) {
+        case formulaoperator::fodupeunion:
+        case formulaoperator::founion:
+            fastsetunion( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        case formulaoperator::fointersection:
+            fastsetintersection( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        case formulaoperator::fosetminus:
+            fastsetminus( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        case formulaoperator::fosetxor:
+            fastsetxor( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            break;
+        default:
+            std::cout << "Cannot call fastsetops with non-set operator\n";
+    }
+    out->computed = false;
+    out->reset();
+    return out;
+}
+inline bool tupleinitialsegment( itrpos* tupleA, itrpos* tupleB ) {
+    auto itrA = tupleA;
+    auto itrB = tupleB;
+    while (!itrA->ended()) {
+        if (itrB->ended())
+            return false;
+        valms v = itrA->getnext();
+        valms w = itrB->getnext();
+        if (!mtareequal( v, w ))
+            return false;
+    }
+    return true;
+}
+class setitrabstractops : public setitrmodeone {
+public:
+    virtual setitr* setops( const formulaoperator fo ) {auto out = new setitrint(-1); return out;};
+    virtual bool boolsetops( const formulaoperator fo ) {return false;};
+};
+class setitrfastops : public setitrabstractops {
+public:
+    setitrint* castA;
+    setitrint* castB;
+
+    setitr* setops( const formulaoperator fo )  override {
+        auto out = fastsetops( castA, castB, fo );
+        return out;
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        return fastboolsetops( castA, castB, fo );
+    }
+    setitrfastops( setitrint* castAin, setitrint* castBin ) : castA{castAin}, castB{castBin} {}
+};
+class setitrslowops : public setitrabstractops {
+public:
+    setitr* setA;
+    setitr* setB;
+    setitr* setops( const formulaoperator fo ) override {
+        switch (fo) {
+            case formulaoperator::founion:
+                return new setitrunion( setA, setB );
+            case formulaoperator::fodupeunion:
+                return new setitrdupeunion( setA, setB );
+            case formulaoperator::fointersection:
+                return new setitrintersection( setA, setB );
+            case formulaoperator::fosetminus:
+                return new setitrsetminus( setA, setB );
+            case formulaoperator::fosetxor:
+                return new setitrsetxor( setA, setB );
+            default:
+                std::cout << "setops (slow) called with non-set operator\n";
+                return new setitrunion( setA, setB );
         }
-        totality.resize(j);
-        for (int i = 0; i < j; ++i)
-            totality[i] = temp[i];
-        computed = true;
     }
-    void setmaxint( const int maxintin )
-    {
-        delete elts;
-        maxint = maxintin;
-        if (maxint >= 0)
-        {
-            elts = (bool*)malloc((maxint+1)*sizeof(bool));
-            memset(elts, true, (maxint+1)*sizeof(bool));
-        } else
-            elts = nullptr;
-        computed = false;
-        totality.clear();
-        reset();
+    bool boolsetops( const formulaoperator fo ) override {
+        auto tmpitrA = setA->getitrpos();
+        auto tmpitrB = setB->getitrpos();
+        bool out;
+        switch (fo) {
+            case formulaoperator::folte:
+                out = setsubseteq( tmpitrA, tmpitrB );
+                break;
+            case formulaoperator::folt:
+                out = setsubseteq( tmpitrA, tmpitrB ) && !setsubseteq( tmpitrB, tmpitrA );
+                break;
+            case formulaoperator::fogte:
+                out = setsubseteq( tmpitrB, tmpitrA );
+                break;
+            case formulaoperator::fogt:
+                out = setsubseteq( tmpitrB, tmpitrA ) && !setsubseteq( tmpitrA, tmpitrB );
+                break;
+            case formulaoperator::foe:
+                out = setsubseteq( tmpitrB, tmpitrA ) && setsubseteq( tmpitrA, tmpitrB );
+                break;
+            case formulaoperator::fone:
+                out = !setsubseteq( tmpitrB, tmpitrA ) || !setsubseteq( tmpitrA, tmpitrB );
+                break;
+            default:
+                std::cout << "boolsetops (slow) called with non-set or non boolean operator\n";
+                break;
+        }
+        delete tmpitrA;
+        delete tmpitrB;
+        return out;
     }
-    setitrint(const int maxintin)
-    {
-        setmaxint(maxintin);
-        t = mtdiscrete;
-        reset();
-    }
-    setitrint()
-    {
-        setmaxint(-1);
-        t = mtdiscrete;
-        reset();
-    }
-    ~setitrint() {
-         delete elts;
-    }
-
+    setitrslowops( setitr* setAin, setitr* setBin ) : setA{setAin}, setB{setBin} {}
 };
+class setitrtuplefastops : public setitrabstractops {
+public:
+    setitrint* castA;
+    setitrint* castB;
+
+    setitr* setops( const formulaoperator fo )  override {
+        auto out = fasttupleops( castA, castB, fo );
+        return out;
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        return fastbooltupleops( castA, castB, fo );
+    }
+    setitrtuplefastops( setitrint* castAin, setitrint* castBin ) : castA{castAin}, castB{castBin} {}
+};
+
+class setitrtupleslowops : public setitrabstractops {
+public:
+    setitr* setA;
+    setitr* setB;
+    setitr* setops( const formulaoperator fo )  override {
+        switch (fo) {
+            case formulaoperator::founion:
+                return new setitrunion( setA, setB );
+            case formulaoperator::fodupeunion:
+                return new setitrdupeunion( setA, setB );
+            case formulaoperator::fointersection:
+                return new setitrintersection( setA, setB );
+            case formulaoperator::fosetminus:
+                return new setitrsetminus( setA, setB );
+            case formulaoperator::fosetxor:
+                return new setitrsetxor( setA, setB );
+            default:
+                std::cout << "setops (slow) called with non-set operator\n";
+                return new setitrunion( setA, setB );
+        }
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        auto tmpitrA = setA->getitrpos();
+        auto tmpitrB = setB->getitrpos();
+        bool out;
+        switch (fo) {
+            case formulaoperator::folte:
+                out = tupleinitialsegment( tmpitrA, tmpitrB );
+                break;
+            case formulaoperator::folt:
+                out = tupleinitialsegment( tmpitrA, tmpitrB ) && tmpitrA->getsize() < tmpitrB->getsize();
+                break;
+            case formulaoperator::fogte:
+                out = tupleinitialsegment( tmpitrB, tmpitrA );
+                break;
+            case formulaoperator::fogt:
+                out = tupleinitialsegment( tmpitrB, tmpitrA ) && tmpitrB->getsize() < tmpitrA->getsize();
+                break;
+            case formulaoperator::foe:
+                out = tupleinitialsegment( tmpitrA, tmpitrB ) && tmpitrB->getsize() == tmpitrA->getsize();
+                break;
+            case formulaoperator::fone:
+                out = !tupleinitialsegment( tmpitrA, tmpitrB ) || !tmpitrB->getsize() == tmpitrA->getsize();
+                break;
+            default:
+                std::cout << "tuple boolsetops (slow) called with non-set or non boolean operator\n";
+                break;
+        }
+        delete tmpitrA;
+        delete tmpitrB;
+        return out;
+    }
+    setitrtupleslowops( setitr* setAin, setitr* setBin ) : setA{setAin}, setB{setBin} {}
+};
+
+inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
+    if (setitrint* castA = dynamic_cast<setitrint*>(setA))
+        if (setitrint* castB = dynamic_cast<setitrint*>(setB))
+            return new setitrfastops( castA, castB );
+    return new setitrslowops( setA, setB );
+}
+inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
+    if (setitrint* castA = dynamic_cast<setitrint*>(setA))
+        if (setitrint* castB = dynamic_cast<setitrint*>(setB))
+            return new setitrtuplefastops( castA, castB );
+    return new setitrtupleslowops( setA, setB );
+}
 
 class setitrset : public setitrmodeone
 {
@@ -994,7 +1397,6 @@ public:
     }
 };
 
-
 class setitrintpair : public setitrmodeone
 {
 protected:
@@ -1009,8 +1411,11 @@ protected:
         totality[0].v.iv = inta;
         totality[1].v.iv = intb;
     }
+    public:
     setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
 };
+
+
 
 class setitrtuple : public setitrmodeone
 {
@@ -1148,122 +1553,6 @@ public:
     setitredges( graphtype* gin ) : g{gin} {}
 };
 
-class setitrsizedsubset : public setitr
-{
-public:
-    itrpos* setA;
-
-    std::vector<int> posAprimes {};
-    int size = 2;
-
-    int getsize() override
-    {
-        // if (setA->parent == this)
-        // {
-            // std::cout << "Circular reference in setitrsizedsubset::getsize()\n";
-            // return 0;
-        // }
-        int s = setA->getsize();
-        //double res1 = tgamma(s+1);
-        //double res2 = tgamma(s+1-size)*tgamma(size+1); // commented out due to floating point error and simply too large
-        return nchoosek(s,size);
-    }
-
-    void reset() override
-    {
-        pos = -1;
-        setA->reset();
-        if (size > 0)
-        {
-            posAprimes.resize(size-1);
-            for (int i = 0; i+1 < size; ++i)
-                posAprimes[i] = i;
-        } else
-        {
-            posAprimes.resize(0);
-        }
-    }
-    bool ended() override
-    {
-        bool res;
-        if (size == 0)
-            res = pos+1 >= 1;
-        else
-        {
-            res = setA->ended();
-            int s = setA->getsize();
-            for (int i = 0; i+1 < size; ++i)
-                res = res && (posAprimes[i] == s - size + i);
-        }
-        return res;
-    }
-    valms getnext() override
-    {
-        if (++pos < totality.size())
-            return totality[pos];
-        valms r;
-        r.t = mtset;
-        auto subset = new setitrsubset(setA);
-        r.seti = subset;
-        bool inced = false;
-        while (!setA->ended() && setA->pos+1 < size)
-        {
-            inced = true;
-            setA->getnext();
-        }
-        for (int i = 0; !inced && i+1 < size; ++i)
-        {
-            if (i+2 == size)
-            {
-                if (posAprimes[i] + 1 == setA->pos)
-                    continue;
-            } else
-                if (posAprimes[i] + 1 == posAprimes[i+1])
-                    continue;
-            ++posAprimes[i];
-            for (int j = 0; j < i; ++j)
-                posAprimes[j] = j;
-            inced = true;
-        }
-
-        if (!inced)
-        {
-            setA->getnext();
-            for (int i = 0; i < size-1; ++i)
-            {
-                posAprimes[i] = i;
-            }
-        }
-        memset(subset->itrbool->elts, false, (subset->itrbool->maxint+1)*sizeof(bool));
-        if (size > 0)
-            subset->itrbool->elts[setA->pos] = true;
-        for (int i = 0; i < size-1; ++i)
-            subset->itrbool->elts[posAprimes[i]] = true;
-        // r.setsize = size;
-        totality.resize(pos+1);
-        totality[pos] = r;
-        // std::cout << "pos " << pos << ": ";
-        // for (int i = 0; i < size-1; ++i)
-            // std::cout << posAprimes[i] << ", ";
-        // std::cout << setA->pos << std::endl;
-        return r;
-    }
-    setitrsizedsubset(setitr* Ain, int sizein ) : setA{Ain ? Ain->getitrpos() : nullptr}, size{sizein}
-    {
-        t = mtset;
-        if (Ain == this)
-            std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
-        if (setA)
-            reset();
-    }
-    ~setitrsizedsubset() override
-    {
-        delete setA;
-    //   for (auto t : totality) // this is handled by ~setitr() above
-    //       delete t.seti;
-    //   setitr::~setitr();
-    }
-};
 
 
 // Function to compute Stirling numbers of
@@ -1294,130 +1583,6 @@ inline int bellNumber(int n) {
     }
     return result;
 }
-
-
-class setitrsetpartitions : public setitr
-{
-public:
-    itrpos* setA;
-    int setsize;
-
-    bool endedvar;
-    std::vector<int> sequence {};
-    std::vector<setitrsubset*> subsets {};
-
-    void codesubsets() {
-        subsets.resize(setsize);
-
-        int max = 0;
-        for (int i = 0; i < setsize; ++i)
-        {
-            subsets[i] = new setitrsubset(setA);
-            subsets[i]->itrbool = new setitrbool(setsize-1);
-            for (int j = 0; j < setsize; ++j)
-            {
-                subsets[i]->itrbool->elts[j] = sequence[j] == i;
-                max = max < sequence[j] ? sequence[j] : max;
-            }
-            subsets[i]->reset();
-        }
-        subsets.resize(max+1);
-
-    }
-
-    int getsize() override
-    {
-        setsize = setA->getsize();
-        return bellNumber(setsize);
-    }
-
-    void reset() override
-    {
-        pos = -1;
-        setsize = setA->getsize();
-        setA->reset();
-        sequence.resize(setsize);
-        for (int i = 0; i < setsize; ++i)
-            sequence[i] = 0;
-        endedvar = setsize == 0;
-        totality.clear();
-    }
-    bool ended() override
-    {
-        return endedvar;
-    }
-    valms getnext() override
-    {
-        if (pos+1 < totality.size())
-            return totality[++pos];
-        ++pos;
-        if (!endedvar)
-        {
-            codesubsets();
-            std::vector<valms> tot {};
-            for (auto s : subsets)
-            {
-                valms v;
-                v.t = mtset;
-                v.seti = s;
-                tot.push_back(v);
-            }
-            totality.resize(pos+1);
-            valms u;
-            u.t = mtset;
-            u.seti = new setitrmodeone(tot);
-            totality[pos] = u;
-
-            int j = setsize;
-            bool incrementable = false;
-            endedvar = false;
-            while (j > 1 && !incrementable)
-            {
-                --j;
-                int i = j-1;
-                while (!incrementable && i >= 0)
-                    incrementable = sequence[j] <= sequence[i--];
-            }
-            if (incrementable)
-            {
-                sequence[j]++;
-                for (int k = j+1; k < setsize; ++k)
-                    sequence[k] = 0;
-
-            } else
-                endedvar = true;
-            return totality[pos];
-        }
-        std::cout << "setitrsetpartitions: ended\n";
-        valms v;
-        v.t = mtset;
-        v.seti = new setitrint(-1);
-        return v;
-    }
-
-    setitrsetpartitions(setitr* Ain ) : setA{Ain ? Ain->getitrpos() : nullptr}
-    {
-        if (Ain == this)
-            std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
-        if (setA)
-            reset();
-    }
-
-    ~setitrsetpartitions() override
-    {
-
-        delete setA;
-        for (auto s : subsets)
-        {
-            delete s->itrbool;
-            delete s;
-        }
-    // for (auto t : totality) // this is handled by ~setitr() above
-        // delete t.seti;
-    //   setitr::~setitr();
-    }
-};
-
 
 
 
@@ -1919,7 +2084,43 @@ inline void mtconverttype2( const valms& vin, valms& vout )
     case measuretype::mtgraph: mtconverttograph(vin,vout.v.nsv); break;
     }
 }
-
+inline bool graphsequal( graphtype* g1, graphtype* g2 ) {
+// obviously a question of using heavier machinery, as in using graph isomorphisms here...
+// also note the code assumes the adjacency matrices are properly formed
+    int dim = g1->dim;
+    if (dim != g2->dim) return false;
+    for (int i = 0; i+1 < dim; ++i)
+        for (int j = i+1; j < dim; ++j)
+            if (g1->adjacencymatrix[i*dim + j] != g2->adjacencymatrix[i*dim + j])
+                return false;
+    return true;
+}
+inline bool mtareequal( const valms& v, const valms& w ) { // initially overloaded the == ops, but this seems more kosher
+    if (v.t != w.t)
+        return false;
+    switch (v.t) {
+        case mtbool:
+        case mtdiscrete:
+        case mtcontinuous:
+            return v == w;
+        case mtset: {
+            auto abstractsetops = getsetitrops( v.seti, w.seti );
+            bool res = abstractsetops->boolsetops( formulaoperator::foe );
+            delete abstractsetops;
+            return res; }
+        case mttuple: {
+            auto abstracttupleops = gettupleops( v.seti, w.seti );
+            bool res = abstracttupleops->boolsetops( formulaoperator::foe );
+            delete abstracttupleops;
+            return res; }
+        case mtstring:
+            return *v.v.rv == *w.v.rv;
+        case mtgraph:
+            return graphsequal( v.v.nsv->g, w.v.nsv->g );
+        default: std::cout << "Unsupported type " << v.t << " in setitrunion\n";
+        return false;
+    }
+}
 
 
 

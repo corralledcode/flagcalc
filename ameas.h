@@ -151,11 +151,11 @@ public:
         {
             nps[npreferences[i]].second = ps[i];
         }
-        T out;
-        return out;
+//        T out;
+//        return out;
 //        neighborstype* ns = (*this->rec->nsptrs)[idx];
 
-//        return this->takemeas(idx,ps);
+        return this->takemeas(idx);
     }
 
     pameas( mrecords* recin , std::string shortnamein, std::string namein)
@@ -925,21 +925,15 @@ public:
         return out;
     }
 
-    bool takemeas(const int idx, const params& ps) override
-    {
+    bool takemeas(const int idx) override {
         evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
-
-        for (int i = 0; i < ps.size(); ++i)
-        {
-            npslocal[npreferences[i]].second = ps[i];
-        }
-
         const valms r = ef->eval(*fc, npslocal);
         delete ef;
         bool out;
         mtconverttobool(r,out);
         return out;
+
     }
 
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
@@ -975,16 +969,10 @@ public:
         return out;
     }
 
-    double takemeas(const int idx, const params& ps) override
+    double takemeas(const int idx) override
     {
         evalmformula* ef = new evalmformula(rec, idx);
         namedparams npslocal = nps;
-
-        for (int i = 0; i < ps.size(); ++i)
-        {
-            npslocal[npreferences[i]].second = ps[i];
-        }
-
 
         valms r = ef->eval(*fc, npslocal);
         delete ef;
@@ -1023,16 +1011,10 @@ public:
         return out;
     }
 
-    int takemeas(const int idx, const params& ps) override
+    int takemeas(const int idx) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
-
-        for (int i = 0; i < ps.size(); ++i)
-        {
-            npslocal[npreferences[i]].second = ps[i];
-        }
-
 
         valms r = ef->eval(*fc, npslocal);
         delete ef;
@@ -1073,16 +1055,10 @@ public:
         return seti;
     }
 
-    setitr* takemeas(const int idx, const params& ps) override
+    setitr* takemeas(const int idx) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
         namedparams npslocal = nps;
-
-        for (int i = 0; i < ps.size(); ++i)
-        {
-            npslocal[npreferences[i]].second = ps[i];
-        }
-
 
         valms r = ef->eval(*fc, npslocal);
         delete ef;
@@ -1402,7 +1378,36 @@ public:
 
 };
 
+class abstractmakesubset {
 
+    public:
+    virtual setitr* makesubset( int maxint, bool* elts ) {return nullptr;};
+};
+
+class fastmakesubset : public abstractmakesubset {
+public:
+    setitrint* superset;
+    setitr* makesubset( int maxint, bool* elts ) {
+        auto out = new setitrint( maxint, elts );
+        return out;
+    }
+    fastmakesubset( setitrint* supersetin ) : superset {supersetin} {}
+};
+class slowmakesubset : public abstractmakesubset {
+public:
+    setitr* superset;
+    setitr* makesubset( int maxint, bool* elts ) {
+        auto itrint = new setitrint( maxint, elts );
+        auto out = new setitrsubset( superset->getitrpos(), itrint );
+        return out;
+    }
+    slowmakesubset( setitr* supersetin ) : superset{supersetin} {}
+};
+inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
+    if (setitrint* cast = dynamic_cast<setitrint*>(superset))
+        return new fastmakesubset( cast );
+    return new slowmakesubset( superset );
+}
 
 class setitrpowerset : public setitr
 {
@@ -1417,6 +1422,8 @@ protected:
     // setitrsubset subsetitr;
     itrpos* supersetpos {};
     itrpos* inprocesssupersetpos;
+
+    abstractmakesubset* subsetmaker;
 
     std::vector<std::vector<int>> ssvs {};
     int posssv;
@@ -1454,8 +1461,10 @@ public:
 
         valms r;
         r.t = mtset;
-        auto subset = new setitrsubset(supersetpos);
-        r.seti = subset;
+
+        bool* elts = new bool[supersetsize];
+        // auto subset = new setitrsubset(supersetpos);
+        // r.seti = subset;
         if (++posssv >= numberofsubsets)
         {
             ++subsetsize;
@@ -1464,13 +1473,16 @@ public:
         }
         // if (posssv == 0)
             // std::cout << "posssv == 0, subsetsize == " << subsetsize << " numberofsubsets == " << numberofsubsets << "\n";
-        memset(subset->itrbool->elts, false, supersetsize*sizeof(bool));
+        //memset(subset->itrint->elts, false, supersetsize*sizeof(bool));
+        memset(elts,false,supersetsize*sizeof(bool));
         for (int j = 0; j < subsetsize; ++j)
-            subset->itrbool->elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
+            // subset->itrint->elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
+            elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
         // if (subset.size() > 0)
         // subset->elts[subset->maxint] = true;
-        subset->itrbool->computed = false;
-        subset->reset();
+        // subset->itrint->computed = false;
+        // subset->reset();
+        r.seti = subsetmaker->makesubset(supersetsize-1,elts);
         totality.resize(++pos+1);
         totality[pos] = r;
 
@@ -1491,7 +1503,7 @@ public:
     }
 
     setitrpowerset(setitr* setin)
-        : supersetitr{setin}, inprocesssupersetitr()
+        : supersetitr{setin}, inprocesssupersetitr(), subsetmaker{getsubsetmaker(setin)}
     {
         t = mtset;
         if (supersetitr)
@@ -1522,8 +1534,270 @@ public:
     ~setitrpowerset()
     {
         delete supersetpos;
+        delete subsetmaker;
     }
 };
+
+class setitrsizedsubset : public setitr
+{
+public:
+    itrpos* setA;
+    int supersetsize;
+
+    std::vector<int> posAprimes {};
+    int size = 2;
+
+    abstractmakesubset* subsetmaker;
+
+    int getsize() override
+    {
+        // if (setA->parent == this)
+        // {
+            // std::cout << "Circular reference in setitrsizedsubset::getsize()\n";
+            // return 0;
+        // }
+        int s = setA->getsize();
+        //double res1 = tgamma(s+1);
+        //double res2 = tgamma(s+1-size)*tgamma(size+1); // commented out due to floating point error and simply too large
+        return nchoosek(s,size);
+    }
+
+    void reset() override
+    {
+        pos = -1;
+        setA->reset();
+        if (size > 0)
+        {
+            posAprimes.resize(size-1);
+            for (int i = 0; i+1 < size; ++i)
+                posAprimes[i] = i;
+        } else
+        {
+            posAprimes.resize(0);
+        }
+    }
+    bool ended() override
+    {
+        bool res;
+        if (size == 0)
+            res = pos+1 >= 1;
+        else
+        {
+            res = setA->ended();
+            int s = setA->getsize();
+            for (int i = 0; i+1 < size; ++i)
+                res = res && (posAprimes[i] == s - size + i);
+        }
+        return res;
+    }
+    valms getnext() override
+    {
+        if (++pos < totality.size())
+            return totality[pos];
+        valms r;
+        r.t = mtset;
+        // auto subset = new setitrsubset(setA);
+        // r.seti = subset;
+        bool inced = false;
+        while (!setA->ended() && setA->pos+1 < size)
+        {
+            inced = true;
+            setA->getnext();
+        }
+        for (int i = 0; !inced && i+1 < size; ++i)
+        {
+            if (i+2 == size)
+            {
+                if (posAprimes[i] + 1 == setA->pos)
+                    continue;
+            } else
+                if (posAprimes[i] + 1 == posAprimes[i+1])
+                    continue;
+            ++posAprimes[i];
+            for (int j = 0; j < i; ++j)
+                posAprimes[j] = j;
+            inced = true;
+        }
+
+        if (!inced)
+        {
+            setA->getnext();
+            for (int i = 0; i < size-1; ++i)
+            {
+                posAprimes[i] = i;
+            }
+        }
+        auto elts = new bool[supersetsize];
+        memset(elts, false, supersetsize*sizeof(bool));
+        if (size > 0)
+            elts[setA->pos] = true;
+        for (int i = 0; i + 1 < size; ++i)
+            elts[posAprimes[i]] = true;
+//        memset(subset->itrint->elts, false, (subset->itrint->maxint+1)*sizeof(bool));
+//        if (size > 0)
+//            subset->itrint->elts[setA->pos] = true;
+//        for (int i = 0; i < size-1; ++i)
+//            subset->itrint->elts[posAprimes[i]] = true;
+        // r.setsize = size;
+        r.seti = subsetmaker->makesubset(supersetsize-1, elts);
+        totality.resize(pos+1);
+        totality[pos] = r;
+        // std::cout << "pos " << pos << ": ";
+        // for (int i = 0; i < size-1; ++i)
+            // std::cout << posAprimes[i] << ", ";
+        // std::cout << setA->pos << std::endl;
+        return r;
+    }
+    setitrsizedsubset(setitr* Ain, int sizein ) : setA{Ain ? Ain->getitrpos() : nullptr}, size{sizein},
+        supersetsize{Ain ? Ain->getsize() : 0}, subsetmaker{getsubsetmaker(Ain)}
+    {
+        t = mtset;
+        if (Ain == this)
+            std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
+        if (setA)
+            reset();
+
+    }
+    ~setitrsizedsubset() override
+    {
+        delete setA;
+        delete subsetmaker;
+    //   for (auto t : totality) // this is handled by ~setitr() above
+    //       delete t.seti;
+    //   setitr::~setitr();
+    }
+};
+
+
+
+
+class setitrsetpartitions : public setitr
+{
+public:
+    itrpos* setA;
+    int supersetsize;
+
+    bool endedvar;
+    std::vector<int> sequence {};
+    std::vector<setitr*> subsets {};
+
+    abstractmakesubset* subsetmaker;
+
+    void codesubsets() {
+        subsets.resize(supersetsize);
+
+        int max = 0;
+        for (int i = 0; i < supersetsize; ++i)
+        {
+            // subsets[i] = new setitrsubset(setA);
+            auto elts = new bool[supersetsize];
+            for (int j = 0; j < supersetsize; ++j)
+            {
+                elts[j] = sequence[j] == i;
+                // subsets[i]->itrint->elts[j] = sequence[j] == i;
+                max = max < sequence[j] ? sequence[j] : max;
+            }
+            subsets[i] = subsetmaker->makesubset(supersetsize-1, elts);
+            subsets[i]->reset();
+        }
+        subsets.resize(max+1);
+
+    }
+
+    int getsize() override
+    {
+        supersetsize = setA->getsize();
+        return bellNumber(supersetsize);
+    }
+
+    void reset() override
+    {
+        pos = -1;
+        supersetsize = setA->getsize();
+        setA->reset();
+        sequence.resize(supersetsize);
+        for (int i = 0; i < supersetsize; ++i)
+            sequence[i] = 0;
+        endedvar = supersetsize == 0;
+        totality.clear();
+    }
+    bool ended() override
+    {
+        return endedvar;
+    }
+    valms getnext() override
+    {
+        if (pos+1 < totality.size())
+            return totality[++pos];
+        ++pos;
+        if (!endedvar)
+        {
+            codesubsets();
+            std::vector<valms> tot {};
+            for (auto s : subsets)
+            {
+                valms v;
+                v.t = mtset;
+                v.seti = s;
+                tot.push_back(v);
+            }
+            totality.resize(pos+1);
+            valms u;
+            u.t = mtset;
+            u.seti = new setitrmodeone(tot);
+            totality[pos] = u;
+
+            int j = supersetsize;
+            bool incrementable = false;
+            endedvar = false;
+            while (j > 1 && !incrementable)
+            {
+                --j;
+                int i = j-1;
+                while (!incrementable && i >= 0)
+                    incrementable = sequence[j] <= sequence[i--];
+            }
+            if (incrementable)
+            {
+                sequence[j]++;
+                for (int k = j+1; k < supersetsize; ++k)
+                    sequence[k] = 0;
+
+            } else
+                endedvar = true;
+            return totality[pos];
+        }
+        std::cout << "setitrsetpartitions: ended\n";
+        valms v;
+        v.t = mtset;
+        v.seti = new setitrint(-1);
+        return v;
+    }
+
+    setitrsetpartitions(setitr* Ain ) : setA{Ain ? Ain->getitrpos() : nullptr}, subsetmaker{Ain ? getsubsetmaker(Ain) : nullptr}
+    {
+        if (Ain == this)
+            std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
+        if (setA)
+            reset();
+    }
+
+    ~setitrsetpartitions() override
+    {
+
+        delete setA;
+        for (auto s : subsets)
+        {
+            delete s;
+        }
+        delete subsetmaker;
+    // for (auto t : totality) // this is handled by ~setitr() above
+        // delete t.seti;
+    //   setitr::~setitr();
+    }
+};
+
+
 
 class setitrInitialsegment : public setitr
 {
@@ -1894,13 +2168,21 @@ public:
 class Nullset : public set
 {
     public:
-    setitrint* itr {};
+    setitrint* itr;
     setitr* takemeas(const int idx) override
     {
         return itr;
     }
 
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        return itr;
+    }
+
     Nullset( mrecords* recin ) : set(recin,"Nulls", "Null (empty) set"), itr{new setitrint(-1)} {}
+    ~Nullset() {
+        delete itr;
+    }
 };
 
 class Subgraphsset: public set
@@ -1956,11 +2238,11 @@ public:
         {
             auto itr = verticesset->getitrpos();
             setitrsubset* component = new setitrsubset(itr);
-            memset(component->itrbool->elts,0, sizeof(bool)*dim);
-            component->itrbool->elts[i] = true;
-            extendverticestocomponent(g,ns,component->itrbool->elts);
+            memset(component->itrint->elts,0, sizeof(bool)*dim);
+            component->itrint->elts[i] = true;
+            extendverticestocomponent(g,ns,component->itrint->elts);
             for (int j = 0; j < dim; ++j)
-                vertices[j] = vertices[j] || component->itrbool->elts[j];
+                vertices[j] = vertices[j] || component->itrint->elts[j];
             valms v;
             v.t = mtset;
             v.seti = component;
@@ -2171,7 +2453,7 @@ class TupletoSet : public set
     public:
     setitr* takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() != 1)
+/*        if (ps.size() != 1)
         {
             std::cout << "Error in TupletoSet::takemeas: wrong number of parameters\n";
             exit(1);
@@ -2181,7 +2463,7 @@ class TupletoSet : public set
         {
             std::cout << "Error in TupletoSet::takemeas: wrong type\n";
             exit(1);
-        }
+        }*/
 
         if (setitrtuple* s = dynamic_cast<setitrtuple*>(ps[0].seti))
         {
@@ -2209,9 +2491,9 @@ class Pathsset : public set
 {
 public:
 
-    setitr* takemeas(const int idx, const params& ps) override
+    setitr* takemeas(neighborstype* ns, const params& ps) override
     {
-        if (ps.size() != 2)
+/*        if (ps.size() != 2)
         {
             std::cout << "Incorrect number of parameters to Pathsset\n";
             exit(1);
@@ -2221,11 +2503,28 @@ public:
             std::cout << "Incorrect parameter types passed to Pathsset\n";
             exit(1);
         }
-
-        auto g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+*/
+        auto g = ns->g;
         auto res = new setitrpaths(g,ns,ps[0].v.iv,ps[1].v.iv);
         return res;
+    }
+
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+/*        if (ps.size() != 2)
+        {
+            std::cout << "Incorrect number of parameters to Pathsset\n";
+            exit(1);
+        }
+        if (ps[0].t != mtdiscrete || ps[1].t != mtdiscrete)
+        {
+            std::cout << "Incorrect parameter types passed to Pathsset\n";
+            exit(1);
+        }
+*/
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
     }
 
     Pathsset( mrecords* recin ) : set(recin,"Pathss", "Paths between two vertices set (ordered)")
@@ -2245,7 +2544,7 @@ public:
 
     setitr* takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() != 1)
+/*        if (ps.size() != 1)
         {
             std::cout << "Incorrect number of parameters to Cyclesvset\n";
             exit(1);
@@ -2255,7 +2554,7 @@ public:
             std::cout << "Incorrect parameter types passed to Cyclesvset\n";
             exit(1);
         }
-
+*/
         auto g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         auto res = new setitrcyclesv(g,ns,ps[0].v.iv);
@@ -2278,12 +2577,12 @@ public:
 
     setitr* takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() != 0)
+/*        if (ps.size() != 0)
         {
             std::cout << "Incorrect number of parameters to Cycless\n";
             exit(1);
         }
-
+*/
         auto g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         auto res = new setitrcycles(g,ns);

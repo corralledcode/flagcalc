@@ -805,14 +805,14 @@ bool tupleeq( itrpos* in1, itrpos* in2)
     return res;
 }
 
-
-
-
-
-
 bool eval2aryseteq( setitr* in1, setitr* in2, const formulaoperator fo )
 {
-    bool res;
+    auto abstractsetops = getsetitrops(in1, in2);
+    bool res = abstractsetops->boolsetops( fo );
+    delete abstractsetops;
+    return res;
+
+    /*
     auto pos1 = in1->getitrpos();
     auto pos2 = in2->getitrpos();
     if (fo == formulaoperator::foe) {
@@ -848,18 +848,26 @@ bool eval2aryseteq( setitr* in1, setitr* in2, const formulaoperator fo )
                 res = !setsubseteq(pos2, pos1);
         }
     }
-    return res;
+    return res;*/
 }
 
 
 bool eval2arytupleeq( setitr* in1, setitr* in2, const formulaoperator fo )
 {
-    bool res;
+
+    auto abstracttupleops = gettupleops(in1, in2);
+    bool res = abstracttupleops->boolsetops( fo );
+    delete abstracttupleops;
+    return res;
+
+
+
+/*    bool res;
     auto pos1 = in1->getitrpos();
     auto pos2 = in2->getitrpos();
     if (fo == formulaoperator::foe) {
         res = tupleeq( pos1, pos2);
-    }
+    } */
 
 
     /* .. to do: add some notion of comparing tuples
@@ -884,12 +892,13 @@ bool eval2arytupleeq( setitr* in1, setitr* in2, const formulaoperator fo )
         if (res)
             res = setsubseteq(pos2, pos1);
     } */
-
+/*
     if (fo == formulaoperator::fone)
     {
         res = !tupleeq( pos1, pos2);
     }
     return res;
+    */
 }
 
 
@@ -1174,6 +1183,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             valms set2 = evalinternal( *fc.fcleft, context );
             if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
             {
+                auto abstractsetops = getsetitrops(set1.seti, set2.seti);
+                res.seti = abstractsetops->setops(fc.fo);
+
+                /*
                 switch (fc.fo)
                 {
                 case formulaoperator::founion:
@@ -1191,8 +1204,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 case formulaoperator::fosetxor:
                     res.seti = new setitrsetxor( set1.seti,set2.seti);
                     break;
-                }
+                }*/
                 res.t = mtset;
+                delete abstractsetops;
             }
             else {
                 std::cout << "Non-matching types in call to CUP, CAP, CUPD, SETMINUS, or SETXOR\n";
@@ -2781,7 +2795,7 @@ inline formulaclass* parseformulainternal(
                         }
                     } else
                     {
-                        std::cout << "Error in Shuntingyard around function arguments\n";
+                        std::cout << "Incorrect number of function arguments (" << stoi(q[pos+2]) << ") passed to function " << tok << " expecting " << argcnt << ".\n";
                         exit(1);
                     }
                 else
