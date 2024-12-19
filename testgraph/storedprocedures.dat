@@ -82,3 +82,9 @@ NAMING (EminusH AS Edgess(VminusH),
         NAMING (C_F AS Componentss(GraphonVEg(Y,F)), C_F))))))
 
 END
+
+mtset PairSet( mtset S )
+
+BIGCUPD (a IN S, SET (b IN S, a < b, {a,b}))
+
+END
