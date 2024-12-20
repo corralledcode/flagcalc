@@ -1607,8 +1607,8 @@ public:
     bool takemeas(neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        vertextype v1 = 0;
-        vertextype v2 = 0;
+        vertextype v1;
+        vertextype v2;
 //        if (ps.size() == 2)
 //        {
             v1 = ps[0].v.iv;
@@ -1624,8 +1624,8 @@ public:
     {
         graphtype* g = (*rec->gptrs)[idx];
         // neighborstype* ns = (*rec->nsptrs)[idx];
-        vertextype v1 = 0;
-        vertextype v2 = 0;
+        vertextype v1;
+        vertextype v2;
 //        if (ps.size() == 2)
 //        {
             v1 = ps[0].v.iv;

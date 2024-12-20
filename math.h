@@ -799,8 +799,8 @@ public:
 class setitrint : public setitrmodeone // has subset functionality built in
 {
     public:
-    int maxint = -1;
-    bool* elts = nullptr;
+    int maxint;
+    bool* elts;
     void compute() override
     {
         std::vector<valms> temp {};
@@ -835,7 +835,7 @@ class setitrint : public setitrmodeone // has subset functionality built in
         // totality.clear();
         reset();
     }
-    setitrint(const int maxintin)
+    setitrint(const int maxintin) : elts{nullptr}
     {
         setmaxint(maxintin);
         t = mtdiscrete;
@@ -851,6 +851,104 @@ class setitrint : public setitrmodeone // has subset functionality built in
     ~setitrint() {
          delete elts;
     }
+};
+class setitrintpair : public setitrmodeone
+{
+protected:
+    int inta;
+    int intb;
+    public:
+    void compute() override
+    {
+        totality.resize(2);
+        totality[0].t = mtdiscrete;
+        totality[1].t = mtdiscrete;
+        totality[0].v.iv = inta;
+        totality[1].v.iv = intb;
+    }
+    public:
+    setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
+};
+class setitrint2d : public setitrmodeone {
+public:
+    setitrint* itrint;
+    int dim1;
+    int dim2;
+    void compute() override {
+        std::vector<valms> temp;
+        temp.resize(dim1*dim2);
+        int k = 0;
+        for (int i = 0; i < dim1; ++i)
+            for (int j = 0; j < dim2; ++j) {
+                if (itrint->elts[i*dim1 + j]) {
+                    valms v;
+                    v.t = mtset;
+                    v.seti = new setitrintpair(i,j);
+                    temp[k++] = v;
+                }
+            }
+
+        temp.resize(k);
+        for (auto v : totality)
+            delete v.seti;
+        totality.resize(temp.size());
+        int i = 0;
+        for (auto v : temp)
+            totality[i++] = v;
+
+        computed = true;
+        reset();
+    }
+    setitrint2d( int dim1in, int dim2in) : dim1{dim1in}, dim2{dim2in}, itrint{new setitrint(dim1in*dim2in-1)} {}
+    setitrint2d( int dim1in, int dim2in, bool* elts) : dim1{dim1in}, dim2{dim2in}, itrint{new setitrint(dim1in*dim2in - 1, elts)} {}
+    setitrint2d( int dim1in, int dim2in, setitrint* itrintin ) : dim1{dim1in}, dim2{dim2in}, itrint{itrintin} {}
+    ~setitrint2d()
+    {
+        delete itrint;
+    }
+};
+inline void demirrorelts( const int dim1, bool* elts) {
+    for (int i = 0; i < dim1; ++i)
+        for (int j = 0; j < i; ++j)
+            elts[i*dim1 + j] = false;
+}
+class setitrint2dsymmetric : public setitrint2d {
+public:
+    void compute() override {
+        // demirrorelts(dim1,itrint->elts);
+        //  setitrint2d::compute();
+        std::vector<valms> temp;
+        temp.resize(dim1*dim2);
+        int k = 0;
+        for (int i = 0; i+1 < dim1; ++i)
+            for (int j = i+1; j < dim2; ++j) {
+                if (itrint->elts[i*dim1 + j]) {
+                    valms v;
+                    v.t = mtset;
+                    v.seti = new setitrintpair(i,j);
+                    temp[k++] = v;
+                }
+            }
+
+        temp.resize(k);
+        for (auto v : totality)
+            delete v.seti;
+        totality.resize(temp.size());
+        int i = 0;
+        for (auto v : temp)
+            totality[i++] = v;
+
+        computed = true;
+        reset();
+    }
+    setitrint2dsymmetric(int dim1in) : setitrint2d(dim1in,dim1in) {}
+    setitrint2dsymmetric(int dim1in, bool* elts) : setitrint2d(dim1in,dim1in, elts) {}
+    setitrint2dsymmetric(int dim1in, setitrint* itrintin ) : setitrint2d(dim1in,dim1in, itrintin) {}
+    ~setitrint2dsymmetric() {
+        for (auto v : totality)
+            delete v.seti;
+    }
+
 };
 
 class setitrsubset : public setitr {
@@ -1210,6 +1308,40 @@ public:
     }
     setitrfastops( setitrint* castAin, setitrint* castBin ) : castA{castAin}, castB{castBin} {}
 };
+class setitrfastssops : public setitrabstractops {
+public:
+    setitrsubset* castAss;
+    setitrsubset* castBss;
+
+    setitr* setops( const formulaoperator fo )  override {
+        auto itrint = fastsetops( castAss->itrint, castBss->itrint, fo );
+        auto out = new setitrsubset( castAss->superset, itrint );
+        return out;
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        return fastboolsetops( castAss->itrint, castBss->itrint, fo );
+    }
+    setitrfastssops( setitrsubset* castAssin, setitrsubset* castBssin ) : castAss{castAssin}, castBss{castBssin} {}
+};
+class setitrfast2dops : public setitrabstractops {
+public:
+    setitrint2d* castA2d;
+    setitrint2d* castB2d;
+
+    setitr* setops( const formulaoperator fo )  override {
+        auto itrint = fastsetops( castA2d->itrint, castB2d->itrint, fo );
+        int m = castA2d->dim1;
+        if (m*m != itrint->maxint + 1)
+            m = castB2d->dim1; // fussy but need to recover the newly sized square
+        auto out = new setitrint2dsymmetric( m, itrint );
+        return out;
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        return fastboolsetops( castA2d->itrint, castB2d->itrint, fo );
+    }
+    setitrfast2dops( setitrint2d* castA2din, setitrint2d* castB2din ) : castA2d{castA2din}, castB2d{castB2din} {}
+};
+
 class setitrslowops : public setitrabstractops {
 public:
     setitr* setA;
@@ -1278,7 +1410,21 @@ public:
     }
     setitrtuplefastops( setitrint* castAin, setitrint* castBin ) : castA{castAin}, castB{castBin} {}
 };
+class setitrtuplefastssops : public setitrabstractops {
+public:
+    setitrsubset* castAss;
+    setitrsubset* castBss;
 
+    setitr* setops( const formulaoperator fo )  override {
+        auto itrint = fasttupleops( castAss->itrint, castBss->itrint, fo );
+        auto out = new setitrsubset( castAss->superset, itrint );
+        return out;
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        return fastbooltupleops( castAss->itrint, castBss->itrint, fo );
+    }
+    setitrtuplefastssops( setitrsubset* castAssin, setitrsubset* castBssin ) : castAss{castAssin}, castBss{castBssin} {}
+};
 class setitrtupleslowops : public setitrabstractops {
 public:
     setitr* setA;
@@ -1335,15 +1481,26 @@ public:
 };
 
 inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
+    if (setitrint2dsymmetric* castA2d = dynamic_cast<setitrint2dsymmetric*>(setA))
+        if (setitrint2dsymmetric* castB2d = dynamic_cast<setitrint2dsymmetric*>(setB))
+            return new setitrfast2dops( castA2d, castB2d );
     if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
             return new setitrfastops( castA, castB );
+    if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
+        if (setitrsubset* castBss = dynamic_cast<setitrsubset*>(setB))
+            if (castAss->superset->parent == castBss->superset->parent)
+                return new setitrfastssops( castAss, castBss );
     return new setitrslowops( setA, setB );
 }
 inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
     if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
             return new setitrtuplefastops( castA, castB );
+    if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
+        if (setitrsubset* castBss = dynamic_cast<setitrsubset*>(setB))
+            if (castAss->superset->parent == castBss->superset->parent)
+                return new setitrtuplefastssops( castAss, castBss );
     return new setitrtupleslowops( setA, setB );
 }
 
@@ -1396,26 +1553,6 @@ public:
                             std::cout << "unknown quantifier variable";
     }
 };
-
-class setitrintpair : public setitrmodeone
-{
-protected:
-    int inta;
-    int intb;
-    public:
-    void compute() override
-    {
-        totality.resize(2);
-        totality[0].t = mtdiscrete;
-        totality[1].t = mtdiscrete;
-        totality[0].v.iv = inta;
-        totality[1].v.iv = intb;
-    }
-    public:
-    setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
-};
-
-
 
 class setitrtuple : public setitrmodeone
 {
@@ -1497,7 +1634,7 @@ public:
     }
 };
 
-
+/*
 class setitredges : public setitr
 {
 public:
@@ -1552,7 +1689,7 @@ public:
     }
     setitredges( graphtype* gin ) : g{gin} {}
 };
-
+*/
 
 
 // Function to compute Stirling numbers of

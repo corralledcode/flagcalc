@@ -1388,7 +1388,8 @@ class fastmakesubset : public abstractmakesubset {
 public:
     setitrint* superset;
     setitr* makesubset( int maxint, bool* elts ) {
-        auto out = new setitrint( maxint, elts );
+        auto itrint = new setitrint( maxint, elts);
+        auto out = new setitrsubset( superset->getitrpos(), itrint );
         return out;
     }
     fastmakesubset( setitrint* supersetin ) : superset {supersetin} {}
@@ -1976,7 +1977,8 @@ class Eset : public set
 public:
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-        auto itr = new setitredges(ns->g);
+        // auto itr = new setitredges(ns->g);
+        auto itr = new setitrint2dsymmetric( ns->dim, ns->g->adjacencymatrix );
         return itr;
     }
 
@@ -2009,7 +2011,8 @@ public:
             }
         }
         ginv->adjacencymatrix[(g->dim-1)*g->dim + g->dim-1] = false;
-        auto itr = new setitredges(ginv);
+        // auto itr = new setitredges(ginv);
+        auto itr = new setitrint2dsymmetric( ginv->dim, ginv->adjacencymatrix );
         return itr;
     }
 
@@ -2069,26 +2072,26 @@ class Setpartition : public set
 public:
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-        if (ps.size() == 1)
-        {
+        // if (ps.size() == 1)
+        // {
             auto setA = ps[0].seti;
             auto f = new setitrsetpartitions(setA);
             return f;
-        }
-        std::cout << "Error in Sizedsubset::takemeas\n";
-        return nullptr;
+        // }
+        // std::cout << "Error in Sizedsubset::takemeas\n";
+        // return nullptr;
     }
 
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        if (ps.size() == 1)
-        {
+        // if (ps.size() == 1)
+        // {
             auto setA = ps[0].seti;
             auto f = new setitrsetpartitions(setA);
             return f;
-        }
-        std::cout << "Error in Sizedsubset::takemeas\n";
-        return nullptr;
+        // }
+        // std::cout << "Error in Sizedsubset::takemeas\n";
+        // return nullptr;
     }
 
     Setpartition( mrecords* recin ) : set(recin,"Setpartition", "Set partitions")
@@ -2288,7 +2291,8 @@ public:
                 }
             }
         }
-        auto out = new setitredges(gtemp);
+        auto out = new setitrint2dsymmetric( gtemp->dim, gtemp->adjacencymatrix );
+        // auto out = new setitredges(gtemp);
         return out;
     }
     setitr* takemeas(const int idx, const params& ps ) override {

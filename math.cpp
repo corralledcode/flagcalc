@@ -673,6 +673,7 @@ T eval2ary(const T1 in1, const T2 in2, const formulaoperator fo)
         break;
     case(formulaoperator::foimplies):
         res = (!in1) || in2;
+        break;
     case(formulaoperator::foif):
         res = in1 || (!in2);
         break;
