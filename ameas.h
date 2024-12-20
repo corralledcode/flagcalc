@@ -1306,7 +1306,7 @@ public:
                 pathvalms[i].v.iv = cycle[i];
             }
             totality[j].t = mttuple;
-            totality[j++].seti = new setitrtuple(pathvalms);
+            totality[j++].seti = new setitrvalmstuple(pathvalms);
         }
         computed = true;
         pos = -1;
@@ -1359,7 +1359,7 @@ public:
                 pathvalms[i].v.iv = cycle[i];
             }
             totality[j].t = mttuple;
-            totality[j++].seti = new setitrtuple(pathvalms);
+            totality[j++].seti = new setitrvalmstuple(pathvalms);
         }
         computed = true;
         pos = -1;
@@ -2137,6 +2137,108 @@ public:
     }
 }; */
 
+class nwisecrit : public crit {
+
+public:
+    bool combine( bool b1, bool b2 ) {return b1 && b2;}
+
+    bool takemeas(neighborstype* ns, const params& ps ) override
+    {
+        itrpos* itr = ps[0].seti->getitrpos();
+        std::string op = *ps[1].v.rv;
+        formulaoperator fo = formulaoperator::fomeet;
+        bool found = false;
+        for (auto o : operatorsmap)
+        {
+            if (o.first == op)
+            {
+                found = true;
+                fo = o.second;
+                break;
+            }
+        }
+        int n = 2;
+        if (found && fo == formulaoperator::fomeet) {
+            n = ps[2].v.iv;
+        } else if (found && fo == formulaoperator::fodisjoint) {
+            n = 2;
+        } else
+            std::cout << "Unknown op '"<< op << "' passed to nwisec\n";
+        const int min = ps[3].v.iv;
+
+        while (!itr->ended())
+            itr->getnext();
+        int sz = itr->parent->totality.size();
+
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,n,nullptr,0,sz,&subsets);
+        const int l = subsets.size()/n;
+
+        bool res = true;
+        int j = 0;
+        while (res && j < l) {
+            std::vector<setitr*> subset {};
+            subset.resize(n);
+            for (auto i = 0; i < n; i++)
+                subset[i] = itr->parent->totality[subsets[j*n + i]].seti;
+            auto abstractsetops = getsetitrpluralops( subset );
+            res = combine( res, abstractsetops->setopmincount( min, fo) >= min );
+            delete abstractsetops;
+            ++j;
+        }
+        return res;
+    }
+    bool takemeas( const int idx, const params& ps ) {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    nwisecrit( mrecords* recin ) : crit(recin, "nwisec", "n-wise set op holds/is nonempty") {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"set",v});
+        valms v2;
+        v2.t = mtstring;
+        nps.push_back(std::pair{"op",v2});
+        valms v3;
+        v3.t = mtdiscrete;
+        nps.push_back(std::pair{"n",v3});
+        valms v4;
+        v4.t = mtdiscrete;
+        nps.push_back(std::pair{"min",v4});
+        bindnamedparams();
+    }
+};
+
+/*
+class pairwisecrit : public nwisecrit
+{
+public:
+
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        valms v3;
+        valms v4;
+        v3.t = mtdiscrete;
+        v3.v.iv = 2;
+        v4.t = mtdiscrete;
+        v4.v.iv = 1;
+        ps.push_back(v3);
+        ps.push_back(v4);
+        nwisecrit::takemeas(ns,params{});
+    }
+
+    pairwisecrit( mrecords* recin ) : nwisecrit(recin), crit(recin, "pairwisec", "Pairwise op holds")
+    {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"set",v});
+        valms v2;
+        v.t = mtstring;
+        nps.push_back(std::pair{"op",v});
+        bindnamedparams();
+    }
+
+};*/
+
 
 class NNset : public set
 {
@@ -2469,7 +2571,7 @@ class TupletoSet : public set
             exit(1);
         }*/
 
-        if (setitrtuple* s = dynamic_cast<setitrtuple*>(ps[0].seti))
+        if (setitrvalmstuple* s = dynamic_cast<setitrvalmstuple*>(ps[0].seti))
         {
             if (!s->computed)
                 s->compute();

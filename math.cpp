@@ -562,7 +562,9 @@ inline bool equalityops( const formulaoperator fo)
             || fo == formulaoperator::foe
             || fo == formulaoperator::fogt
             || fo == formulaoperator::fogte
-            || fo == formulaoperator::fone);
+            || fo == formulaoperator::fone
+            || fo == formulaoperator::fomeet
+            || fo == formulaoperator::fodisjoint);
 }
 
 /*
@@ -2044,6 +2046,8 @@ inline bool is_naming(std::string tok)
             return q.second == formulaoperator::fonaming;
     return false;
 }
+
+
 
 
 

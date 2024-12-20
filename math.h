@@ -49,7 +49,7 @@ enum class formulaoperator
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection,
     foswitch, focases, foin, fonaming, foas,
-    fosetminus, fosetxor};
+    fosetminus, fosetxor, fomeet, fodisjoint};
 
 inline const std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -99,7 +99,9 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"NAMING", formulaoperator::fonaming},
         {"AS", formulaoperator::foas},
         {"SETMINUS", formulaoperator::fosetminus},
-        {"SETXOR", formulaoperator::fosetxor}};
+        {"SETXOR", formulaoperator::fosetxor},
+        {"MEET", formulaoperator::fomeet},
+        {"DISJOINT", formulaoperator::fodisjoint}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -732,69 +734,10 @@ public:
     setitrsetxor(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
-    };
+    }
 
 };
 
-/*
-class setitrbool : public setitrelts
-{
-public:
-    int maxint;
-    bool* elts = nullptr;
-
-    void compute() override
-    {
-        std::vector<valms> temp {};
-        // totality.clear();
-        temp.resize(maxint+1);
-        int j = 0;
-        for (int i = 0; i < maxint+1; ++i)
-        {
-            if (elts[i])
-            {
-                valms v;
-                v.t = measuretype::mtdiscrete;
-                v.v.iv = i;
-                v.seti = nullptr;
-                temp[j++] = v;
-            }
-        }
-        totality.resize(j);
-        for (int i = 0; i < j; ++i)
-            totality[i] = temp[i];
-        computed = true;
-        reset();
-    }
-    void setmaxint( const int maxintin )
-    {
-        maxint = maxintin;
-        if (maxint >= 0)
-        {
-            elts = (bool*)malloc((maxint+1)*sizeof(bool));
-            memset(elts, true, (maxint+1)*sizeof(bool));
-        }
-        else
-            elts = nullptr;
-        computed = false;
-        reset();
-    }
-
-    setitrbool(const int maxintin)
-    {
-        setmaxint(maxintin);
-        t = mtdiscrete;
-    };
-    setitrbool()
-    {
-        setmaxint(-1);
-        t = mtdiscrete;
-    };
-
-    ~setitrbool() {
-        delete elts;
-    }
-}; */
 
 class setitrint : public setitrmodeone // has subset functionality built in
 {
@@ -852,6 +795,94 @@ class setitrint : public setitrmodeone // has subset functionality built in
          delete elts;
     }
 };
+
+
+template<typename T>
+class setitrtuple : public setitrmodeone
+{
+public:
+    T* elts;
+    int length;
+
+    virtual valms assignvalms( T elt ) {valms v; v.t = mtbool; v.v.bv = false; return v;}
+
+    void compute() override
+    {
+        totality.resize(length);
+        for (int i = 0; i < length; ++i)
+            totality[i] = assignvalms(elts[i]);
+        computed = true;
+        reset();
+    }
+    void setlength( const int lengthin )
+    {
+        delete elts;
+        length = lengthin;
+        if (length > 0)
+        {
+            elts = (T*)malloc(length*sizeof(T));
+            // memset(elts, true, (maxint+1)*sizeof(T));
+        } else
+            elts = nullptr;
+        computed = false;
+        // totality.clear();
+        reset();
+    }
+    setitrtuple(const int lengthin) : elts(nullptr)
+    {
+        setlength(lengthin);
+        reset();
+    }
+    setitrtuple(const int lengthin, T* eltsin) : elts(eltsin), length(lengthin)
+    {
+        reset();
+    }
+    ~setitrtuple() {
+         delete elts;
+    }
+};
+
+class setitrinttuple : public setitrtuple<int> {
+    valms assignvalms( int elt ) override {
+        valms out;
+        out.t = measuretype::mtdiscrete;
+        out.v.iv = elt;
+        return out;
+    }
+};
+class setitrbooltuple : public setitrtuple<bool> {
+    valms assignvalms( bool elt ) override {
+        valms out;
+        out.t = measuretype::mtbool;
+        out.v.bv = elt;
+        return out;
+    }
+};
+class setitrdoubletuple : public setitrtuple<double> {
+    valms assignvalms( double elt ) override {
+        valms out;
+        out.t = measuretype::mtcontinuous;
+        out.v.bv = elt;
+        return out;
+    }
+};
+
+class setitrvalmstuple : public setitrmodeone
+{
+protected:
+    int size;
+public:
+    void compute() override
+    {
+        computed = true;
+    }
+    setitrvalmstuple(std::vector<valms> totalityin)
+    {
+        totality = totalityin;
+        computed = true;
+    }
+};
+
 class setitrintpair : public setitrmodeone
 {
 protected:
@@ -1133,6 +1164,20 @@ inline bool fastsetequals( const int maxint1, const int maxint2, bool* elts1, bo
     }
     return true;
 }
+inline bool fastsetmeet( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+    if (maxint1 <= maxint2) {
+        int i;
+        for (i = 0; i <= maxint1; ++i)
+            if (elts1[i] && elts2[i])
+                return true;
+    } else {
+        int i;
+        for (i = 0; i <= maxint2; ++i)
+            if (elts1[i] && elts2[i])
+                return true;
+    }
+    return false;
+}
 inline bool fastboolsetops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
     int maxintA = setA->maxint;
     int maxintB = setB->maxint;
@@ -1149,6 +1194,10 @@ inline bool fastboolsetops( setitrint* setA, setitrint* setB, const formulaopera
             return fastsetequals( maxintA, maxintB, setA->elts, setB->elts );
         case formulaoperator::fone:
             return !fastsetequals( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fomeet:
+            return fastsetmeet( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fodisjoint:
+            return !fastsetmeet( maxintA, maxintB, setA->elts, setB->elts );
     }
     return false;
 }
@@ -1216,6 +1265,9 @@ inline bool fasttuplepropersubset( const int maxint1, const int maxint2, bool* e
 inline bool fasttupleequals( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
     return fastsetequals( maxint1, maxint2, elts1, elts2 );
 }
+inline bool fasttuplemeet( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
+    return fastsetmeet( maxint1, maxint2, elts1, elts2 );
+}
 inline bool fastbooltupleops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
     int maxintA = setA->maxint;
     int maxintB = setB->maxint;
@@ -1232,6 +1284,10 @@ inline bool fastbooltupleops( setitrint* setA, setitrint* setB, const formulaope
             return fasttupleequals( maxintA, maxintB, setA->elts, setB->elts );
         case formulaoperator::fone:
             return !fasttupleequals( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fomeet:
+            return fasttuplemeet( maxintA, maxintB, setA->elts, setB->elts );
+        case formulaoperator::fodisjoint:
+            return !fasttuplemeet( maxintA, maxintB, setA->elts, setB->elts );
     }
     return false;
 }
@@ -1291,6 +1347,8 @@ inline bool tupleinitialsegment( itrpos* tupleA, itrpos* tupleB ) {
 }
 class setitrabstractops : public setitrmodeone {
 public:
+    virtual int setopmincount( const int min, const formulaoperator fo ) {}
+    virtual int setopmaxcount( const int max, const formulaoperator fo ) {}
     virtual setitr* setops( const formulaoperator fo ) {auto out = new setitrint(-1); return out;};
     virtual bool boolsetops( const formulaoperator fo ) {return false;};
 };
@@ -1308,6 +1366,92 @@ public:
     }
     setitrfastops( setitrint* castAin, setitrint* castBin ) : castA{castAin}, castB{castBin} {}
 };
+class setitrfastpluralops : public setitrabstractops {
+public:
+    std::vector<setitrint*> casts;
+
+    setitr* setops( const formulaoperator fo )  override {
+        std::cout << "No support for plural set ops\n";
+        return nullptr;
+
+        if (casts.size() < 2) {
+            std::cout << "Less than two sets passed to plural ops\n";
+            return nullptr;
+        }
+        auto out = fastsetops( casts[0], casts[1], fo );
+        // ...
+        return out;
+    }
+    int setopmincount( const int min, const formulaoperator fo ) override {
+        if (fo != formulaoperator::fomeet) {
+            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+            return 0;
+        }
+        int minsz;
+        if (casts.size() > 0)
+            minsz = casts[0]->maxint +1;
+        for (int i = 1; i < casts.size(); i++)
+            minsz = minsz < casts[i]->maxint+1 ? minsz : casts[i]->maxint + 1;
+
+        bool* elts = new bool[minsz];
+        int cnt = 0;
+        memset( elts, true, sizeof(bool) * minsz );
+        for (int i = 0; i < minsz; ++i) {
+            for (int j = 0; j < casts.size(); ++j) {
+                elts[i] = elts[i] && casts[j]->elts[i];
+            }
+            if (elts[i]) {
+                ++cnt;
+                if (cnt >= min)
+                    break;
+            }
+        }
+        delete elts;
+        return cnt;
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        if (casts.size() < 2) {
+            std::cout << "Less than two sets passed to plural bool ops\n";
+            return false;
+        }
+        if (fo != formulaoperator::fomeet) {
+            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+            return false;
+        }
+        return setopmincount( 1, fo ) > 0 ? true : false;
+    }
+    setitrfastpluralops( std::vector<setitrint*> castsin ) : casts{castsin} {}
+};
+class setitrfastpluralssops : public setitrabstractops {
+public:
+    std::vector<setitrsubset*> castsss;
+    setitrfastpluralops* fastpluralops {};
+
+    bool boolsetops( const formulaoperator fo )  override {
+        return fastpluralops->boolsetops( fo );
+    }
+    int setopmincount( const int min, const formulaoperator fo ) override {
+        return fastpluralops->setopmincount( min, fo );
+    }
+    setitr* setops( const formulaoperator fo ) override {
+        std::cout << "No support for plural set ops\n";
+        return nullptr;
+
+        // auto itrint = fastpluralops->setops( fo );
+        // auto out = new setitrsubset( castsss[0]->superset, itrint );
+        // return out;
+    }
+
+    setitrfastpluralssops( std::vector<setitrsubset*>& castsss ) : castsss{castsss} {
+        std::vector<setitrint*> casts {};
+        for (auto s : castsss)
+            casts.push_back(s->itrint);
+        fastpluralops = new setitrfastpluralops(casts);
+    }
+    ~setitrfastpluralssops() {
+        delete fastpluralops;
+    }
+};
 class setitrfastssops : public setitrabstractops {
 public:
     setitrsubset* castAss;
@@ -1322,6 +1466,39 @@ public:
         return fastboolsetops( castAss->itrint, castBss->itrint, fo );
     }
     setitrfastssops( setitrsubset* castAssin, setitrsubset* castBssin ) : castAss{castAssin}, castBss{castBssin} {}
+};
+class setitrfastplural2dops : public setitrabstractops {
+public:
+    std::vector<setitrint2d*> casts2d;
+    setitrfastpluralops* fastpluralops {};
+
+    bool boolsetops( const formulaoperator fo )  override {
+        return fastpluralops->boolsetops( fo );
+    }
+
+    int setopmincount( const int min, const formulaoperator fo ) override {
+        return fastpluralops->setopmincount( min, fo );
+    }
+    setitr* setops( const formulaoperator fo ) override {
+
+        std::cout << "No support for plural set ops\n";
+        return nullptr;
+
+    //    auto itrint = fastpluralops->setops( fo );
+    //    int m = (int)sqrt(itrint->maxint + 1);
+    //    auto out = new setitrint2dsymmetric( m, itrint );
+    //    return out;
+    }
+
+    setitrfastplural2dops( std::vector<setitrint2d*>& casts2d ) : casts2d{casts2d} {
+        std::vector<setitrint*> casts {};
+        for (auto s : casts2d)
+            casts.push_back(s->itrint);
+        fastpluralops = new setitrfastpluralops(casts);
+    }
+    ~setitrfastplural2dops() {
+        delete fastpluralops;
+    }
 };
 class setitrfast2dops : public setitrabstractops {
 public:
@@ -1386,6 +1563,16 @@ public:
             case formulaoperator::fone:
                 out = !setsubseteq( tmpitrB, tmpitrA ) || !setsubseteq( tmpitrA, tmpitrB );
                 break;
+            case formulaoperator::fomeet: {
+                auto tmp = new setitrintersection( setA, setB );
+                out = tmp->getsize() > 0;
+                delete tmp;
+                break;}
+            case formulaoperator::fodisjoint: {
+                auto tmp = new setitrintersection( setA, setB );
+                out = tmp->getsize() == 0;
+                delete tmp;
+                break;}
             default:
                 std::cout << "boolsetops (slow) called with non-set or non boolean operator\n";
                 break;
@@ -1395,6 +1582,45 @@ public:
         return out;
     }
     setitrslowops( setitr* setAin, setitr* setBin ) : setA{setAin}, setB{setBin} {}
+};
+class setitrslowpluralops : public setitrabstractops {
+public:
+    std::vector<setitr*> sets;
+    setitr* setops( const formulaoperator fo ) override {
+        std::cout << "No support for plural set ops\n";
+        return nullptr;
+    }
+
+    int setopmincount( const int min, const formulaoperator fo ) override {
+        if (fo != formulaoperator::fomeet) {
+            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+            return 0;
+        }
+
+        std::vector<setitr*> out {};
+        if (sets.size() > 1)
+            out.push_back( new setitrintersection(sets[0], sets[1]) );
+        int cnt = out[0]->getsize();
+        for (int j = 2; j < sets.size() && cnt >= min; ++j) {
+            out.push_back(new setitrintersection(out[out.size()-1],sets[j]));
+            cnt = out[out.size()-1]->getsize();
+        }
+        for (auto s : out)
+            delete s;
+        return cnt;
+    }
+    bool boolsetops( const formulaoperator fo ) override {
+        if (sets.size() < 2) {
+            std::cout << "Less than two sets passed to plural bool ops\n";
+            return false;
+        }
+        if (fo != formulaoperator::fomeet) {
+            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+            return false;
+        }
+        return setopmincount( 1, fo ) > 0 ? true : false;
+    }
+    setitrslowpluralops( std::vector<setitr*> setsin ) : sets{setsin} {}
 };
 class setitrtuplefastops : public setitrabstractops {
 public:
@@ -1483,7 +1709,8 @@ public:
 inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
     if (setitrint2dsymmetric* castA2d = dynamic_cast<setitrint2dsymmetric*>(setA))
         if (setitrint2dsymmetric* castB2d = dynamic_cast<setitrint2dsymmetric*>(setB))
-            return new setitrfast2dops( castA2d, castB2d );
+            if (castA2d->dim1 == castB2d->dim1 && castA2d->dim2 == castB2d->dim2)
+                return new setitrfast2dops( castA2d, castB2d );
     if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
             return new setitrfastops( castA, castB );
@@ -1492,6 +1719,55 @@ inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
             if (castAss->superset->parent == castBss->superset->parent)
                 return new setitrfastssops( castAss, castBss );
     return new setitrslowops( setA, setB );
+}
+inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
+    bool all = true;
+    int i = 0;
+    std::vector<setitrint2d*> casts2d {};
+    while (all && i < sets.size()) {
+        if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(sets[i]))
+            casts2d.push_back(cast2d);
+        else
+            all = false;
+        ++i;
+    }
+    if (all) {
+        bool samedims = true;
+        for (int i = 0; i+1 < casts2d.size() && samedims; ++i)
+            samedims = samedims && casts2d[i]->dim1 == casts2d[i+1]->dim1 && casts2d[i]->dim2 == casts2d[i+1]->dim2;
+        if (samedims)
+            return new setitrfastplural2dops( casts2d );
+    }
+    all = true;
+    i = 0;
+    std::vector<setitrint*> casts {};
+    while (all && i < sets.size()) {
+        if (setitrint* cast = dynamic_cast<setitrint*>(sets[i]))
+            casts.push_back(cast);
+        else
+            all = false;
+        ++i;
+    }
+    if (all)
+        return new setitrfastpluralops( casts );
+    all = true;
+    i = 0;
+    std::vector<setitrsubset*> castsss {};
+    while (all && i < sets.size()) {
+        if (setitrsubset* castss = dynamic_cast<setitrsubset*>(sets[i]))
+            castsss.push_back(castss);
+        else
+            all = false;
+        ++i;
+    }
+    if (all) {
+        bool sameparent = true;
+        for (int i = 0; i+1 < castsss.size() && sameparent; ++i)
+            sameparent = sameparent && (castsss[i]->superset->parent == castsss[i+1]->superset->parent);
+        if (sameparent)
+            return new setitrfastpluralssops( castsss );
+    }
+    return new setitrslowpluralops( sets );
 }
 inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
     if (setitrint* castA = dynamic_cast<setitrint*>(setA))
@@ -1554,21 +1830,6 @@ public:
     }
 };
 
-class setitrtuple : public setitrmodeone
-{
-protected:
-    int size;
-public:
-    void compute() override
-    {
-        computed = true;
-    }
-    setitrtuple(std::vector<valms> totalityin)
-    {
-        totality = totalityin;
-        computed = true;
-    }
-};
 
 class setitrcp : public setitr
 // cross-product
@@ -1605,7 +1866,7 @@ public:
         if (!setB->ended())
         {
             temp.push_back(setB->getnext());
-            r.seti = new setitrtuple(temp);
+            r.seti = new setitrvalmstuple(temp);
         } else
         {
             if (!setA->ended())
@@ -1819,7 +2080,9 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foin, 8},
                             {formulaoperator::foas, 8},
                             {formulaoperator::fosetminus, 3},
-                            {formulaoperator::fosetxor, 3}};
+                            {formulaoperator::fosetxor, 3},
+                            {formulaoperator::fomeet, 3},
+                            {formulaoperator::fodisjoint, 3}};
 
 
 bool is_operator( const std::string& tok );

@@ -1713,6 +1713,7 @@ public:
         auto (connvc) = critfactory<connvcrit>;
         auto (connvsc) = critfactory<connvscrit>;
         auto (indnpc) = critfactory<indnpcrit>;
+        auto (nwisec) = critfactory<nwisecrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1736,6 +1737,7 @@ public:
         crsfactory.push_back(connvc);
         crsfactory.push_back(connvsc);
         crsfactory.push_back(indnpc);
+        crsfactory.push_back(nwisec);
 
         // ...
 
