@@ -21,6 +21,11 @@ $PTH/flagcalc -d f="abcd" -a s="nwisec(E,\"MEET\",2,1)" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{3,4,6}}" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{1,3}}" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{3,1},{4}}" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), nwisec(a,\"DISJOINT\",2,1))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), nwisec(a,\"DISJOINT\",2,(-3)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), st(a) < 3, nwisec(a,\"MEET\",3,(-3)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 20 100 -a s="FORALL (a IN Setpartition(V), st(a) < 3, nwisec(a,\"MEET\",3,(-3)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 20 100 -a s="FORALL (a IN Setpartition({0,1,2,3,4,5,6,7}), st(a) < 3, nwisec(a,\"MEET\",3,(-3)))" all -v i=minimal3.cfg
 
 
 

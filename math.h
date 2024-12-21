@@ -1347,8 +1347,8 @@ inline bool tupleinitialsegment( itrpos* tupleA, itrpos* tupleB ) {
 }
 class setitrabstractops : public setitrmodeone {
 public:
-    virtual int setopmincount( const int min, const formulaoperator fo ) {}
-    virtual int setopmaxcount( const int max, const formulaoperator fo ) {}
+    virtual int setopmincount( const int min, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
+    virtual int setopmaxcount( const int max, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
     virtual setitr* setops( const formulaoperator fo ) {auto out = new setitrint(-1); return out;};
     virtual bool boolsetops( const formulaoperator fo ) {return false;};
 };
@@ -1382,9 +1382,38 @@ public:
         // ...
         return out;
     }
+    int setopmaxcount( const int max, const formulaoperator fo ) override {
+        if (fo != formulaoperator::founion) {
+            std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (iv)\n";
+            return 0;
+        }
+        int maxsz;
+        if (casts.size() > 0)
+            maxsz = casts[0]->maxint +1;
+        for (int i = 1; i < casts.size(); ++i)
+            maxsz = maxsz > casts[i]->maxint+1 ? maxsz : casts[i]->maxint + 1;
+
+        bool* elts = new bool[maxsz];
+        memset( elts, false, sizeof(bool) * maxsz );
+        for (int j = 0; j < casts.size(); ++j) {
+            for (int i = 0; i <= casts[j]->maxint; ++i) {
+                elts[i] = elts[i] || (casts[j]->elts[i]);
+            }
+        }
+        int cnt = 0;
+        for (int i = 0; i < maxsz; ++i) {
+            if (elts[i]) {
+                ++cnt;
+                if (cnt >= max && max != -1)
+                    break;
+            }
+        }
+        delete elts;
+        return cnt;
+    }
     int setopmincount( const int min, const formulaoperator fo ) override {
-        if (fo != formulaoperator::fomeet) {
-            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+        if (fo != formulaoperator::fointersection) {
+            std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (iii)\n";
             return 0;
         }
         int minsz;
@@ -1402,7 +1431,7 @@ public:
             }
             if (elts[i]) {
                 ++cnt;
-                if (cnt >= min)
+                if (cnt >= min && min != -1)
                     break;
             }
         }
@@ -1414,11 +1443,14 @@ public:
             std::cout << "Less than two sets passed to plural bool ops\n";
             return false;
         }
-        if (fo != formulaoperator::fomeet) {
-            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+        if (fo != formulaoperator::fomeet && fo != formulaoperator::fodisjoint) {
+            std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (ii)\n";
             return false;
         }
-        return setopmincount( 1, fo ) > 0 ? true : false;
+        if (fo == formulaoperator::fomeet)
+            return setopmincount( 1, formulaoperator::fointersection ) > 0 ? true : false;
+        else
+            return setopmincount(1, formulaoperator::fointersection ) < 1 ? true : false;
     }
     setitrfastpluralops( std::vector<setitrint*> castsin ) : casts{castsin} {}
 };
@@ -1429,6 +1461,9 @@ public:
 
     bool boolsetops( const formulaoperator fo )  override {
         return fastpluralops->boolsetops( fo );
+    }
+    int setopmaxcount( const int max, const formulaoperator fo ) override {
+        return fastpluralops->setopmaxcount( max, fo );
     }
     int setopmincount( const int min, const formulaoperator fo ) override {
         return fastpluralops->setopmincount( min, fo );
@@ -1591,9 +1626,32 @@ public:
         return nullptr;
     }
 
+    int setopmaxcount( const int max, const formulaoperator fo ) override {
+        if (fo != formulaoperator::founion) {
+            std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (i)\n";
+            return 0;
+        }
+
+        std::vector<setitr*> out {};
+        if (sets.size() > 1)
+            out.push_back( new setitrunion(sets[0], sets[1]) );
+        else {
+            std::cout << "Empty sets in slowpluralops\n";
+            return 0;
+        }
+        int cnt = out[0]->getsize();
+        for (int j = 2; j < sets.size() && cnt < max; ++j) {
+            out.push_back(new setitrunion(out[out.size()-1],sets[j]));
+            cnt = out[out.size()-1]->getsize();
+        }
+        for (auto s : out)
+            delete s;
+        return cnt;
+    }
+
     int setopmincount( const int min, const formulaoperator fo ) override {
-        if (fo != formulaoperator::fomeet) {
-            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+        if (fo != formulaoperator::fointersection) {
+            std::cout << "No support for plural set bool ops other than for 'cup' and 'cap'; try pairwise\n";
             return 0;
         }
 
@@ -1614,11 +1672,14 @@ public:
             std::cout << "Less than two sets passed to plural bool ops\n";
             return false;
         }
-        if (fo != formulaoperator::fomeet) {
-            std::cout << "No support for plural set bool ops other than for 'meet'; try pairwise\n";
+        if (fo != formulaoperator::fomeet && fo != formulaoperator::fodisjoint) {
+            std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise\n";
             return false;
         }
-        return setopmincount( 1, fo ) > 0 ? true : false;
+        if (fo == formulaoperator::fomeet)
+            return setopmincount( 1, formulaoperator::fointersection ) > 0 ? true : false;
+        else
+            return setopmincount(1, formulaoperator::fointersection ) < 1 ? true : false;
     }
     setitrslowpluralops( std::vector<setitr*> setsin ) : sets{setsin} {}
 };

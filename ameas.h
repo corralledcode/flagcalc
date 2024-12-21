@@ -1384,6 +1384,17 @@ class abstractmakesubset {
     virtual setitr* makesubset( int maxint, bool* elts ) {return nullptr;};
 };
 
+/*
+class fastmakesubset : public abstractmakesubset {
+public:
+    setitr* makesubset( int maxint, bool* elts ) {
+        auto out = new setitrint( maxint, elts);
+        return out;
+    }
+    fastmakesubset() {}
+};
+*/
+
 class fastmakesubset : public abstractmakesubset {
 public:
     setitrint* superset;
@@ -2165,6 +2176,7 @@ public:
         } else
             std::cout << "Unknown op '"<< op << "' passed to nwisec\n";
         const int min = ps[3].v.iv;
+        const int max = -min;
 
         while (!itr->ended())
             itr->getnext();
@@ -2182,7 +2194,16 @@ public:
             for (auto i = 0; i < n; i++)
                 subset[i] = itr->parent->totality[subsets[j*n + i]].seti;
             auto abstractsetops = getsetitrpluralops( subset );
-            res = combine( res, abstractsetops->setopmincount( min, fo) >= min );
+            if (fo == formulaoperator::fomeet)
+                if (max > 0)
+                    res = combine( res, abstractsetops->setopmaxcount( max, formulaoperator::founion ) >= max );
+                else
+                    res = combine( res, abstractsetops->setopmincount( min, formulaoperator::fointersection) >= min );
+            else
+                if (max > 0)
+                    res = combine( res, abstractsetops->setopmaxcount( max, formulaoperator::founion ) < max );
+                else
+                    res = combine( res, abstractsetops->setopmincount( min, formulaoperator::fointersection) < min );
             delete abstractsetops;
             ++j;
         }
@@ -2204,7 +2225,7 @@ public:
         nps.push_back(std::pair{"n",v3});
         valms v4;
         v4.t = mtdiscrete;
-        nps.push_back(std::pair{"min",v4});
+        nps.push_back(std::pair{"min/max",v4});
         bindnamedparams();
     }
 };
