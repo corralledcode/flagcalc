@@ -1200,9 +1200,9 @@ inline bool fastboolsetops( setitrint* setA, setitrint* setB, const formulaopera
         case formulaoperator::folt:
             return fastsetpropersubset( maxintA, maxintB, setA->elts, setB->elts );
         case formulaoperator::fogte:
-            return fastsetsubset( maxintA, maxintB, setB->elts, setA->elts );
+            return fastsetsubset( maxintB, maxintA, setB->elts, setA->elts );
         case formulaoperator::fogt:
-            return fastsetpropersubset( maxintA, maxintB, setA->elts, setB->elts );
+            return fastsetpropersubset( maxintB, maxintA, setB->elts, setA->elts );
         case formulaoperator::foe:
             return fastsetequals( maxintA, maxintB, setA->elts, setB->elts );
         case formulaoperator::fone:
@@ -1290,9 +1290,9 @@ inline bool fastbooltupleops( setitrint* setA, setitrint* setB, const formulaope
         case formulaoperator::folt:
             return fasttuplepropersubset( maxintA, maxintB, setA->elts, setB->elts );
         case formulaoperator::fogte:
-            return fasttuplesubset( maxintA, maxintB, setB->elts, setA->elts );
+            return fasttuplesubset( maxintB, maxintA, setB->elts, setA->elts );
         case formulaoperator::fogt:
-            return fasttuplepropersubset( maxintA, maxintB, setA->elts, setB->elts );
+            return fasttuplepropersubset( maxintB, maxintA, setB->elts, setA->elts );
         case formulaoperator::foe:
             return fasttupleequals( maxintA, maxintB, setA->elts, setB->elts );
         case formulaoperator::fone:

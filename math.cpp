@@ -726,6 +726,10 @@ bool setsubseteq( itrpos* in1, itrpos* in2)
         while (!match && !in2->ended())
         {
             auto itm2 = in2->getnext();
+            match = match || mtareequal( itm, itm2);
+        }
+
+        /*
             if (itm.t == mtbool || itm.t == mtdiscrete || itm.t == mtcontinuous)
                 match = itm == itm2;
             else
@@ -749,7 +753,7 @@ bool setsubseteq( itrpos* in1, itrpos* in2)
                         std::cout << "Mismatched set type in setsubseteq\n";
                         exit(1);
                     }
-        }
+        }*/
         res = match;
     }
     return res;
