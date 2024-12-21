@@ -2579,7 +2579,7 @@ public:
         }
         delete C;
         delete itrA;
-        delete itrB;
+        delete itrB; // C is deleted above
         return res;
     }
 

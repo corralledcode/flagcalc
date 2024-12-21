@@ -1381,20 +1381,67 @@ public:
 class abstractmakesubset {
 
     public:
-    virtual setitr* makesubset( int maxint, bool* elts ) {return nullptr;};
+    virtual setitr* makesubset( const int maxint, bool* elts ) {return nullptr;};
+    virtual int lookupidx( const int idxin ) {return idxin;}
+    virtual int getmaxint() {std::cout << "using abstract virtual method: error\n"; return 0;}
 };
 
-/*
+
 class fastmakesubset : public abstractmakesubset {
 public:
-    setitr* makesubset( int maxint, bool* elts ) {
+    setitrint* superset;
+    setitr* makesubset( const int maxint, bool* elts ) {
         auto out = new setitrint( maxint, elts);
         return out;
     }
-    fastmakesubset() {}
+    int lookupidx( const int idxin )  override {
+        return superset->totality[idxin].v.iv;
+    }
+    int getmaxint() override {
+        return superset->maxint;
+    }
+    fastmakesubset( setitrint* supersetin ) : superset{supersetin} {
+        superset->compute();
+    }
 };
-*/
-
+class fastmake2dsubset : public abstractmakesubset {
+public:
+    setitrint2d* superset;
+    setitr* makesubset( const int maxint, bool* elts ) {
+        auto itrint = new setitrint( maxint, elts);
+        auto out = new setitrint2dsymmetric( superset->dim1, itrint );
+        return out;
+    }
+    int lookupidx( const int idxin )  override {
+        return superset->itrint->totality[idxin].v.iv;
+    }
+    int getmaxint() override {
+        return superset->itrint->maxint;
+    }
+    fastmake2dsubset( setitrint2d* supersetin ) : superset{supersetin} {
+        if (!superset->itrint->computed)
+            superset->itrint->compute();
+    }
+};
+class fastmakesssubset : public abstractmakesubset {
+public:
+    setitrsubset* superset;
+    setitr* makesubset( const int maxint, bool* elts ) {
+        auto itrint = new setitrint( maxint, elts);
+        auto out = new setitrsubset( superset->getitrpos(), itrint );
+        return out;
+    }
+    int lookupidx( const int idxin )  override {
+        return superset->itrint->totality[idxin].v.iv;
+    }
+    int getmaxint() override {
+        return superset->itrint->maxint;
+    }
+    fastmakesssubset( setitrsubset* supersetin ) : superset{supersetin} {
+        superset->itrint->compute();
+    }
+};
+/*
 class fastmakesubset : public abstractmakesubset {
 public:
     setitrint* superset;
@@ -1404,20 +1451,27 @@ public:
         return out;
     }
     fastmakesubset( setitrint* supersetin ) : superset {supersetin} {}
-};
+};*/
 class slowmakesubset : public abstractmakesubset {
 public:
     setitr* superset;
-    setitr* makesubset( int maxint, bool* elts ) {
+    setitr* makesubset( const int maxint, bool* elts ) {
         auto itrint = new setitrint( maxint, elts );
         auto out = new setitrsubset( superset->getitrpos(), itrint );
         return out;
+    }
+    int getmaxint() override {
+        return superset->getsize() - 1;
     }
     slowmakesubset( setitr* supersetin ) : superset{supersetin} {}
 };
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
     if (setitrint* cast = dynamic_cast<setitrint*>(superset))
         return new fastmakesubset( cast );
+    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
+        return new fastmake2dsubset( cast2d );
+    if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
+        return new fastmakesssubset( castss );
     return new slowmakesubset( superset );
 }
 
@@ -1426,6 +1480,7 @@ class setitrpowerset : public setitr
 protected:
     int subsetsize;
     int supersetsize;
+    int maxint;
     std::vector<int> subsetsv;
     int possubsetsv;
     int numberofsubsets = 1;
@@ -1457,7 +1512,6 @@ public:
         // supersetpos->reset();
         // inprocesssupersetpos->reset();
         pos = -1;
-
         posssv = -1;
     }
     bool ended() override
@@ -1474,34 +1528,34 @@ public:
         valms r;
         r.t = mtset;
 
-        bool* elts = new bool[supersetsize];
+        bool* elts = new bool[maxint+1];
         // auto subset = new setitrsubset(supersetpos);
         // r.seti = subset;
         if (++posssv >= numberofsubsets)
         {
             ++subsetsize;
-            numberofsubsets = ssvs[subsetsize].size()/subsetsize;
+            if (ssvs.size() <= subsetsize) {
+                ssvs.resize(ssvs.size()+1);
+                enumsizedsubsets(0,subsetsize,nullptr,0,supersetsize,&(ssvs[subsetsize]));
+                numberofsubsets = ssvs[subsetsize].size()/subsetsize;
+            }
             posssv = 0;
         }
         // if (posssv == 0)
             // std::cout << "posssv == 0, subsetsize == " << subsetsize << " numberofsubsets == " << numberofsubsets << "\n";
         //memset(subset->itrint->elts, false, supersetsize*sizeof(bool));
-        memset(elts,false,supersetsize*sizeof(bool));
+        memset(elts,false,(maxint+1)*sizeof(bool));
         for (int j = 0; j < subsetsize; ++j)
             // subset->itrint->elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
-            elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
+            // elts[ssvs[subsetsize][posssv*subsetsize + j]] = true;
+            elts[subsetmaker->lookupidx(ssvs[subsetsize][posssv*subsetsize + j])] = true;
         // if (subset.size() > 0)
         // subset->elts[subset->maxint] = true;
         // subset->itrint->computed = false;
         // subset->reset();
-        r.seti = subsetmaker->makesubset(supersetsize-1,elts);
+        r.seti = subsetmaker->makesubset(maxint,elts);
         totality.resize(++pos+1);
         totality[pos] = r;
-
-        // std::cout << "subset ";
-        // while (!subset->ended())
-            // std::cout << subset->getnext().v.iv << ", ";
-        // std::cout << std::endl;
 
         return r;
 
@@ -1518,19 +1572,24 @@ public:
         : supersetitr{setin}, inprocesssupersetitr(), subsetmaker{getsubsetmaker(setin)}
     {
         t = mtset;
-        if (supersetitr)
+        if (supersetitr) {
             supersetsize = supersetitr->getsize();
-        else
+            maxint = subsetmaker->getmaxint();
+        } else {
             supersetsize = 0;
+            maxint = -1;
+        }
         // inprocesssupersetitr.totality.resize(0);
         // inprocesssupersetpos = inprocesssupersetitr.getitrpos();
         // subsetitr.setsuperset(inprocesssupersetpos);
         supersetpos = supersetitr->getitrpos();
 
-        ssvs.resize(supersetsize+1);
-        for (int i = 0; i <= supersetsize; ++i)
-            enumsizedsubsets(0,i,nullptr,0,supersetsize,&(ssvs[i]));
+        // ssvs.resize(supersetsize+1);
+        // for (int i = 0; i <= supersetsize; ++i)
+        //    enumsizedsubsets(0,i,nullptr,0,supersetsize,&(ssvs[i]));
 
+        ssvs.resize(1);
+        enumsizedsubsets(0,0,nullptr,0,supersetsize,&(ssvs[0]));
         reset();
         // subsetsize = 0;
         // numberofsubsets = 1;
@@ -1540,6 +1599,7 @@ public:
     {
         t = mtset;
         supersetsize = 0;
+        maxint = -1;
         // inprocesssupersetpos = inprocesssupersetitr.getitrpos();
         // subsetitr.setsuperset(inprocesssupersetpos);
     }
@@ -1555,6 +1615,7 @@ class setitrsizedsubset : public setitr
 public:
     itrpos* setA;
     int supersetsize;
+    int maxint;
 
     std::vector<int> posAprimes {};
     int size = 2;
@@ -1639,19 +1700,21 @@ public:
                 posAprimes[i] = i;
             }
         }
-        auto elts = new bool[supersetsize];
-        memset(elts, false, supersetsize*sizeof(bool));
+        auto elts = new bool[maxint+1];
+        memset(elts, false, (maxint+1)*sizeof(bool));
         if (size > 0)
-            elts[setA->pos] = true;
+            // elts[setA->pos] = true;
+            elts[subsetmaker->lookupidx(setA->pos)] = true;
         for (int i = 0; i + 1 < size; ++i)
-            elts[posAprimes[i]] = true;
+            // elts[posAprimes[i]] = true;
+            elts[subsetmaker->lookupidx(posAprimes[i])] = true;
 //        memset(subset->itrint->elts, false, (subset->itrint->maxint+1)*sizeof(bool));
 //        if (size > 0)
 //            subset->itrint->elts[setA->pos] = true;
 //        for (int i = 0; i < size-1; ++i)
 //            subset->itrint->elts[posAprimes[i]] = true;
         // r.setsize = size;
-        r.seti = subsetmaker->makesubset(supersetsize-1, elts);
+        r.seti = subsetmaker->makesubset(maxint, elts);
         totality.resize(pos+1);
         totality[pos] = r;
         // std::cout << "pos " << pos << ": ";
@@ -1663,6 +1726,8 @@ public:
     setitrsizedsubset(setitr* Ain, int sizein ) : setA{Ain ? Ain->getitrpos() : nullptr}, size{sizein},
         supersetsize{Ain ? Ain->getsize() : 0}, subsetmaker{getsubsetmaker(Ain)}
     {
+        if (Ain)
+            maxint = subsetmaker->getmaxint();
         t = mtset;
         if (Ain == this)
             std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
@@ -1695,6 +1760,8 @@ public:
 
     abstractmakesubset* subsetmaker;
 
+    int maxint;
+
     void codesubsets() {
         subsets.resize(supersetsize);
 
@@ -1702,14 +1769,16 @@ public:
         for (int i = 0; i < supersetsize; ++i)
         {
             // subsets[i] = new setitrsubset(setA);
-            auto elts = new bool[supersetsize];
+            auto elts = new bool[maxint+1];
+            memset(elts, false, (maxint+1)*sizeof(bool));
             for (int j = 0; j < supersetsize; ++j)
             {
-                elts[j] = sequence[j] == i;
+                // elts[j] = sequence[j] == i;
+                elts[subsetmaker->lookupidx(j)] = sequence[j] == i;
                 // subsets[i]->itrint->elts[j] = sequence[j] == i;
                 max = max < sequence[j] ? sequence[j] : max;
             }
-            subsets[i] = subsetmaker->makesubset(supersetsize-1, elts);
+            subsets[i] = subsetmaker->makesubset(maxint, elts);
             subsets[i]->reset();
         }
         subsets.resize(max+1);
@@ -1719,6 +1788,7 @@ public:
     int getsize() override
     {
         supersetsize = setA->getsize();
+        maxint = subsetmaker->getmaxint();
         return bellNumber(supersetsize);
     }
 

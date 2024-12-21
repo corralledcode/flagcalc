@@ -1307,10 +1307,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 res.t = mtcontinuous;
                 double min = std::numeric_limits<double>::infinity();
                 double max = -std::numeric_limits<double>::infinity();
-                int count = 0;
+                int count = 0; // this is not foqcount but rather to be used to find average
                 if (fc.fo == formulaoperator::foqsum)
                     res.v.dv = 0;
-                if (fc.fo == formulaoperator::foqproduct)
+                else if (fc.fo == formulaoperator::foqproduct)
                     res.v.dv = 1;;
                 while (!supersetpos->ended() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
                 {
@@ -1325,7 +1325,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             exit(1);
                         }
                     }
-                    count++;
+                    count++;  // this is not foqcount but rather to be used to find average
                     // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
                     // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
                     // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
@@ -1417,48 +1417,20 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                     }
                     auto v = evalinternal(*fc.fcright, context);
-                    if (fc.fo == formulaoperator::foqcount)
-                        mtconverttodiscrete(v, res.v.iv);
-                    /*                        switch (v.t)
-                                            {
-                                        case mtdiscrete:
-                                            res.v.iv += v.v.iv != 0 ? 1 : 0;
-                                                break;
-                                        case mtbool:
-                                            res.v.iv += v.v.bv ? 1 : 0;
-                                                break;
-                                        case mtcontinuous:
-                                            res.v.iv += abs(v.v.dv) > ABSCUTOFF ? 1 : 0;
-                                                break;
-                                        case mtset:
-                                        case mttuple:
-                                            res.v.iv += v.seti->getsize() > 0 ? 1 : 0;
-                                                break;
-                                            } */
-                    else // if (fc.fo == formulaoperator::foqtally)
+                    if (fc.fo == formulaoperator::foqcount) {
+                        valms tmp;
+                        mtconverttobool(v,tmp.v.bv);
+                        if (tmp.v.bv)
+                            ++res.v.iv;
+                    } else  if (fc.fo == formulaoperator::foqtally)
                     {
                         valms tmp;
                         mtconverttodiscrete(v, tmp.v.iv);
                         res.v.iv += tmp.v.iv;
-                        /* switch (v.t)
-                        {
-                    case mtdiscrete:
-                        res.v.iv += v.v.iv;
-                            break;
-                    case mtbool:
-                        res.v.iv += v.v.bv ? 1 : 0;
-                            break;
-                    case mtcontinuous:
-                        res.v.iv += (int)v.v.dv;
-                            break;
-                    case mtset:
-                    case mttuple:
-                        res.v.iv += v.seti->getsize();
-                            break;
-                        }*/
                     }
-                    break;
+
                 }
+                break;
             }
 
             case (formulaoperator::foqdupeset):

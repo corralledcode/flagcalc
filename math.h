@@ -747,7 +747,6 @@ class setitrint : public setitrmodeone // has subset functionality built in
     void compute() override
     {
         std::vector<valms> temp {};
-        temp.clear();
         temp.resize(maxint+1);
         int j = 0;
         for (int i = 0; i <= maxint; ++i)
@@ -789,6 +788,7 @@ class setitrint : public setitrmodeone // has subset functionality built in
         maxint = maxintin;
         elts = eltsin;
         t = mtdiscrete;
+        computed = false;
         reset();
     }
     ~setitrint() {
@@ -946,8 +946,9 @@ inline void demirrorelts( const int dim1, bool* elts) {
 class setitrint2dsymmetric : public setitrint2d {
 public:
     void compute() override {
-        // demirrorelts(dim1,itrint->elts);
-        //  setitrint2d::compute();
+        // setitrint2d::compute();
+        // the below is almost identical to the inherited... just a bit faster on the inner for loop
+
         std::vector<valms> temp;
         temp.resize(dim1*dim2);
         int k = 0;
@@ -973,7 +974,11 @@ public:
         reset();
     }
     setitrint2dsymmetric(int dim1in) : setitrint2d(dim1in,dim1in) {}
-    setitrint2dsymmetric(int dim1in, bool* elts) : setitrint2d(dim1in,dim1in, elts) {}
+    setitrint2dsymmetric(int dim1in, bool* eltsin) : setitrint2d(dim1in,dim1in,new bool[dim1in*dim1in])
+    {
+        memcpy(this->itrint->elts,eltsin,dim1*dim1*sizeof(bool));
+        demirrorelts(dim1,this->itrint->elts);
+    }
     setitrint2dsymmetric(int dim1in, setitrint* itrintin ) : setitrint2d(dim1in,dim1in, itrintin) {}
     ~setitrint2dsymmetric() {
         for (auto v : totality)
@@ -1068,8 +1073,10 @@ public:
 };
 
 inline void fastsetunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
-    for (int i = 0; i <= maxint1; ++i)
-        out[i] = elts1[i];
+    if (maxint1 > 0)
+        memcpy(out,elts1,maxint1*sizeof(bool));
+    // for (int i = 0; i <= maxint1; ++i)
+    //    out[i] = elts1[i];
      for (int i = 0; i <= maxint2; ++i)
          out[i] = out[i] || elts2[i];
 }
@@ -1081,22 +1088,28 @@ inline void fastsetminus( const int maxint1, const int maxint2, const int maxint
     int i;
     for (i = 0; i <= maxintout; ++i)
         out[i] = elts1[i] && !elts2[i];
-    for ( ; i <= maxint1; ++i)
-        out[i] = elts1[i];
+    if (i < maxint1)
+        memcpy(out+i,elts1+i,(maxint1 - i)*sizeof(bool));
+    // for ( ; i <= maxint1; ++i)
+    //    out[i] = elts1[i];
 }
 inline void fastsetxor( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
     if (maxint1 <= maxint2) {
         int i;
         for (i = 0; i <= maxint1; ++i)
             out[i] = elts1[i] != elts2[i];
-        for (; i <= maxint2; ++i)
-            out[i] =  elts2[i];
+        if (i < maxint2)
+            memcpy(out+i,elts2 + i,(maxint2 - i)*sizeof(bool));
+        // for (; i <= maxint2; ++i)
+        //    out[i] =  elts2[i];
     } else {
         int i;
         for (i = 0; i <= maxint2; ++i)
             out[i] = elts1[i] != elts2[i];
-        for (; i <= maxint1; ++i)
-            out[i] =  elts1[i];
+        if (i < maxint1)
+            memcpy(out+i,elts1 + i,(maxint1 - i)*sizeof(bool));
+        // for (; i <= maxint1; ++i)
+        //     out[i] =  elts1[i];
     }
 }
 inline bool fastsetsubset( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
