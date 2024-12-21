@@ -1072,15 +1072,15 @@ public:
     }
 };
 
-inline void fastsetunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+inline void fastsetunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
     if (maxint1 > 0)
-        memcpy(out,elts1,maxint1*sizeof(bool));
+        memcpy(out,elts1,(maxint1+1)*sizeof(bool));
     // for (int i = 0; i <= maxint1; ++i)
     //    out[i] = elts1[i];
      for (int i = 0; i <= maxint2; ++i)
          out[i] = out[i] || elts2[i];
 }
-inline void fastsetintersection( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+inline void fastsetintersection( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
     for (int i = 0; i <= maxintout; ++i)
         out[i] = elts1[i] && elts2[i];
 }
@@ -1088,8 +1088,8 @@ inline void fastsetminus( const int maxint1, const int maxint2, const int maxint
     int i;
     for (i = 0; i <= maxintout; ++i)
         out[i] = elts1[i] && !elts2[i];
-    if (i < maxint1)
-        memcpy(out+i,elts1+i,(maxint1 - i)*sizeof(bool));
+    if (i <= maxint1)
+        memcpy(out+i,elts1+i,(maxint1+1 - i)*sizeof(bool));
     // for ( ; i <= maxint1; ++i)
     //    out[i] = elts1[i];
 }
@@ -1098,16 +1098,16 @@ inline void fastsetxor( const int maxint1, const int maxint2, const int maxintou
         int i;
         for (i = 0; i <= maxint1; ++i)
             out[i] = elts1[i] != elts2[i];
-        if (i < maxint2)
-            memcpy(out+i,elts2 + i,(maxint2 - i)*sizeof(bool));
+        if (i <= maxint2)
+            memcpy(out+i,elts2 + i,(maxint2+1 - i)*sizeof(bool));
         // for (; i <= maxint2; ++i)
         //    out[i] =  elts2[i];
     } else {
         int i;
         for (i = 0; i <= maxint2; ++i)
             out[i] = elts1[i] != elts2[i];
-        if (i < maxint1)
-            memcpy(out+i,elts1 + i,(maxint1 - i)*sizeof(bool));
+        if (i <= maxint1)
+            memcpy(out+i,elts1 + i,(maxint1+1 - i)*sizeof(bool));
         // for (; i <= maxint1; ++i)
         //     out[i] =  elts1[i];
     }
@@ -1256,10 +1256,10 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
     return out;
 }
 /* for now the set-valued set operations are the same for tuples as for set */
-inline void fasttupleunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+inline void fasttupleunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
     fastsetunion(maxint1,maxint2,maxintout,elts1,elts2,out);
 }
-inline void fasttupleintersection( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool*& out) {
+inline void fasttupleintersection( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
     fasttupleintersection(maxint1,maxint2,maxintout,elts1,elts2,out);
 }
 inline void fasttupleminus( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
@@ -1656,6 +1656,8 @@ public:
         for (int j = 2; j < sets.size() && cnt < max; ++j) {
             out.push_back(new setitrunion(out[out.size()-1],sets[j]));
             cnt = out[out.size()-1]->getsize();
+            if (cnt >= max)
+                break;
         }
         for (auto s : out)
             delete s;
@@ -1675,6 +1677,8 @@ public:
         for (int j = 2; j < sets.size() && cnt >= min; ++j) {
             out.push_back(new setitrintersection(out[out.size()-1],sets[j]));
             cnt = out[out.size()-1]->getsize();
+            if (cnt < min)
+                break;
         }
         for (auto s : out)
             delete s;
