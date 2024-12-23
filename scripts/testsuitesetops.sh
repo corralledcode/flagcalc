@@ -27,8 +27,12 @@ $PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), nwisec(a,\"DISJOIN
 $PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), st(a) < 3, nwisec(a,\"MEET\",3,(-3)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 20 100 -a s="FORALL (a IN Setpartition({0,1,2,3,4,5,6,7}), st(a) < 3, nwisec(a,\"MEET\",3,(-3)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), nwisec(p,\"DISJOINT\",2,1) AND SUM (x IN p, st(x)) == dimm AND FORALL (x IN p, x != Nulls), p) <= Setpartition(V)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), nwisec(p,\"DISJOINT\",2,1) AND SUM (x IN p, st(x)) == dimm AND FORALL (x IN p, x != Nulls), p) == Setpartition(V)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), nwisec(p,\"DISJOINT\",2,1) AND BIGCUP (x IN p, x) == V AND FORALL (x IN p, x != Nulls), p) == Setpartition(V)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), nwisec(p,\"DISJOINT\",2,1) AND st(BIGCUPD (x IN p, x)) == dimm AND FORALL (x IN p, x != Nulls), p) == Setpartition(V)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 3 2 100 -a s="Ps(Ps(V)) >= Setpartition(V)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), p) >= Setpartition(V)" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="SET (ps IN Pathss(0,1), nwisec(ps,\"DISJOINT\",2,3), ps)" all -v set allsets i=minimal3.cfg
 
 
 

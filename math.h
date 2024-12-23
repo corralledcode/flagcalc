@@ -612,13 +612,13 @@ class setitrsetminus : public setitrmodeone
         pos = -1;
         totality.clear();
         std::vector<valms> temp {};
-        while (!Bitr->ended())
+        while (!Aitr->ended())
         {
             bool found = false;
-            valms v = Bitr->getnext();
-            Aitr->reset();
-            while (!found && !Aitr->ended()) {
-                valms omitv = Aitr->getnext();
+            valms v = Aitr->getnext();
+            Bitr->reset();
+            while (!found && !Bitr->ended()) {
+                valms omitv = Bitr->getnext();
                 if (v.t == omitv.t)
                     switch (v.t) {
                         case mtbool:
@@ -627,18 +627,8 @@ class setitrsetminus : public setitrmodeone
                         found = found || v == omitv;
                         break;
                         case mtset: {
-                            auto tmpitr1 = v.seti->getitrpos();
-                            auto tmpitr2 = omitv.seti->getitrpos();
-                            found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
-                            delete tmpitr1;
-                            delete tmpitr2;
-                            break;}
-                        case mttuple: {
-                            auto tmpitr1 = v.seti->getitrpos();
-                            auto tmpitr2 = omitv.seti->getitrpos();
-                            found = found || tupleeq( tmpitr1, tmpitr2);
-                            delete tmpitr1;
-                            delete tmpitr2;
+                        case mttuple:
+                            found = mtareequal(v, omitv);
                             break;}
                         default:
                             std::cout << "Unsupported type " << v.t << " in setitrunion\n";
@@ -1228,7 +1218,7 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
             maxintout = maxintA <= maxintB ? maxintA : maxintB;
             break;
         case formulaoperator::fosetminus:
-            maxintout = maxintA <= maxintB ? maxintA : maxintB;
+            maxintout = maxintA <= maxintB ? maxintB : maxintA;
             break;
         default:
             std::cout << "Cannot call fastsetops with non-set operator\n";
@@ -1243,7 +1233,7 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
             fastsetintersection( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
             break;
         case formulaoperator::fosetminus:
-            fastsetminus( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
+            fastsetminus( maxintB, maxintA, maxintout, setB->elts, setA->elts, out->elts );
             break;
         case formulaoperator::fosetxor:
             fastsetxor( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
@@ -1580,7 +1570,7 @@ public:
             case formulaoperator::fointersection:
                 return new setitrintersection( setA, setB );
             case formulaoperator::fosetminus:
-                return new setitrsetminus( setA, setB );
+                return new setitrsetminus( setB, setA );
             case formulaoperator::fosetxor:
                 return new setitrsetxor( setA, setB );
             default:

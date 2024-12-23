@@ -180,8 +180,9 @@ $PTH/flagcalc -r 5 5 300 -a s="FORALL (k IN dimm, FORALL (v1 IN V, FORALL (v2 IN
 
 # Diestel Theorem 3.3.1 (Menger 1927)
 
-$PTH/flagcalc -r 5 5 50 -a z="FORALL (A IN Ps(V), FORALL (B IN Ps(V), A CAP B == Nulls, MIN (X IN Ps(V), Separatesc(A,B,X), st(X)) == MAX (ps IN Setpartition(V), FORALL (p IN ps, EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), q <= p) ))), st(ps)) ))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 5 5 50 -a z="FORALL (T IN Setpartition(V), st(T) == 2, FORALL (A IN Ps(T(0)), FORALL (B IN Ps(T(1)), MIN (X IN Ps(V), Separatesc(A,B,X), st(X)) == MAX (ps IN Setpartition(V), FORALL (p IN ps, EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), q <= p) ))), st(ps)) )) )" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 50 -a s="FORALL (A IN Ps(V), FORALL (B IN Ps(V), A DISJOINT B, MIN (X IN Ps(V), Separatesc(A,B,X), st(X)) == MAX (ps IN Setpartition(V) CUP {{}}, FORALL (p IN ps, EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), q <= p) ))), st(ps)) ))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 50 -a s="FORALL (T IN Setpartition(V), st(T) == 2, FORALL (A IN Ps(T(0)), FORALL (B IN Ps(T(1)), MIN (X IN Ps(V), Separatesc(A,B,X), st(X)) == MAX (ps IN Setpartition(V) CUP {{}}, FORALL (p IN ps, EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), q <= p) ))), st(ps)) )) )" all -v i=minimal3.cfg
+
 
 # Diestel Theorem 7.4.1 (Regularity lemma), specifically "admits an epsilon-regular partition with partition size k <= M"
 
