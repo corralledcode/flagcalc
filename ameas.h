@@ -975,47 +975,6 @@ public:
         return out;
     }
 
-/*
-    bool takemeas( neighborstype* ns, namedparams& context ) override {
-        evalmformula* ef = new evalmformula(rec,ns);
-        const valms r = ef->eval(*fc, context);
-        delete ef;
-        bool out;
-        mtconverttobool(r,out);
-        return out;
-    }
-
-    bool takemeas(const int idx, namedparams& context) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        // namedparams npslocal = npsin;
-        // for (auto n : nps)
-        //    npslocal.insert(npslocal.begin(),n);
-
-        valms r = ef->eval(*fc, context);
-        delete ef;
-        bool out;
-        mtconverttobool(r,out);
-        return out;
-    }
-
-    bool takemeas(const int idx, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(idx,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-    bool takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(ns,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-*/
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
                 const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
@@ -1068,7 +1027,7 @@ public:
     }
 
 
-
+/*
     double takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
         const valms r = ef->eval(*fc, context);
@@ -1077,7 +1036,6 @@ public:
         mtconverttocontinuous(r,out);
         return out;
     }
-/*
     double takemeas(const int idx, namedparams& context) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
@@ -1159,48 +1117,6 @@ public:
         return out;
     }
 
-
-/*
-    int takemeas( neighborstype* ns, namedparams& context ) override {
-        evalmformula* ef = new evalmformula(rec,ns);
-        const valms r = ef->eval(*fc, context);
-        delete ef;
-        int out;
-        mtconverttodiscrete(r,out);
-        return out;
-    }
-
-    int takemeas(const int idx, namedparams& context) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        // namedparams npslocal = npsin;
-        // for (auto n : nps)
-        //    npslocal.insert(npslocal.begin(),n);
-
-        valms r = ef->eval(*fc, context);
-        delete ef;
-        int out;
-        mtconverttodiscrete(r,out);
-        return out;
-    }
-
-    int takemeas(const int idx, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(idx,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-    int takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(ns,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-*/
     formtally( mrecords* recin , const std::vector<int>& litnumpsin,
         const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
         const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
@@ -1221,8 +1137,6 @@ class formset : public set
 {
 public:
     formulaclass* fc;
-
-
     setitr* takemeas( neighborstype* ns, const params& ps ) override {
         evalmformula* ef = new evalmformula(rec,ns);
         namedparams context {};
@@ -1251,47 +1165,6 @@ public:
         return out;
     }
 
-/*
-    setitr* takemeas( neighborstype* ns, namedparams& context ) override {
-        evalmformula* ef = new evalmformula(rec,ns);
-        const valms r = ef->eval(*fc, context);
-        delete ef;
-        setitr* out;
-        mtconverttoset(r,out);
-        return out;
-    }
-
-    setitr* takemeas(const int idx, namedparams& context) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        // namedparams npslocal = npsin;
-        // for (auto n : nps)
-        //    npslocal.insert(npslocal.begin(),n);
-
-        valms r = ef->eval(*fc, context);
-        delete ef;
-        setitr* out;
-        mtconverttoset(r,out);
-        return out;
-    }
-
-    setitr* takemeas(const int idx, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(idx,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-    setitr* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(ns,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-*/
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
         const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
         const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "")
@@ -1342,49 +1215,6 @@ public:
         return out;
     }
 
-/*
-
-    setitr* takemeas( neighborstype* ns, namedparams& context ) override {
-        evalmformula* ef = new evalmformula(rec,ns);
-        const valms r = ef->eval(*fc, context);
-        delete ef;
-        setitr* out;
-        mtconverttotuple(r,out);
-        return out;
-    }
-
-    setitr* takemeas(const int idx, namedparams& context) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        // namedparams npslocal = npsin;
-        // for (auto n : nps)
-        //    npslocal.insert(npslocal.begin(),n);
-
-        valms r = ef->eval(*fc, context);
-        delete ef;
-        setitr* out;
-        mtconverttotuple(r,out);
-        return out;
-    }
-
-    setitr* takemeas(const int idx, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(idx,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-    setitr* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(ns,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-
-*/
     formtuple( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
                 const namedparams& npsin,
@@ -1436,49 +1266,6 @@ public:
         return out;
     }
 
-
-
-/*
-    std::string* takemeas( neighborstype* ns, namedparams& context ) override {
-        evalmformula* ef = new evalmformula(rec,ns);
-        const valms r = ef->eval(*fc, context);
-        delete ef;
-        std::string* out;
-        mtconverttostring(r,out);
-        return out;
-    }
-
-    std::string* takemeas(const int idx, namedparams& context) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        // namedparams npslocal = npsin;
-        // for (auto n : nps)
-        //    npslocal.insert(npslocal.begin(),n);
-
-        valms r = ef->eval(*fc, context);
-        delete ef;
-        std::string* out;
-        mtconverttostring(r,out);
-        return out;
-    }
-
-    std::string* takemeas(const int idx, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(idx,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-    std::string* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(ns,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-*/
     formstring( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
                 const namedparams& npsin,
@@ -1531,50 +1318,6 @@ public:
         return out;
     }
 
-
-
-/*
-    neighborstype* takemeas( neighborstype* ns, namedparams& context ) override {
-        evalmformula* ef = new evalmformula(rec,ns);
-        const valms r = ef->eval(*fc, context);
-        delete ef;
-        neighborstype* out;
-        mtconverttograph(r,out);
-        return out;
-    }
-
-    neighborstype* takemeas(const int idx, namedparams& context) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        // namedparams npslocal = npsin;
-        // for (auto n : nps)
-        //    npslocal.insert(npslocal.begin(),n);
-
-        valms r = ef->eval(*fc, context);
-        delete ef;
-        neighborstype* out;
-        mtconverttograph(r,out);
-        return out;
-    }
-
-    neighborstype* takemeas(const int idx, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(idx,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-    neighborstype* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(ns,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-*/
-
     formgraph( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
                 const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
@@ -1588,8 +1331,6 @@ public:
         delete fc;
     }
 };
-
-
 
 
 class setitrpaths : public setitrmodeone
@@ -1619,15 +1360,15 @@ public:
         int j = 0;
         for (auto path : out)
         {
-            std::vector<valms> pathvalms;
-            pathvalms.resize(path.size());
-            for (int i = 0; i < path.size(); ++i)
-            {
-                pathvalms[i].t = mtdiscrete;
-                pathvalms[i].v.iv = path[i];
-            }
+      //      std::vector<valms> pathvalms;
+      //      pathvalms.resize(path.size());
+      //      for (int i = 0; i < path.size(); ++i)
+      //      {
+      //          pathvalms[i].t = mtdiscrete;
+      //          pathvalms[i].v.iv = path[i];
+      //      }
             totality[j].t = mttuple;
-            totality[j++].seti = new setitrmodeone(pathvalms);
+            totality[j++].seti = new setitrtuple<int>(path);
         }
         computed = true;
         pos = -1;
@@ -1673,24 +1414,23 @@ public:
         int j = 0;
         for (auto cycle : out)
         {
-            std::vector<valms> pathvalms;
+/*            std::vector<valms> pathvalms;
+
             pathvalms.resize(cycle.size());
             for (int i = 0; i < cycle.size(); ++i)
             {
                 pathvalms[i].t = mtdiscrete;
                 pathvalms[i].v.iv = cycle[i];
-            }
+            }*/
             totality[j].t = mttuple;
-            totality[j++].seti = new setitrvalmstuple(pathvalms);
+            totality[j++].seti = new setitrtuple<int>(cycle);
         }
         computed = true;
         pos = -1;
     }
 
     setitrcyclesv( graphtype* gin, neighborstype* nsin, vertextype vin )
-        : g{gin}, ns{nsin}, v{vin}
-    {
-    }
+        : g{gin}, ns{nsin}, v{vin} {}
 
     ~setitrcyclesv()
     {
@@ -1726,15 +1466,15 @@ public:
         int j = 0;
         for (auto cycle : out)
         {
-            std::vector<valms> pathvalms;
+            /* std::vector<valms> pathvalms;
             pathvalms.resize(cycle.size());
             for (int i = 0; i < cycle.size(); ++i)
             {
                 pathvalms[i].t = mtdiscrete;
                 pathvalms[i].v.iv = cycle[i];
-            }
+            } */
             totality[j].t = mttuple;
-            totality[j++].seti = new setitrvalmstuple(pathvalms);
+            totality[j++].seti = new setitrtuple<int>(cycle);
         }
         computed = true;
         pos = -1;
@@ -1754,11 +1494,16 @@ public:
 };
 
 class abstractmakesubset {
-
-    public:
+public:
     virtual setitr* makesubset( const int maxint, bool* elts ) {return nullptr;};
     virtual int lookupidx( const int idxin ) {return idxin;}
     virtual int getmaxint() {std::cout << "using abstract virtual method: error\n"; return 0;}
+};
+class abstractmakeinitialsegment {
+public:
+    virtual setitr* makeinitialsegment(const int length ) {
+        std::cout << "using abstract virtual method: error\n"; return nullptr;};
+    virtual int getlength() {std::cout << "using abstract virtual method: error\n"; return 0;}
 };
 
 
@@ -1816,17 +1561,6 @@ public:
         superset->itrint->compute();
     }
 };
-/*
-class fastmakesubset : public abstractmakesubset {
-public:
-    setitrint* superset;
-    setitr* makesubset( int maxint, bool* elts ) {
-        auto itrint = new setitrint( maxint, elts);
-        auto out = new setitrsubset( superset->getitrpos(), itrint );
-        return out;
-    }
-    fastmakesubset( setitrint* supersetin ) : superset {supersetin} {}
-};*/
 class slowmakesubset : public abstractmakesubset {
 public:
     setitr* superset;
@@ -1840,6 +1574,86 @@ public:
     }
     slowmakesubset( setitr* supersetin ) : superset{supersetin} {}
 };
+template<typename T>
+class fastmakeinitialsegment : public abstractmakeinitialsegment {
+public:
+    setitrtuple<T>* supertuple;
+    setitr* makeinitialsegment( const int length ) override {
+        if (length <= 0)
+            return new setitrtuple<T>(0);
+        T* newelts = new T[length];
+//        if (length > supertuple->length)
+//            std::cout << "Length error in tuple initial segment\n";
+        memcpy(newelts,supertuple->elts,sizeof(T)*length);
+        auto out = new setitrtuple<T>( length, newelts);
+        return out;
+    }
+    int getlength() override
+    {
+        return supertuple->length;
+    }
+    fastmakeinitialsegment( setitrtuple<T>* supertuplein ) : supertuple{supertuplein} {
+        supertuple->compute();
+    }
+};
+class setitrInitialsegment : public setitr
+{
+public:
+    itrpos* superset {};
+    int cutoff;
+    void setsuperset( itrpos* supersetposin )
+    {
+        superset = supersetposin;
+        reset();
+    }
+    int getsize() override
+    {
+        return cutoff >= 0 ? cutoff : 0;
+    }
+    valms getnext() override
+    {
+        valms res;
+        if (++pos < totality.size())
+            return totality[pos];
+        res = superset->getnext();
+        totality.resize(pos + 1);
+        if (pos >= 0)
+            totality[pos] = res;
+        return res;
+    }
+    void reset() override
+    {
+        superset->reset();
+        pos = -1;
+    }
+    bool ended() override
+    {
+        return pos + 1 >= cutoff;
+    }
+    setitrInitialsegment(itrpos* supersetin, const int cutoffin) : superset{supersetin}, cutoff{cutoffin}
+    {
+        t = superset->parent->t;
+        pos = -1;
+    };
+    setitrInitialsegment() : superset{}
+    {
+        t = mtdiscrete;
+        pos = -1;
+    };
+};
+class slowmakeinitialsegment : public abstractmakeinitialsegment {
+public:
+    setitr* supertuple;
+    setitr* makeinitialsegment(const int length ) {
+        auto out = new setitrInitialsegment( supertuple->getitrpos(), length );
+        return out;
+    }
+    int getlength() override
+    {
+        return supertuple->getsize();
+    }
+    slowmakeinitialsegment( setitr* supertuplein ) : supertuple{supertuplein} {}
+};
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
     if (setitrint* cast = dynamic_cast<setitrint*>(superset))
         return new fastmakesubset( cast );
@@ -1848,6 +1662,15 @@ inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
     if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
         return new fastmakesssubset( castss );
     return new slowmakesubset( superset );
+}
+inline abstractmakeinitialsegment* getinitialsegmentmaker( setitr* superset ) {
+    if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
+        return new fastmakeinitialsegment<int>( cast );
+    if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
+        return new fastmakeinitialsegment<bool>( cast );
+    if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
+        return new fastmakeinitialsegment<double>( cast );
+    return new slowmakeinitialsegment( superset );
 }
 
 class setitrpowerset : public setitr
@@ -2256,52 +2079,6 @@ public:
 
 
 
-class setitrInitialsegment : public setitr
-{
-public:
-    itrpos* superset {};
-    int cutoff;
-    void setsuperset( itrpos* supersetposin )
-    {
-        superset = supersetposin;
-        reset();
-    }
-    int getsize() override
-    {
-        return cutoff;
-    }
-    valms getnext() override
-    {
-        valms res;
-        if (++pos < totality.size())
-            return totality[pos];
-        res = superset->getnext();
-        totality.resize(pos + 1);
-        if (pos >= 0)
-            totality[pos] = res;
-        return res;
-    }
-    void reset() override
-    {
-        superset->reset();
-        pos = -1;
-    }
-    bool ended() override
-    {
-        return pos + 1 >= cutoff;
-    }
-    setitrInitialsegment(itrpos* supersetin, const int cutoffin) : superset{supersetin}, cutoff{cutoffin}
-    {
-        t = superset->parent->t;
-        pos = -1;
-    };
-    setitrInitialsegment() : superset{}
-    {
-        t = mtdiscrete;
-        pos = -1;
-    };
-};
-
 class Pset : public set
 {
 public:
@@ -2384,7 +2161,10 @@ class Stuple : public set
 public:
     setitr* takemeas(const int idx, const params& ps) override
     {
-        return new setitrInitialsegment(ps[0].seti->getitrpos(),ps[1].v.iv);
+        auto initialsegmentmaker = getinitialsegmentmaker(ps[0].seti);
+        auto res = initialsegmentmaker->makeinitialsegment(ps[1].v.iv);
+        delete initialsegmentmaker;
+        return res;
     }
     Stuple( mrecords* recin ) : set(recin,"Sp", "Tuple initial segment")
     {
@@ -2613,18 +2393,23 @@ public:
                 break;
             }
         }
-        int n = 2;
-        if (found && fo == formulaoperator::fomeet) {
+          int n = 2;
+//        if (found && fo == formulaoperator::fomeet) {
             n = ps[2].v.iv;
-        } else if (found && fo == formulaoperator::fodisjoint) {
-            n = 2;
-        } else
-            std::cout << "Unknown op '"<< op << "' passed to nwisec\n";
+//        } else if (found && fo == formulaoperator::fodisjoint) {
+//            n = 2;
+//        } else
+//            std::cout << "Unknown op '"<< op << "' passed to nwisec\n";
         const int min = ps[3].v.iv;
         const int max = -min;
 
-        while (!itr->ended())
-            itr->getnext();
+        while (!itr->ended()) {
+            auto t = itr->getnext().t;
+            if (t != mtset && t != mttuple) {
+                std::cout << "nwisec requires set or tuple type set elements; expect segfault\n";
+                exit(1);
+            }
+        }
         int sz = itr->parent->totality.size();
 
         std::vector<int> subsets {};
@@ -2641,14 +2426,14 @@ public:
             auto abstractsetops = getsetitrpluralops( subset );
             if (fo == formulaoperator::fomeet)
                 if (max > 0)
-                    res = combine( res, abstractsetops->setopmaxcount( max, formulaoperator::founion ) >= max );
+                    res = combine( res, abstractsetops->setopunioncount( max, formulaoperator::founion ) >= max );
                 else
-                    res = combine( res, abstractsetops->setopmincount( min, formulaoperator::fointersection) >= min );
+                    res = combine( res, abstractsetops->setopintersectioncount( min, formulaoperator::fointersection) >= min );
             else
                 if (max > 0)
-                    res = combine( res, abstractsetops->setopmaxcount( max, formulaoperator::founion ) < max );
+                    res = combine( res, abstractsetops->setopunioncount( max, formulaoperator::founion ) < max );
                 else
-                    res = combine( res, abstractsetops->setopmincount( min, formulaoperator::fointersection) < min );
+                    res = combine( res, abstractsetops->setopintersectioncount( min, formulaoperator::fointersection) < min );
             delete abstractsetops;
             ++j;
         }
@@ -2870,6 +2655,7 @@ public:
 
     Edgesset( mrecords* recin ) : set(recin, "Edgess", "Edges associated with the given set of vertices") {
         valms v;
+        v.t = mtset;
         nps.push_back(std::pair{"U",v});
         bindnamedparams();
     }
@@ -3025,25 +2811,23 @@ class TupletoSet : public set
     public:
     setitr* takemeas(const int idx, const params& ps) override
     {
-/*        if (ps.size() != 1)
+        if (setitrtuple<int>* s = dynamic_cast<setitrtuple<int>*>(ps[0].seti))
         {
-            std::cout << "Error in TupletoSet::takemeas: wrong number of parameters\n";
-            exit(1);
-            return nullptr;
-        }
-        if (ps[0].t != mttuple)
-        {
-            std::cout << "Error in TupletoSet::takemeas: wrong type\n";
-            exit(1);
-        }*/
-
-        if (setitrvalmstuple* s = dynamic_cast<setitrvalmstuple*>(ps[0].seti))
-        {
+            setitr* res;
             if (!s->computed)
                 s->compute();
-            auto res = new setitrmodeone(s->totality);
+            if (s->maxelt >= 0) {
+                bool* elts = new bool[s->maxelt+1];
+                memset(elts,false,(s->maxelt+1)*sizeof(bool));
+                for (auto i = 0; i < s->length; ++i)
+                    elts[s->elts[i]] = true;
+                res = new setitrint(s->maxelt,elts);
+            } else {
+                std::cout << "Expected maxelt not found in setitrtuple class item\n";
+                res = new setitrmodeone(s->totality);
+            }
             return res;
-        } else
+        } else // ... add support for boolean and continuous tuples
         {
             std::cout << "Error in TupletoSet::takemeas: dynamic cast error, wrong type passed\n";
             exit(1);

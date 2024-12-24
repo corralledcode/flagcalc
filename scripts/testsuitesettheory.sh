@@ -29,6 +29,7 @@ $PTH/flagcalc -r 9 12 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cyclesvs](
 $PTH/flagcalc -r 9 6 100 -a s="[forestc] IFF FORALL (a IN [V], [st]([Cyclesvs](a)) == 0)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 15 50 -a s="[conn1c] IFF FORALL (a IN [V], FORALL (b IN [V], [Pathss](a,b) != [Nulls]))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), FORALL (w IN c, [TupletoSet](c) ELT [Cyclesvs](w))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), FORALL (w IN c, [TupletoSet](c) ELT (SET (d IN [Cyclesvs](w), TupletoSet(d))))))" all -v i=minimal3.cfg
 $PTH/flagcalc -d testbip10.dat -a s="EXISTS (r IN [Ps]([V]), EXISTS (l IN [Ps]([V]), (l CUP r) == [V] AND [bipc](l,r)))" all
 $PTH/flagcalc -r 9 10 100 -a s="(EXISTS (r IN [Ps]([V]), EXISTS (l IN [Ps]([V]), (l CUP r) == [V] AND [bipc](l,r)))) IFF FORALL (v IN [V], FORALL (c IN [Cyclesvs](v), mod([st](c),2) == 0))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 10 100 -a s="SUM (n IN [NN]([dimm]+1), [cyclet](n)) == SUM (v IN [V], SUM (c IN [Cyclesvs](v), 1/[st](c)))" all -v i=minimal3.cfg

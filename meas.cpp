@@ -2348,17 +2348,17 @@ public:
         while (!graphColoring(graph,c) && c < g->dim)
             ++c;
         auto color = graphColoringtuple(convertadjacencymatrix(ns), c);
-        std::vector<valms> tot;
+        std::vector<int> tot;
         tot.resize(color.size());
         int i = 0;
         for (auto c : color )
         {
-            valms v;
-            v.t = mtdiscrete;
-            v.v.iv = c;
-            tot[i++] = v;
+//            valms v;
+//            v.t = mtdiscrete;
+//            v.v.iv = c;
+            tot[i++] = c;
         }
-        auto res = new setitrmodeone(tot);
+        auto res = new setitrtuple<int>(tot);
         return res;
     }
     setitr* takemeas( const int idx, const params& ps) override
@@ -2468,17 +2468,17 @@ public:
 //        }
         graphtype* g = ns->g;
         auto color = greedyColoringtuple(convertadjacencymatrix(ns));
-        std::vector<valms> tot;
+        std::vector<int> tot;
         tot.resize(color.size());
         int i = 0;
         for (auto c : color )
         {
-            valms v;
-            v.t = mtdiscrete;
-            v.v.iv = c;
-            tot[i++] = v;
+            // valms v;
+            // v.t = mtdiscrete;
+            // v.v.iv = c;
+            tot[i++] = c;
         }
-        auto res = new setitrmodeone(tot);
+        auto res = new setitrtuple<int>(tot);
         return res;
     }
     setitr* takemeas( const int idx, const params& ps) override

@@ -427,6 +427,41 @@ class setitrmodeone : public setitr
 };
 
 
+class setitrtupleappend : public setitrmodeone {
+public:
+    setitr* setA;
+    setitr* setB;
+    public:
+    void compute() override
+    {
+        auto Aitr = setA->getitrpos();
+        auto Bitr = setB->getitrpos();
+        pos = -1;
+        std::vector<valms> temp {};
+        // totality.clear();
+        while (!Aitr->ended())
+        {
+            temp.push_back(Aitr->getnext());
+            // totality.push_back(Aitr->getnext());
+        }
+        while (!Bitr->ended())
+        {
+            temp.push_back(Bitr->getnext());
+        }
+        totality.resize(temp.size());
+        for (int i = 0; i < temp.size(); i++)
+            totality[i] = temp[i];
+        computed = true;
+        reset();
+        delete Aitr;
+        delete Bitr;
+    }
+    setitrtupleappend(setitr* a, setitr* b) : setA{a}, setB{b}
+    {
+        reset();
+    }
+};
+
 class setitrunion : public setitrmodeone
 {
     setitr* setA;
@@ -791,16 +826,23 @@ template<typename T>
 class setitrtuple : public setitrmodeone
 {
 public:
-    T* elts;
+    T* elts = nullptr;
     int length;
+    int maxelt = -1;
 
-    virtual valms assignvalms( T elt ) {valms v; v.t = mtbool; v.v.bv = false; return v;}
+    virtual valms assignvalms( T elt )
+    {
+        std::cout << "Abstract ancestor assignvalms called\n";
+        valms v; v.t = mtbool; v.v.bv = false; return v;
+    }
 
     void compute() override
     {
         totality.resize(length);
-        for (int i = 0; i < length; ++i)
+        for (int i = 0; i < length; ++i) {
             totality[i] = assignvalms(elts[i]);
+            maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
+        }
         computed = true;
         reset();
     }
@@ -827,36 +869,73 @@ public:
     {
         reset();
     }
+    setitrtuple(std::vector<T>& vecin)
+    {
+        setlength(vecin.size());
+        for (int i = 0; i < length; ++i)
+            elts[i] = vecin[i];
+        reset();
+    }
     ~setitrtuple() {
          delete elts;
     }
 };
 
+template<>
+inline valms setitrtuple<int>::assignvalms( int elt ) {
+    valms v;
+    v.t = mtdiscrete;
+    v.v.iv = elt;
+    return v;
+}
+template<>
+inline valms setitrtuple<double>::assignvalms( double elt ) {
+    valms v;
+    v.t = mtcontinuous;
+    v.v.dv = elt;
+    return v;
+}
+template<>
+inline valms setitrtuple<bool>::assignvalms( bool elt ) {
+    valms v;
+    v.t = mtbool;
+    v.v.bv = elt;
+    return v;
+}
+
+/*
 class setitrinttuple : public setitrtuple<int> {
+public:
     valms assignvalms( int elt ) override {
         valms out;
         out.t = measuretype::mtdiscrete;
         out.v.iv = elt;
         return out;
     }
+    setitrinttuple( std::vector<int>& vecin ) : setitrtuple<int>(  vecin ) {}
 };
 class setitrbooltuple : public setitrtuple<bool> {
+    public:
     valms assignvalms( bool elt ) override {
         valms out;
         out.t = measuretype::mtbool;
         out.v.bv = elt;
         return out;
     }
+    setitrbooltuple( std::vector<bool>& vecin ) : setitrtuple<bool>( vecin ) {}
 };
 class setitrdoubletuple : public setitrtuple<double> {
+public:
     valms assignvalms( double elt ) override {
         valms out;
         out.t = measuretype::mtcontinuous;
         out.v.bv = elt;
         return out;
     }
-};
+    setitrdoubletuple( std::vector<double>& vecin ) : setitrtuple<double>( vecin ) {}
+}; */
 
+/*
 class setitrvalmstuple : public setitrmodeone
 {
 protected:
@@ -872,6 +951,7 @@ public:
         computed = true;
     }
 };
+*/
 
 class setitrintpair : public setitrmodeone
 {
@@ -1218,97 +1298,7 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
             maxintout = maxintA <= maxintB ? maxintA : maxintB;
             break;
         case formulaoperator::fosetminus:
-            maxintout = maxintA <= maxintB ? maxintB : maxintA;
-            break;
-        default:
-            std::cout << "Cannot call fastsetops with non-set operator\n";
-    }
-    auto out = new setitrint( maxintout );
-    switch (fo) {
-        case formulaoperator::fodupeunion:
-        case formulaoperator::founion:
-            fastsetunion( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
-            break;
-        case formulaoperator::fointersection:
-            fastsetintersection( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
-            break;
-        case formulaoperator::fosetminus:
-            fastsetminus( maxintB, maxintA, maxintout, setB->elts, setA->elts, out->elts );
-            break;
-        case formulaoperator::fosetxor:
-            fastsetxor( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
-            break;
-        default:
-            std::cout << "Cannot call fastsetops with non-set operator\n";
-    }
-    out->computed = false;
-    out->reset();
-    return out;
-}
-/* for now the set-valued set operations are the same for tuples as for set */
-inline void fasttupleunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
-    fastsetunion(maxint1,maxint2,maxintout,elts1,elts2,out);
-}
-inline void fasttupleintersection( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
-    fasttupleintersection(maxint1,maxint2,maxintout,elts1,elts2,out);
-}
-inline void fasttupleminus( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
-    fastsetminus(maxint1,maxint2,maxintout,elts1,elts2,out);
-}
-inline void fasttuplexor( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
-    fastsetxor(maxint1,maxint2,maxintout,elts1,elts2,out);
-}
-inline bool fasttuplesubset( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
-// initial segment is same as set subset here
-    return fastsetsubset( maxint1, maxint2, elts1, elts2 );
-}
-inline bool fasttuplepropersubset( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
-    return fastsetpropersubset( maxint1, maxint2, elts1, elts2 );
-}
-inline bool fasttupleequals( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
-    return fastsetequals( maxint1, maxint2, elts1, elts2 );
-}
-inline bool fasttuplemeet( const int maxint1, const int maxint2, bool* elts1, bool* elts2) {
-    return fastsetmeet( maxint1, maxint2, elts1, elts2 );
-}
-inline bool fastbooltupleops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
-    int maxintA = setA->maxint;
-    int maxintB = setB->maxint;
-    switch (fo) {
-        case formulaoperator::folte:
-            return fasttuplesubset( maxintA, maxintB, setA->elts, setB->elts );
-        case formulaoperator::folt:
-            return fasttuplepropersubset( maxintA, maxintB, setA->elts, setB->elts );
-        case formulaoperator::fogte:
-            return fasttuplesubset( maxintB, maxintA, setB->elts, setA->elts );
-        case formulaoperator::fogt:
-            return fasttuplepropersubset( maxintB, maxintA, setB->elts, setA->elts );
-        case formulaoperator::foe:
-            return fasttupleequals( maxintA, maxintB, setA->elts, setB->elts );
-        case formulaoperator::fone:
-            return !fasttupleequals( maxintA, maxintB, setA->elts, setB->elts );
-        case formulaoperator::fomeet:
-            return fasttuplemeet( maxintA, maxintB, setA->elts, setB->elts );
-        case formulaoperator::fodisjoint:
-            return !fasttuplemeet( maxintA, maxintB, setA->elts, setB->elts );
-    }
-    return false;
-}
-inline setitrint* fasttupleops( setitrint* setA, setitrint* setB, const formulaoperator fo ) {
-    auto maxintA = setA->maxint;
-    auto maxintB = setB->maxint;
-    int maxintout;
-    switch (fo) {
-        case formulaoperator::fodupeunion:
-        case formulaoperator::founion:
-        case formulaoperator::fosetxor:
-            maxintout = maxintA > maxintB ? maxintA : maxintB;
-            break;
-        case formulaoperator::fointersection:
-            maxintout = maxintA < maxintB ? maxintA : maxintB;
-            break;
-        case formulaoperator::fosetminus:
-            maxintout = maxintA;
+            maxintout = maxintB <= maxintA ? maxintB : maxintA;
             break;
         default:
             std::cout << "Cannot call fastsetops with non-set operator\n";
@@ -1335,7 +1325,79 @@ inline setitrint* fasttupleops( setitrint* setA, setitrint* setB, const formulao
     out->reset();
     return out;
 }
-inline bool tupleinitialsegment( itrpos* tupleA, itrpos* tupleB ) {
+/* for now the set-valued set operations are the same for tuples as for set */
+template<typename T>
+inline void fasttupleunion( const int lengthA, const int lengthB, const int length, T* eltsA, T* eltsB, T* out) {
+    memcpy(out, eltsA, lengthA * sizeof(T));
+    memcpy(out + lengthA, eltsB, lengthB * sizeof(T));
+}
+template<typename T>
+inline void fasttuplesetminus( const int lengthA, const int lengthB, int& length, T* eltsA, T* eltsB, T* out) {
+    bool* deprecated[lengthA];
+    memset(deprecated, false, lengthA * sizeof(T));
+    for (int i = 0; i < lengthA; ++i)
+        for (int j = 0; !deprecated[i] && j < lengthB; ++j) {
+            deprecated[i] == deprecated[i] || (eltsA[i] == eltsB[j]);
+        }
+    int pos = 0;
+    for (int i = 0; i < lengthA; ++i)
+        if (!deprecated[i]) {
+           out[pos++] = eltsA[i];
+           length = pos;
+        }
+}
+template<typename T>
+inline void fasttupleintersection( const int lengthA, const int lengthB, int& length, T* eltsA, T* eltsB, T* out) {
+// the convention here is that the "tuple" on the right be treated as a set, so this is like subtracting its complement
+    bool* deprecated[lengthA];
+    memset(deprecated, true, lengthA * sizeof(T));
+    for (int i = 0; i < lengthA; ++i)
+        for (int j = 0; deprecated[i] && j < lengthB; ++j) {
+            deprecated[i] == deprecated[i] && (eltsA[i] != eltsB[j]);
+        }
+    int pos = 0;
+    for (int i = 0; i < lengthA; ++i)
+        if (!deprecated[i]) {
+           out[pos++] = eltsA[i];
+           length = pos;
+        }
+}
+template<typename T>
+inline bool fasttuplemeet( const int lengthA, const int lengthB, const int n, T* eltsA, T* eltsB) {
+    const int length = lengthA < lengthB ? lengthA : lengthB;
+    int j = 0;
+    for (auto i = 0; i < length; i++) {
+        if (eltsA[i] == eltsB[i]) {
+            ++j;
+            if (j >= n)
+                return true;
+        }
+    }
+    return false;
+}
+template<typename T>
+inline bool fasttupledisjoint( const int lengthA, const int lengthB, const int n, T* eltsA, T* eltsB) {
+    return !fasttuplemeet( lengthA, lengthB, n, eltsA, eltsB );
+}
+template<typename T>
+inline bool fasttupleequal( const int lengthA, const int lengthB, T* eltsA, T* eltsB) {
+    if (lengthA != lengthB);
+        return false;
+    for (auto i = 0; i < lengthA; ++i) {
+        if (eltsA[i] != eltsB[i])
+            return false;
+    }
+    return true;
+}
+template<typename T>
+inline bool fasttupleinitialsegment( const int lengthA, const int lengthB, T* eltsA, T* eltsB ) {
+    bool res = lengthA <= lengthB;
+    for (int i = 0; res && i < lengthA; i++) {
+        res = res && eltsA[i] == eltsB[i];
+    }
+    return res;
+}
+inline bool slowtupleinitialsegment( itrpos* tupleA, itrpos* tupleB ) {
     auto itrA = tupleA;
     auto itrB = tupleB;
     while (!itrA->ended()) {
@@ -1348,10 +1410,98 @@ inline bool tupleinitialsegment( itrpos* tupleA, itrpos* tupleB ) {
     }
     return true;
 }
+inline bool slowtuplemeet( itrpos* tupleA, itrpos* tupleB, const int n ) {
+    int cnt = 0;
+    tupleA->reset();
+    tupleB->reset();
+    while (!tupleA->ended()) {
+        auto a = tupleA->getnext();
+        while (!tupleB->ended()) {
+            auto b = tupleB->getnext();
+            if (mtareequal( a, b )) {
+                cnt++;
+                if (cnt >= n)
+                   return true;
+            }
+        }
+    }
+    return false;
+}
+inline bool slowtupledisjoint( itrpos* tupleA, itrpos* tupleB, const int n ) {
+    return !slowtuplemeet( tupleA, tupleB, n );
+}
+template<typename T>
+inline bool fastbooltupleops( setitrtuple<T>* tupleA, setitrtuple<T>* tupleB, const formulaoperator fo ) {
+    auto lengthA = tupleA->length;
+    auto lengthB = tupleB->length;
+    switch (fo) {
+        case formulaoperator::folte:
+            return fasttupleinitialsegment<T>( lengthA, lengthB, tupleA->elts, tupleB->elts );
+        case formulaoperator::folt:
+            return lengthA < lengthB && fasttupleinitialsegment<T>( lengthA, lengthB, tupleA->elts, tupleB->elts );
+        case formulaoperator::fogte:
+            return fasttupleinitialsegment<T>( lengthB, lengthA, tupleB->elts, tupleA->elts );
+        case formulaoperator::fogt:
+            return lengthB < lengthA && fasttupleinitialsegment<T>( lengthB, lengthA, tupleB->elts, tupleA->elts );
+        case formulaoperator::foe:
+            return fasttupleequal<T>( lengthA, lengthB, tupleA->elts, tupleB->elts );
+        case formulaoperator::fone:
+            return !fasttupleequal<T>( lengthA, lengthB, tupleA->elts, tupleB->elts );
+        case formulaoperator::fomeet:
+            return fasttuplemeet<T>( lengthA, lengthB, 1, tupleA->elts, tupleB->elts );
+            // return fasttupleinitialsegment<T>( lengthA, lengthB, tupleA->elts, tupleB->elts ) ||
+            //    fasttupleinitialsegment<T>( lengthB, lengthA, tupleB->elts, tupleA->elts );
+        case formulaoperator::fodisjoint:
+            return fasttupledisjoint<T>( lengthA, lengthB, 1, tupleA->elts, tupleB->elts );
+            // return !fasttupleinitialsegment<T>( lengthA, lengthB, tupleA->elts, tupleB->elts ) &&
+            //    !fasttupleinitialsegment<T>( lengthB, lengthA, tupleB->elts, tupleA->elts );
+        default:
+            std::cout << "Non-tuple operation applied to tuple\n";
+    }
+    return false;
+}
+template<typename T>
+inline setitrtuple<T>* fasttupleops( setitrtuple<T>* tupleA, setitrtuple<T>* tupleB, const formulaoperator fo ) {
+    auto lengthA = tupleA->length;
+    auto lengthB = tupleB->length;
+    int length;
+    switch (fo) {
+        case formulaoperator::fodupeunion:
+        case formulaoperator::founion:
+            length = lengthA + lengthB;
+            break;
+        case formulaoperator::fosetminus:
+            length = lengthA;
+            break;
+        case formulaoperator::fointersection:
+            length = lengthA < lengthB ? lengthA : lengthB;
+            break;
+        default:
+            std::cout << "Cannot call fasttupleops with non-tuple operator\n";
+    }
+    auto out = new setitrtuple<T>(length);
+    switch (fo) {
+        case formulaoperator::fodupeunion:
+        case formulaoperator::founion:
+            fasttupleunion<T>( lengthA, lengthB, length, tupleA->elts, tupleB->elts, out->elts );
+            break;
+        case formulaoperator::fosetminus:
+            fasttuplesetminus<T>( lengthA, lengthB, length, tupleA->elts, tupleB->elts, out->elts );
+            out->length = length;
+            break;
+        case formulaoperator::fointersection:
+            fasttupleintersection<T>( lengthA, lengthB, length, tupleA->elts, tupleB->elts, out->elts );
+            out->length = length;
+            break;
+    }
+    out->computed = false;
+    out->reset();
+    return out;
+}
 class setitrabstractops : public setitrmodeone {
 public:
-    virtual int setopmincount( const int min, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
-    virtual int setopmaxcount( const int max, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
+    virtual int setopunioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
+    virtual int setopintersectioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
     virtual setitr* setops( const formulaoperator fo ) {auto out = new setitrint(-1); return out;};
     virtual bool boolsetops( const formulaoperator fo ) {return false;};
 };
@@ -1374,18 +1524,53 @@ public:
     std::vector<setitrint*> casts;
 
     setitr* setops( const formulaoperator fo )  override {
-        std::cout << "No support for plural set ops\n";
-        return nullptr;
-
-        if (casts.size() < 2) {
-            std::cout << "Less than two sets passed to plural ops\n";
-            return nullptr;
+        int maxint = -1;
+        switch (fo) {
+        case formulaoperator::foqdupeunion:
+        case formulaoperator::foqunion: {
+            for (auto c : casts)
+                maxint = maxint > c->maxint ? maxint : c->maxint;
+            break; }
+        case formulaoperator::foqintersection: {
+            for (auto c : casts)
+                maxint = maxint < c->maxint ? maxint : c->maxint;
+            break; }
+        default: std::cout << "No support for fast plural set ops other than union and intersection\n";
+            maxint = -1;
+            exit(1);
         }
-        auto out = fastsetops( casts[0], casts[1], fo );
-        // ...
+        auto out = new setitrint( maxint );
+        switch (fo) {
+        case formulaoperator::foqdupeunion:
+        case formulaoperator::foqunion: {
+            memset(out->elts,false,sizeof(bool)*(maxint + 1));
+            for (auto i = 0; i <= maxint; ++i)
+                for (auto j = 0; j < casts.size(); ++j)
+                    if (casts[j]->maxint >= i)
+                        if (casts[j]->elts[i]) {
+                            out->elts[i] = true;
+                            break;
+                        }
+            break;
+        }
+        case formulaoperator::foqintersection: {
+            memset(out->elts,true,sizeof(bool)*(maxint + 1));
+            for (auto i = 0; i <= maxint; ++i)
+                for (auto j = 0; j < casts.size(); ++j)
+                    if (!casts[j]->elts[i]) {
+                        out->elts[i] = false;
+                        break;
+                    }
+            break;
+        }
+
+        }
+        if (casts.size() < 1) {
+            // std::cout << "Less than one set passed to plural ops\n";
+        }
         return out;
     }
-    int setopmaxcount( const int max, const formulaoperator fo ) override {
+    int setopunioncount( const int cutoff, const formulaoperator fo ) override {
         if (fo != formulaoperator::founion) {
             std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (iv)\n";
             return 0;
@@ -1407,14 +1592,14 @@ public:
         for (int i = 0; i < maxsz; ++i) {
             if (elts[i]) {
                 ++cnt;
-                if (cnt >= max && max != -1)
+                if (cnt >= cutoff && cutoff != -1)
                     break;
             }
         }
         delete elts;
         return cnt;
     }
-    int setopmincount( const int min, const formulaoperator fo ) override {
+    int setopintersectioncount( const int cutoff, const formulaoperator fo ) override {
         if (fo != formulaoperator::fointersection) {
             std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (iii)\n";
             return 0;
@@ -1434,7 +1619,7 @@ public:
             }
             if (elts[i]) {
                 ++cnt;
-                if (cnt >= min && min != -1)
+                if (cnt >= cutoff && cutoff != -1)
                     break;
             }
         }
@@ -1451,9 +1636,9 @@ public:
             return false;
         }
         if (fo == formulaoperator::fomeet)
-            return setopmincount( 1, formulaoperator::fointersection ) > 0 ? true : false;
+            return setopintersectioncount( 1, formulaoperator::fointersection ) > 0 ? true : false;
         else
-            return setopmincount(1, formulaoperator::fointersection ) < 1 ? true : false;
+            return setopintersectioncount(1, formulaoperator::fointersection ) < 1 ? true : false;
     }
     setitrfastpluralops( std::vector<setitrint*> castsin ) : casts{castsin} {}
 };
@@ -1465,19 +1650,14 @@ public:
     bool boolsetops( const formulaoperator fo )  override {
         return fastpluralops->boolsetops( fo );
     }
-    int setopmaxcount( const int max, const formulaoperator fo ) override {
-        return fastpluralops->setopmaxcount( max, fo );
+    int setopunioncount( const int max, const formulaoperator fo ) override {
+        return fastpluralops->setopunioncount( max, fo );
     }
-    int setopmincount( const int min, const formulaoperator fo ) override {
-        return fastpluralops->setopmincount( min, fo );
+    int setopintersectioncount( const int min, const formulaoperator fo ) override {
+        return fastpluralops->setopintersectioncount( min, fo );
     }
     setitr* setops( const formulaoperator fo ) override {
-        std::cout << "No support for plural set ops\n";
-        return nullptr;
-
-        // auto itrint = fastpluralops->setops( fo );
-        // auto out = new setitrsubset( castsss[0]->superset, itrint );
-        // return out;
+        return fastpluralops->setops( fo );
     }
 
     setitrfastpluralssops( std::vector<setitrsubset*>& castsss ) : castsss{castsss} {
@@ -1514,18 +1694,11 @@ public:
         return fastpluralops->boolsetops( fo );
     }
 
-    int setopmincount( const int min, const formulaoperator fo ) override {
-        return fastpluralops->setopmincount( min, fo );
+    int setopintersectioncount( const int min, const formulaoperator fo ) override {
+        return fastpluralops->setopintersectioncount( min, fo );
     }
     setitr* setops( const formulaoperator fo ) override {
-
-        std::cout << "No support for plural set ops\n";
-        return nullptr;
-
-    //    auto itrint = fastpluralops->setops( fo );
-    //    int m = (int)sqrt(itrint->maxint + 1);
-    //    auto out = new setitrint2dsymmetric( m, itrint );
-    //    return out;
+        return fastpluralops->setops( fo );
     }
 
     setitrfastplural2dops( std::vector<setitrint2d*>& casts2d ) : casts2d{casts2d} {
@@ -1570,7 +1743,7 @@ public:
             case formulaoperator::fointersection:
                 return new setitrintersection( setA, setB );
             case formulaoperator::fosetminus:
-                return new setitrsetminus( setB, setA );
+                return new setitrsetminus( setA, setB );
             case formulaoperator::fosetxor:
                 return new setitrsetxor( setA, setB );
             default:
@@ -1625,11 +1798,34 @@ class setitrslowpluralops : public setitrabstractops {
 public:
     std::vector<setitr*> sets;
     setitr* setops( const formulaoperator fo ) override {
-        std::cout << "No support for plural set ops\n";
-        return nullptr;
+
+        setitr* res = nullptr;
+        if (sets.empty())
+            res = new setitrint(-1);
+        else
+            res = sets.back();
+        switch (fo) {
+            case formulaoperator::foqunion:
+                for (int i = sets.size() - 2; i >= 0; --i)
+                    res = new setitrunion( res, sets[i] );
+                break;
+            case formulaoperator::foqdupeunion:
+                for (int i = sets.size() - 2; i >= 0; --i)
+                    res = new setitrdupeunion( res, sets[i] );
+                break;
+            case formulaoperator::foqintersection:
+                for (int i = sets.size() - 2; i >= 0; --i)
+                    res = new setitrintersection( res, sets[i] );
+                break;
+            default:
+                std::cout << "setpluralops (slow) called with unsupported operator\n";
+                exit(1);
+                break;
+        }
+        return res;
     }
 
-    int setopmaxcount( const int max, const formulaoperator fo ) override {
+    int setopunioncount( const int cutoff, const formulaoperator fo ) override {
         if (fo != formulaoperator::founion) {
             std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (i)\n";
             return 0;
@@ -1643,10 +1839,10 @@ public:
             return 0;
         }
         int cnt = out[0]->getsize();
-        for (int j = 2; j < sets.size() && cnt < max; ++j) {
+        for (int j = 2; j < sets.size() && cnt < cutoff; ++j) {
             out.push_back(new setitrunion(out[out.size()-1],sets[j]));
             cnt = out[out.size()-1]->getsize();
-            if (cnt >= max)
+            if (cnt >= cutoff && cutoff != -1)
                 break;
         }
         for (auto s : out)
@@ -1654,7 +1850,7 @@ public:
         return cnt;
     }
 
-    int setopmincount( const int min, const formulaoperator fo ) override {
+    int setopintersectioncount( const int cutoff, const formulaoperator fo ) override {
         if (fo != formulaoperator::fointersection) {
             std::cout << "No support for plural set bool ops other than for 'cup' and 'cap'; try pairwise\n";
             return 0;
@@ -1664,10 +1860,10 @@ public:
         if (sets.size() > 1)
             out.push_back( new setitrintersection(sets[0], sets[1]) );
         int cnt = out[0]->getsize();
-        for (int j = 2; j < sets.size() && cnt >= min; ++j) {
+        for (int j = 2; j < sets.size() && cnt >= cutoff; ++j) {
             out.push_back(new setitrintersection(out[out.size()-1],sets[j]));
             cnt = out[out.size()-1]->getsize();
-            if (cnt < min)
+            if (cnt < cutoff && cutoff != -1)
                 break;
         }
         for (auto s : out)
@@ -1684,26 +1880,28 @@ public:
             return false;
         }
         if (fo == formulaoperator::fomeet)
-            return setopmincount( 1, formulaoperator::fointersection ) > 0 ? true : false;
+            return setopintersectioncount( 1, formulaoperator::fointersection ) > 0 ? true : false;
         else
-            return setopmincount(1, formulaoperator::fointersection ) < 1 ? true : false;
+            return setopintersectioncount(1, formulaoperator::fointersection ) < 1 ? true : false;
     }
     setitrslowpluralops( std::vector<setitr*> setsin ) : sets{setsin} {}
 };
+template<typename T>
 class setitrtuplefastops : public setitrabstractops {
 public:
-    setitrint* castA;
-    setitrint* castB;
+    setitrtuple<T>* castA;
+    setitrtuple<T>* castB;
 
     setitr* setops( const formulaoperator fo )  override {
-        auto out = fasttupleops( castA, castB, fo );
+        auto out = fasttupleops<T>( castA, castB, fo );
         return out;
     }
     bool boolsetops( const formulaoperator fo ) override {
-        return fastbooltupleops( castA, castB, fo );
+        return fastbooltupleops<T>( castA, castB, fo );
     }
-    setitrtuplefastops( setitrint* castAin, setitrint* castBin ) : castA{castAin}, castB{castBin} {}
+    setitrtuplefastops( setitrtuple<T>* castAin, setitrtuple<T>* castBin ) : castA{castAin}, castB{castBin} {}
 };
+/*
 class setitrtuplefastssops : public setitrabstractops {
 public:
     setitrsubset* castAss;
@@ -1718,7 +1916,7 @@ public:
         return fastbooltupleops( castAss->itrint, castBss->itrint, fo );
     }
     setitrtuplefastssops( setitrsubset* castAssin, setitrsubset* castBssin ) : castAss{castAssin}, castBss{castBssin} {}
-};
+};*/
 class setitrtupleslowops : public setitrabstractops {
 public:
     setitr* setA;
@@ -1726,17 +1924,14 @@ public:
     setitr* setops( const formulaoperator fo )  override {
         switch (fo) {
             case formulaoperator::founion:
-                return new setitrunion( setA, setB );
             case formulaoperator::fodupeunion:
-                return new setitrdupeunion( setA, setB );
+                return new setitrtupleappend( setA, setB );
+            case formulaoperator::fosetminus:
+                return new setitrsetminus( setA, setB );
             case formulaoperator::fointersection:
                 return new setitrintersection( setA, setB );
-            case formulaoperator::fosetminus:
-                return new setitrsetminus( setB, setA );
-            case formulaoperator::fosetxor:
-                return new setitrsetxor( setA, setB );
             default:
-                std::cout << "setops (slow) called with non-set operator\n";
+                std::cout << "tupleops (slow) called with non-set operator\n";
                 return new setitrunion( setA, setB );
         }
     }
@@ -1746,23 +1941,27 @@ public:
         bool out;
         switch (fo) {
             case formulaoperator::folte:
-                out = tupleinitialsegment( tmpitrA, tmpitrB );
+                out = slowtupleinitialsegment( tmpitrA, tmpitrB );
                 break;
             case formulaoperator::folt:
-                out = tupleinitialsegment( tmpitrA, tmpitrB ) && tmpitrA->getsize() < tmpitrB->getsize();
+                out = slowtupleinitialsegment( tmpitrA, tmpitrB ) && tmpitrA->getsize() < tmpitrB->getsize();
                 break;
             case formulaoperator::fogte:
-                out = tupleinitialsegment( tmpitrB, tmpitrA );
+                out = slowtupleinitialsegment( tmpitrB, tmpitrA );
                 break;
             case formulaoperator::fogt:
-                out = tupleinitialsegment( tmpitrB, tmpitrA ) && tmpitrB->getsize() < tmpitrA->getsize();
+                out = slowtupleinitialsegment( tmpitrB, tmpitrA ) && tmpitrB->getsize() < tmpitrA->getsize();
                 break;
             case formulaoperator::foe:
-                out = tupleinitialsegment( tmpitrA, tmpitrB ) && tmpitrB->getsize() == tmpitrA->getsize();
+                out = slowtupleinitialsegment( tmpitrA, tmpitrB ) && tmpitrB->getsize() == tmpitrA->getsize();
                 break;
-            case formulaoperator::fone:
-                out = !tupleinitialsegment( tmpitrA, tmpitrB ) || !tmpitrB->getsize() == tmpitrA->getsize();
+            case formulaoperator::fodisjoint:
+                out = !slowtuplemeet( tmpitrA, tmpitrB, 1 );
                 break;
+            case formulaoperator::fomeet:
+                out = slowtuplemeet( tmpitrA, tmpitrB, 1 );
+                break;
+
             default:
                 std::cout << "tuple boolsetops (slow) called with non-set or non boolean operator\n";
                 break;
@@ -1838,13 +2037,24 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
     return new setitrslowpluralops( sets );
 }
 inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
-    if (setitrint* castA = dynamic_cast<setitrint*>(setA))
+
+    if (setitrtuple<int>* castA = dynamic_cast<setitrtuple<int>*>(setA))
+        if (setitrtuple<int>* castB = dynamic_cast<setitrtuple<int>*>(setB))
+            return new setitrtuplefastops<int>( castA, castB );
+    if (setitrtuple<bool>* castA = dynamic_cast<setitrtuple<bool>*>(setA))
+        if (setitrtuple<bool>* castB = dynamic_cast<setitrtuple<bool>*>(setB))
+            return new setitrtuplefastops<bool>( castA, castB );
+    if (setitrtuple<double>* castA = dynamic_cast<setitrtuple<double>*>(setA))
+        if (setitrtuple<double>* castB = dynamic_cast<setitrtuple<double>*>(setB))
+            return new setitrtuplefastops<double>( castA, castB );
+
+    /* if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
             return new setitrtuplefastops( castA, castB );
     if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
         if (setitrsubset* castBss = dynamic_cast<setitrsubset*>(setB))
             if (castAss->superset->parent == castBss->superset->parent)
-                return new setitrtuplefastssops( castAss, castBss );
+                return new setitrtuplefastssops( castAss, castBss ); */
     return new setitrtupleslowops( setA, setB );
 }
 
@@ -1898,7 +2108,7 @@ public:
     }
 };
 
-
+/*
 class setitrcp : public setitr
 // cross-product
 {
@@ -1962,6 +2172,7 @@ public:
             delete t.seti;
     }
 };
+*/
 
 /*
 class setitredges : public setitr
@@ -2585,9 +2796,44 @@ inline bool mtareequal( const valms& v, const valms& w ) { // initially overload
             return *v.v.rv == *w.v.rv;
         case mtgraph:
             return graphsequal( v.v.nsv->g, w.v.nsv->g );
-        default: std::cout << "Unsupported type " << v.t << " in setitrunion\n";
+        default: std::cout << "Unsupported type " << v.t << " in mtareequal\n";
         return false;
     }
+}
+
+inline bool mtareequalgenerous( const valms& v, const valms& w ) { // initially overloaded the == ops, but this seems more kosher
+    // if (v.t != w.t)
+    //    return false;
+    switch (v.t) {
+    case mtbool:
+    case mtdiscrete:
+    case mtcontinuous:
+        return v == w;
+    case mtset: {
+            setitr* temp;
+            mtconverttoset(w,temp);
+            auto abstractsetops = getsetitrops( v.seti, temp );
+            bool res = abstractsetops->boolsetops( formulaoperator::foe );
+            delete abstractsetops;
+            return res; }
+    case mttuple: {
+            setitr* temp;
+            mtconverttotuple(w,temp);
+            auto abstracttupleops = gettupleops( v.seti, temp );
+            bool res = abstracttupleops->boolsetops( formulaoperator::foe );
+            delete abstracttupleops;
+            return res; }
+    case mtstring:
+        if (w.t == mtstring)
+            return *v.v.rv == *w.v.rv;
+        break;
+    case mtgraph:
+        if (w.t == mtgraph)
+            return graphsequal( v.v.nsv->g, w.v.nsv->g );
+        break;
+    }
+    std::cout << "Unsupported type " << v.t << " and " << w.t << " in mtareequalgenerous\n";
+    return false;
 }
 
 

@@ -1123,9 +1123,10 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                 while ( !match && !pos->ended())
                 {
                     auto v = pos->getnext();
-                    // match = match || mtareequal(v,itm);
+//                    match = match || mtareequal(v,itm);
+                    match = match || mtareequalgenerous(itm,v);
 
-
+/*
                     if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
                         match = match || itm == v;
                     else
@@ -1166,7 +1167,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                                         std::cout << "Mismatched types in call to ELT\n";
                                         exit(1);
                                     }
-                            }
+                            }*/
                 }
                 res.v.bv = match;
 
@@ -1193,14 +1194,37 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
     case formulaoperator::fosetminus:
     case formulaoperator::fosetxor:
         {
-            valms set1 = evalinternal(*fc.fcright, context );
-            valms set2 = evalinternal( *fc.fcleft, context );
-            if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
+            valms set1 = evalinternal(*fc.fcleft, context );
+            valms set2 = evalinternal( *fc.fcright, context );
+            if (set2.t == mtset || set2.t == mttuple)
+                switch (set1.t) {
+                    case mtset: {
+                        auto abstractsetops = getsetitrops(set1.seti, set2.seti);
+                        res.seti = abstractsetops->setops(fc.fo);
+                        res.t = measuretype::mtset;
+                        delete abstractsetops;
+                        break;}
+                    case mttuple: {
+                        auto abstracttupleops = gettupleops(set1.seti, set2.seti);
+                        res.seti = abstracttupleops->setops(fc.fo);
+                        res.t = measuretype::mttuple;
+                        delete abstracttupleops;
+                        break;}
+                    default:
+                        std::cout << "Non-matching types in call to CUP, CAP, CUPD, SETMINUS, or SETXOR\n";
+                        res.seti = nullptr;
+                        break;
+                }
+            else {
+                std::cout << "Non-matching types in call to CUP, CAP, CUPD, SETMINUS, or SETXOR\n";
+                res.seti = nullptr;
+            }
+/*            if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
             {
                 auto abstractsetops = getsetitrops(set1.seti, set2.seti);
                 res.seti = abstractsetops->setops(fc.fo);
 
-                /*
+
                 switch (fc.fo)
                 {
                 case formulaoperator::founion:
@@ -1219,14 +1243,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                     res.seti = new setitrsetxor( set1.seti,set2.seti);
                     break;
                 }*/
-                res.t = mtset;
-                delete abstractsetops;
-            }
-            else {
-                std::cout << "Non-matching types in call to CUP, CAP, CUPD, SETMINUS, or SETXOR\n";
-                res.seti = nullptr;
-                // res.setsize = 0;
-            }
+
             return res;
         }
     case formulaoperator::fotrue:
@@ -1496,6 +1513,9 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                     bool match = false;
                     for (int i = 0; !match && i < tot.size(); i++)
                     {
+                        match = match || mtareequal(tot[i], v);
+
+                       /*
                         switch (tot[i].t)
                         {
                         case mtdiscrete:
@@ -1566,7 +1586,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                                 std::cout << "Mismatched to type tuple in SET\n";
                             }
                             break;
-                        }
+                        }*/
                     }
                     if (!match)
                         tot.push_back(v);
@@ -1582,6 +1602,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
             {
                 res.t = mtset;
                 res.seti = nullptr;
+                std::vector<setitr*> composite {};
                 while (!supersetpos->ended())
                 {
                     context[i].second = supersetpos->getnext();
@@ -1596,8 +1617,19 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                             exit(1);
                         }
                     }
-                    auto v = evalinternal(*fc.fcright, context);
-                    switch (fc.fo)
+                    valms tempv;
+                    valms outv;
+                    tempv = evalinternal(*fc.fcright, context);
+                    mtconverttoset(tempv,outv.seti);
+                    composite.push_back(outv.seti);
+                }
+
+                auto abstractpluralsetops = getsetitrpluralops(composite);
+
+                res.seti = abstractpluralsetops->setops(fc.fo);
+
+
+/*                    switch (fc.fo)
                     {
                     case formulaoperator::foqunion:
                         res.seti = res.seti ? new setitrunion( v.seti, res.seti) : v.seti;
@@ -1608,13 +1640,12 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                     case formulaoperator::foqdupeunion:
                         res.seti = res.seti ? new setitrdupeunion( v.seti, res.seti) : v.seti;
                         break;
-                    }
+                    } */
                 }
                 if (!res.seti)
                     res.seti = new setitrint(-1);
                 break;
             }
-        }
 
         delete ss;
 
