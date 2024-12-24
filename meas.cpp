@@ -2590,11 +2590,15 @@ public:
     }
     Separatescrit( mrecords* recin ) : crit( recin, "Separatesc", "Sets A and B separated by set X")
     {
-        valms v;
-        v.t = mtset;
-        nps.push_back(std::pair{"A",v});
-        nps.push_back(std::pair{"B",v});
-        nps.push_back(std::pair{"X",v});
+        valms v1;
+        v1.t = mtset;
+        nps.push_back(std::pair{"A",v1});
+        valms v2;
+        v2.t = mtset;
+        nps.push_back(std::pair{"B",v2});
+        valms v3;
+        v3.t = mtset;
+        nps.push_back(std::pair{"X",v3});
         bindnamedparams();
     }
 };

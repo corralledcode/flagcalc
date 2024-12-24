@@ -39,8 +39,15 @@ protected:
 public:
     const std::string shortname {};
     const std::string name {};
+    virtual T takemeas(neighborstype* ns)
+    {
+        std::cout << "Error: abstract virtual ancestor method invoked (i)\n";
+        T res;
+        return res;
+    }
     virtual T takemeas(const int idx)
     {
+        std::cout << "Error: abstract virtual ancestor method invoked (ii)\n";
         T res;
         return res;
     }
@@ -133,36 +140,57 @@ public:
     }
     T takemeas(const int idx) override
     {
+        namedparams npstemp {};
+        params pstemp {};
+        return this->takemeas(idx, npstemp, pstemp);
+    }
+    T takemeas(neighborstype* ns) override
+    {
+        namedparams npstemp {};
+        params pstemp {};
+        return this->takemeas(ns, npstemp, pstemp);
+    }
+    virtual T takemeas( const int idx, const params& ps ) {
+        if (nps.empty())
+            return takemeas(idx);
+        namedparams npstemp {};
+        return takemeas(idx,npstemp,ps);
+    }
+    virtual T takemeas( neighborstype* ns, const params& ps ) {
+        if (nps.empty())
+            return takemeas(ns);
+        namedparams npstemp {};
+        return takemeas(ns,npstemp,ps);
+    }
+    virtual T takemeas( neighborstype* ns, namedparams& context, const params& ps )
+    {
+        return takemeas(ns,ps);
+/*        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context); */
+    }
+    virtual T takemeas( const int idx, namedparams& context, const params& ps )
+    {
+        return takemeas(idx,ps);
+/*        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context); */
+    }
+    virtual T takemeas( neighborstype* ns, namedparams& context ) {
+        std::cout << "Error abstract ancestor class takemeas called, name is " << this->shortname << ": " << this->name << " (i)\n";
         return {};
     }
-    virtual T takemeas( neighborstype* ns, const params& ps )
-    {
-        T out;
-        return out;
-    }
-    virtual T takemeas(const int idx, const params& ps )
-    {
-        if (ps.size() != npssz)
-        {
-            std::cout << "Incorrect number of parameters (" << ps.size() << ") passed to " << this->shortname << ", expecting " << this->nps.size() << "." << std::endl;
-            exit(1);
-        }
-        for (int i = 0; i < ps.size(); ++i)
-        {
-            nps[npreferences[i]].second = ps[i];
-        }
-//        T out;
-//        return out;
-//        neighborstype* ns = (*this->rec->nsptrs)[idx];
-
-        return this->takemeas(idx);
+    virtual T takemeas( const int idx, namedparams& context ) {
+        std::cout << "Error abstract ancestor class takemeas called, name is " << this->shortname << ": " << this->name << " (ii)\n";
+        return {};
     }
 
     pameas( mrecords* recin , std::string shortnamein, std::string namein)
         : ameas<T>(recin, shortnamein,namein)
     {}
 };
-
 
 class meas : public pameas<double>
 {
@@ -175,6 +203,7 @@ class crit : public pameas<bool>
 {
 public:
     bool negated = false;
+
     std::string getname() override
     {
         return (negated ? "NOT " : "") + name;
@@ -495,9 +524,9 @@ public:
     neighborstype* ns {};
     mrecords* rec;
 
-    valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& psin ) override;
-    valms eval( formulaclass& fc, namedparams& context ) override;
-    valms evalinternal( formulaclass& fc, namedparams& context );
+    valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& ps ) override;
+    valms eval( const formulaclass& fc, const namedparams& context ) override;
+    valms evalinternal( const formulaclass& fc, namedparams& context );
     evalmformula( mrecords* recin, const int idxin );
     evalmformula( mrecords* recin, neighborstype* nsin );
     ~evalmformula() {}
@@ -668,7 +697,8 @@ public:
 inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalformula(), rec{recin}, idx{idxin} {}
 inline evalmformula::evalmformula( mrecords* recin, neighborstype* nsin ) : evalformula(), rec{recin}, ns{nsin} {}
 
-inline valms evalmformula::evalpslit( const int l, namedparams& context, neighborstype* subgraph, params& psin )
+
+inline valms evalmformula::evalpslit( const int l, namedparams& context, neighborstype* subgraph, params& ps )
 {
     ams a = rec->lookup(l);
 
@@ -699,12 +729,14 @@ inline valms evalmformula::evalpslit( const int l, namedparams& context, neighbo
         break;
     }
 
+//    if (psin.size() != tmpps.size())
+//        std::cout << "ps l == " << l << ", psin.size == " << psin.size() << ", tmpps.size() == " << tmpps.size() << std::endl;
+
     for (int i = 0; i < tmpps.size(); ++i)
     {
-        valms tempps = psin[i];
-        tempps.t = tmpps[i].second.t;
-        mtconverttype1(psin[i],tempps);
-        psin[i] = tempps;
+        valms tempps = tmpps[i].second;
+        mtconverttype1(ps[i],tempps);
+        ps[i] = tempps;
     }
 
 /*
@@ -780,19 +812,19 @@ inline valms evalmformula::evalpslit( const int l, namedparams& context, neighbo
     {
         switch (r.t)
         {
-        case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(subgraph,psin);
+        case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(subgraph,context,ps);
             return r;
-        case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(subgraph,psin);
+        case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(subgraph,context,ps);
             return r;
-        case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(subgraph,psin);
+        case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(subgraph,context,ps);
             return r;
-        case measuretype::mtset: r.seti = a.a.ss->takemeas(subgraph,psin);
+        case measuretype::mtset: r.seti = a.a.ss->takemeas(subgraph,context,ps);
             return r;
-        case measuretype::mttuple: r.seti = a.a.os->takemeas(subgraph,psin);
+        case measuretype::mttuple: r.seti = a.a.os->takemeas(subgraph,context,ps);
             return r;
-        case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(subgraph,psin);
+        case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(subgraph,context,ps);
             return r;
-        case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(subgraph,psin);
+        case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(subgraph,context,ps);
             return r;
         }
 
@@ -800,19 +832,19 @@ inline valms evalmformula::evalpslit( const int l, namedparams& context, neighbo
 
     switch (r.t)
     {
-    case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(idx,psin);
+    case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(idx,context,ps);
         return r;
-    case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(idx,psin);
+    case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(idx,context,ps);
         return r;
-    case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(idx,psin);
+    case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(idx,context,ps);
         return r;
-    case measuretype::mtset: r.seti = a.a.ss->takemeas(idx,psin);
+    case measuretype::mtset: r.seti = a.a.ss->takemeas(idx,context,ps);
         return r;
-    case measuretype::mttuple: r.seti = a.a.os->takemeas(idx,psin);
+    case measuretype::mttuple: r.seti = a.a.os->takemeas(idx,context,ps);
         return r;
-    case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(idx,psin);
+    case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(idx,context,ps);
         return r;
-    case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(idx,psin);
+    case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(idx,context,ps);
         return r;
     }
 
@@ -883,9 +915,10 @@ public:
         return totality[pos];
     }
 
-    setitrformulae( mrecords* recin, const int idxin, std::vector<formulaclass*>& fcin, namedparams& npsin )
+    setitrformulae( mrecords* recin, const int idxin, const std::vector<formulaclass*>& fcin, namedparams& npsin )
         : formulae{fcin}, rec{recin}, nps{npsin}
     {
+
         ef = new evalmformula(rec,idxin);
 
         totality.clear();
@@ -914,27 +947,42 @@ class sentofcrit : public crit
 public:
     formulaclass* fc;
 
-    bool takemeas( neighborstype* ns, const params& psin ) override
-    {
+    bool takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
-        namedparams npslocal = nps;
-        const valms r = ef->eval(*fc, npslocal);
+        const valms r = ef->eval(*fc, context);
         delete ef;
         bool out;
         mtconverttobool(r,out);
         return out;
     }
 
-    bool takemeas(const int idx) override {
+    bool takemeas(const int idx, namedparams& context) override
+    {
         evalmformula* ef = new evalmformula(rec,idx);
-        namedparams npslocal = nps;
-        const valms r = ef->eval(*fc, npslocal);
+        // namedparams npslocal = npsin;
+        // for (auto n : nps)
+        //    npslocal.insert(npslocal.begin(),n);
+
+        valms r = ef->eval(*fc, context);
         delete ef;
         bool out;
         mtconverttobool(r,out);
         return out;
-
     }
+
+    bool takemeas(const int idx, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context);
+    }
+    bool takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context);
+    }
+
 
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
@@ -958,28 +1006,42 @@ class formmeas : public meas
 public:
     formulaclass* fc;
 
-    double takemeas( neighborstype* ns, const params& psin ) override
-    {
+    double takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
-        namedparams npslocal = nps;
-        const valms r = ef->eval(*fc, npslocal);
-        delete ef;
-        bool out;
-        mtconverttobool(r,out);
-        return out;
-    }
-
-    double takemeas(const int idx) override
-    {
-        evalmformula* ef = new evalmformula(rec, idx);
-        namedparams npslocal = nps;
-
-        valms r = ef->eval(*fc, npslocal);
+        const valms r = ef->eval(*fc, context);
         delete ef;
         double out;
         mtconverttocontinuous(r,out);
         return out;
     }
+
+    double takemeas(const int idx, namedparams& context) override
+    {
+        evalmformula* ef = new evalmformula(rec,idx);
+        // namedparams npslocal = npsin;
+        // for (auto n : nps)
+        //    npslocal.insert(npslocal.begin(),n);
+
+        valms r = ef->eval(*fc, context);
+        delete ef;
+        double out;
+        mtconverttocontinuous(r,out);
+        return out;
+    }
+
+    double takemeas(const int idx, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context);
+    }
+    double takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context);
+    }
+
 
     formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin,
         const std::vector<std::string>& litnamesin,
@@ -1000,27 +1062,40 @@ class formtally : public tally
 {
 public:
     formulaclass* fc;
-    int takemeas(neighborstype* ns, const params& ps) override
-    {
+    int takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc, npslocal);
+        const valms r = ef->eval(*fc, context);
         delete ef;
         int out;
         mtconverttodiscrete(r,out);
         return out;
     }
 
-    int takemeas(const int idx) override
+    int takemeas(const int idx, namedparams& context) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
-        namedparams npslocal = nps;
+        // namedparams npslocal = npsin;
+        // for (auto n : nps)
+        //    npslocal.insert(npslocal.begin(),n);
 
-        valms r = ef->eval(*fc, npslocal);
+        valms r = ef->eval(*fc, context);
         delete ef;
         int out;
         mtconverttodiscrete(r,out);
         return out;
+    }
+
+    int takemeas(const int idx, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context);
+    }
+    int takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context);
     }
 
     formtally( mrecords* recin , const std::vector<int>& litnumpsin,
@@ -1043,29 +1118,40 @@ class formset : public set
 {
 public:
     formulaclass* fc;
-    setitr* takemeas( neighborstype* ns, const params& psin ) override
-    {
+    setitr* takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc, npslocal);
+        const valms r = ef->eval(*fc, context);
         delete ef;
-
-        setitr* seti;
-        mtconverttoset(r,seti);
-        return seti;
+        setitr* out;
+        mtconverttoset(r,out);
+        return out;
     }
 
-    setitr* takemeas(const int idx) override
+    setitr* takemeas(const int idx, namedparams& context) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
-        namedparams npslocal = nps;
+        // namedparams npslocal = npsin;
+        // for (auto n : nps)
+        //    npslocal.insert(npslocal.begin(),n);
 
-        valms r = ef->eval(*fc, npslocal);
+        valms r = ef->eval(*fc, context);
         delete ef;
+        setitr* out;
+        mtconverttoset(r,out);
+        return out;
+    }
 
-        setitr* seti;
-        mtconverttoset(r,seti);
-        return seti;
+    setitr* takemeas(const int idx, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context);
+    }
+    setitr* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context);
     }
 
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
@@ -1089,31 +1175,46 @@ class formtuple : public set
 public:
     formulaclass* fc;
 
-    setitr* takemeas( neighborstype* ns, const params& psin ) override
-    {
+    setitr* takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc,npslocal);
+        const valms r = ef->eval(*fc, context);
         delete ef;
-        setitr* seti;
-        mtconverttotuple(r,seti);
-        return seti;
+        setitr* out;
+        mtconverttotuple(r,out);
+        return out;
     }
 
-    setitr* takemeas(const int idx) override
+    setitr* takemeas(const int idx, namedparams& context) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc,npslocal);
+        // namedparams npslocal = npsin;
+        // for (auto n : nps)
+        //    npslocal.insert(npslocal.begin(),n);
+
+        valms r = ef->eval(*fc, context);
         delete ef;
-        setitr* seti;
-        mtconverttotuple(r,seti);
-        return seti;
+        setitr* out;
+        mtconverttotuple(r,out);
+        return out;
     }
+
+    setitr* takemeas(const int idx, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context);
+    }
+    setitr* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context);
+    }
+
 
     formtuple( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-                namedparams& npsin,
+                const namedparams& npsin,
                 const std::string& fstr, const std::string shortnamein = "" )
         : set( recin,  shortnamein == "" ? "fp" : shortnamein, "Tuple-valued formula " + fstr)
     {
@@ -1134,30 +1235,45 @@ class formstring : public strmeas
 public:
     formulaclass* fc;
 
-    std::string* takemeas(neighborstype* ns, const params& ps) override
-    {
+    std::string* takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc,npslocal);
+        const valms r = ef->eval(*fc, context);
         delete ef;
-        std::string* out = new std::string();
-        mtconverttostring(r,out);
-        return out;
-    }
-    std::string* takemeas(const int idx) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc,npslocal);
-        delete ef;
-        std::string* out = new std::string();
+        std::string* out;
         mtconverttostring(r,out);
         return out;
     }
 
+    std::string* takemeas(const int idx, namedparams& context) override
+    {
+        evalmformula* ef = new evalmformula(rec,idx);
+        // namedparams npslocal = npsin;
+        // for (auto n : nps)
+        //    npslocal.insert(npslocal.begin(),n);
+
+        valms r = ef->eval(*fc, context);
+        delete ef;
+        std::string* out;
+        mtconverttostring(r,out);
+        return out;
+    }
+
+    std::string* takemeas(const int idx, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context);
+    }
+    std::string* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context);
+    }
+
     formstring( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
-                namedparams& npsin,
+                const namedparams& npsin,
                 const std::string& fstr, const std::string shortnamein = "" )
         : strmeas( recin,  shortnamein == "" ? "fr" : shortnamein, "String-valued formula " + fstr)
     {
@@ -1178,27 +1294,42 @@ class formgraph : public gmeas
 public:
     formulaclass* fc;
 
-    neighborstype* takemeas(neighborstype* ns, const params& ps) override
-    {
+    neighborstype* takemeas( neighborstype* ns, namedparams& context ) override {
         evalmformula* ef = new evalmformula(rec,ns);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc, npslocal);
+        const valms r = ef->eval(*fc, context);
         delete ef;
         neighborstype* out;
         mtconverttograph(r,out);
         return out;
     }
 
-    neighborstype* takemeas(const int idx) override
+    neighborstype* takemeas(const int idx, namedparams& context) override
     {
         evalmformula* ef = new evalmformula(rec,idx);
-        namedparams npslocal = nps;
-        valms r = ef->eval(*fc, npslocal);
+        // namedparams npslocal = npsin;
+        // for (auto n : nps)
+        //    npslocal.insert(npslocal.begin(),n);
+
+        valms r = ef->eval(*fc, context);
         delete ef;
         neighborstype* out;
         mtconverttograph(r,out);
         return out;
     }
+
+    neighborstype* takemeas(const int idx, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(idx,context);
+    }
+    neighborstype* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
+        int i = 0;
+        for (auto n : ps)
+            context.push_back({nps[i++].first,n});
+        return takemeas(ns,context);
+    }
+
 
     formgraph( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,

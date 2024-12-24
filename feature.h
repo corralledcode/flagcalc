@@ -2261,7 +2261,7 @@ struct storedprocstruct
 {
     std::string name;
     ams a;
-    namedparams ps;
+    namedparams nps;
     std::string body;
     int iidx;
 };
@@ -2341,66 +2341,65 @@ protected:
                 if (sps.iidx < 0)
                 {
                     ams a = sps.a;
-                    namedparams nps = sps.ps;
+                    namedparams nps = sps.nps;
                     std::string s = bindformula(sps.body, sps.a.t, roundin );
 
 //                    params ps2 {};
 //                    for (auto p : ps)
 //                        ps2.push_back(p.second);
 
-                    // the following due to compile error "jump to case label"
-                    sentofcrit* cs;
-                    formtally* ts;
-                    formmeas* ms;
-                    formset* ss;
-                    formtuple* os;
-                    formstring* rs;
-                    formgraph* gs;
                     switch (a.t)
                     {
                     case mtbool:
-                        cs = new sentofcrit(&rec,litnumps,littypes,litnames, nps , s, sps.name);
-                        a.a.cs = cs;
-                        a.a.cs->nps = nps;
-                        a.a.cs->negated = false;
-                        crs.push_back(a.a.cs);
-                        break;
+                        {
+                            sentofcrit* cs = new sentofcrit(&rec,litnumps,littypes,litnames, nps , s, sps.name);
+                            a.a.cs = cs;
+                            a.a.cs->negated = false;
+                            crs.push_back(a.a.cs);
+                            break;
+                        }
                     case mtdiscrete:
-                        ts = new formtally(&rec,litnumps,littypes,litnames, nps, s, sps.name);
-                        a.a.ts = ts;
-                        a.a.ts->nps = nps;
-                        tys.push_back(a.a.ts);
-                        break;
+                        {
+                            formtally* ts = new formtally(&rec,litnumps,littypes,litnames, nps, s, sps.name);
+                            a.a.ts = ts;
+                            tys.push_back(a.a.ts);
+                            break;
+                        }
                     case mtcontinuous:
-                        ms = new formmeas(&rec,litnumps,littypes,litnames, nps,s, sps.name);
-                        a.a.ms = ms;
-                        a.a.ms->nps = nps;
-                        mss.push_back(a.a.ms);
-                        break;
+                        {
+                            formmeas* ms = new formmeas(&rec,litnumps,littypes,litnames, nps,s, sps.name);
+                            a.a.ms = ms;
+                            mss.push_back(a.a.ms);
+                            break;
+                        }
                     case mtset:
-                        ss = new formset(&rec,litnumps,littypes,litnames, nps, s, sps.name);
-                        a.a.ss = ss;
-                        a.a.ss->nps = nps;
-                        sts.push_back(a.a.ss);
-                        break;
+                        {
+                            formset* ss = new formset(&rec,litnumps,littypes,litnames, nps, s, sps.name);
+                            a.a.ss = ss;
+                            sts.push_back(a.a.ss);
+                            break;
+                        }
                     case mttuple:
-                        os = new formtuple(&rec,litnumps,littypes,litnames,nps, s, sps.name);
-                        a.a.os = os;
-                        a.a.os->nps = nps;
-                        oss.push_back(a.a.os);
-                        break;
+                        {
+                            formtuple* os = new formtuple(&rec,litnumps,littypes,litnames,nps, s, sps.name);
+                            a.a.os = os;
+                            oss.push_back(a.a.os);
+                            break;
+                        }
                     case mtstring:
-                        rs = new formstring(&rec,litnumps,littypes,litnames,nps, s, sps.name);
-                        a.a.rs = rs;
-                        a.a.rs->nps = nps;
-                        rms.push_back(a.a.rs);
-                        break;
+                        {
+                            formstring* rs = new formstring(&rec,litnumps,littypes,litnames,nps, s, sps.name);
+                            a.a.rs = rs;
+                            rms.push_back(a.a.rs);
+                            break;
+                        }
                     case mtgraph:
-                        gs = new formgraph(&rec,litnumps,littypes,litnames,nps, s, sps.name);
-                        a.a.gs = gs;
-                        a.a.gs->nps = nps;
-                        gms.push_back(a.a.gs);
-                        break;
+                        {
+                            formgraph* gs = new formgraph(&rec,litnumps,littypes,litnames,nps, s, sps.name);
+                            a.a.gs = gs;
+                            gms.push_back(a.a.gs);
+                            break;
+                        }
                     }
 
                     auto it = newiteration(a.t,roundin,a,true);
@@ -2507,7 +2506,7 @@ protected:
 
             sps.name = name;
             sps.body = form;
-            sps.ps = variablenames;
+            sps.nps = variablenames;
             sps.a = a;
             sps.iidx = -1;
             storedprocedures.push_back(sps);

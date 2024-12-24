@@ -911,8 +911,9 @@ bool eval2arytupleeq( setitr* in1, setitr* in2, const formulaoperator fo )
 
 
 
-valms evalformula::evalpslit( const int idx, namedparams& context, neighborstype* subgraph, std::vector<valms>& psin )
+valms evalformula::evalpslit( const int idx, namedparams& context, neighborstype* subgraph, params& ps )
 {
+    std::cout << "Error: evalpslit ancestor abstract called\n";
     valms res;
     res.t = measuretype::mtbool;
     res.v.bv = false;
@@ -921,12 +922,13 @@ valms evalformula::evalpslit( const int idx, namedparams& context, neighborstype
 
 
 
-valms evalformula::evalvariable( variablestruct& v, namedparams& context, std::vector<int>& vidxin ) {
+valms evalformula::evalvariable( const variablestruct& v, const namedparams& context, const std::vector<int>& vidxin ) {
 
-    if (v.l < 0)
-        v.l = lookup_variable(v.name,context);
+    // if (v.l < 0)
+    //    v.l = lookup_variable(v.name,context);
+    int temp = lookup_variable(v.name,context);
     valms res;
-    if (v.l < 0)
+    if (temp < 0)
     {
         res.t = mtdiscrete;
         res.v.iv = 0;
@@ -934,7 +936,7 @@ valms evalformula::evalvariable( variablestruct& v, namedparams& context, std::v
     } else
     {
         if (vidxin.size() == 0)
-            res = context[v.l].second;
+            res = context[temp].second;
         else {
             if (vidxin.size() != 1)
             {
@@ -942,7 +944,7 @@ valms evalformula::evalvariable( variablestruct& v, namedparams& context, std::v
             } else
             {
                 int index = vidxin[0];
-                auto pos = context[v.l].second.seti->getitrpos();
+                auto pos = context[temp].second.seti->getitrpos();
                 int i = 0;
                 if (!pos->ended())
                     while (!pos->ended() && i++ <= index)
@@ -960,10 +962,10 @@ valms evalformula::evalvariable( variablestruct& v, namedparams& context, std::v
     return res;
 }
 
-valms evalformula::eval( formulaclass& fc, namedparams& context) {}
+valms evalformula::eval( const formulaclass& fc, const namedparams& context) {}
 
 
-valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
+valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
 {
     valms res;
     if (fc.fo == formulaoperator::foliteral) {
@@ -993,7 +995,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             neighborstype* subgraph {};
             if (fc.v.subgraph)
             {
+//                subgraph = ps[0].v.nsv;
                 subgraph = ps[0].v.nsv;
+                // ps.erase(ps.begin());
                 ps.erase(ps.begin());
             }
             res = evalpslit(fc.v.lit.l, context, subgraph, ps);
@@ -1119,6 +1123,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 while ( !match && !pos->ended())
                 {
                     auto v = pos->getnext();
+                    match = match || mtareequal(v,itm);
+
+/*
                     if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
                         match = match || itm == v;
                     else
@@ -1159,7 +1166,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                         std::cout << "Mismatched types in call to ELT\n";
                                         exit(1);
                                     }
-                            }
+                            } */
                 }
                 res.v.bv = match;
 
@@ -1269,7 +1276,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         auto criterion = fc.v.qc->criterion;
         int maxint = -1;
         auto supersetpos = v.seti->getitrpos();
-        auto supersetsize = supersetpos->getsize();
         setitrint* ss = nullptr;
         context.push_back({fc.fcright->boundvariable->name,fc.fcright->boundvariable->qs});
         const int i = context.size()-1;
@@ -1383,6 +1389,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 res.v.dv *= v.v.bv ? 1 : 0;
                                 break;
                             case mtset:
+                            case mttuple:
                                 res.v.dv *= v.seti->getsize();
                                 break;
                             }
@@ -1915,7 +1922,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
 }
 
-inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
+inline valms evalmformula::eval( const formulaclass& fc, const namedparams& context )
 {
     // if (!fc.v.subgraph) {
     if (idx >= 0)
@@ -1931,7 +1938,8 @@ inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
     // { // subgraph case
         // literals.clear();
     // }
-    return evalinternal( fc, context );
+    namedparams contextlocal = context;
+    return evalinternal( fc, contextlocal );
 }
 
 evalformula::evalformula() {}
@@ -2522,7 +2530,7 @@ inline formulaclass* parseformulainternal(
         {
             auto qc = new qclass;
             int argcnt;
-            if (q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            if (pos+1 < q.size() && q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
             {
                 argcnt = stoi(q[++pos]);
                 if (argcnt != 2)
@@ -2544,7 +2552,7 @@ inline formulaclass* parseformulainternal(
             }
             if (pos2 >= q.size()) {
                 std::cout << "'Naming' not containing an 'AS'\n";
-                exit(-1);
+                exit(1);
             }
 
             qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
@@ -2577,7 +2585,7 @@ inline formulaclass* parseformulainternal(
             qc->secondorder = false;
             // qc->eval( q, ++pos);
             int argcnt;
-            if (q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            if (pos+1 < q.size() && q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
             {
                 argcnt = stoi(q[++pos]);
                 if (argcnt != 3 && argcnt != 2)
@@ -2599,7 +2607,7 @@ inline formulaclass* parseformulainternal(
             }
             if (pos2 >= q.size()) {
                 std::cout << "Quantifier not containing an 'IN'\n";
-                exit(-1);
+                exit(1);
             }
             qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
             qc->name = q[++pos2];
@@ -2730,7 +2738,7 @@ inline formulaclass* parseformulainternal(
                         psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs));
                     }
                     for (int i = psrev.size()-1; i >= 0; --i)
-                        fv.lit.ps.push_back(psrev[i]);
+                        fv.lit.ps.push_back(psrev[i]); // could add here support for named parameters
 
                     return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                 } else

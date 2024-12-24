@@ -1732,7 +1732,7 @@ public:
             case formulaoperator::fointersection:
                 return new setitrintersection( setA, setB );
             case formulaoperator::fosetminus:
-                return new setitrsetminus( setA, setB );
+                return new setitrsetminus( setB, setA );
             case formulaoperator::fosetxor:
                 return new setitrsetxor( setA, setB );
             default:
@@ -2174,9 +2174,9 @@ public:
     std::vector<valms> literals {};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
 
-    virtual valms evalpslit( const int idx, namedparams& context, neighborstype* subgraph, std::vector<valms>& psin );
-    virtual valms evalvariable( variablestruct& v, namedparams& context, std::vector<int>& vidxin );
-    virtual valms eval( formulaclass& fc, namedparams& context );
+    virtual valms evalpslit( const int idx, namedparams& context, neighborstype* subgraph, params& ps );
+    virtual valms evalvariable( const variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
+    virtual valms eval( const formulaclass& fc, const namedparams& context );
     evalformula();
 
     ~evalformula()
@@ -2199,7 +2199,7 @@ inline void mtconvertboolto( const bool vin, valms& vout )
             break;
         case mtdiscrete: vout.v.iv = vin ? 1 : 0;
             break;
-            case mtcontinuous: vout.v.dv = vin ? 1 : 0;
+        case mtcontinuous: vout.v.dv = vin ? 1 : 0;
             break;
         case mtset: vout.seti = vin ? new setitrint(1) : new setitrint(0);
             break;
