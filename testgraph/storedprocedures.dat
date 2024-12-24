@@ -89,7 +89,7 @@ BIGCUP (a IN S, SET (b IN S, a != b, {a,b}))
 
 END
 
-mtdiscrete DisjointABpaths( mtset A, mtset B )
+mtcontinuous DisjointABpaths( mtset A, mtset B )
 
 NAMING (AcupB AS A CUP B,
     NAMING (VminusAB AS V SETMINUS AcupB,
@@ -99,7 +99,7 @@ NAMING (AcupB AS A CUP B,
 
 END
 
-mtdiscrete MinXSeparates( mtset A, mtset B )
+mtcontinuous MinXSeparates( mtset A, mtset B )
 
 MIN (X IN Ps(V), Separatesc(A,B,X), st(X))
 
