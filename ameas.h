@@ -165,7 +165,7 @@ public:
     virtual T takemeas( neighborstype* ns, namedparams& context, const params& ps )
     {
         return takemeas(ns,ps);
-/*        int i = 0;
+        /* int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
         return takemeas(ns,context); */
@@ -173,7 +173,7 @@ public:
     virtual T takemeas( const int idx, namedparams& context, const params& ps )
     {
         return takemeas(idx,ps);
-/*        int i = 0;
+        /* int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
         return takemeas(idx,context); */
@@ -974,15 +974,18 @@ public:
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(idx,context);
+        auto res = takemeas(idx,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
     bool takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(ns,context);
+        auto res = takemeas(ns,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
-
 
     sentofcrit( mrecords* recin , const std::vector<int>& litnumpsin,
                 const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
@@ -1030,16 +1033,20 @@ public:
     }
 
     double takemeas(const int idx, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
+         int i = 0;
+         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(idx,context);
+        auto res = takemeas(idx,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
     double takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(ns,context);
+        auto res = takemeas(ns,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
 
 
@@ -1089,13 +1096,17 @@ public:
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(idx,context);
+        auto res = takemeas(idx,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
     int takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(ns,context);
+        auto res = takemeas(ns,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
 
     formtally( mrecords* recin , const std::vector<int>& litnumpsin,
@@ -1145,13 +1156,17 @@ public:
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(idx,context);
+        auto res = takemeas(idx,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
     setitr* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(ns,context);
+        auto res = takemeas(ns,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
 
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
@@ -1202,13 +1217,17 @@ public:
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(idx,context);
+        auto res = takemeas(idx,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
     setitr* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(ns,context);
+        auto res = takemeas(ns,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
 
 
@@ -1262,13 +1281,17 @@ public:
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(idx,context);
+        auto res = takemeas(idx,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
     std::string* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(ns,context);
+        auto res = takemeas(ns,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
 
     formstring( mrecords* recin , const std::vector<int>& litnumpsin,
@@ -1321,13 +1344,17 @@ public:
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(idx,context);
+        auto res = takemeas(idx,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
     neighborstype* takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
         int i = 0;
         for (auto n : ps)
             context.push_back({nps[i++].first,n});
-        return takemeas(ns,context);
+        auto res = takemeas(ns,context);
+        context.resize(context.size()-ps.size());
+        return res;
     }
 
 
