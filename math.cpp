@@ -1123,9 +1123,9 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                 while ( !match && !pos->ended())
                 {
                     auto v = pos->getnext();
-                    match = match || mtareequal(v,itm);
+                    // match = match || mtareequal(v,itm);
 
-/*
+
                     if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
                         match = match || itm == v;
                     else
@@ -1166,7 +1166,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                                         std::cout << "Mismatched types in call to ELT\n";
                                         exit(1);
                                     }
-                            } */
+                            }
                 }
                 res.v.bv = match;
 
