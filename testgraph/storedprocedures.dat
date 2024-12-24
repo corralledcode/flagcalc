@@ -95,12 +95,24 @@ NAMING (AcupB AS A CUP B,
     NAMING (VminusAB AS V SETMINUS AcupB,
         MAX (ps IN Setpartition(V) CUP {{}},
             FORALL (p IN ps,
-                EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), a == b OR (a != b AND st(q CAP AcupB) == 2), q <= p ) ))), st(ps)) ))
+                EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), a == b OR (a != b AND st(q SETMINUS VminusAB) == 2), q <= p ) ))), st(ps)) ))
 
 END
 
 mtcontinuous MinXSeparates( mtset A, mtset B )
 
 MIN (X IN Ps(V), Separatesc(A,B,X), st(X))
+
+END
+
+mtdiscrete testrecursioninternal( mtdiscrete a )
+
+a + 1
+
+END
+
+mtdiscrete testrecursion( mtdiscrete a )
+
+a + testrecursioninternal( a )
 
 END
