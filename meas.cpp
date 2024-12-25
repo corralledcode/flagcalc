@@ -1490,8 +1490,8 @@ class kconnectedcrit : public crit {
     bool takemeas(neighborstype* ns, const params& ps) override
     {
         int k = 0;
-        if (ps.size() > 0 && ps[0].t == mtdiscrete)
-            k = ps[0].v.iv;
+        // if (ps.size() > 0 && ps[0].t == mtdiscrete)
+        k = ps[0].v.iv;
         graphtype* g = ns->g;
         return kconnectedfn( g, ns, k);
     }

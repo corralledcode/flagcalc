@@ -483,7 +483,10 @@ class setitrunion : public setitrmodeone
         {
             bool found = false;
             valms v = Bitr->getnext();
+
             for (int i = 0; !found && i < temp.size(); i++)
+                found = mtareequal(temp[i], v);
+            /*
                 if (v.t == temp[i].t)
                     if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
                         found = found || v == temp[i];
@@ -509,7 +512,7 @@ class setitrunion : public setitrmodeone
                             else
                                 std::cout << "Unsupported type " << v.t << " in setitrunion\n";
                     }
-
+            */
             if (!found)
                 temp.push_back(v);
         }
@@ -592,6 +595,8 @@ public:
             bool found = false;
             valms v = Bitr->getnext();
             for (int i = 0; !found && i < temp.size(); i++)
+                found = found || mtareequal(temp[i], v);
+            /*
                 if (v.t == temp[i].t)
                     if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
                         found = found || v == temp[i];
@@ -615,7 +620,7 @@ public:
                             }
                             else
                                 std::cout << "Unsupported type " << v.t << " in setitrintersection\n";
-
+                */
             if (found)
                 temp2.push_back(v);
         }
@@ -654,6 +659,8 @@ class setitrsetminus : public setitrmodeone
             Bitr->reset();
             while (!found && !Bitr->ended()) {
                 valms omitv = Bitr->getnext();
+                found = found || mtareequal(v,omitv);
+                /*
                 if (v.t == omitv.t)
                     switch (v.t) {
                         case mtbool:
@@ -667,7 +674,7 @@ class setitrsetminus : public setitrmodeone
                             break;}
                         default:
                             std::cout << "Unsupported type " << v.t << " in setitrunion\n";
-                    }
+                    }*/
             }
             if (!found)
                 temp.push_back(v);
@@ -714,6 +721,8 @@ public:
             int j = 0;
             while (!found && j < tempA.size()) {
                 valms omitv = tempA[j++];
+                found = found || mtareequal(v, omitv);
+                /*
                 if (v.t == omitv.t)
                     switch (v.t) {
                         case mtbool:
@@ -738,7 +747,7 @@ public:
                         default:
                             std::cout << "Unsupported type " << v.t << " in setitrunion\n";
                     }
-
+                */
             }
             if (!found)
                 temp.push_back(v);
@@ -1333,11 +1342,11 @@ inline void fasttupleunion( const int lengthA, const int lengthB, const int leng
 }
 template<typename T>
 inline void fasttuplesetminus( const int lengthA, const int lengthB, int& length, T* eltsA, T* eltsB, T* out) {
-    bool* deprecated[lengthA];
+    bool deprecated[lengthA];
     memset(deprecated, false, lengthA * sizeof(T));
     for (int i = 0; i < lengthA; ++i)
         for (int j = 0; !deprecated[i] && j < lengthB; ++j) {
-            deprecated[i] == deprecated[i] || (eltsA[i] == eltsB[j]);
+            deprecated[i] = deprecated[i] || (eltsA[i] == eltsB[j]);
         }
     int pos = 0;
     for (int i = 0; i < lengthA; ++i)
@@ -1349,11 +1358,11 @@ inline void fasttuplesetminus( const int lengthA, const int lengthB, int& length
 template<typename T>
 inline void fasttupleintersection( const int lengthA, const int lengthB, int& length, T* eltsA, T* eltsB, T* out) {
 // the convention here is that the "tuple" on the right be treated as a set, so this is like subtracting its complement
-    bool* deprecated[lengthA];
+    bool deprecated[lengthA];
     memset(deprecated, true, lengthA * sizeof(T));
     for (int i = 0; i < lengthA; ++i)
         for (int j = 0; deprecated[i] && j < lengthB; ++j) {
-            deprecated[i] == deprecated[i] && (eltsA[i] != eltsB[j]);
+            deprecated[i] = deprecated[i] && (eltsA[i] != eltsB[j]);
         }
     int pos = 0;
     for (int i = 0; i < lengthA; ++i)
@@ -1381,7 +1390,7 @@ inline bool fasttupledisjoint( const int lengthA, const int lengthB, const int n
 }
 template<typename T>
 inline bool fasttupleequal( const int lengthA, const int lengthB, T* eltsA, T* eltsB) {
-    if (lengthA != lengthB);
+    if (lengthA != lengthB)
         return false;
     for (auto i = 0; i < lengthA; ++i) {
         if (eltsA[i] != eltsB[i])
@@ -1449,12 +1458,8 @@ inline bool fastbooltupleops( setitrtuple<T>* tupleA, setitrtuple<T>* tupleB, co
             return !fasttupleequal<T>( lengthA, lengthB, tupleA->elts, tupleB->elts );
         case formulaoperator::fomeet:
             return fasttuplemeet<T>( lengthA, lengthB, 1, tupleA->elts, tupleB->elts );
-            // return fasttupleinitialsegment<T>( lengthA, lengthB, tupleA->elts, tupleB->elts ) ||
-            //    fasttupleinitialsegment<T>( lengthB, lengthA, tupleB->elts, tupleA->elts );
         case formulaoperator::fodisjoint:
             return fasttupledisjoint<T>( lengthA, lengthB, 1, tupleA->elts, tupleB->elts );
-            // return !fasttupleinitialsegment<T>( lengthA, lengthB, tupleA->elts, tupleB->elts ) &&
-            //    !fasttupleinitialsegment<T>( lengthB, lengthA, tupleB->elts, tupleA->elts );
         default:
             std::cout << "Non-tuple operation applied to tuple\n";
     }
@@ -1954,6 +1959,9 @@ public:
                 break;
             case formulaoperator::foe:
                 out = slowtupleinitialsegment( tmpitrA, tmpitrB ) && tmpitrB->getsize() == tmpitrA->getsize();
+                break;
+            case formulaoperator::fone:
+                out = !slowtupleinitialsegment( tmpitrA, tmpitrB ) || tmpitrB->getsize() != tmpitrA->getsize();
                 break;
             case formulaoperator::fodisjoint:
                 out = !slowtuplemeet( tmpitrA, tmpitrB, 1 );

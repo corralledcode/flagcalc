@@ -1302,7 +1302,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
         case (formulaoperator::foqexists):
         case (formulaoperator::foqforall):
             {
-                while ((!supersetpos->ended()) && res.v.bv) {
+                while (!supersetpos->ended() && res.v.bv) {
                     context[i].second = supersetpos->getnext();
                     valms c;
                     if (criterion) {
