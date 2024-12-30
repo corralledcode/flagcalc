@@ -1,0 +1,11 @@
+mtdiscrete testrecursioninternal( mtdiscrete a )
+
+a + 1
+
+END
+
+mtdiscrete testrecursion( mtdiscrete a )
+
+a + testrecursioninternal( a )
+
+END

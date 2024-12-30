@@ -453,24 +453,10 @@ public:
         }
     }
 
-    randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {
-    }
+    randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
 
     void execute(std::vector<std::string> args) override {
-
-
-
-
-
-
-
-
         abstractrandomgraphsfeature::execute(args);
-
-
-
-
-
         int dim = 5;
         //std::vector<abstractparameterizedrandomgraph> rs {};
         int rgsidx = 0;
@@ -581,6 +567,11 @@ public:
 
 */
         gv = randomgraphs(rgs[rgsidx],dim,edgecnt,cnt);
+        auto wi = new randomgraphsitem(rgs[rgsidx]);
+        for (auto p : rgparams) {
+            wi->ps.push_back(p);
+        }
+        _ws->items.push_back(wi);
 
         /*
         auto starttime = std::chrono::high_resolution_clock::now();
@@ -1957,6 +1948,18 @@ inline void readfromfile( std::string ifname, std::vector<std::string>& out )
         while (!ifs.eof()) {
             ifs >> tmp;
             bool changed = false;
+            if (tmp == "#include") {
+                ifs >> tmp;
+                if (tmp.size() >= 2 && ((tmp[0] == '\"' && tmp[tmp.size()-1] == '\"') || (tmp[0] == '<' && tmp[tmp.size()-1] == '>'))) {
+                    tmp = tmp.substr(1, tmp.size()-2);
+                }
+                std::vector<std::string> includedout {};
+                readfromfile(tmp, includedout);
+                for (auto s : includedout) {
+                    out.push_back(s);
+                }
+                continue;
+            }
             while (!ifs.eof() && tmp != "END" && tmp != "###")
             {
                 dat += " " + tmp + " ";

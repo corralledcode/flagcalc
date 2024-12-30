@@ -41,9 +41,10 @@
 
 #define VERBOSE_APPLYSTRING "strmeas"
 #define VERBOSE_APPLYGRAPH "measg"
+#define VERBOSE_RANDOMSUMMARY "randomizer"
 
-#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj pd"
-#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj pd"
+#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj pd set allsets randomizer"
+#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj pd set allsets randomizer"
 
 #define VERBOSE_FORDB "db"
 
@@ -277,6 +278,25 @@ public:
 
 };
 
+class randomgraphsitem : public workitems {
+public:
+    abstractrandomgraph* rg;
+    std::vector<std::string> ps;
+    virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
+        os << classname << " " << name << ": ";
+        os << rg->shortname() << " " << rg->name << ": ";
+        for (auto item : ps)
+            os << item << ", ";
+        os << "\b\b  \n";
+        return true;
+    }
+    virtual bool isitem( std::istream& is ) {return true;}
+    virtual void freemem() {}
+    randomgraphsitem( abstractrandomgraph* rg ) : rg{rg}, workitems() {
+        classname = "RANDOMGRAPHS";
+        verbositylevel = VERBOSE_RANDOMSUMMARY;
+    }
+};
 
 
 

@@ -1,0 +1,109 @@
+mtbool Bipartiteviacycles
+
+FORALL (v1 IN V, FORALL (c IN Cyclesvs(v1), st(c) % 2 == 0))
+
+END
+
+mtbool Bipartiteviabipcrit
+
+EXISTS (p IN Setpartition(V), st(p) == 2, bipc(p(0),p(1)))
+
+END
+
+mtbool Cycleoflength ( mtdiscrete n )
+
+EXISTS (c IN Cycless, st(c) == n)
+
+END
+
+mtbool HasKnminor ( mtdiscrete n )
+
+EXISTS (s IN Ps(V), EXISTS (p IN Setpartition(s), st(p) == n, FORALL (q IN p, FORALL (r IN p, r != q, Nssc(q,r)) AND connvsc(q,E))))
+
+END
+
+mtcontinuous epsilon
+
+0.1
+
+END
+
+/* Diestel p 12 */ /* and more commenting... */
+
+mtcontinuous n_0 ( mtcontinuous d, mtdiscrete g )
+
+g % 2 == 0 ? 2 * SUM (i IN g/2, (d - 1)^i) : 1 + d * SUM (i IN (g - 1)/2, (d - 1)^i)
+
+END
+
+mtbool HasHminor ( mtset U, mtset F )
+
+EXISTS (s IN Ps(V), EXISTS (p IN Setpartition(s), st(p) == st(U),
+    FORALL (q IN p, connvsc(q,E)) AND
+        EXISTS (f IN Perms(NN(st(p))), FORALL (i IN st(p), FORALL (j IN st(p), i < j, Nssc(p(f(i)),p(f(j))) IF {i,j} ELT F)))))
+
+END
+
+/* Diestel 3.4.1 p 73 (Mader 1978) */
+
+mtset delC ( mtset X, mtset C )
+
+NAMING (subg AS V SETMINUS (X CUPD C), SET (c IN C, EXISTS (v IN subg, ac(v,c)), c))
+
+END
+
+mtbool HpathsmeetXorF( mtset H, mtset X, mtset F )
+
+FORALL (v1 IN H, FORALL (v2 IN H, v1 != v2, FORALL (p IN Pathss(v1,v2), (p CAP H) == {v1,v2}, st(p CAP X) > 0 OR EXISTS (n IN st(p)-1, {p(n),p(n+1)} ELT F))))
+
+END
+
+mtcontinuous M_H( mtset H )
+
+NAMING (VminusH AS V SETMINUS H,
+NAMING (EminusH AS Edgess(VminusH),
+    MIN (X IN Ps(VminusH), st(X) + MIN (F IN Ps(EminusH), HpathsmeetXorF( H, X, F ),
+        NAMING (Y AS V SETMINUS (H CUPD X),
+        NAMING (C_F AS Componentss(GraphonVEg(Y,F)),
+            SUM (C IN C_F, floor(st(
+
+            delC(X,C)
+
+            )/2))))))))
+
+END
+
+mtset M_Hset( mtset H )
+
+NAMING (VminusH AS V SETMINUS H,
+NAMING (EminusH AS Edgess(VminusH),
+    SET (X IN Ps(VminusH), SET (F IN Ps(EminusH),
+        NAMING (Y AS V SETMINUS (H CUPD X),
+        NAMING (C_F AS Componentss(GraphonVEg(Y,F)), C_F))))))
+
+END
+
+mtset PairSet( mtset S )
+
+BIGCUP (a IN S, SET (b IN S, a != b, {a,b}))
+
+END
+
+mtcontinuous DisjointABpaths( mtset A, mtset B )
+
+NAMING (AcupB AS A CUP B,
+    NAMING (VminusAB AS V SETMINUS AcupB,
+        MAX (ps IN Setpartition(V) CUP {{}},
+            FORALL (p IN ps,
+                EXISTS (a IN A, EXISTS (b IN B, EXISTS (q IN Pathss(a,b), NAMING (qt AS TupletoSet(q), (a == b OR (a != b AND st(qt CAP AcupB) == 2)) AND qt <= p ) )))), st(ps)) ))
+
+END
+
+mtcontinuous MinXSeparates( mtset A, mtset B )
+
+MIN (X IN Ps(V), Separatesc(A,B,X), st(X))
+
+END
+
+
+#include "../scripts/recursion.dat"

@@ -720,8 +720,10 @@ bool setsubseteq( itrpos* in1, itrpos* in2)
     in1->reset();
     while (!in1->ended() && res)
     {
-        in2->reset();
         auto itm = in1->getnext();
+        // res = res && in2->parent->iselt(itm);
+        in2->reset();
+
         bool match = false;
         while (!match && !in2->ended())
         {
@@ -1115,8 +1117,11 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
             res.t = measuretype::mtbool;
             valms set = evalinternal(*fc.fcright,context );
             valms itm = evalinternal( *fc.fcleft,context );
+
+
             if (set.t == mtset || set.t == mttuple)
             {
+//                res.v.bv = set.seti->iselt(itm);
                 auto pos = set.seti->getitrpos();
                 pos->reset();
                 bool match = false;

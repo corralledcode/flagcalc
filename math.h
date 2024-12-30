@@ -230,6 +230,15 @@ public:
         v.v.bv = false;
         return v;
     }
+    virtual bool iselt( valms v ) {
+        reset();
+        while (!ended()) {
+            valms u = getnext();
+            if (mtareequal(v,u))
+                return true;
+        }
+        return false;
+    }
     setitr() {}
     virtual ~setitr();
 };
@@ -772,6 +781,8 @@ public:
 
 };
 
+inline void fastsetunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out);
+
 
 class setitrint : public setitrmodeone // has subset functionality built in
 {
@@ -811,6 +822,11 @@ class setitrint : public setitrmodeone // has subset functionality built in
         // totality.clear();
         reset();
     }
+    virtual bool iselt( valms v ) {
+        if (!computed)
+            compute();
+        return elts[v.v.iv];
+    }
     setitrint(const int maxintin) : elts{nullptr}
     {
         setmaxint(maxintin);
@@ -828,6 +844,7 @@ class setitrint : public setitrmodeone // has subset functionality built in
     ~setitrint() {
          delete elts;
     }
+
 };
 
 
@@ -911,56 +928,6 @@ inline valms setitrtuple<bool>::assignvalms( bool elt ) {
     v.v.bv = elt;
     return v;
 }
-
-/*
-class setitrinttuple : public setitrtuple<int> {
-public:
-    valms assignvalms( int elt ) override {
-        valms out;
-        out.t = measuretype::mtdiscrete;
-        out.v.iv = elt;
-        return out;
-    }
-    setitrinttuple( std::vector<int>& vecin ) : setitrtuple<int>(  vecin ) {}
-};
-class setitrbooltuple : public setitrtuple<bool> {
-    public:
-    valms assignvalms( bool elt ) override {
-        valms out;
-        out.t = measuretype::mtbool;
-        out.v.bv = elt;
-        return out;
-    }
-    setitrbooltuple( std::vector<bool>& vecin ) : setitrtuple<bool>( vecin ) {}
-};
-class setitrdoubletuple : public setitrtuple<double> {
-public:
-    valms assignvalms( double elt ) override {
-        valms out;
-        out.t = measuretype::mtcontinuous;
-        out.v.bv = elt;
-        return out;
-    }
-    setitrdoubletuple( std::vector<double>& vecin ) : setitrtuple<double>( vecin ) {}
-}; */
-
-/*
-class setitrvalmstuple : public setitrmodeone
-{
-protected:
-    int size;
-public:
-    void compute() override
-    {
-        computed = true;
-    }
-    setitrvalmstuple(std::vector<valms> totalityin)
-    {
-        totality = totalityin;
-        computed = true;
-    }
-};
-*/
 
 class setitrintpair : public setitrmodeone
 {

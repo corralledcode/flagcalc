@@ -53,7 +53,7 @@ $PTH/flagcalc -r 8 14 10 -a s="EXISTS (p IN Setpartition(V), st(p) > 1, FORALL (
 $PTH/flagcalc -r 8 14 10 -a s="FORALL (p IN Setpartition(V), st(p) == 2, FORALL (v IN V, FORALL (u IN V, FORALL (q IN Pathss(u,v), FORALL (r IN p, TupletoSet(q) <= r IFF q <= r)))))" all -v i=minimal3.cfg
 
 # The claim below is that paths between any intermediate point between two vertices can be pasted together to recover the original paths
-$PTH/flagcalc -r 7 10.5 10 -a s="FORALL (v IN V, FORALL (u IN V, u != v, EXISTS (w IN V, Pathss(u,v) >= BIGCUP (x IN Pathss(u,w), SET (y IN Pathss(w,v),  Sp(x,st(x)-1) CUP y)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 7.5 10 -a s="FORALL (v IN V, FORALL (u IN V, u != v, EXISTS (w IN V, Pathss(u,v) >= BIGCUP (x IN Pathss(u,w), SET (y IN Pathss(w,v),  Sp(x,st(x)-1) CUP y)))))" all -v i=minimal3.cfg
 
 
 
