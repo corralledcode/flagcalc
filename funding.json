@@ -19,7 +19,7 @@
     // Optional. One or more projects for which the funding is solicited.
     "projects": [{
         "guid": "flagcalc",                     // Required. A short unique ID for the project. Lowercase-alphanumeric-dashes only. eg: my-cool-project. Max len 32.
-        "name": "FlacCalc",                     // Required. Name of the project. Max len 250.
+        "name": "FlagCalc",                     // Required. Name of the project. Max len 250.
         "description": "Fast command-line tool for querying large or small sets of specific or random graphs using first-order logic, set theory, and a language for specifying graphs, intended to aid the researcher in verifying existing proofs, making conjectures, and computer-assisted proof generally, suitable for the most elementary grade-school level exploration of things like isomorphism classes, up to bona fide professional researchers and contributing to the community a unifying tool.",              // Required. Description of the project. Max len 2000.
         "webpageUrl": {
             "url": "https://www.corralledcode.com/flag-calc-home",                  // Required. Webpage with information about the project. Starts with https:// or http://. Max len 250.
@@ -30,7 +30,7 @@
             "wellKnown": ""             // Optional. Required if the above url and the URL of the funding.json manifest do not have the same hostname. Starts with https:// or http://. Max len 250.
         },
         "licenses": ["spdx:GPL-3.0"],                 // Required. The project's licenses (up to 5). For standard licenses, use the license ID from the SDPX index prefixed by "spdx:". eg: "spdx:GPL-3.0", "spdx:CC-BY-SA-4.0"
-        "tags": ["computer-assisted-proof","graph-theory","math-research","computational-complexity"]                      // Required. Up to 10 general tags describing the project. Lowercase-alphanumeric-dashes (max 32 chars). eg: ["programming", "developer-tools"]. For reference, see tags.txt
+        "tags": ["computer-assisted-proof", "graph-theory", "math-research", "computational-complexity"]                      // Required. Up to 10 general tags describing the project. Lowercase-alphanumeric-dashes (max 32 chars). eg: ["programming", "developer-tools"]. For reference, see tags.txt
     }],
 
     // Required.
