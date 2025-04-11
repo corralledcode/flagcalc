@@ -22,6 +22,7 @@
 #include "ameas.h"
 #include "meas.cpp"
 #include "probsub.cpp"
+#include "math.h"
 
 //default is to enumisomorphisms
 #define DEFAULTCMDLINESWITCH "i"
@@ -40,6 +41,12 @@
 //#define THREADED7
 
 #define THREADCHECKCRITERION
+
+#define COMMENTSTARTDELIMITER "/*"
+#define COMMENTENDDELIMITER "*/"
+#define COMMENTENTIRELINEDELIMITER "////"
+// please don't use entire line delimiter for comments until rewriting readfromfile to include newlines;
+// as it stands, using the entirelinedelimiter comments until the END line is reached
 
 
 class feature {
@@ -109,11 +116,23 @@ public:
         }
         for (auto o : out)
             std::cout << o << ", ";
-        std::cout << "\n";
+        std::cout << " END\n";
 
-        std::string replacement = "1";
-        std::string result = std::regex_replace(f,r,replacement);
-        std::cout << result << "\n";
+
+        const std::regex r2 {"([[:alpha:]]\\w*)"};
+        std::vector<std::string> out2 {};
+        for (std::sregex_iterator p2(f.begin(),f.end(),r2); p2!=std::sregex_iterator{}; ++p2)
+        {
+            out2.push_back((*p2)[1]);
+        }
+        for (auto o : out2)
+            std::cout << o << ", ";
+        std::cout << " END2\n";
+
+
+        // std::string replacement = "1";
+        // std::string result = std::regex_replace(f,r,replacement);
+        // std::cout << result << "\n";
 
 
 
@@ -434,27 +453,11 @@ public:
         }
     }
 
-    randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {
-    }
+    randomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
 
     void execute(std::vector<std::string> args) override {
-
-
-
-
-
-
-
-
         abstractrandomgraphsfeature::execute(args);
-
-
-
-
-
-        int cnt = 100;
         int dim = 5;
-        double edgecnt = dim*(dim-1)/4.0;
         //std::vector<abstractparameterizedrandomgraph> rs {};
         int rgsidx = 0;
         std::vector<std::string> rgparams {};
@@ -463,9 +466,11 @@ public:
         if (parsedargs.size() >= 1 && parsedargs[0].first == "default" && is_number(parsedargs[0].second)) {
             dim = std::stoi(parsedargs[0].second);
         }
-        if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_number(parsedargs[1].second)) {
+        double edgecnt = dim*(dim-1)/4.0;
+        if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_real(parsedargs[1].second)) {
             edgecnt = std::stof(parsedargs[1].second);
         }
+        int cnt = 100; // the default count when count is omitted
         if (parsedargs.size() >= 3 && parsedargs[2].first == "default" && is_number(parsedargs[2].second)) {
             cnt = std::stoi(parsedargs[2].second);
         }
@@ -562,6 +567,11 @@ public:
 
 */
         gv = randomgraphs(rgs[rgsidx],dim,edgecnt,cnt);
+        auto wi = new randomgraphsitem(rgs[rgsidx]);
+        for (auto p : rgparams) {
+            wi->ps.push_back(p);
+        }
+        _ws->items.push_back(wi);
 
         /*
         auto starttime = std::chrono::high_resolution_clock::now();
@@ -1655,6 +1665,14 @@ protected:
     std::vector<meas*(*)(mrecords*)> mssfactory {};
     std::vector<tally*> tys {};
     std::vector<tally*(*)(mrecords*)> tysfactory {};
+    std::vector<set*> sts {};
+    std::vector<set*(*)(mrecords*)> stsfactory {};
+    std::vector<set*> oss {};
+    std::vector<set*(*)(mrecords*)> ossfactory {};
+    std::vector<strmeas*> rms {};
+    std::vector<strmeas*(*)(mrecords*)> rmsfactory {};
+    std::vector<gmeas*> gms {};
+    std::vector<gmeas*(*)(mrecords*)> gmsfactory {};
 
 public:
     virtual void listoptions() override {
@@ -1675,10 +1693,18 @@ public:
         auto (diamc) = critfactory<diametercrit>;
         auto (conn1c) = critfactory<connected1crit>;
         auto (kconnc) = critfactory<kconnectedcrit>;
+        auto (ledgeconnc) = critfactory<ledgeconnectedcrit>;
         auto (ac) = critfactory<acrit>;
         auto (ec) = critfactory<ecrit>;
         auto (eadjc) = critfactory<eadjcrit>;
         auto (bipc) = critfactory<bipcrit>;
+        auto (Nssc) = critfactory<Nsscrit>;
+        auto (Separatesc) = critfactory<Separatescrit>;
+        auto (connvssc) = critfactory<connvsscrit>;
+        auto (connvc) = critfactory<connvcrit>;
+        auto (connvsc) = critfactory<connvscrit>;
+        auto (indnpc) = critfactory<indnpcrit>;
+        auto (nwisec) = critfactory<nwisecrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1691,10 +1717,18 @@ public:
         crsfactory.push_back(diamc);
         crsfactory.push_back(conn1c);
         crsfactory.push_back(kconnc);
+        crsfactory.push_back(ledgeconnc);
         crsfactory.push_back(ac);
         crsfactory.push_back(ec);
         crsfactory.push_back(eadjc);
         crsfactory.push_back(bipc);
+        crsfactory.push_back(Nssc);
+        crsfactory.push_back(Separatesc);
+        crsfactory.push_back(connvssc);
+        crsfactory.push_back(connvc);
+        crsfactory.push_back(connvsc);
+        crsfactory.push_back(indnpc);
+        crsfactory.push_back(nwisec);
 
         // ...
 
@@ -1747,34 +1781,127 @@ public:
         // add any new tally types to the list here...
 
         auto (Knt) = tallyfactory<Kntally>;
+        auto (indnt) = tallyfactory<indntally>;
         auto (cyclet) = tallyfactory<cycletally>;
         auto (kappat) = tallyfactory<kappatally>;
+        auto (lambdat) = tallyfactory<lambdatally>;
         auto (vdt) = tallyfactory<vdtally>;
         auto (st) = tallyfactory<sizetally>;
+        auto (lt) = tallyfactory<lengthtally>;
         auto (pct) = tallyfactory<pctally>;
-        auto (firstt) = tallyfactory<pairfirsttally>;
-        auto (secondt) = tallyfactory<pairsecondtally>;
-        auto (pst) = tallyfactory<psizetally>;
+        auto (idxt) = tallyfactory<idxtally>;
         auto (Nt) = tallyfactory<Ntally>;
+        auto (cyclesvt) = tallyfactory<cyclesvtally>;
+        auto (Chit) = tallyfactory<Chitally>;
+        auto (Chigreedyt) = tallyfactory<Chigreedytally>;
+        auto (Chiprimet) = tallyfactory<Chiprimetally>;
+        auto (Chiprimegreedyt) = tallyfactory<Chiprimegreedytally>;
+        auto (Nsst) = tallyfactory<Nsstally>;
+        auto (cyclest) = tallyfactory<cyclestally>;
 
         tysfactory.push_back(Knt);
+        tysfactory.push_back(indnt);
         tysfactory.push_back(cyclet);
         tysfactory.push_back(kappat);
+        tysfactory.push_back(lambdat);
         tysfactory.push_back(vdt);
         tysfactory.push_back(st);
+        tysfactory.push_back(lt);
         tysfactory.push_back(pct);
-        tysfactory.push_back(firstt);
-        tysfactory.push_back(secondt);
-        tysfactory.push_back(pst);
+        tysfactory.push_back(idxt);
         tysfactory.push_back(Nt);
+        tysfactory.push_back(cyclesvt);
+        tysfactory.push_back(Chit);
+        tysfactory.push_back(Chigreedyt);
+        tysfactory.push_back(Chiprimet);
+        tysfactory.push_back(Chiprimegreedyt);
+        tysfactory.push_back(Nsst);
+        tysfactory.push_back(cyclest);
 
-
-        // ,,,
+        // ...
 
         for (int n = 0; n < tysfactory.size(); ++n) {
             tys.push_back((*tysfactory[n])(&rec));
         }
 
+        auto (Vs) = setfactory<Vset>;
+        auto (Ps) = setfactory<Pset>;
+        auto (Sizedsubs) = setfactory<Sizedsubset>;
+        auto (NNs) = setfactory<NNset>;
+        auto (Nulls) = setfactory<Nullset>;
+        auto (Es) = setfactory<Eset>;
+        auto (idxs) = setfactory<idxset>;
+        auto (TtoS) = setfactory<TupletoSet>;
+        auto (Paths) = setfactory<Pathsset>;
+        auto (Cyclesvs) = setfactory<Cyclesvset>;
+        auto (Setpartitions) = setfactory<Setpartition>;
+        auto (nEs) = setfactory<nEset>;
+        auto (Cycless) = setfactory<Cyclesset>;
+        auto (Perms) = setfactory<Permset>;
+        auto (Subgraphss) = setfactory<Subgraphsset>;
+        auto (InducedSubgraphss) = setfactory<InducedSubgraphsset>;
+        auto (Componentss) = setfactory<Componentsset>;
+        auto (Edgess) = setfactory<Edgesset>;
+
+        stsfactory.push_back(Vs);
+        stsfactory.push_back(Ps);
+        stsfactory.push_back(Sizedsubs);
+        stsfactory.push_back(NNs);
+        stsfactory.push_back(Nulls);
+        stsfactory.push_back(Es);
+        stsfactory.push_back(idxs);
+        stsfactory.push_back(TtoS);
+        stsfactory.push_back(Paths);
+        stsfactory.push_back(Cyclesvs);
+        stsfactory.push_back(Setpartitions);
+        stsfactory.push_back(nEs);
+        stsfactory.push_back(Cycless);
+        stsfactory.push_back(Perms);
+        stsfactory.push_back(Subgraphss);
+        stsfactory.push_back(InducedSubgraphss);
+        stsfactory.push_back(Componentss);
+        stsfactory.push_back(Edgess);
+
+        for (int n = 0; n < stsfactory.size(); ++n) {
+            sts.push_back((*stsfactory[n])(&rec));
+        }
+
+        // ...
+
+        auto (Chip) = tuplefactory<Chituple>;
+        auto (Chigreedyp) = tuplefactory<Chigreedytuple>;
+        auto (Sp) = tuplefactory<Stuple>;
+
+        ossfactory.push_back(Chip);
+        ossfactory.push_back(Chigreedyp);
+        ossfactory.push_back(Sp);
+
+        for (int n = 0; n < ossfactory.size(); ++n) {
+            oss.push_back((*ossfactory[n])(&rec));
+        }
+
+        // auto (Gg) = stringfactory<Ggmeas>;
+
+        // rmsfactory.push_back(Chip);
+
+        // for (int n = 0; n < rmsfactory.size(); ++n) {
+        //    oss.push_back((*rmsfactory[n])(&rec));
+        // }
+
+        auto (GraphonVEg) = graphfactory<GraphonVEgmeas>;
+        auto (SubgraphonUg) = graphfactory<SubgraphonUgmeas>;
+        auto (Gg) = graphfactory<Ggmeas>;
+
+        gmsfactory.push_back(GraphonVEg);
+        gmsfactory.push_back(SubgraphonUg);
+        gmsfactory.push_back(Gg);
+
+        for (int n = 0; n < gmsfactory.size(); ++n) {
+            gms.push_back((*gmsfactory[n])(&rec));
+        }
+
+
+        // ...
 
 
 
@@ -1790,6 +1917,18 @@ public:
         }
         for (int i = 0; i < tys.size(); ++i) {
             delete tys[i];
+        }
+        for (int i = 0; i < sts.size(); ++i) {
+            delete sts[i];
+        }
+        for (int i = 0; i < oss.size(); ++i) {
+            delete oss[i];
+        }
+        for (int i = 0; i < rms.size(); ++i) {
+            delete rms[i];
+        }
+        for (int i = 0; i < gms.size(); ++i) {
+            delete gms[i];
         }
     }
 
@@ -1809,6 +1948,18 @@ inline void readfromfile( std::string ifname, std::vector<std::string>& out )
         while (!ifs.eof()) {
             ifs >> tmp;
             bool changed = false;
+            if (tmp == "#include") {
+                ifs >> tmp;
+                if (tmp.size() >= 2 && ((tmp[0] == '\"' && tmp[tmp.size()-1] == '\"') || (tmp[0] == '<' && tmp[tmp.size()-1] == '>'))) {
+                    tmp = tmp.substr(1, tmp.size()-2);
+                }
+                std::vector<std::string> includedout {};
+                readfromfile(tmp, includedout);
+                for (auto s : includedout) {
+                    out.push_back(s);
+                }
+                continue;
+            }
             while (!ifs.eof() && tmp != "END" && tmp != "###")
             {
                 dat += " " + tmp + " ";
@@ -1824,6 +1975,94 @@ inline void readfromfile( std::string ifname, std::vector<std::string>& out )
         std::cout << "Couldn't open file for reading " << ifname << "\n";
     }
 }
+
+inline void removecomments( std::vector<std::string> streamstr, std::vector<std::string>& streamout )
+{
+    bool incomment = false;
+    bool entirelinecomment = false;
+    int i = 0;
+    streamout.clear();
+    std::string workingstr;
+    if (streamstr.size() > 0)
+        workingstr = streamstr[0];
+    std::string outstr {};
+    while (i < streamstr.size())
+    {
+        if (!incomment)
+        {
+            auto commentstartpos = workingstr.find(COMMENTSTARTDELIMITER);
+            if (commentstartpos != std::string::npos)
+            {
+                incomment = true;
+                entirelinecomment = false;
+                outstr = workingstr.substr(0, commentstartpos);
+                workingstr = workingstr.substr(commentstartpos+strlen(COMMENTSTARTDELIMITER),workingstr.size()-commentstartpos-strlen(COMMENTSTARTDELIMITER));
+            }
+            else
+            {
+                commentstartpos = workingstr.find(COMMENTENTIRELINEDELIMITER);
+                if (commentstartpos != std::string::npos)
+                {
+                    incomment = true;
+                    entirelinecomment = true;
+                    outstr = workingstr.substr(0, commentstartpos);
+                    workingstr = workingstr.substr(commentstartpos+strlen(COMMENTENTIRELINEDELIMITER),workingstr.size()-commentstartpos-strlen(COMMENTENTIRELINEDELIMITER));
+                } else
+                {
+                    outstr = workingstr;
+                    streamout.push_back(outstr);
+                    outstr.clear();
+                    ++i;
+                    if (i < streamstr.size())
+                        workingstr = streamstr[i];
+                    continue;
+                }
+            }
+        }
+        if (incomment)
+        {
+            int commentendpos;
+            int delimsize;
+            if (!entirelinecomment) {
+                commentendpos = workingstr.find(COMMENTENDDELIMITER);
+                delimsize = strlen(COMMENTENDDELIMITER);
+            } else {
+                commentendpos = workingstr.find('\n');
+                if (commentendpos == std::string::npos) {
+                    commentendpos = workingstr.size()-1;
+                }
+                delimsize = 1;
+            }
+            if (commentendpos != std::string::npos)
+            {
+                incomment = false;
+                workingstr = workingstr.substr(commentendpos + delimsize, workingstr.size()-commentendpos - delimsize);
+                continue;
+            }
+            else
+            {
+                streamout.push_back(outstr);
+                outstr.clear();
+                ++i;
+                if (i < streamstr.size())
+                    workingstr = streamstr[i];
+                continue;
+            }
+        }
+
+    }
+
+}
+
+
+
+inline void readfromfileandremovecomments(std::string ifname, std::vector<std::string>& out )
+{
+    std::vector<std::string> streamstr;
+    readfromfile(ifname, streamstr);
+    removecomments(streamstr, out);
+}
+
 
 
 struct compactcmdline
@@ -1866,7 +2105,7 @@ inline compactcmdline parsecompactcmdline( std::string& s )
 
 
 unsigned const thread_count = std::thread::hardware_concurrency();
-//unsigned const thread_count = 1;
+// unsigned const thread_count = 1;
 
 
 template<typename T>
@@ -2021,18 +2260,265 @@ void populatewi(workspace* _ws, chkmeasaitem<T>* wi, std::vector<T>& threaddata,
 }
 
 
+struct storedprocstruct
+{
+    std::string name;
+    ams a;
+    namedparams nps;
+    std::string body;
+    int iidx;
+};
+
 
 class checkcriterionfeature : public abstractcheckcriterionfeature {
 protected:
 
-
-
-
-
-//    std::vector<iteration*> iter {};
     std::vector<itn*> iter {};
     std::vector<int> litnumps {};
     std::vector<measuretype> littypes {};
+    std::vector<std::string> litnames {};
+    std::vector<storedprocstruct> storedprocedures {};
+
+
+    itn* newiteration( measuretype mtin, int roundin, const ams ain, const bool hiddenin = false )
+    {
+        int j;
+        auto resi = new itn;
+        switch (mtin)
+        {
+        case measuretype::mtbool:
+            j = rec.boolrecs.pmsv->size();
+            rec.boolrecs.pmsv->push_back(ain.a.cs);
+            resi->nps = ain.a.cs->nps;
+            break;
+        case measuretype::mtdiscrete:
+            j = rec.intrecs.pmsv->size();
+            rec.intrecs.pmsv->push_back(ain.a.ts);
+            resi->nps = ain.a.ts->nps;
+            break;
+        case measuretype::mtcontinuous:
+            j = rec.doublerecs.pmsv->size();
+            rec.doublerecs.pmsv->push_back(ain.a.ms);
+            resi->nps = ain.a.ms->nps;
+            break;
+        case measuretype::mtset:
+            j = rec.setrecs.pmsv->size();
+            rec.setrecs.pmsv->push_back(ain.a.ss);
+            resi->nps = ain.a.ss->nps;
+            break;
+        case measuretype::mttuple:
+            j = rec.tuplerecs.pmsv->size();
+            rec.tuplerecs.pmsv->push_back(ain.a.os);
+            resi->nps = ain.a.os->nps;
+            break;
+        case measuretype::mtstring:
+            j = rec.stringrecs.pmsv->size();
+            rec.stringrecs.pmsv->push_back(ain.a.rs);
+            resi->nps = ain.a.rs->nps;
+            break;
+        case measuretype::mtgraph:
+            j = rec.graphrecs.pmsv->size();
+            rec.graphrecs.pmsv->push_back(ain.a.gs);
+            resi->nps = ain.a.gs->nps;
+            break;
+
+        }
+
+        resi->t = mtin;
+        resi->round = roundin;
+        resi->iidx = rec.maxm()+1;
+        rec.addm(resi->iidx,resi->t,j);
+        resi->hidden = hiddenin;
+        //resi->ps.clear();
+        return resi;
+
+    }
+
+
+    int lookupstoredprocedure( const std::string sin, const int roundin )
+    {
+        for (auto i = 0; i < storedprocedures.size(); ++i)
+        {
+            auto sps = storedprocedures[i];
+            if (sin == sps.name) {
+                if (sps.iidx < 0)
+                {
+                    ams a = sps.a;
+                    namedparams nps = sps.nps;
+                    std::string s = bindformula(sps.body, sps.a.t, roundin );
+
+//                    params ps2 {};
+//                    for (auto p : ps)
+//                        ps2.push_back(p.second);
+
+                    switch (a.t)
+                    {
+                    case mtbool:
+                        {
+                            sentofcrit* cs = new sentofcrit(&rec,litnumps,littypes,litnames, nps , s, sps.name);
+                            a.a.cs = cs;
+                            a.a.cs->negated = false;
+                            crs.push_back(a.a.cs);
+                            break;
+                        }
+                    case mtdiscrete:
+                        {
+                            formtally* ts = new formtally(&rec,litnumps,littypes,litnames, nps, s, sps.name);
+                            a.a.ts = ts;
+                            tys.push_back(a.a.ts);
+                            break;
+                        }
+                    case mtcontinuous:
+                        {
+                            formmeas* ms = new formmeas(&rec,litnumps,littypes,litnames, nps,s, sps.name);
+                            a.a.ms = ms;
+                            mss.push_back(a.a.ms);
+                            break;
+                        }
+                    case mtset:
+                        {
+                            formset* ss = new formset(&rec,litnumps,littypes,litnames, nps, s, sps.name);
+                            a.a.ss = ss;
+                            sts.push_back(a.a.ss);
+                            break;
+                        }
+                    case mttuple:
+                        {
+                            formtuple* os = new formtuple(&rec,litnumps,littypes,litnames,nps, s, sps.name);
+                            a.a.os = os;
+                            oss.push_back(a.a.os);
+                            break;
+                        }
+                    case mtstring:
+                        {
+                            formstring* rs = new formstring(&rec,litnumps,littypes,litnames,nps, s, sps.name);
+                            a.a.rs = rs;
+                            rms.push_back(a.a.rs);
+                            break;
+                        }
+                    case mtgraph:
+                        {
+                            formgraph* gs = new formgraph(&rec,litnumps,littypes,litnames,nps, s, sps.name);
+                            a.a.gs = gs;
+                            gms.push_back(a.a.gs);
+                            break;
+                        }
+                    }
+
+                    auto it = newiteration(a.t,roundin,a,true);
+
+                    // int j = addmeas( sps.name, sps.a.t, roundin);
+                    it->nps = nps;
+                    iter.push_back(it);
+
+                    int j = iter.size()-1;
+                    litnumps.push_back(nps.size());
+                    littypes.push_back(a.t);
+                    litnames.push_back(sps.name);
+//                    litnumps.resize(j+1);
+//                    litnumps[j] = ps.size();
+//                    littypes.resize(j+1);
+//                    littypes[j] = a.t;
+//                    litnames.resize(j+1);
+//                    litnames[j] = sps.name;
+                    sps.iidx = j;
+                    storedprocedures[i] = sps;
+                    return sps.iidx;
+                } else
+                    return sps.iidx;
+            }
+        }
+        return -1;
+    }
+
+    void addstoredproc( const std::string sin )
+    {
+
+        std::vector<std::string> parsedstring = parsecomponents( sin );
+        if (parsedstring.size() > 1)
+        {
+            ams a {};
+            a.t = mtbool;
+            bool found = false;
+            for (auto tname : measuretypenames)
+                if (parsedstring[0] == tname.second)
+                {
+                    a.t = tname.first;
+                    found = true;
+                }
+            if (!found)
+            {
+                std::cout << "Unknown stored procedure type " << parsedstring[0]
+                    << "; using " << measuretypenames[a.t] << std::endl;
+            }
+
+            std::string name = parsedstring[1];
+            if (lookupiter(name) >= 0)
+            {
+                std::cout << "Stored procedure name already exists (" << name << ")" << std::endl;
+                return;
+            }
+
+
+            params ps {};
+            // std::vector<qclass*> variables;
+            namedparams variablenames {};
+
+            int i = 2;
+            if (parsedstring.size() >= 4 && parsedstring[i] == "(")
+            {
+                ++i;
+                std::vector<std::string> psstring {};
+                while (i < parsedstring.size() && parsedstring[i] != ")")
+                    psstring.push_back(parsedstring[i++]);
+                ++i;
+
+                for (int j = 0; j < psstring.size(); j += 3)
+                {
+                    std::string ptype = psstring[j];
+                    std::string pname = psstring[j+1];
+                    valms v;
+                    v.t = mtdiscrete;
+                    bool found = false;
+                    for (auto tname : measuretypenames)
+                        if (ptype == tname.second)
+                        {
+                            v.t = tname.first;
+                            found = true;
+                        }
+                    if (!found)
+                    {
+                        std::cout << "Unknown stored procedure variable type " << ptype
+                            << "; using " << measuretypenames[v.t] << std::endl;
+                    }
+                    ps.push_back(v);
+                    // auto qc = new qclass();
+                    // qc->name = pname;
+                    // variables.push_back(qc);
+                    variablenames.push_back({pname,v});
+                }
+            }
+
+            std::string form {};
+            for ( ; i < parsedstring.size(); ++i)
+                form += parsedstring[i] + " ";
+
+            // std::cout << name << ": " << form << std::endl;
+
+            storedprocstruct sps;
+
+            sps.name = name;
+            sps.body = form;
+            sps.nps = variablenames;
+            sps.a = a;
+            sps.iidx = -1;
+            storedprocedures.push_back(sps);
+
+        } else
+        {
+            std::cout << "Empty stored procedure" << std::endl;
+        }
+    }
 
     int lookupiter( const std::string sin )
     {
@@ -2048,6 +2534,15 @@ protected:
             case mtdiscrete: sn = a.a.ts->shortname;
                 break;
             case mtcontinuous: sn = a.a.ms->shortname;
+                break;
+            case mtset: sn = a.a.ss->shortname;
+                break;
+            case mttuple: sn = a.a.os->shortname;
+                break;
+            case mtstring: sn = a.a.rs->shortname;
+                break;
+            case mtgraph: sn = a.a.gs->shortname;
+                break;
             }
             if (sn == sin)
                 return iter[i]->iidx;
@@ -2057,86 +2552,123 @@ protected:
 
     }
 
-    itn* newiteration( measuretype mtin, int roundin, const ams ain, const bool hiddenin = false )
-    {
-        int j;
-        auto resi = new itn;
-        switch (mtin)
-        {
-        case measuretype::mtbool:
-            j = rec.boolrecs.pmsv->size();
-            rec.boolrecs.pmsv->push_back(ain.a.cs);
-            break;
-        case measuretype::mtdiscrete:
-            j = rec.intrecs.pmsv->size();
-            rec.intrecs.pmsv->push_back(ain.a.ts);
-            break;
-        case measuretype::mtcontinuous:
-            j = rec.doublerecs.pmsv->size();
-            rec.doublerecs.pmsv->push_back(ain.a.ms);
-            break;
-        }
-
-        resi->t = mtin;
-        resi->round = roundin;
-        resi->iidx = rec.maxm()+1;
-        rec.addm(resi->iidx,resi->t,j);
-        resi->hidden = hiddenin;
-        resi->ps.clear();
-        return resi;
-
-    }
 
     int addmeas(const std::string sin, const measuretype mtin, const int roundin )
     {
         int li = lookupiter(sin);
         if (li >= 0)
             return li;
-        for (int i = 0; i < crs.size(); ++i)
+        for (int i = 0; i < stsfactory.size(); ++i)
+        {
+            if (sin == sts[i]->shortname)
+            {
+                ams a;
+                a.t = measuretype::mtset;
+                a.a.ss = (*stsfactory[i])(&rec);
+                iter.push_back(newiteration(mtset,roundin,a,true));  // hide also those of pssz == 0
+                int j = iter.size()-1;
+
+                litnumps.push_back(sts[i]->npssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+                return j;
+            }
+        }
+        for (int i = 0; i < crsfactory.size(); ++i)
         {
             if (sin == crs[i]->shortname)
             {
                 ams a;
                 a.t = measuretype::mtbool;
                 a.a.cs = (*crsfactory[i])(&rec);
-                iter.push_back(newiteration(mtbool,roundin,a,crs[i]->pssz > 0));
+                iter.push_back(newiteration(mtbool,roundin,a,true));
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                litnumps[j] = crs[i]->pssz;
-                littypes.resize(j+1);
-                littypes[j] = a.t;
+
+                litnumps.push_back(crs[i]->npssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
                 return j;
             }
         }
-        for (int i = 0; i < mss.size(); ++i)
+        for (int i = 0; i < mssfactory.size(); ++i)
         {
             if (sin == mss[i]->shortname)
             {
                 ams a;
                 a.t = measuretype::mtcontinuous;
                 a.a.ms = (*mssfactory[i])(&rec);
-                iter.push_back(newiteration(mtcontinuous,roundin,a,mss[i]->pssz > 0));
+                iter.push_back(newiteration(mtcontinuous,roundin,a, true));
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                littypes.resize(j+1);
-                litnumps[j] = mss[i]->pssz;
-                littypes[j] = a.t;
+
+                litnumps.push_back(mss[i]->npssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
                 return j;
             }
         }
-        for (int i = 0; i < tys.size(); ++i)
+        for (int i = 0; i < tysfactory.size(); ++i)
         {
             if (sin == tys[i]->shortname)
             {
                 ams a;
                 a.t = measuretype::mtdiscrete;
                 a.a.ts = (*tysfactory[i])(&rec);
-                iter.push_back(newiteration(mtdiscrete,roundin,a,tys[i]->pssz > 0));
+                iter.push_back(newiteration(mtdiscrete,roundin,a,true));
                 int j = iter.size()-1;
-                litnumps.resize(j+1);
-                littypes.resize(j+1);
-                litnumps[j] = tys[i]->pssz;
-                littypes[j] = a.t;
+
+                litnumps.push_back(tys[i]->npssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+                return j;
+            }
+        }
+        for (int i = 0; i < ossfactory.size(); ++i)
+        {
+            if (sin == oss[i]->shortname)
+            {
+                ams a;
+                a.t = measuretype::mttuple;
+                a.a.os = (*ossfactory[i])(&rec);
+                iter.push_back(newiteration(mttuple,roundin,a,true));
+                int j = iter.size()-1;
+
+                litnumps.push_back(oss[i]->npssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+                return j;
+            }
+        }
+
+        for (int i = 0; i < rmsfactory.size(); ++i)
+        {
+            if (sin == rms[i]->shortname)
+            {
+                ams a;
+                a.t = measuretype::mtstring;
+                a.a.rs = (*rmsfactory[i])(&rec);
+                iter.push_back(newiteration(mtstring,roundin,a,true));  // hide also those of pssz == 0
+                int j = iter.size()-1;
+
+                litnumps.push_back(rms[i]->npssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
+                return j;
+            }
+        }
+
+        for (int i = 0; i < gmsfactory.size(); ++i)
+        {
+            if (sin == gms[i]->shortname)
+            {
+                ams a;
+                a.t = measuretype::mtgraph;
+                a.a.gs = (*gmsfactory[i])(&rec);
+                iter.push_back(newiteration(mtgraph,roundin,a,true));  // hide also those of pssz == 0
+                int j = iter.size()-1;
+
+                litnumps.push_back(gms[i]->npssz);
+                littypes.push_back(a.t);
+                litnames.push_back(sin);
                 return j;
             }
         }
@@ -2149,9 +2681,16 @@ protected:
     {
         const std::regex r {"\\[([[:alpha:]]\\w*)\\]"};
         std::vector<std::string> out {};
+        std::vector<std::string> out2 {};
+
         for (std::sregex_iterator p(sin.begin(),sin.end(),r); p!=std::sregex_iterator{}; ++p)
         {
             out.push_back((*p)[1]);
+        }
+        const std::regex r2 {"([[:alpha:]]\\w*)"};
+        for (std::sregex_iterator p( sin.begin(), sin.end(),r2); p != std::sregex_iterator{}; ++p)
+        {
+            out2.push_back((*p)[1]);
         }
         for (int i = 0; i < out.size(); ++i)
         {
@@ -2160,15 +2699,42 @@ protected:
             int idx = lookupiter(out[i]);
             if (idx < 0)
             {
-
-                idx = addmeas( out[i],mtin, roundin );
+                idx = lookupstoredprocedure(out[i], roundin);
+                if (idx < 0)
+                    idx = addmeas( out[i],mtin, roundin );
             }
-            std::string replacement = "[" + std::to_string(idx) + "]";
+
+            if (idx < 0)
+                std::cout << "Unknown bracketed literal " << out[i] << std::endl;
+
+            // std::string replacement = "[" + std::to_string(idx) + "]";
+            std::string replacement = "[" + out[i] + "]";
+
             std::string pattern = "\\[" + out[i] + "\\]";
             std::regex reg(pattern);
             sin = std::regex_replace(sin,reg,replacement);
         }
         // std::cout << sin << "\n";
+
+        for (int i = 0; i < out2.size(); ++i)
+        {
+            if (is_operator(out2[i]))
+                continue;
+
+            if (is_number(out2[i]))
+                continue;
+            int idx = lookupiter(out2[i]);
+            if (idx < 0)
+            {
+                idx = lookupstoredprocedure(out2[i], roundin);
+                if (idx < 0)
+                    idx = addmeas( out2[i],mtin, roundin );
+                // if (idx < 0)
+                    // std::cout << " presumed variable " << out2[i] << std::endl;
+            }
+        }
+
+
         return sin;
     }
 
@@ -2218,8 +2784,13 @@ public:
         *_os << "\t" << "\"s=<sentence>\": applies the logical sentence inside the quotes to the criteria\n";
         *_os << "\t" << "\"is=<filename>\": applies the logical sentence in <filename> to the criteria\n";
         *_os << "\t" << "\"f=<graph>\": \t checks the criterion of <graph> embedding\n";
+        *_os << "\t" << "\"nf=<graph>\": \t checks the criterion of NOT <graph> embedding\n";
+        *_os << "\t" << "\"ft=<graph>\": \t counts the tally of <graph> embedding\n";
         *_os << "\t" << "\"if=<filename>\": applies the criteria of flag(s) in <filename> embedding\n";
         *_os << "\t" << "\"a=<expression>\": uses mathematical expression to serve as a measure\n";
+        *_os << "\t" << "\"z=<expression>\": uses mathematical expression to serve as an integer\n";
+        *_os << "\t" << "\"e=<expression>\": uses mathematical expression to serve as a set\n";
+        *_os << "\t" << "\"p=<expression>\": uses mathematical expression to serve as a tuple\n";
         *_os << "\t" << "\"ia=<filename>\": uses the mathematical expression(s) in <filename> embedding\n";
 
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
@@ -2230,9 +2801,17 @@ public:
         for (int n = 0; n < mss.size(); ++n) {
             *_os << "\t\t\"" << mss[n]->shortname << "\": " << mss[n]->name << "\n";
         }
-        *_os << "\t" << "<tally>:\t which tally to use, standard options are:\n";
+        *_os << "\t" << "z=<tally>:\t which tally to use, standard options are:\n";
         for (int n = 0; n < tys.size(); ++n) {
             *_os << "\t\t\"" << tys[n]->shortname << "\": " << tys[n]->name << "\n";
+        }
+        *_os << "\t" << "e=<set>:\t which set to use, standard options are:\n";
+        for (int n = 0; n < sts.size(); ++n) {
+            *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
+        }
+        *_os << "\t" << "p=<tuple>:\t which tuple to use, standard options are:\n";
+        for (int n = 0; n < sts.size(); ++n) {
+            *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
         }
     }
 
@@ -2263,10 +2842,6 @@ public:
         std::vector<int> dimsc {};
         std::vector<neighbors*> nssc {};
 
-        std::vector<double*> variables;
-
-        //rec = new mrecords;
-
 
         for (int i = 0; i < parsedargs.size(); ++i) {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
@@ -2288,6 +2863,7 @@ public:
 
 
             compactcmdline ccl;
+            namedparams paramnames {};
             if (parsedargs[i].first == "default")
             {
                 ccl.t = "c";
@@ -2302,10 +2878,13 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtbool,ccl.i);
                 ams a;
                 a.t = measuretype::mtbool;
-                a.a.cs = new sentofcrit(&rec,litnumps,littypes,s);
+                a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames, paramnames,s);
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtbool);
                 continue;
             }
             if (ccl.t == "a")
@@ -2316,11 +2895,123 @@ public:
                 std::string s = bindformula(parsedargs[i].second,mtcontinuous,ccl.i);
                 ams a;
                 a.t = measuretype::mtcontinuous;
-                a.a.ms = new formmeas(&rec,litnumps,littypes,s);
+                a.a.ms = new formmeas(&rec,litnumps,littypes,litnames, paramnames, s);
                 auto it = newiteration(mtcontinuous,ccl.i,a);
                 iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtcontinuous);
                 continue;
             }
+
+            if (ccl.t == "z" || ccl.t == "i") // demoting the "i" option in favor of "z"
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mtdiscrete,ccl.i);
+                ams a;
+                a.t = measuretype::mtdiscrete;
+                a.a.ts = new formtally(&rec,litnumps,littypes,litnames, paramnames, s);
+                auto it = newiteration(mtdiscrete,ccl.i,a);
+                iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtdiscrete);
+                continue;
+            }
+
+            if (ccl.t == "gm") // graph measure
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mtgraph,ccl.i);
+                ams a;
+                a.t = measuretype::mtgraph;
+                a.a.gs = new formgraph(&rec,litnumps,littypes,litnames, paramnames, s);
+                auto it = newiteration(mtgraph,ccl.i,a);
+                iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtgraph);
+                continue;
+            }
+
+            if (ccl.t == "e")
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mtset,ccl.i);
+                ams a;
+                a.t = measuretype::mtset;
+                a.a.ss = new formset(&rec,litnumps,littypes,litnames, paramnames, s);
+                auto it = newiteration(mtset,ccl.i,a);
+                iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mtset);
+                continue;
+            }
+
+            if (ccl.t == "p")
+            {
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
+                std::string s = bindformula(parsedargs[i].second,mttuple,ccl.i);
+                ams a;
+                a.t = measuretype::mttuple;
+                a.a.os = new formtuple(&rec,litnumps,littypes,litnames,paramnames,s);
+                auto it = newiteration(mttuple,ccl.i,a);
+                iter.push_back(it);
+                litnames.push_back(s);
+                litnumps.push_back(0);
+                littypes.push_back(mttuple);
+                continue;
+            }
+
+
+            if (ccl.t == "sp") // Stored procedure
+            {
+                addstoredproc(parsedargs[i].second);
+                continue;
+            }
+
+            if (ccl.t == "isp") // Stored procedures from a file
+            {
+                std::vector<std::string> filedata;
+                readfromfileandremovecomments(parsedargs[i].second, filedata );
+
+                std::vector<std::vector<std::string>> tmp {};
+                for (auto d : filedata)
+                {
+                    std::vector<std::string> tmp2;
+                    tmp2.clear();
+                    tmp2.push_back(d);
+                    tmp.push_back(tmp2);
+                }
+
+                for (auto t : tmp)
+                    for (auto s : t)
+                        addstoredproc(s);
+
+                // for (auto t : tmp) {
+                //    for (auto s : t)
+                //        std::cout << s << ", ";
+                //    std::cout << std::endl;
+                // }
+                // std::cout << std::endl;
+
+//                exit(1);
+
+
+                continue;
+            }
+
+
+
             if (ccl.t == "c")
             {
                 bool found = false;
@@ -2338,27 +3029,34 @@ public:
                                 a.a.cs = (*crsfactory[n])(&rec);
                                 a.a.cs->negated = ccl.n;
                                 iter.push_back( newiteration(mtbool,ccl.i,a));
-                                litnumps.resize(iter.size());
-                                litnumps[iter.size()-1] = a.a.cs->pssz;
-                                littypes.resize(iter.size());
-                                littypes[iter.size()-1] = mtbool;
+
+                                litnumps.push_back(a.a.cs->npssz);
+                                littypes.push_back(mtbool);
+                                litnames.push_back(parsedargs2[m].first);
+
+                                // litnumps.resize(iter.size());
+                                // litnumps[iter.size()-1] = a.a.cs->pssz;
+                                // littypes.resize(iter.size());
+                                // littypes[iter.size()-1] = mtbool;
+                                // litnames.resize(iter.size());
+                                // litnames[iter.size()-1] = parsedargs2[m].first;
 
                                 if (!parsedargs2[m].second.empty())
                                 {
                                     // cs[cs.size()-1]->setparams(parsedargs2[m].second);
                                     // found = true;
                                     for (auto k = 0; k < parsedargs2[m].second.size(); ++k) {
-                                        switch (a.a.cs->ps[k].t)
+                                        switch (a.a.cs->nps[k].second.t)
                                         {
-                                        case measuretype::mtbool: a.a.cs->ps[k].v.bv = stoi(parsedargs2[m].second[k]);
+                                        case measuretype::mtbool: a.a.cs->nps[k].second.v.bv = stoi(parsedargs2[m].second[k]);
                                             break;
-                                        case measuretype::mtdiscrete: a.a.cs->ps[k].v.iv = stoi(parsedargs2[m].second[k]);
+                                        case measuretype::mtdiscrete: a.a.cs->nps[k].second.v.iv = stoi(parsedargs2[m].second[k]);
                                             break;
-                                        case measuretype::mtcontinuous: a.a.cs->ps[k].v.dv = stof(parsedargs2[m].second[k]);
+                                        case measuretype::mtcontinuous: a.a.cs->nps[k].second.v.dv = stof(parsedargs2[m].second[k]);
                                             break;
                                         }
                                     }
-                                    iter[iter.size()-1]->ps = a.a.cs->ps;
+                                    iter[iter.size()-1]->nps = a.a.cs->nps;
                                 }
                             }
                             found = true;
@@ -2387,25 +3085,35 @@ public:
                             {
                                 a.a.ms = (*mssfactory[n])(&rec);
                                 iter.push_back( newiteration(mtcontinuous,ccl.i,a));
-                                litnumps.resize(iter.size());
-                                litnumps[iter.size()-1] = a.a.ms->pssz;
-                                littypes.resize(iter.size());
-                                littypes[iter.size()-1] = mtcontinuous;
+
+
+                                litnumps.push_back(a.a.ms->npssz);
+                                littypes.push_back(mtcontinuous);
+                                litnames.push_back(parsedargs2[m].first);
+
+
+
+                                // litnumps.resize(iter.size());
+                                // litnumps[iter.size()-1] = a.a.ms->pssz;
+                                // littypes.resize(iter.size());
+                                // littypes[iter.size()-1] = mtcontinuous;
+                                // litnames.resize(iter.size());
+                                // litnames[iter.size()-1] = parsedargs2[m].first;
 
                                 if (!parsedargs2[m].second.empty())
                                 {
                                     for (auto k = 0; k < parsedargs2[m].second.size(); ++k) {
-                                        switch (a.a.ms->ps[k].t)
+                                        switch (a.a.ms->nps[k].second.t)
                                         {
-                                        case measuretype::mtbool: a.a.ms->ps[k].v.bv = stoi(parsedargs2[m].second[k]);
+                                        case measuretype::mtbool: a.a.ms->nps[k].second.v.bv = stoi(parsedargs2[m].second[k]);
                                             break;
-                                        case measuretype::mtdiscrete: a.a.ms->ps[k].v.iv = stoi(parsedargs2[m].second[k]);
+                                        case measuretype::mtdiscrete: a.a.ms->nps[k].second.v.iv = stoi(parsedargs2[m].second[k]);
                                             break;
-                                        case measuretype::mtcontinuous: a.a.ms->ps[k].v.dv = stof(parsedargs2[m].second[k]);
+                                        case measuretype::mtcontinuous: a.a.ms->nps[k].second.v.dv = stof(parsedargs2[m].second[k]);
                                             break;
                                         }
                                     }
-                                    iter[iter.size()-1]->ps = a.a.ms->ps;
+                                    iter[iter.size()-1]->nps = a.a.ms->nps;
                                 }
                             }
                             found = true;
@@ -2434,25 +3142,34 @@ public:
                             {
                                 a.a.ts = (*tysfactory[n])(&rec);
                                 iter.push_back( newiteration(mtdiscrete,ccl.i,a));
-                                litnumps.resize(iter.size());
-                                litnumps[iter.size()-1] = a.a.ts->pssz;
-                                littypes.resize(iter.size());
-                                littypes[iter.size()-1] = mtdiscrete;
+
+
+                                litnumps.push_back(a.a.ts->npssz);
+                                littypes.push_back(mtdiscrete);
+                                litnames.push_back(parsedargs2[m].first);
+
+                                // litnumps.resize(iter.size());
+                                // litnumps[iter.size()-1] = a.a.ts->pssz;
+                                // littypes.resize(iter.size());
+                                // littypes[iter.size()-1] = mtdiscrete;
+                                // litnames.resize(iter.size());
+                                // litnames[iter.size()-1] = parsedargs2[m].first;
+
 
                                 if (!parsedargs2[m].second.empty())
                                 {
                                     for (auto k = 0; k < parsedargs2[m].second.size(); ++k) {
-                                        switch (a.a.ts->ps[k].t)
+                                        switch (a.a.ts->nps[k].second.t)
                                         {
-                                        case measuretype::mtbool: a.a.ts->ps[k].v.bv = stoi(parsedargs2[m].second[k]);
+                                        case measuretype::mtbool: a.a.ts->nps[k].second.v.bv = stoi(parsedargs2[m].second[k]);
                                             break;
-                                        case measuretype::mtdiscrete: a.a.ts->ps[k].v.iv = stoi(parsedargs2[m].second[k]);
+                                        case measuretype::mtdiscrete: a.a.ts->nps[k].second.v.iv = stoi(parsedargs2[m].second[k]);
                                             break;
-                                        case measuretype::mtcontinuous: a.a.ts->ps[k].v.dv = stof(parsedargs2[m].second[k]);
+                                        case measuretype::mtcontinuous: a.a.ts->nps[k].second.v.dv = stof(parsedargs2[m].second[k]);
                                             break;
                                         }
                                     }
-                                    iter[iter.size()-1]->ps = a.a.ts->ps;
+                                    iter[iter.size()-1]->nps = a.a.ts->nps;
                                 }
                             }
                             found = true;
@@ -2498,10 +3215,19 @@ public:
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
-                litnumps.resize(iter.size());
-                litnumps[iter.size()-1] = a.a.cs->pssz;
-                littypes.resize(iter.size());
-                littypes[iter.size()-1] = mtbool;
+
+                litnumps.push_back(a.a.cs->npssz);
+                littypes.push_back(mtbool);
+                litnames.push_back(gi->name);
+
+
+                // litnumps.resize(iter.size());
+                // litnumps[iter.size()-1] = a.a.cs->pssz;
+                // littypes.resize(iter.size());
+                // littypes[iter.size()-1] = mtbool;
+                // litnames.resize(iter.size());
+                // litnames[iter.size()-1] = gi->name;
+
                 continue;
 
             }
@@ -2509,6 +3235,10 @@ public:
 
             if (ccl.t == "ft")
             {
+
+                if (ccl.n)
+                    std::cout << "No feature to negate here\n";
+
 
                 std::vector<std::string> flagv {};
                 flagv.push_back(parsedargs[i].second);
@@ -2541,15 +3271,24 @@ public:
                 a.a.ts = new embedstally(&rec,gi->ns,fp);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
-                litnumps.resize(iter.size());
-                litnumps[iter.size()-1] = a.a.ts->pssz;
-                littypes.resize(iter.size());
-                littypes[iter.size()-1] = mtdiscrete;
+
+
+                litnumps.push_back(a.a.ts->npssz);
+                littypes.push_back(mtdiscrete);
+                litnames.push_back(gi->name);
+
+
+
+                // litnumps.resize(iter.size());
+                // litnumps[iter.size()-1] = a.a.ts->pssz;
+                // littypes.resize(iter.size());
+                // littypes[iter.size()-1] = mtdiscrete;
+                // litnames.resize(iter.size());
+                // litnames[iter.size()-1] = gi->name;
 
                 continue;
 
             }
-
 
 
             if (ccl.t == "is")
@@ -2564,14 +3303,22 @@ public:
                     std::string s = bindformula(q,mtbool,ccl.i);
                     ams a;
                     a.t = measuretype::mtbool;
-                    a.a.cs = new sentofcrit(&rec,litnumps,littypes,s);
+                    a.a.cs = new sentofcrit(&rec,litnumps,littypes,litnames, paramnames, s);
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
-                    litnumps.resize(iter.size());
-                    litnumps[iter.size()-1] = a.a.cs->pssz;
-                    littypes.resize(iter.size());
-                    littypes[iter.size()-1] = mtbool;
+
+                    litnumps.push_back(a.a.cs->npssz);
+                    littypes.push_back(mtbool);
+                    litnames.push_back(parsedargs[i].first);
+
+
+                    // litnumps.resize(iter.size());
+                    // litnumps[iter.size()-1] = a.a.cs->pssz;
+                    // littypes.resize(iter.size());
+                    // littypes[iter.size()-1] = mtbool;
+                    // litnames.resize(iter.size());
+                    // litnames[iter.size()-1] = parsedargs[i].second;
 
                 }
                 continue;
@@ -2591,13 +3338,20 @@ public:
                     std::string s = bindformula(q,mtcontinuous,ccl.i);
                     ams a;
                     a.t = measuretype::mtcontinuous;
-                    a.a.ms = new formmeas(&rec,litnumps,littypes,s);
+                    a.a.ms = new formmeas(&rec,litnumps,littypes,litnames,paramnames,s);
                     auto it = newiteration(mtcontinuous,ccl.i,a);
                     iter.push_back(it);
-                    litnumps.resize(iter.size());
-                    litnumps[iter.size()-1] = a.a.ms->pssz;
-                    littypes.resize(iter.size());
-                    littypes[iter.size()-1] = mtcontinuous;
+
+                    litnumps.push_back(a.a.ms->npssz);
+                    littypes.push_back(mtcontinuous);
+                    litnames.push_back(parsedargs[i].second);
+
+                    // litnumps.resize(iter.size());
+                    // litnumps[iter.size()-1] = a.a.ms->pssz;
+                    // littypes.resize(iter.size());
+                    // littypes[iter.size()-1] = mtcontinuous;
+                    // litnames.resize(iter.size());
+                    // litnames[iter.size()-1] = parsedargs[i].second;
 
                 }
                 continue;
@@ -2650,10 +3404,18 @@ public:
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
-                    litnumps.resize(iter.size());
-                    litnumps[iter.size()-1] = a.a.cs->pssz;
-                    littypes.resize(iter.size());
-                    littypes[iter.size()-1] = mtbool;
+
+                    litnumps.push_back(a.a.cs->npssz);
+                    littypes.push_back(mtbool);
+                    litnames.push_back(gi->name);
+
+
+                    // litnumps.resize(iter.size());
+                    // litnumps[iter.size()-1] = a.a.cs->pssz;
+                    // littypes.resize(iter.size());
+                    // littypes[iter.size()-1] = mtbool;
+                    // litnames.resize(iter.size());
+                    // litnames[iter.size()-1] = gi->name;
 
                 }
                 continue;
@@ -2760,6 +3522,9 @@ public:
             a.t = measuretype::mtbool;
             a.a.cs = (*crsfactory[0])(&rec);
             iter.push_back(newiteration(mtbool,0,a));
+            litnames.push_back(a.a.cs->shortname);
+            littypes.push_back(mtbool);
+            litnumps.push_back(a.a.cs->npssz);
         }
 
         rec.gptrs = &glist;
@@ -2777,8 +3542,6 @@ public:
 
         bool found = false;
 
-
-
         std::vector<bool> todo;
         bool alltodo;
         todo.resize(eqclass.size());
@@ -2789,89 +3552,162 @@ public:
         std::vector<bool> threadbool {};
         std::vector<int> threadint {};
         std::vector<double> threaddouble {};
+        std::vector<setitr*> threadset {};
+        std::vector<setitr*> threadtuple {};
+        std::vector<std::string*> threadstring {};
+        std::vector<neighborstype*> threadgraph {};
         threadbool.resize(eqclass.size());
         threadint.resize(eqclass.size());
         threaddouble.resize(eqclass.size());
+        threadset.resize(eqclass.size());
+        threadtuple.resize(eqclass.size());
+        threadstring.resize(eqclass.size());
+        threadgraph.resize(eqclass.size());
         for (int k = 0; k < iter.size(); ++k)
         {
             int ilookup = rec.intlookup(iter[k]->iidx);
             ams alookup = rec.lookup(iter[k]->iidx);
-            if (k > 0)
+
+            if (!litnumps.empty())
+                if (litnumps[k] > 0 && iter[k]->hidden)
+                    continue;
+
+            if (iter[k]->nps.size() > 0)
+                continue;
+
+            params ps;
+            ps.resize(0);
+
+//            ps.resize(iter[k]->nps.size());
+//            int i = 0;
+//            for (auto np : iter[k]->nps)
+//                ps[i++] = np.second;
+
+            if (alltodo)
             {
-                if (iter[k-1]->t == mtbool)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvalueb( iter[k-1]->iidx, m, threadbool[m]);
-                if (iter[k-1]->t == mtdiscrete)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvaluei( iter[k-1]->iidx, m, threadint[m]);
-                if (iter[k-1]->t == mtcontinuous)
-                    for (int m = 0; m < eqclass.size(); ++m)
-                        rec.addliteralvalued( iter[k-1]->iidx, m, threaddouble[m]);
+                switch (iter[k]->t) {
+                    case mtbool:
+                    runthreads<bool>(ilookup,ps,rec.boolrecs);
+                    break;
+                    case mtdiscrete:
+                    runthreads<int>(ilookup,ps,rec.intrecs);
+                    break;
+                    case mtcontinuous:
+                    runthreads<double>(ilookup,ps,rec.doublerecs);
+                    break;
+                    case mtset:
+                    runthreads<setitr*>(ilookup,ps,rec.setrecs);
+                    break;
+                    case mttuple:
+                    runthreads<setitr*>(ilookup,ps,rec.tuplerecs);
+                    break;
+                    case mtstring:
+                    runthreads<std::string*>(ilookup,ps,rec.stringrecs);
+                    break;
+                    case mtgraph:
+                    runthreads<neighborstype*>(ilookup,ps,rec.graphrecs);
+                    break;
+                }
+            } else
+            {
+                switch (iter[k]->t) {
+                    case mtbool:
+                    runthreadspartial<bool>(ilookup,ps,rec.boolrecs,&todo);
+                    break;
+                    case mtdiscrete:
+                    runthreadspartial<int>(ilookup,ps,rec.intrecs,&todo);
+                    break;
+                    case mtcontinuous:
+                    runthreadspartial<double>(ilookup,ps,rec.doublerecs,&todo);
+                    break;
+                    case mtset:
+                    runthreadspartial<setitr*>(ilookup,ps,rec.setrecs,&todo);
+                    break;
+                    case mttuple:
+                    runthreadspartial<setitr*>(ilookup,ps,rec.tuplerecs,&todo);
+                    break;
+                    case mtstring:
+                    runthreadspartial<std::string*>(ilookup,ps,rec.stringrecs,&todo);
+                    break;
+                    case mtgraph:
+                    runthreadspartial<neighborstype*>(ilookup,ps,rec.graphrecs,&todo);
+                    break;
+                }
             }
 
-            if (k > 0 && iter[k]->round > iter[k-1]->round)
-            {
-                // ...add here support for andmode and ormode
-                if (iter[k-1]->t == mtbool)
-                    for (int m = 0; m < threadbool.size();++m)
-                        todo[m] = todo[m] && threadbool[m];
-                if (iter[k-1]->t == mtdiscrete)
-                    for (int m = 0; m < threadint.size();++m)
-                        todo[m] = todo[m] && (threadint[m] != 0);
-                if (iter[k-1]->t == mtcontinuous)
-                    for (int m = 0; m < threaddouble.size();++m)
-                        todo[m] = todo[m] && (abs(threaddouble[m]) > 0.00000001);
-
-                alltodo = false;
-
+            switch (iter[k]->t) {
+                case mtbool:
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (alltodo || todo[m])
+                        threadbool[m] = rec.boolrecs.fetch(m,ilookup, ps);
+                }
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvalueb( iter[k]->iidx, m, threadbool[m]);
+                break;
+                case mtdiscrete:
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (alltodo || todo[m])
+                        threadint[m] = rec.intrecs.fetch(m,ilookup, ps);
+                }
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvaluei( iter[k]->iidx, m, threadint[m]);
+                break;
+                case mtcontinuous:
+                if (iter[k]->t == mtcontinuous)
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (alltodo || todo[m])
+                        threaddouble[m] = rec.doublerecs.fetch(m,ilookup, ps);
+                }
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvalued( iter[k]->iidx, m, threaddouble[m]);
+                break;
+                case mtset:
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (alltodo || todo[m])
+                        threadset[m] = rec.setrecs.fetch(m,ilookup, ps);
+                }
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvalues( iter[k]->iidx, m, threadset[m]);
+                break;
+                case mttuple:
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (alltodo || todo[m])
+                        threadtuple[m] = rec.tuplerecs.fetch(m,ilookup, ps);
+                }
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvaluet( iter[k]->iidx, m, threadtuple[m]);
+                break;
+                case mtstring:
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (alltodo || todo[m])
+                        threadstring[m] = rec.stringrecs.fetch(m,ilookup, ps);
+                }
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvaluer( iter[k]->iidx, m, threadstring[m]);
+                break;
+                case mtgraph:
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (alltodo || todo[m])
+                        threadgraph[m] = rec.graphrecs.fetch(m,ilookup, ps);
+                }
+                for (int m = 0; m < eqclass.size(); ++m)
+                    rec.addliteralvalueg( iter[k]->iidx, m, threadgraph[m]);
+                break;
             }
 
             if (iter[k]->hidden)
                 continue;
 
-
-
-            if (alltodo)
+            switch (iter[k]->t)
             {
-
-                if (iter[k]->t == mtbool)
-                    runthreads<bool>(ilookup,iter[k]->ps,rec.boolrecs);
-                if (iter[k]->t == mtdiscrete)
-                    runthreads<int>(ilookup,iter[k]->ps,rec.intrecs);
-                if (iter[k]->t == mtcontinuous)
-                    runthreads<double>(ilookup,iter[k]->ps,rec.doublerecs);
-
-            } else
-            {
-                if (iter[k]->t == mtbool)
-                    runthreadspartial<bool>(ilookup,iter[k]->ps,rec.boolrecs,&todo);
-                if (iter[k]->t == mtdiscrete)
-                    runthreadspartial<int>(ilookup,iter[k]->ps,rec.intrecs,&todo);
-                if (iter[k]->t == mtcontinuous)
-                    runthreadspartial<double>(ilookup,iter[k]->ps,rec.doublerecs,&todo);
-
-            }
-
-            if (iter[k]->t == mtbool)
-                for (int m = 0; m < eqclass.size(); ++m)
-                {
-                    threadbool[m] = rec.boolrecs.fetch(m,ilookup, iter[k]->ps);
-                }
-
-            if (iter[k]->t == mtdiscrete)
-                for (int m = 0; m < eqclass.size(); ++m)
-                {
-                    threadint[m] = rec.intrecs.fetch(m,ilookup, iter[k]->ps);
-                }
-
-            if (iter[k]->t == mtcontinuous)
-                for (int m = 0; m < eqclass.size(); ++m)
-                {
-                    threaddouble[m] = rec.doublerecs.fetch(m,ilookup, iter[k]->ps);
-                }
-
-            if (iter[k]->t == mtbool)
-            {
+            case mtbool: {
                 auto wi = new checkdiscreteitem<bool>(*alookup.a.cs);
                 populatewi<bool>(_ws, wi, threadbool,  items, eqclass,
                     glist, nslist, todo );
@@ -2881,7 +3717,7 @@ public:
                     {
                         if (takeallsubitems)
                         {
-                            auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                            // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                             if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                             {
                                 gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
@@ -2896,7 +3732,7 @@ public:
 
                         } else
                         {
-                            auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                            // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                             if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                             {
                                 gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
@@ -2909,8 +3745,9 @@ public:
                         }
                     }
                 }
+                break;
             }
-            if (iter[k]->t == mtdiscrete)
+            case mtdiscrete:
             {
                 auto wi = new checkdiscreteitem<int>(*alookup.a.ts);
                 populatewi<int>(_ws, wi, threadint,  items, eqclass,
@@ -2919,7 +3756,7 @@ public:
                 {
                     if (todo[m])
                     {
-                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                         if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                         {
                             gi->intitems.push_back(new ameasoutcome<int>(alookup.a.ts,gi,threadint[m]));
@@ -2931,8 +3768,9 @@ public:
                         }
                     }
                 }
+                break;
             }
-            if (iter[k]->t == mtcontinuous)
+            case mtcontinuous:
             {
                 auto wi = new checkcontinuousitem<double>(*alookup.a.ms);
                 populatewi<double>(_ws, wi, threaddouble,  items, eqclass,
@@ -2941,7 +3779,7 @@ public:
                 {
                     if (todo[m])
                     {
-                        auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
                         if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
                         {
                             gi->doubleitems.push_back(new ameasoutcome<double>(alookup.a.ms,gi,threaddouble[m]));
@@ -2953,8 +3791,139 @@ public:
                         }
                     }
                 }
+                break;
+            }
+            case mtset:
+            {
+                auto wi = new checksetitem<setitr*>(*alookup.a.ss);
+                populatewi<setitr*>(_ws, wi, threadset,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (todo[m])
+                    {
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->setitems.push_back(new setoutcome<setitr*>(alookup.a.ss,gi,threadset[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
+                    }
+                }
+                break;
+            }
+            case mttuple:
+            {
+                auto wi = new checktupleitem<setitr*>(*alookup.a.os);
+                populatewi<setitr*>(_ws, wi, threadtuple,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (todo[m])
+                    {
+                        // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->tupleitems.push_back(new tupleoutcome<setitr*>(alookup.a.os,gi,threadset[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
+                    }
+                }
+                break;
+            }
+            case mtstring:
+            {
+                auto wi = new checkstringitem<std::string*>(*alookup.a.rs);
+                populatewi<std::string*>(_ws, wi, threadstring,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (todo[m])
+                    {
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->stringitems.push_back(new stringoutcome<std::string*>(alookup.a.rs,gi,threadstring[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
+                    }
+                }
+                break;
+            }
+            case mtgraph:
+            {
+                auto wi = new checkgraphitem<neighborstype*>(*alookup.a.gs);
+                populatewi<neighborstype*>(_ws, wi, threadgraph,  items, eqclass,
+                    glist, nslist, todo );
+                for (int m = 0; m < eqclass.size(); ++m)
+                {
+                    if (todo[m])
+                    {
+                        if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[eqclass[m]]]))
+                        {
+                            gi->graphitems.push_back(new gmeasoutcome<neighborstype*>(alookup.a.gs,gi,threadgraph[m]));
+                            wi->gnames[m] = gi->name;
+                        }
+                        else
+                        {
+                            std::cout << "Dynamic cast error to graphitem*\n";
+                        }
+                    }
+                }
+                break;
+            }
             }
 
+            if (k+1 < iter.size()) {
+                int nextnonhidden = k+1;
+                while (nextnonhidden < iter.size() && iter[nextnonhidden]->hidden)
+                    ++nextnonhidden;
+                if (nextnonhidden < iter.size() && iter[nextnonhidden]->round > iter[k]->round)
+                {
+                    switch (iter[k]->t) {
+                    case mtbool:
+                        for (int m = 0; m < threadbool.size();++m)
+                            todo[m] = todo[m] && threadbool[m];
+                         break;
+                    case mtdiscrete:
+                        for (int m = 0; m < threadint.size();++m)
+                            todo[m] = todo[m] && (threadint[m] != 0);
+                        break;
+                    case mtcontinuous:
+                        for (int m = 0; m < threaddouble.size();++m)
+                            todo[m] = todo[m] && (abs(threaddouble[m]) > ABSCUTOFF);
+                        break;
+                    case mtset:
+                        for (int m = 0; m < threadset.size(); ++m)
+                            todo[m] = todo[m] && threadset[m]->getsize()>0;
+                        break;
+                    case mttuple:
+                        for (int m = 0; m < threadtuple.size(); ++m)
+                            todo[m] = todo[m] && threadtuple[m]->getsize()>0;
+                        break;
+                    case mtstring:
+                        for (int m = 0; m < threadstring.size(); ++m)
+                            todo[m] = todo[m] && threadstring[m]->size() > 0;
+                        break;
+                    case mtgraph:
+                        for (int m = 0; m < threadgraph.size(); ++m)
+                            todo[m] = todo[m] && threadgraph[m]->g->dim>0;
+                        break;
+                    }
+                    alltodo = false;
+                }
+            }
         }
 
 
@@ -3218,7 +4187,7 @@ protected:
                 outof = stoi(rgparams[0]);
 
             unsigned const thread_count = std::thread::hardware_concurrency();
-            //unsigned const thread_count = 1;
+            // unsigned const thread_count = 1;
 
             int cnt2 = 0;
             const double section = double(outof) / double(thread_count);

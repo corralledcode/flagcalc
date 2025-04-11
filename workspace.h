@@ -36,9 +36,15 @@
 #define VERBOSE_APPLYCRITERION "crit"
 #define VERBOSE_SUBOBJECT "subobj"
 #define VERBOSE_PAIRWISEDISJOINT "pd"
+#define VERBOSE_APPLYSET "set"
+#define VERBOSE_SETVERBOSE "allsets"
 
-#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj pd"
-#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj pd"
+#define VERBOSE_APPLYSTRING "strmeas"
+#define VERBOSE_APPLYGRAPH "measg"
+#define VERBOSE_RANDOMSUMMARY "randomizer"
+
+#define VERBOSE_ALL "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin subobj pd set allsets randomizer"
+#define VERBOSE_DEFAULT "Noiso graphs fp Iso rt vrunt vappend min Mantel Fp srm FpMin crit rm fpnone vrunt subobj pd set allsets randomizer"
 
 #define VERBOSE_FORDB "db"
 
@@ -46,6 +52,9 @@
 #define CMDLINE_ENUMISOSSORTED "sorted"
 #define CMDLINE_ENUMISOSSORTEDVERIFY "sortedverify"
 #define CMDLINE_SUBOBJECTS "sub"
+
+
+
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
     std::string tmp2 = " " + s2 + " ";
@@ -269,6 +278,26 @@ public:
 
 };
 
+class randomgraphsitem : public workitems {
+public:
+    abstractrandomgraph* rg;
+    std::vector<std::string> ps;
+    virtual bool ositem( std::ostream& os, std::string verbositylevel ) {
+        os << classname << " " << name << ": ";
+        os << rg->shortname() << " " << rg->name << ": ";
+        for (auto item : ps)
+            os << item << ", ";
+        os << "\b\b  \n";
+        return true;
+    }
+    virtual bool isitem( std::istream& is ) {return true;}
+    virtual void freemem() {}
+    randomgraphsitem( abstractrandomgraph* rg ) : rg{rg}, workitems() {
+        classname = "RANDOMGRAPHS";
+        verbositylevel = VERBOSE_RANDOMSUMMARY;
+    }
+};
+
 
 
 
@@ -440,7 +469,7 @@ public:
 
         Tm sum = 0;
         int cnt = 0;
-        double max = 0;
+        double max = - std::numeric_limits<double>::infinity();
         double min = std::numeric_limits<double>::infinity();
         for (int i = 0; i < res.size(); ++i ) {
             if (res[i]) {
@@ -455,9 +484,6 @@ public:
         return true;
     }
 };
-
-
-
 
 
 
@@ -511,7 +537,7 @@ public:
 
         Tm sum = 0;
         int cnt = 0;
-        double max = 0;
+        double max = - std::numeric_limits<double>::infinity();
         double min = std::numeric_limits<double>::infinity();
         for (int i = 0; i < this->parentbool.size(); ++i ) {
             if (this->parentbool[i]) {
@@ -590,14 +616,291 @@ public:
 };
 
 
+inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t, bool alreadyindented = false )
+{
+    if (alreadyindented)
+    {
+        os << "\t" << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
+    } else
+        os << pre << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
 
 
+    os << pre << (t == mtset ? "{" : "<");
+    alreadyindented = true;
+
+    bool e = itr->ended();
+    if (e)
+    {
+        std::cout << (t == mtset ? "}" : ">");
+        return;
+    }
+    bool newline;
+    while (!e)
+    {
+        valms v = itr->getnext();
+        e = itr->ended();
+        newline = false;
+        switch (v.t)
+        {
+        case mtbool:
+            os << v.v.bv << ", ";
+            break;
+        case mtdiscrete:
+            os << v.v.iv << ", ";
+            break;
+        case mtcontinuous:
+            os << v.v.dv << ", ";
+            break;
+        case mtset:
+        case mttuple:
+            {
+                std::string pre2 = pre + "\t";
+                auto itr2 = v.seti->getitrpos();
+                newline = true;
+                osset( os, itr2, pre2, v.t, alreadyindented );
+                os << (e ? "\n" : ",\n ");
+                alreadyindented = false;
+                break;
+            }
+        case mtstring:
+            os << v.v.rv << ", ";
+            break;
+        case mtgraph:
+            osadjacencymatrix(os, v.v.nsv->g);
+            os << "\n";
+            break;
+        }
+    }
+    if (!newline)
+        os << "\b\b" << (t == mtset ? "}" : ">");
+    else
+        os << pre << (t == mtset ? "}" : ">");
+}
+
+template<typename Tm>
+class checksetitem : public chkmeasaitem<Tm> {
+public:
+    checksetitem( pameas<Tm>& pamin ) : chkmeasaitem<Tm>(pamin) {
+        this->classname = "APPLYSETCRITERION";
+        this->verbositylevel = VERBOSE_APPLYSET;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
 
 
+        int cnt = 0;
+        int max = 0;
+        int min = -1;
+        int sizesum = 0;
+
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
+        {
+            for (int i = 0; i < this->res.size(); ++i )
+            {
+                if (this->parentbool[i])
+                {
+                    auto itr = this->meas[i];
+                    auto pos = itr->getitrpos();
+                    std::string pre = "";
+                    osset( os, pos, pre, mtset );
+                    os << "\n";
+                    // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                    delete pos;
+                }
+            }
+        }
 
 
+        for (int i = 0; i < this->res.size(); ++i ) {
+            if (this->parentbool[i]) {
+                auto itr = this->meas[i];
+                int size = itr->getsize();
+                sizesum += size;
+                min = (min == -1 ? size : (size < min ? size : min));
+                max = size > max ? size : max;
+                cnt++;
+            }
+        }
+        if (cnt > 0)
+            os << "Count, average, min, max of set size " << this->pam.name << ": " << cnt << ", " << (double)sizesum/(double)cnt << ", " << min << ", " << max << "\n";
+        else
+            os << "Count, average, min, max of set size " << this->pam.name << ": 0, undef, undef, undef\n";
+
+        return true;
+    }
+};
+
+template<typename Tm>
+class checktupleitem : public chkmeasaitem<Tm> {
+public:
+    checktupleitem( pameas<Tm>& pamin ) : chkmeasaitem<Tm>(pamin) {
+        this->classname = "APPLYTUPLECRITERION";
+        this->verbositylevel = VERBOSE_APPLYSET;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        // Tm sum = 0;
+        // int cnt = 0;
+        // double max = 0;
+        // double min = std::numeric_limits<double>::infinity();
+
+        int cnt = 0;
+        int max = 0;
+        int min = -1;
+        int sizesum = 0;
+
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
+        {
+            for (int i = 0; i < this->res.size(); ++i ) {
+                if (this->parentbool[i])
+                {
+                    auto itr = this->meas[i];
+                    auto pos = itr->getitrpos();
+                    std::string pre = "";
+                    osset( os, pos, pre, mttuple );
+                    os << "\n";
+                    // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                    delete pos;
+                }
+            }
+        }
 
 
+        for (int i = 0; i < this->res.size(); ++i ) {
+            if (this->parentbool[i]) {
+                auto itr = this->meas[i];
+                int size = itr->getsize();
+                sizesum += size;
+                min = (min == -1 ? size : (size < min ? size : min));
+                max = size > max ? size : max;
+                cnt++;
+            }
+        }
+        if (cnt > 0)
+            os << "Count, average, min, max of tuple size " << this->pam.name << ": " << cnt << ", " << (double)sizesum/(double)cnt << ", " << min << ", " << max << "\n";
+        else
+            os << "Count, average, min, max of tuple size " << this->pam.name << ": 0, undef, undef, undef\n";
+
+        // recode this to do coordinate-wise avg, min, max
+
+
+        return true;
+    }
+};
+
+
+template<typename Tc>
+class checkstringitem : public chkmeasaitem<Tc> {
+public:
+    checkstringitem(pameas<Tc>& pamin ) : chkmeasaitem<Tc>(pamin) {
+        this->classname = "APPLYSTRINGCRITERION";
+        this->verbositylevel = VERBOSE_APPLYSTRING;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        std::vector<std::pair<Tc,int>> count = {};
+        count.clear();
+        count.resize(0);
+        //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+        os << "String "<< this->pam.getname() << " results of graphs:\n";
+        for (int n = 0; n < this->res.size(); ++n) {
+            if (!this->parentbool[n])
+                continue;
+            if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
+                os << this->gnames[n]<<", number " << n+1 << " out of " << this->parentboolcnt;
+                os << ": " << this->res[n] << "\n";
+            }
+            bool found = false;
+            for (int i = 0; !found && (i < count.size()); ++i)
+            {
+                if (count[i].first == this->res[n]) {
+                    count[i].second += 1;
+                    found = true;
+                }
+            }
+            if (!found)
+                count.push_back({this->res[n],1});
+        }
+
+        for (int i = 0; i < count.size(); ++i)
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << this->parentboolcnt << ", " << (double)count[i].second / (double)this->parentboolcnt << "\n";
+
+
+        return true;
+    }
+};
+
+template<typename Tc>
+class checkgraphitem : public chkmeasaitem<Tc> {
+public:
+    checkgraphitem(pameas<Tc>& pamin ) : chkmeasaitem<Tc>(pamin) {
+        this->classname = "APPLYGRAPHCRITERION";
+        this->verbositylevel = VERBOSE_APPLYGRAPH;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+        /*        for (int n = 0; n < fpslist.size(); ++n) {
+                    if (fpslist[n]->nscnt > 0) {
+                        freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                        free(fpslist[n]->ns);
+                    }
+                }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+        for (int n = 0; n < this->res.size(); ++n)
+        {
+            osadjacencymatrix(os, this->res[n]->g);
+            os << "\n";
+        }
+        return true;
+    }
+};
 
 
 

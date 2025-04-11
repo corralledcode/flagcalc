@@ -1,16 +1,16 @@
 
-EXISTS
-    (EXISTS
-        (FORALL
-            (FORALL
-                (FORALL
-                    (FORALL
-                        ([ac](l,r) AND NOT [ac](l,l2) AND NOT [ac](r,r2)
-                         AND ([st](left) + [st](right) == [dimm]),
-                    l2 IN left),
-                r2 IN right),
-            l IN left),
-        r IN right),
-    right SUBSETEQ V),
-left SUBSETEQ V)
+EXISTS (left IN [Ps]([V]), [st](left) > 0 AND
+    EXISTS (right IN [Ps]([V]), [st](right) > 0 AND
+        FORALL (r IN right,
+            FORALL (l IN left,
+                FORALL (r2 IN right,
+                    FORALL (l2 IN left,
+                        [ac](l,r) AND NOT [ac](l,l2) AND NOT [ac](r,r2)
+                        AND [st](left) + [st](right) == [dimm]
+                    )
+                )
+            )
+        )
+    )
+)
 END

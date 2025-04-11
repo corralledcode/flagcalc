@@ -4,33 +4,31 @@
 
 #include "ameas.h"
 #include "graphs.h"
+#include <unordered_set>
 
-#define GRAPH_PRECOMPUTECYCLESCNT 15
 
 class kncrit : public crit
 {
 public:
     const int n;
-    bool takemeas( const int idx, const params& ps) override {
+
+    bool takemeas( neighborstype* ns, const params& ps) {
         int mincnt;
         if (ps.empty() || ps[0].t != mtdiscrete)
             mincnt = 1;
         else
             mincnt = ps[0].v.iv;
-
         if (n <= 0)
             return true;
-
-        graphtype* g = (*rec->gptrs)[idx];
+        graphtype* g = ns->g;
         int dim = g->dim;
-
         std::vector<int> subsets {};
         enumsizedsubsets(0,n,nullptr,0,dim,&subsets);
-
         bool found = false;
         int foundcnt = 0;
         int j = 0;
-        while ((foundcnt < mincnt) && (j < (subsets.size()/n))) {
+        const int l = subsets.size()/n;
+        while (foundcnt < mincnt && j < l) {
             found = true;
             for (auto i = 0; found && (i < n); ++i) {
                 for (auto k = i+1; found && (k < n); ++k)
@@ -41,18 +39,65 @@ public:
         }
         return negated != (foundcnt >= mincnt);
     }
-
+    bool takemeas( const int idx, const params& ps) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
     kncrit( mrecords* recin , const int nin) : crit(recin ,"kn"+std::to_string(nin),"embeds K_" + std::to_string(nin) + " criterion"), n{nin}
     {
-        ps.clear();
-        pssz = 1;
         valms p1;
         p1.t = measuretype::mtdiscrete;
-        ps.push_back(p1);
+        nps.push_back(std::pair{"n",p1});
+        bindnamedparams();
     }
 
 
 };
+
+class indncrit : public crit
+{
+public:
+    const int n;
+    bool takemeas( neighborstype* ns, const params& ps) override {
+        int mincnt;
+        if (ps.empty() || ps[0].t != mtdiscrete)
+            mincnt = 1;
+        else
+            mincnt = ps[0].v.iv;
+        if (n <= 0)
+            return true;
+        graphtype* g = ns->g;
+        int dim = g->dim;
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,n,nullptr,0,dim,&subsets);
+        bool found = false;
+        int foundcnt = 0;
+        int j = 0;
+        const int l = subsets.size()/n;
+        while (foundcnt < mincnt && j < l) {
+            found = true;
+            for (auto i = 0; found && (i < n); ++i) {
+                for (auto k = i+1; found && (k < n); ++k)
+                    found = found && !g->adjacencymatrix[dim*subsets[j*n + i] + subsets[j*n + k]];
+            }
+            foundcnt += (found ? 1 : 0);
+            ++j;
+        }
+        return negated != (foundcnt >= mincnt);
+    }
+    bool takemeas( const int idx, const params& ps) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    indncrit( mrecords* recin , const int nin) : crit(recin ,"indn"+std::to_string(nin),"independent set of size" + std::to_string(nin) + " criterion"), n{nin}
+    {
+        valms p1 {};
+        p1.t = measuretype::mtdiscrete;
+        nps.push_back(std::pair{"n",p1});
+        bindnamedparams();
+    }
+};
+
 
 class knpcrit : public crit {
 protected:
@@ -65,8 +110,27 @@ public:
             kns[i] = kn;
         }
     }
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        params newps {};
+        if (ps.size() >= 1 && ps[0].t == measuretype::mtdiscrete) {
+            int ksz = ps[0].v.iv;
+            int mincnt = 1;
+            if (ps.size() == 2 && ps[1].t == measuretype::mtdiscrete)
+            {
+                mincnt = ps[1].v.iv;
+                newps.push_back(ps[1]);
+            }
+            if (0<=ksz && ksz <= KNMAXCLIQUESIZE)
+            {
+                return negated != kns[ksz]->takemeas(ns,newps);
+            } else {
+                std::cout<< "Increase KNMAXCLIQUESIZE compiler define (current value " + std::to_string(KNMAXCLIQUESIZE) + ")";
+                return false;
+            }
+        }
+        // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
+    }
     bool takemeas( const int idx, const params& ps ) override {
-
         params newps {};
         if (ps.size() >= 1 && ps[0].t == measuretype::mtdiscrete) {
             int ksz = ps[0].v.iv;
@@ -86,16 +150,13 @@ public:
         }
         // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
     }
-
-    knpcrit( mrecords* recin  ) : crit( recin ,"Knc","Parameterized K_n criterion (parameter is complete set size)") {
+    knpcrit( mrecords* recin  ) : crit( recin ,"Knc","Parameterized K_n criterion (parameters are complete set size and min count)") {
         populatekns();
-        ps.clear();
-        valms p1;
+        valms p1 {};
         p1.t = measuretype::mtdiscrete;
-        p1.v.iv = 0;
-        ps.push_back(p1);
-        ps.push_back(p1);
-        pssz = 2;
+        nps.push_back(std::pair{"n",p1});
+        nps.push_back(std::pair{"mincnt",p1});
+        bindnamedparams();
     }
     ~knpcrit() {
         for (auto kn : kns)
@@ -103,30 +164,93 @@ public:
     }
 };
 
+class indnpcrit : public crit {
+protected:
+    std::vector<indncrit*> indns {};
+public:
+    void populateindns() {
+        indns.resize(INDNMAXINDSIZE);
+        for (int i = 0; i < INDNMAXINDSIZE; ++i) {
+            auto indn = new indncrit(rec,i);
+            indns[i] = indn;
+        }
+    }
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        params newps {};
+        if (ps.size() >= 1 && ps[0].t == measuretype::mtdiscrete) {
+            int indsz = ps[0].v.iv;
+            int mincnt = 1;
+            if (ps.size() == 2 && ps[1].t == measuretype::mtdiscrete)
+            {
+                mincnt = ps[1].v.iv;
+                newps.push_back(ps[1]);
+            }
+            if (0<=indsz && indsz <= INDNMAXINDSIZE)
+            {
+                return negated != indns[indsz]->takemeas(ns,newps);
+            } else {
+                std::cout<< "Increase INDNMAXINDSIZE compiler define (current value " + std::to_string(INDNMAXINDSIZE) + ")";
+                return false;
+            }
+        }
+        // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
+    }
+    bool takemeas( const int idx, const params& ps ) override {
+        params newps {};
+        if (ps.size() >= 1 && ps[0].t == measuretype::mtdiscrete) {
+            int indsz = ps[0].v.iv;
+            int mincnt = 1;
+            if (ps.size() == 2 && ps[1].t == measuretype::mtdiscrete)
+            {
+                mincnt = ps[1].v.iv;
+                newps.push_back(ps[1]);
+            }
+            if (0<=indsz && indsz <= INDNMAXINDSIZE)
+            {
+                return negated != indns[indsz]->takemeas(idx,newps);
+            } else {
+                std::cout<< "Increase INDNMAXINDSIZE compiler define (current value " + std::to_string(INDNMAXINDSIZE) + ")";
+                return false;
+            }
+        }
+        // recode to prepare kn's in advance, and perhaps a faster algorithm than using FP
+    }
+
+    indnpcrit( mrecords* recin  ) : crit( recin ,"indnc","Parameterized Ind_n criterion (parameters are independent set size and min count)") {
+        populateindns();
+        valms p1 {};
+        p1.t = measuretype::mtdiscrete;
+        nps.push_back(std::pair{"n",p1});
+        nps.push_back(std::pair{"mincnt",p1});
+        bindnamedparams();
+    }
+    ~indnpcrit() {
+        for (auto indn : indns)
+            delete indn;
+    }
+};
+
 class Kntally : public tally
 {
 public:
-    int takemeas( const int idx, const params& ps ) override
+    int takemeas( neighborstype* ns, const params& ps ) override
     {
         int ksz = 0;
         if (ps.size() >= 1 && ps[0].t == mtdiscrete)
         {
             ksz = ps[0].v.iv;
         }
-
         if (ksz <= 0)
             return true;
-
-        graphtype* g = (*rec->gptrs)[idx];
+        graphtype* g = ns->g;
         int dim = g->dim;
-
         std::vector<int> subsets {};
         enumsizedsubsets(0,ksz,nullptr,0,dim,&subsets);
-
         bool found = false;
         int foundcnt = 0;
         int j = 0;
-        while (j < (subsets.size()/ksz)) {
+        const int l = subsets.size()/ksz;
+        while (j < l) {
             found = true;
             for (auto i = 0; found && (i < ksz); ++i) {
                 for (auto k = i+1; found && (k < ksz); ++k)
@@ -137,37 +261,85 @@ public:
         }
         return foundcnt;
     }
-
+    int takemeas( const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
     Kntally( mrecords* recin ) : tally( recin, "Knt", "K_n embeddings tally" )
     {
-        ps.clear();
-        valms p1;
+        valms p1 {};
         p1.t = mtdiscrete;
-        p1.v.iv = 0;
-        ps.push_back(p1);
-        pssz = 1;
+        nps.push_back(std::pair{"n",p1});
+        bindnamedparams();
+    }
+};
+
+class indntally : public tally
+{
+public:
+    int takemeas( neighborstype* ns, const params& ps ) override
+    {
+        int ksz = 0;
+        if (ps.size() >= 1 && ps[0].t == mtdiscrete)
+        {
+            ksz = ps[0].v.iv;
+        }
+
+        if (ksz <= 0)
+            return true;
+
+        graphtype* g = ns->g;
+        int dim = g->dim;
+
+        std::vector<int> subsets {};
+        enumsizedsubsets(0,ksz,nullptr,0,dim,&subsets);
+
+        bool found = false;
+        int foundcnt = 0;
+        int j = 0;
+        const int l = subsets.size()/ksz;
+        while (j < l) {
+            found = true;
+            for (auto i = 0; found && (i < ksz); ++i) {
+                for (auto k = i+1; found && (k < ksz); ++k)
+                    found = found && !g->adjacencymatrix[dim*subsets[j*ksz + i] + subsets[j*ksz + k]];
+            }
+            foundcnt += (found ? 1 : 0);
+            ++j;
+        }
+        return foundcnt;
+    }
+    int takemeas( const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    indntally( mrecords* recin ) : tally( recin, "indnt", "ind_n embeddings tally" )
+    {
+        valms p1 {};
+        p1.t = mtdiscrete;
+        nps.push_back(std::pair{"n",p1});
+        bindnamedparams();
     }
 
 };
 
 
 class embedscrit : public crit {
-protected:
-
 public:
     graphtype* flagg;
     neighbors* flagns;
     FP* fp;
     embedscrit( mrecords* recin , neighbors* flagnsin,FP* fpin)
         : crit(recin , "embedsc","embeds type criterion"),
-        flagg{flagnsin->g},flagns{flagnsin},fp{fpin}
-    {
-        pssz = 0;
+        flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        return negated != (embedsquick(flagns, fp, ns, 1));
     }
     bool takemeas( const int idx ) override {
         return negated != (embedsquick(flagns, fp, (*this->rec->nsptrs)[idx], 1));
     }
-
     ~embedscrit()
     {
         freefps(fp,flagg->dim);
@@ -178,30 +350,23 @@ public:
         flagns = nullptr;
         fp = nullptr;
     }
-
 };
 
 
-class forestcrit : public crit
-{
+class forestcrit : public crit {
 public:
-
     forestcrit( mrecords* recin  ) : crit(recin ,"forestc","Forest criterion") {}
-
-    bool takemeas( const int idx ) override
+    bool takemeas( neighborstype* ns, const params& ps ) override
     {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto g = ns->g;
         int dim = g->dim;
         if (dim <= 0)
             return negated != true;
         int* visited = (int*)malloc(dim*sizeof(int));
-
         for (int i = 0; i < dim; ++i)
         {
             visited[i] = -1;
         }
-
         visited[0] = 0;
         bool allvisited = false;
         while (!allvisited)
@@ -251,24 +416,24 @@ public:
                 visited[firstunvisited-1] = firstunvisited-1;
                 changed = true;
             }
-
         }
-
     }
-
-
+    bool takemeas( const int idx ) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        params ps {};
+        return takemeas( ns, ps );
+    }
 };
 
 class treecrit : public crit
 {
 public:
-
     treecrit(mrecords* recin ) : crit(recin,"treec","Tree criterion") {}
 
-    bool takemeas( const int idx ) override
+    bool takemeas( neighborstype* ns, const params& ps ) override
     {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+        auto g = ns->g;
         int dim = g->dim;
         if (dim <= 0)
             return true;
@@ -329,12 +494,14 @@ public:
                     return negated != false;
                 }
             }
-
         }
-
     }
-
-
+    bool takemeas( const int idx ) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        params ps {};
+        return takemeas( ns, ps );
+    }
 };
 
 
@@ -351,13 +518,8 @@ public:
 
 class trianglefreecrit : public crit {
 public:
-    bool takemeas( const int idx, const params& ps)
-    {
-        return takemeas(idx);
-    }
-    bool takemeas( const int idx ) override {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        auto g = ns->g;
         int dim = g->dim;
         for (int n = 0; n < dim-2; ++n) {
             for (int i = n+1; i < dim-1; ++i) {
@@ -370,34 +532,38 @@ public:
                 }
             }
         }
-
         //std::cout << "Triangle free!\n";
         //osadjacencymatrix(std::cout, g);
         //std::cout << "\n";
         return negated != true;
     }
-
+    bool takemeas( const int idx, const params& ps)
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas( ns, ps );
+    }
+    bool takemeas( const int idx ) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        params ps {};
+        return takemeas( ns, ps );
+    }
     trianglefreecrit(mrecords* recin ) : crit(recin ,"cr1","Triangle-free crit") {}
 };
 
-
-
-
 class boolmeas : public meas {
 public:
-
     double takemeas( const int idx, const params& ps ) override {
         return (double)true;
     }
-
-
     boolmeas(mrecords* recin) : meas( recin, "truem", "Always True measure") {}
 };
 
-
-
 class dimmeas : public meas {
 public:
+    double takemeas(neighborstype* ns, const params& ps) override
+    {
+        return ns->dim;
+    }
     double takemeas( const int idx, const params& ps ) {
         return (*rec->gptrs)[idx]->dim;
     }
@@ -408,17 +574,18 @@ public:
 class edgecntmeas : public meas {
 public:
 
+    double takemeas( neighborstype* ns, const params& ps ) {
+        return edgecnt(ns->g);
+    }
     double takemeas( const int idx, const params& ps ) {
         return edgecnt((*rec->gptrs)[idx]);
     }
-
     edgecntmeas(mrecords* recin) : meas( recin, "edgecm", "Graph's edge count") {}
 };
 
 class avgdegreemeas : public meas {
 public:
-    double takemeas( const int idx, const params& ps ) {
-        neighborstype* ns = (*rec->nsptrs)[idx];
+    double takemeas( neighborstype* ns, const params& ps ) {
         int sum = 0;
         if (ns->dim == 0)
             return -1;
@@ -426,36 +593,39 @@ public:
             sum += ns->degrees[i];
         return (double)sum / (double)ns->dim;
     }
-
+    double takemeas( const int idx, const params& ps ) {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas( ns, ps );
+    }
     avgdegreemeas(mrecords* recin) : meas(recin, "dm", "Graph's average degree") {}
 };
 
 class mindegreemeas : public meas {
 public:
-    double takemeas( const int idx, const params& ps ) {
-        neighborstype* ns = (*rec->nsptrs)[idx];
+    double takemeas( neighborstype* ns, const params& ps ) {
         int min = ns->maxdegree;
         for (auto n = 0; n < ns->dim; ++n) {
             min = ns->degrees[n] < min ? ns->degrees[n] : min;
         }
         return min;
     }
-
+    double takemeas( const int idx, const params& ps ) {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas( ns, ps );
+    }
     mindegreemeas(mrecords* recin) : meas(recin, "deltam", "Graph's minimum degree") {}
-
 };
 
 class maxdegreemeas : public meas {
 public:
-
+    double takemeas( neighborstype* ns, const params& ps ) {
+        return ns->maxdegree;
+    }
     double takemeas( const int idx, const params& ps ) {
         neighborstype* ns = (*rec->nsptrs)[idx];
         return ns->maxdegree;
     }
-
-
     maxdegreemeas(mrecords* recin) : meas( recin, "Deltam", "Graph's maximum degree") {}
-
 };
 
 class legacygirthmeas : public meas {
@@ -541,15 +711,11 @@ public:
 
 };
 
-class girthmeas : public meas
-{
+class girthmeas : public meas {
 public:
     girthmeas(mrecords* recin) : meas(recin, "girthm","Graph's girth") {}
-
-    double takemeas( const int idx, const params& ps ) override
-    {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+    double takemeas( neighborstype* ns, const params& ps) override {
+        auto g = ns->g;
         const int dim = g->dim;
 
         int* visited = (int*)malloc(dim*sizeof(int));
@@ -620,8 +786,13 @@ public:
         free( visited );
         free( originated );
         return std::numeric_limits<double>::infinity();
-    }
 
+    }
+    double takemeas( const int idx, const params& ps ) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
 };
 
 
@@ -631,23 +802,14 @@ inline int cyclesearch( const graphtype* g, const neighborstype* ns, int* path, 
     // if (limit < 3)
     // return;
     const int dim = g->dim;
-
     int res = 0;
-
     if (n >= limit)
     {
         bool r = g->adjacencymatrix[path[0]*dim + path[n-1]];
-        // if (r)
-        // {
-            // for (int i = 0; i < n; ++i)
-                // std::cout << path[i] << "... ";
-            // std::cout << "\n";
-        // }
         res = r ? 1 : 0;
 
         return res;
     }
-
     int lastv = path[n-1];
     int d = ns->degrees[lastv];
     for (int i = 0; i < d; ++i )
@@ -665,27 +827,18 @@ inline int cyclesearch( const graphtype* g, const neighborstype* ns, int* path, 
     return res;
 }
 
-
-
-
 class cycletally : public tally
 {
 public:
     cycletally( mrecords* recin ) : tally (recin, "cyclet", "Number of cycles of length n")
     {
-        ps.clear();
         valms p1;
         p1.t = measuretype::mtdiscrete;
-        p1.v.iv = 0;
-        ps.push_back(p1);
-        pssz = 1;
-
+        nps.push_back(std::pair{"n",p1});
+        bindnamedparams();
     }
-    int takemeas(const int idx, const params& ps) override
-    {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
-
+    int takemeas(neighborstype* ns, const params& ps) override {
+        auto g = ns->g;
         int p;
         if (ps.size() > 0)
             switch (ps[0].t)
@@ -717,21 +870,24 @@ public:
         delete visited;
         return res/(2*p);
     }
+    int takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
 
 };
 
 
 class maxcliquemeas : public meas {
 public:
-
     maxcliquemeas(mrecords* recin) : meas(recin,"cliquem","Graph's largest clique") {}
-    double takemeas( const int idx, const params& ps ) override {
+    double takemeas( neighborstype* ns, const params& ps) override {
         std::vector<kncrit*> kns {};
-        neighborstype* ns = (*rec->nsptrs)[idx];
         for (int n = 2; n <= ns->dim; ++n) {
             auto kn = new kncrit(rec,n);
             kns.push_back(kn);
-            if (!(kn->takemeas(idx,ps))) {
+            if (!(kn->takemeas(ns,ps))) {
                 for (auto kn : kns)
                     delete kn;
                 kns.clear();
@@ -742,45 +898,57 @@ public:
             delete kn;
         kns.clear();
         return ns->dim;
+
     }
 
-
+    double takemeas( const int idx, const params& ps ) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
 };
-
-
-
-
 
 class connectedmeas : public meas
 {
 public:
-    connectedmeas(mrecords* recin) : meas(recin, "connm", "Connected components") {}
-
-    double takemeas( const int idx, const params& ps ) override {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
-
+    connectedmeas(mrecords* recin) : meas(recin, "connm", "Connected components number") {}
+    double takemeas( neighborstype* ns, const params& ps ) override {
+        graphtype* g = ns->g;
         int breaksize = -1; // by default wait until all connected components are counted
         if (ps.size() > 0)
             breaksize = ps[0].v.iv;
-
         return connectedcount( g, ns, breaksize );
+    }
+    double takemeas( const int idx, const params& ps ) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
     }
 };
 
 class connectedcrit : public crit {
 public:
-
     connectedcrit( mrecords* recin ) : crit( recin, "connc", "Graph connected components less than criterion")
     {
         // the parameter is "less than" cutoff
-        ps.clear();
-        pssz = 1;
         valms p1;
         p1.t = measuretype::mtdiscrete;
-        ps.push_back(p1);
+        nps.push_back(std::pair{"k",p1});
+        bindnamedparams();
     }
-
+    bool takemeas(neighborstype* ns, const params& ps) override
+    {
+        if (ps.size() < 1)
+            return false;
+        double p;
+        switch (ps[0].t)
+        {
+        case mtcontinuous: p = ps[0].v.dv; break;
+        case mtdiscrete: p = (double)ps[0].v.iv; break;
+        }
+        auto cm = new connectedmeas( rec );
+        bool res = cm->takemeas(ns,ps) < p;
+        delete cm;
+        return res;
+    }
     bool takemeas(const int idx, const params& ps) override
     {
         if (ps.size() < 1)
@@ -796,19 +964,23 @@ public:
         delete cm;
         return res;
     }
-
-
 };
 
 class connected1crit : public crit {
 public:
-
-    connected1crit( mrecords* recin ) : crit( recin, "conn1c", "Graph 1-connected ")
+    connected1crit( mrecords* recin ) : crit( recin, "conn1c", "Graph 1-connected ") {}
+    bool takemeas(neighborstype* ns, const params& ps) override
     {
-        ps.clear();
-        pssz = 0;
+        auto cm = new connectedmeas( rec );
+        params pslocal {};
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        p1.v.iv = 2;
+        pslocal.push_back(p1);
+        bool res = cm->takemeas(ns,pslocal) < 2;
+        delete cm;
+        return res;
     }
-
     bool takemeas(const int idx, const params& ps) override
     {
         auto cm = new connectedmeas( rec );
@@ -821,40 +993,28 @@ public:
         delete cm;
         return res;
     }
-
-
 };
-
-
 
 class radiusmeas : public meas
 {
 public:
     radiusmeas(mrecords* recin) : meas(recin, "radiusm", "Graph radius") {}
-
-    double takemeas( const int idx, const params& ps ) override {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+    double takemeas( neighborstype* ns, const params& ps ) override {
+        graphtype* g = ns->g;
         int breaksize = -1; // by default wait until finding the actual (minimal) radius
         if (ps.size() > 0)
             breaksize = ps[0].v.iv;
-
         int dim = g->dim;
         if (dim <= 0)
             return 0;
-
-
         int* distances = (int*)malloc(dim*dim*sizeof(int));
         int* dextremes = (int*)malloc(dim*sizeof(int));
-        //std::vector<vertextype> nextvs {};
-
         for (int i = 0; i < dim; ++i)
         {
             dextremes[i] = -1;
             for (int j = 0; j < dim; ++j)
                 distances[i*dim + j] = -1;
         }
-
         int v = -1;
         int nextv = 0;
         bool changed = true;
@@ -871,7 +1031,6 @@ public:
                             if (distances[v*dim + newv] < 0) {
                                 distances[v*dim + newv] = distance+1;
                                 changed = true;
-                                //nextvs.push_back(newv);
                             }
                         }
                     }
@@ -880,7 +1039,6 @@ public:
                     distance++;
             }
             dextremes[v] = distance;
-
             nextv = v;
             while (dextremes[nextv] >= 0) {
                 nextv++;
@@ -904,7 +1062,6 @@ public:
                 delete dextremes;
                 return res;  // the parameterized break-out option
             }
-
             if (nextv == v) {
                 v = -1;
             } else {
@@ -914,24 +1071,6 @@ public:
                 changed = true;
                 distances[v*dim + v] = distance;
             }
-
-            /*
-            int nextvidx = (int)((distance - 1) / 2);
-            nextv = nextvs[nextvidx];
-            int startingpoint = nextvidx > 0 ? nextvidx-1 : distance;
-            while ((dextremes[nextv] > 0) && (nextvidx+1 != startingpoint)) {
-                nextvidx++;
-                if (nextvidx >= distance)
-                    nextvidx = 0;
-                nextv = nextvs[nextvidx];
-            }
-            if (nextvidx == startingpoint)
-                v = -1;
-            else {
-                distance = 0;
-                v = nextv;
-                nextvs.clear();
-            }*/
         }
         int min = dim + 1;
         for (int i = 0; i < dim; ++i) {
@@ -942,23 +1081,37 @@ public:
         delete dextremes;
         return min;
     }
-
+    double takemeas( const int idx, const params& ps ) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas( ns, ps );
+    }
 };
 
 class radiuscrit : public crit
 {
 public:
-
     radiuscrit( mrecords* recin ) : crit( recin, "radiusc", "Radius less than criterion" )
     {
         // the parameter is "less than" cutoff
-        ps.clear();
-        pssz = 1;
         valms p1;
         p1.t = measuretype::mtdiscrete;
-        ps.push_back(p1);
+        nps.push_back(std::pair{"max",p1});
     }
-
+    bool takemeas(neighborstype* ns, const params& ps) override
+    {
+        if (ps.size() < 1)
+            return false;
+        double p;
+        switch (ps[0].t)
+        {
+        case mtcontinuous: p = ps[0].v.dv; break;
+        case mtdiscrete: p = (double)ps[0].v.iv; break;
+        }
+        auto rc = new radiusmeas( rec );
+        bool res = rc->takemeas(ns,ps) < p;
+        delete rc;
+        return res;
+    }
     bool takemeas(const int idx, const params& ps) override
     {
         if (ps.size() < 1)
@@ -974,19 +1127,7 @@ public:
         delete rc;
         return res;
     }
-
-
-    // bool takemeas(const int idx, const params& ps) override
-    // {
-        // auto resf = rm->takemeas(g,ns);
-        // std::cout << "resf == " << resf << "\n";
-        // if (ps.size()>0 && is_number(ps[0]))
-            // return ((resf >= 0) && (resf < stoi(ps[0])));
-        // return (resf >= 0);
-    // }
-
 };
-
 
 inline int recursecircumferencemeas( int* path, int pathsize, bool* visited, const graphtype* g, const neighborstype* ns, const int breaksize ) {
     if (pathsize == 0) {
@@ -1010,11 +1151,9 @@ inline int recursecircumferencemeas( int* path, int pathsize, bool* visited, con
                 //    int newpl = recursecircumferencemeas(newpath, 1, g, ns,breaksize);
                 respl = (respl < newpl ? newpl : respl);
             }
-
         }
         return respl;
     }
-
     int respl = 0;
     int* newpath = new int[pathsize+1];
     for (int j = 0; j < pathsize; ++j) {
@@ -1088,9 +1227,7 @@ inline int legacyrecursecircumferencemeas( int* path, int pathsize, const grapht
 
 class circumferencemeas: public meas {
 public:
-
     circumferencemeas(mrecords* recin) : meas(recin, "circm","Graph circumference") {}
-
     double takemeas( const int idx, const params& ps ) {
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
@@ -1114,49 +1251,36 @@ public:
 
 class legacycircumferencemeas: public meas {
 public:
-
-
     legacycircumferencemeas(mrecords* recin) : meas(recin, "lcircm","(Legacy alg.) Graph circumference") {}
-
-
-
     double takemeas( const int idx, const params& ps ) {
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         int breaksize = -1; // by default compute the largest circumference possible
         if (ps.size() > 0)
             breaksize = ps[0].v.iv;
-
         int dim = g->dim;
         if (dim <= 0)
             return 0;
-
         return legacyrecursecircumferencemeas(nullptr,0,g,ns,breaksize);
     }
 };
 
-
-
 class circumferencecrit : public crit
 {
 public:
-
     circumferencecrit( mrecords* recin )
         : crit( recin, "circc", "Circumference greater than criterion" )
     {
         // the parameter is "greater than" cutoff
-        ps.clear();
-        pssz = 1;
         valms p1;
         p1.t = measuretype::mtdiscrete;
-        ps.push_back(p1);
+        nps.push_back(std::pair{"min",p1});
+        bindnamedparams();
     }
-
     bool takemeas(const int idx, const params& ps) override
     {
         graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-
         int breaksize = -1; // by default compute the largest circumference possible
         double p;
         if (ps.size() > 0)
@@ -1167,13 +1291,10 @@ public:
             }
         else
             p = 0;
-
         breaksize = p;
-
         int dim = g->dim;
         if (dim <= 0)
             return 0;
-
         bool* visited = new bool[g->dim];
 //        memset(visited, false, g->dim * sizeof(bool)); NO TIME RIGHT NOW TO TEST THIS SPEEDIER ALTERNATIVE
         for (int i = 0; i < g->dim; ++i)
@@ -1182,36 +1303,28 @@ public:
         delete visited;
         return res;
     }
-
 };
-
 
 class diametermeas : public meas
 {
 public:
     diametermeas(mrecords* recin) : meas(recin, "diamm", "Graph diameter") {}
-
-    double takemeas( const int idx, const params& ps ) override {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+    double takemeas( neighborstype* ns, const params& ps ) override {
+        graphtype* g = ns->g;
         int breaksize = -1; // by default wait until finding the actual (maximal) diameter
         if (ps.size() > 0)
             breaksize = ps[0].v.iv;
-
         int dim = g->dim;
         if (dim <= 0)
             return 0;
-
         int* distances = (int*)malloc(dim*dim*sizeof(int));
         int* dextremes = (int*)malloc(dim*sizeof(int));
-
         for (int i = 0; i < dim; ++i)
         {
             dextremes[i] = -1;
             for (int j = 0; j < dim; ++j)
                 distances[i*dim + j] = -1;
         }
-
         int v = -1;
         int nextv = 0;
         bool changed = true;
@@ -1236,7 +1349,6 @@ public:
                     distance++;
             }
             dextremes[v] = distance;
-
             nextv = v;
             while (dextremes[nextv] >= 0) {
                 nextv++;
@@ -1260,7 +1372,6 @@ public:
                 delete dextremes;
                 return res;  // the parameterized break-out option
             }
-
             if (nextv == v) {
                 v = -1;
             } else {
@@ -1270,24 +1381,6 @@ public:
                 changed = true;
                 distances[v*dim + v] = distance;
             }
-
-            /*
-            int nextvidx = (int)((distance - 1) / 2);
-            nextv = nextvs[nextvidx];
-            int startingpoint = nextvidx > 0 ? nextvidx-1 : distance;
-            while ((dextremes[nextv] > 0) && (nextvidx+1 != startingpoint)) {
-                nextvidx++;
-                if (nextvidx >= distance)
-                    nextvidx = 0;
-                nextv = nextvs[nextvidx];
-            }
-            if (nextvidx == startingpoint)
-                v = -1;
-            else {
-                distance = 0;
-                v = nextv;
-                nextvs.clear();
-            }*/
         }
         int max = 0;
         for (int i = 0; i < dim; ++i) {
@@ -1297,26 +1390,41 @@ public:
         delete distances;
         delete dextremes;
         return max;
-
     }
+    double takemeas( const int idx, const params& ps ) override {
 
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas( ns, ps );
+    }
 };
-
 
 class diametercrit : public crit
 {
 public:
-
     diametercrit( mrecords* recin ) : crit( recin, "diamc", "Diameter greater than criterion")
     {
         // the parameter is "greater than" cutoff
-        ps.clear();
-        pssz = 1;
-        valms p1;
+        valms p1 {};
         p1.t = measuretype::mtdiscrete;
-        ps.push_back(p1);
+        nps.push_back(std::pair{"min",p1});
+        bindnamedparams();
     }
-
+    bool takemeas(neighborstype* ns, const params& ps) override
+    {
+        if (ps.size() < 1)
+            return false;
+        double p;
+        if (ps.size() > 0)
+            switch (ps[0].t)
+            {
+        case mtcontinuous: p = ps[0].v.dv; break;
+        case mtdiscrete: p = (double)ps[0].v.iv; break;
+            }
+        auto dm = new diametermeas( rec );
+        bool res = dm->takemeas(ns,ps) > p;
+        delete dm;
+        return res;
+    }
     bool takemeas(const int idx, const params& ps) override
     {
         if (ps.size() < 1)
@@ -1333,31 +1441,17 @@ public:
         delete dm;
         return res;
     }
-
 };
 
-
-template<typename T> crit* critfactory(mrecords* recin)
-{
-    return new T(recin);
-}
-
-template<typename T> meas* measfactory(mrecords* recin)
-{
-    return new T(recin);
-}
-
-template<typename T> tally* tallyfactory(mrecords* recin)
-{
-    return new T(recin);
-}
-
-
-
+template<typename T> crit* critfactory(mrecords* recin) {return new T(recin);}
+template<typename T> meas* measfactory(mrecords* recin) {return new T(recin);}
+template<typename T> tally* tallyfactory(mrecords* recin) {return new T(recin);}
+template<typename T> set* setfactory(mrecords* recin) {return new T(recin);}
+template<typename T> set* tuplefactory(mrecords* recin) {return new T(recin);}
+template<typename T> strmeas* stringfactory(mrecords* recin) {return new T(recin);}
+template<typename T> gmeas* graphfactory(mrecords* recin) {return new T(recin);}
 
 class embedstally : public tally {
-protected:
-
 public:
     graphtype* flagg;
     neighbors* flagns;
@@ -1365,10 +1459,12 @@ public:
     embedstally( mrecords* recin , neighbors* flagnsin,FP* fpin)
         : tally(recin , "embedst","embeds type tally"),
         flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
-    int takemeas( const int idx ) override {
-        return (embedscount(flagns, fp, (*this->rec->nsptrs)[idx]));
+    int takemeas( neighborstype* ns, const params& ps ) override {
+        return embedscount(flagns, fp, ns);
     }
-
+    int takemeas( const int idx ) override {
+        return embedscount(flagns, fp, (*this->rec->nsptrs)[idx]);
+    }
     ~embedstally()
     {
         freefps(fp,flagg->dim);
@@ -1379,239 +1475,337 @@ public:
         flagns = nullptr;
         fp = nullptr;
     }
-
 };
-
 
 class kconnectedcrit : public crit {
-// Diestel, Grath Theory, p. 6-7
-
+// Diestel, Grath Theory, p. 11
     public:
-
     kconnectedcrit( mrecords* recin ) : crit( recin, "kconnc", "Graph k-connected ")
     {
-        ps.clear();
-        valms p1;
+        valms p1 {};
         p1.t = mtdiscrete;
-        p1.v.iv = 1;
-        ps.push_back(p1);
-        pssz = 1;
+        nps.push_back(std::pair{"k",p1});
+        bindnamedparams();
     }
-
-    bool takemeas(const int idx, const params& ps) override
+    bool takemeas(neighborstype* ns, const params& ps) override
     {
         int k = 0;
-        if (ps.size() > 0 && ps[0].t == mtdiscrete)
-            k = ps[0].v.iv;
-
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
-
+        // if (ps.size() > 0 && ps[0].t == mtdiscrete)
+        k = ps[0].v.iv;
+        graphtype* g = ns->g;
         return kconnectedfn( g, ns, k);
+    }
+    bool takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
     }
 };
 
-
 class kappatally : public tally {
-// Diestel, Graph Theory, page 7
-
+// Diestel, Graph Theory, page 12
 public:
-
-    kappatally( mrecords* recin ) : tally( recin, "kappat", "kappa: max k-connectedness")
+    kappatally( mrecords* recin ) : tally( recin, "kappat", "kappa: max k-connectedness") {}
+    int takemeas(neighborstype* ns, const params& ps) override
     {
-        ps.clear();
-        pssz = 0;
-    }
-
-    int takemeas(const int idx, const params& ps) override
-    {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
-
+        graphtype* g = ns->g;
         int k = g->dim;
         bool res = false;
         while (!res && k >= 0)
             res = kconnectedfn( g, ns, k-- );
-
         return k+1;
     }
-
-
-
-
-};
-
-
-
-class vdtally : public tally {
-
-public:
-
-    vdtally( mrecords* recin ) : tally( recin, "vdt", "vertex degree")
-    {
-        ps.clear();
-        valms p1;
-        p1.t = mtdiscrete;
-        p1.v.iv = 0;
-        ps.push_back(p1);
-        pssz = 1;
-    }
-
     int takemeas(const int idx, const params& ps) override
     {
-        // graphtype* g = (*rec->gptrs)[idx];
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class ledgeconnectedcrit : public crit {
+// Diestel, Grath Theory, p. 12
+public:
+    ledgeconnectedcrit( mrecords* recin ) : crit( recin, "ledgeconnc", "Graph l-edge-connected ")
+    {
+        valms p1;
+        p1.t = mtdiscrete;
+        nps.push_back(std::pair{"l",p1});
+        bindnamedparams();
+    }
+    bool takemeas(neighborstype* ns, const params& ps) override
+    {
+        int l = 0;
+        if (ps.size() > 0 && ps[0].t == mtdiscrete)
+            l = ps[0].v.iv;
+        graphtype* g = ns->g;
+        return ledgeconnectedfn( g, ns, l);
+    }
+
+    bool takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class lambdatally : public tally {
+// Diestel, Graph Theory, page 12
+public:
+    lambdatally( mrecords* recin ) : tally( recin, "lambdat", "lambda: max l-edge-connectedness") {}
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        int l = g->dim;
+        bool res = false;
+        while (!res && l >= 0)
+            res = ledgeconnectedfn( g, ns, l-- );
+        return l+1;
+    }
+    int takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class vdtally : public tally {
+public:
+    vdtally( mrecords* recin ) : tally( recin, "vdt", "vertex degree")
+    {
+        valms p1;
+        p1.t = mtdiscrete;
+        nps.push_back(std::pair{"v",p1});
+        bindnamedparams();
+    }
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+        vertextype v = 0;
+        if (ps.size() > 0)
+            v = ps[0].v.iv;
+        return ns->degrees[v];
+    }
+    int takemeas(const int idx, const params& ps) override
+    {
         neighborstype* ns = (*rec->nsptrs)[idx];
         vertextype v = 0;
         if (ps.size() > 0)
             v = ps[0].v.iv;
         return ns->degrees[v];
     }
-
 };
 
-
 class acrit : public crit {
-
 public:
-
     acrit( mrecords* recin ) : crit( recin, "ac", "vertices adjacent")
     {
-        ps.clear();
-        valms p1;
+        valms p1 {};
         p1.t = mtdiscrete;
-        p1.v.iv = 0;
-        ps.push_back(p1);
-        ps.push_back(p1);
-        pssz = 2;
+        nps.push_back(std::pair{"v1",p1});
+        nps.push_back(std::pair{"v2",p1});
+        bindnamedparams();
     }
-
+    bool takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        vertextype v1;
+        vertextype v2;
+//        if (ps.size() == 2)
+//        {
+            v1 = ps[0].v.iv;
+            v2 = ps[1].v.iv;
+            return g->adjacencymatrix[v1*g->dim + v2];
+//        } else
+//        {
+//            std::cout << "Wrong number of parameters to ac\n";
+//            exit(-1);
+//        }
+    }
     bool takemeas(const int idx, const params& ps) override
     {
         graphtype* g = (*rec->gptrs)[idx];
         // neighborstype* ns = (*rec->nsptrs)[idx];
-        vertextype v1 = 0;
-        vertextype v2 = 0;
-        if (ps.size() == 2) {
+        vertextype v1;
+        vertextype v2;
+//        if (ps.size() == 2)
+//        {
             v1 = ps[0].v.iv;
             v2 = ps[1].v.iv;
-        }
-        return g->adjacencymatrix[v1*g->dim + v2];
+            return g->adjacencymatrix[v1*g->dim + v2];
+//        } else
+//        {
+//            std::cout << "Wrong number of parameters to ac\n";
+//            exit(-1);
+//        }
     }
-
 };
 
 class eadjcrit : public crit {
-
 public:
-
     eadjcrit( mrecords* recin ) : crit( recin, "eadjc", "edges adjacent")
     {
-        ps.clear();
-        valms p1;
-        p1.t = mtpair;
-        ps.push_back(p1);
-        ps.push_back(p1);
-        pssz = 2;
+        valms p1 {};
+        p1.t = mtset;
+        nps.push_back(std::pair{"e1",p1});
+        nps.push_back(std::pair{"e2",p1});
+        bindnamedparams();
     }
-
+    bool takemeas(neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() == 2) {
+//            if (ps[0].t != mtset || ps[1].t != mtset)
+//            {
+//                std::cout << "Non set types passed to eadjc\n";
+//                return false;
+//            }
+            bool res;
+            auto itra = ps[0].seti->getitrpos();
+            auto itrb = ps[1].seti->getitrpos();
+            valms a1 = itra->getnext();
+            valms b1 = itrb->getnext();
+            valms a2 = itra->getnext();
+            valms b2 = itrb->getnext();
+            res = (a1 == b1 && a2 != b2) || (a2 == b2 && a1 != b1) || a1 == b2 || a2 == b1;
+            delete itra;
+            delete itrb;
+            return res;
+//        }
+//        std::cout << "Incorrect number of parameters passed to eadjc\n";
+//        return false;
+    }
     bool takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() == 2) {
-            bool imatch = ps[0].v.ip.i == ps[1].v.ip.i || ps[0].v.ip.i == ps[1].v.ip.j;
-            bool jmatch = ps[0].v.ip.j == ps[1].v.ip.i || ps[0].v.ip.j == ps[1].v.ip.j;
-            return (imatch || jmatch) && !(imatch && jmatch);
-        }
-        return false;
+        return takemeas(nullptr,ps);
     }
 
 };
-
-
 
 class sizetally : public tally {
-
 public:
-
     sizetally( mrecords* recin ) : tally( recin, "st", "set size tally")
     {
-        ps.clear();
         valms p1;
         p1.t = mtset;
-        ps.push_back(p1);
-        pssz = 1;
+        nps.push_back(std::pair{"set",p1});
+        bindnamedparams();
     }
-
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() == 1) {
+            return ps[0].seti->getsize();
+//        }
+//        return 0;
+    }
     int takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() == 1) {
-            int res = 0;
-            for (int i = 0; i < ps[0].setsize; ++i)
-                if (ps[0].v.iset[i])
-                    ++res;
-            // std::cout << "st == " << res << "\n";
-            return res;
-        }
-        return 0;
+//        if (ps.size() == 1) {
+            return ps[0].seti->getsize();
+//        }
+//        return 0;
     }
-
 };
 
-class psizetally : public tally {
-
+class lengthtally : public tally {
 public:
-
-    psizetally( mrecords* recin ) : tally( recin, "pst", "pair set size tally")
+    lengthtally( mrecords* recin ) : tally( recin, "lt", "tuple length tally")
     {
-        ps.clear();
         valms p1;
-        p1.t = mtpairset;
-        ps.push_back(p1);
-        pssz = 1;
+        p1.t = mttuple;
+        nps.push_back(std::pair{"tuple",p1});
+        bindnamedparams();
     }
-
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() == 1) {
+            return ps[0].seti->getsize();
+//        }
+//        std::cout << "Incorrect number of parameters passed to lengthtally\n";
+//        return 0;
+    }
     int takemeas(const int idx, const params& ps) override
     {
-        if (ps.size() == 1) {
-            int res = 0;
-            for (int i = 0; i < (ps[0].setsize*(ps[0].setsize-1)/2); ++i)
-                if (ps[0].v.iset[i])
-                    ++res;
-            // std::cout << "pst == " << res << "\n";
-            return res;
-
-        }
-        return 0;
+//        if (ps.size() == 1) {
+            return ps[0].seti->getsize();
+//        }
+//        std::cout << "Incorrect number of parameters passed to lengthtally\n";
+//        return 0;
     }
-
 };
-
 
 class pctally : public tally {
-
 public:
-
     pctally( mrecords* recin ) : tally( recin, "pct", "vertices path connected tally")
     {
-        ps.clear();
         valms p1;
         p1.t = mtdiscrete;
-        ps.push_back(p1);
-        ps.push_back(p1);
-        pssz = 2;
+        valms p2;
+        p2.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",p1});
+        nps.push_back(std::pair{"v2",p2});
+        bindnamedparams();
     }
-
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        //osadjacencymatrix(std::cout, g);
+//        if (ps.size() == 2) {
+            // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
+            return pathsbetweencount(g,ns,ps[0].v.iv, ps[1].v.iv);
+//        }
+//        return 0;
+    }
     int takemeas(const int idx, const params& ps) override
     {
-        graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        //osadjacencymatrix(std::cout, g);
-        if (ps.size() == 2) {
-            // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
-            return pathsbetweentally(g,ns,ps[0].v.iv, ps[1].v.iv);
-        }
-        return 0;
+        return takemeas(ns,ps);
     }
+};
 
+class cyclesvtally : public tally {
+public:
+    cyclesvtally( mrecords* recin ) : tally( recin, "cyclesvt", "cycles around a vertex tally")
+    {
+        valms p1;
+        p1.t = mtdiscrete;
+        nps.push_back(std::pair{"v",p1});
+        bindnamedparams();
+    }
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        //osadjacencymatrix(std::cout, g);
+//        if (ps.size() == 1) {
+            // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
+            return cyclesvcount(g,ns,ps[0].v.iv); // undirected (cf. Diestel p 6-10) is half of directed
+//        } else
+//            std::cout << "Incorrect number of parameters passed to cyclesvtally\n";
+//        return 0;
+    }
+    int takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class cyclestally : public tally {
+public:
+    cyclestally( mrecords* recin ) : tally( recin, "cyclest", "All cycles tally") {}
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        //osadjacencymatrix(std::cout, g);
+//        if (ps.size() == 0) {
+            // std::cout << ps[0].v.iv << " iv " << ps[1].v.iv << "\n";
+            return cyclescount(g,ns); // undirected (cf. Diestel p 6-10) is half of directed
+//        } else
+//            std::cout << "Incorrect number of parameters passed to cyclestally\n";
+//        return 0;
+    }
+    int takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
 };
 
 class ecrit : public crit
@@ -1619,133 +1813,208 @@ class ecrit : public crit
 public:
     ecrit( mrecords* recin ) : crit( recin, "ec", "Edge holds in graph")
     {
-        ps.clear();
         valms p1;
-        p1.t = mtpair;
-        ps.push_back(p1);
-        pssz = 1;
+        p1.t = mtset;
+        nps.push_back(std::pair{"e",p1});
+        bindnamedparams();
     }
-
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() != 1)
+//            return false;
+        graphtype* g = ns->g;
+        auto itr = ps[0].seti->getitrpos();
+        bool res = g->adjacencymatrix[g->dim * itr->getnext().v.iv + itr->getnext().v.iv];
+        delete itr;
+        return res;
+    }
     bool takemeas( const int idx, const params& ps) override
     {
-        if (ps.size() != 1)
-            return false;
-        graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        return g->adjacencymatrix[g->dim*ps[0].v.ip.i + ps[0].v.ip.j];
+        return takemeas(ns,ps);
     }
 };
 
-class pairfirsttally : public tally
+class idxtally : public tally
 {
 public:
-    pairfirsttally( mrecords* recin ) : tally( recin, "pfirstt", "Pair first")
+    idxtally( mrecords* recin ) : tally( recin, "idxt", "Index into an integer-comprised set")
     {
-        ps.clear();
         valms p1;
-        p1.t = mtpair;
-        ps.push_back(p1);
-        pssz = 1;
+        p1.t = mtset;
+        nps.push_back(std::pair{"set",p1});
+        p1.t = mtdiscrete;
+        nps.push_back(std::pair{"idx",p1});
+        bindnamedparams();
     }
-
     int takemeas( const int idx, const params& ps) override
     {
-        return ps[0].v.ip.i;
+//        if (ps.size() != 2)
+//        {
+//            std::cout << "Wrong number of parameters to idxt\n";
+//        }
+        auto itr = ps[0].seti->getitrpos();
+        if (itr->ended())
+        {
+            std::cout << "idxs called on empty set\n";
+            return -1;  // better error-catching needed here
+        }
+        int res = itr->getnext().v.iv;
+        for (int i = 0; i < ps[1].v.iv && !itr->ended(); ++i)
+        {
+            res = itr->getnext().v.iv;
+        }
+        delete itr;
+        return res;
     }
 };
 
-class pairsecondtally : public tally
+class idxset : public set
 {
 public:
-    pairsecondtally( mrecords* recin ) : tally( recin, "psecondt", "Pair second")
+    idxset( mrecords* recin ) : set( recin, "idxs", "Index into a set-comprised set")
     {
-        ps.clear();
         valms p1;
-        p1.t = mtpair;
-        ps.push_back(p1);
-        pssz = 1;
+        valms p2;
+        p1.t = mtset;
+        nps.push_back(std::pair{"set",p1});
+        p2.t = mtdiscrete;
+        nps.push_back(std::pair{"idx",p2});
+        bindnamedparams();
     }
-
-    int takemeas( const int idx, const params& ps) override
+    setitr* takemeas( const int idx, const params& ps) override
     {
-        return ps[0].v.ip.j;
+//        if (ps.size() != 2)
+//        {
+//            std::cout << "Wrong number of parameters to idxs\n";
+//        }
+        auto itr = ps[0].seti->getitrpos();
+        if (itr->ended())
+        {
+            std::cout << "idxs called on empty set\n";
+            return {};  // better error-catching needed here
+        }
+        setitr* res = itr->getnext().seti;
+        for (int i = 0; i < ps[1].v.iv && !itr->ended(); ++i)
+        {
+            res = itr->getnext().seti;
+        }
+        delete itr;
+        return res;
     }
-};
 
+};
 
 class bipcrit : public crit
 {
 public:
     bipcrit( mrecords* recin ) : crit( recin, "bipc", "Bipartite")
     {
-        ps.clear();
         valms p1;
         p1.t = mtset;
-        ps.push_back(p1);
-        ps.push_back(p1);
-        pssz = 2;
+        nps.push_back(std::pair{"setA",p1});
+        nps.push_back(std::pair{"setB",p1});
+        bindnamedparams();
     }
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() != 2)
+//            return false;
+        graphtype* g = ns->g;
+        bool* eltsleft = nullptr;
+        bool* eltsright = nullptr;
+        int maxintleft;
+        int maxintright;
+        bool all = true;
+        if (setitrint* slparent = dynamic_cast<setitrint*>(ps[0].seti))
+            if (setitrint* srparent = dynamic_cast<setitrint*>(ps[1].seti))
+            {
+                eltsleft = slparent->elts;
+                eltsright = srparent->elts;
+                maxintleft = slparent->maxint;
+                maxintright = srparent->maxint;
+            }
+        if (!eltsleft || !eltsright)
+            if (setitrsubset* slparent = dynamic_cast<setitrsubset*>(ps[0].seti))
+                if (setitrsubset* srparent = dynamic_cast<setitrsubset*>(ps[1].seti))
+                {
+                    eltsleft = slparent->itrint->elts;
+                    eltsright = srparent->itrint->elts;
+                    maxintleft = slparent->itrint->maxint;
+                    maxintright = srparent->itrint->maxint;
+                }
+        if (!eltsleft || !eltsright)
+        {
+            std::cout << "Unknown class type passed to bipc, expecting setitrint or setitrsubset\n";
+            return false;
+        }
+                /*
+                for (int i = 0; i <= sl->maxint; ++i)
+                    if (sl->elts[i])
+                    {
+                        int j = 0;
+                        while (all && j <= sr->maxint)
+                        {
+                            all = all && (!sr->elts[j] || g->adjacencymatrix[i*g->dim + j]);
+                            ++j;
+                        }
+                    }
+                for (int j = 0; all && (j <= sr->maxint); ++j)
+                    if (sr->elts[j])
+                    {
+                        int i = 0;
+                        while (all && i <= sl->maxint)
+                        {
+                            all = all && (!sl->elts[i] || g->adjacencymatrix[i*g->dim + j]);
+                            ++i;
+                        }
+                    }
+                    */  // the above code commented out per Diestel's definition (p 17)
 
+        for (int i = 0; all && (i < maxintleft); ++i)
+            for (int j = i+1; all && (j <= maxintleft); ++j)
+                all = !eltsleft[i] || !eltsleft[j] || !(g->adjacencymatrix[i*g->dim + j]);
+        for (int i = 0; all && (i < maxintright); ++i)
+            for (int j = i+1; all && (j <= maxintright); ++j)
+                all = !eltsright[i] || !eltsright[j] || !(g->adjacencymatrix[i*g->dim + j]);
+        return all;
+
+        std::cout << "Non-integer (non-vertex) set passed to bipcrit\n";
+        return false;
+    }
     bool takemeas( const int idx, const params& ps) override
     {
-        if (ps.size() != 2)
-            return false;
-        graphtype* g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
-        bool all = true;
-        for (int i = 0; i < ps[0].setsize; ++i)
-            if (ps[0].v.iset[i])
-            {
-                int j = 0;
-                while (all && j < ps[1].setsize)
-                {
-                    all = all && (!ps[1].v.iset[j] || g->adjacencymatrix[i*g->dim + j]);
-                    ++j;
-                }
-            }
-        for (int j = 0; all && (j < ps[1].setsize); ++j)
-            if (ps[1].v.iset[j])
-            {
-                int i = 0;
-                while (all && i < ps[0].setsize)
-                {
-                    all = all && (!ps[0].v.iset[i] || g->adjacencymatrix[i*g->dim + j]);
-                    ++i;
-                }
-            }
-        for (int i = 0; all && (i < ps[0].setsize); ++i)
-            for (int j = i+1; all && (j < ps[0].setsize); ++j)
-                all = !ps[0].v.iset[i] || !ps[0].v.iset[j] || !(g->adjacencymatrix[i*g->dim + j]);
-        for (int i = 0; all && (i < ps[1].setsize); ++i)
-            for (int j = i+1; all && (j < ps[1].setsize); ++j)
-                all = !ps[1].v.iset[i] || !ps[1].v.iset[j] || !(g->adjacencymatrix[i*g->dim + j]);
-        return all;
+        return takemeas(ns,ps);
     }
 };
 
 class Ntally : public tally {
 // Diestel p. ??
 public:
-
     Ntally( mrecords* recin ) : tally( recin, "Nt", "Neighbors of a vertex set")
     {
-        ps.clear();
         valms p1;
         p1.t = mtset;
-        ps.push_back(p1);
-        pssz = 1;
+        nps.push_back(std::pair{"v",p1});
+        bindnamedparams();
     }
-
-    int takemeas(const int idx, const params& ps) override
+    int takemeas(neighborstype* ns, const params& ps) override
     {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
-        if (ps.size() == 1) {
-            bool* S = ps[0].v.iset;
+        graphtype* g = ns->g;
+//        if (ps.size() == 1) {
+            auto s = ps[0].seti->getitrpos();
+            bool* S = (bool*)malloc(g->dim * sizeof(bool));
+            memset(S,false,g->dim*sizeof(bool));
+            while (!s->ended())
+            {
+                auto v = s->getnext();
+                S[v.v.iv] = true;
+            }
             bool* N = (bool*)malloc(g->dim * sizeof(bool));
             memset(N,false,g->dim * sizeof(bool));
             int cnt = 0;
-            for (int i = 0; i < ps[0].setsize; ++i)
+            for (int i = 0; i < g->dim; ++i)
                 if (S[i])
                     for (int j = 0; j < ns->degrees[i]; ++j)
                     {
@@ -1754,9 +2023,697 @@ public:
                         N[nbr] = true;
                     }
             delete N;
+            delete S;
+            delete s;
             return cnt;
+ //       }
+ //       std::cout << "Wrong number of parameters or parameter types passed to Ntally\n";
+ //       return 0;
+    }
+    int takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns, ps);
+    }
+};
+
+class Nset : public set {
+    // Diestel p. ??
+public:
+
+    Nset( mrecords* recin ) : set( recin, "Ns", "Set of neighbors of a vertex set")
+    {
+        valms p1;
+        p1.t = mtset;
+        nps.push_back(std::pair{"set",p1});
+        bindnamedparams();
+    }
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+//        if (ps.size() == 1) {
+            auto s = ps[0].seti->getitrpos();
+            // if (setitrint* s = dynamic_cast<setitrint*>(ps[0].seti))
+            // {
+            bool* S = (bool*)malloc(g->dim * sizeof(bool));
+            memset(S,false,g->dim*sizeof(bool));
+            while (!s->ended())
+            {
+                auto v = s->getnext();
+                S[v.v.iv] = true;
+            }
+            bool* N = (bool*)malloc(g->dim * sizeof(bool));
+            memset(N,false,g->dim * sizeof(bool));
+            int cnt = 0;
+            std::vector<valms> nbrs {};
+            for (int i = 0; i < g->dim; ++i)
+                if (S[i])
+                    for (int j = 0; j < ns->degrees[i]; ++j)
+                    {
+                        vertextype nbr = ns->neighborslist[i*g->dim + j];
+                        if (!N[nbr] && !S[nbr])
+                        {
+                            valms v;
+                            v.t = mtdiscrete;
+                            v.v.iv = nbr;
+                            nbrs.push_back(v);
+                            cnt++;
+                        }
+                        N[nbr] = true;
+                    }
+            delete N;
+            delete S;
+            delete s;
+            return new setitrmodeone(nbrs);
+            // }
+//        }
+//        std::cout << "Wrong number of parameters or parameter types passed to Nset\n";
+//        return 0;
+    }
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns, ps);
+    }
+};
+
+
+class Nsscrit : public crit {
+    // Diestel p. ??
+    // note it doesn't check the case of overlapping sets
+public:
+    Nsscrit( mrecords* recin ) : crit( recin, "Nssc", "Neighboring vertex sets")
+    {
+        valms p1;
+        valms p2;
+        p1.t = mtset;
+        p2.t = mtset;
+        nps.push_back(std::pair{"setA",p1});
+        nps.push_back(std::pair{"setB",p2});
+        bindnamedparams();
+    }
+    bool takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+//        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
+            auto s1 = ps[0].seti->getitrpos();
+            auto s2 = ps[1].seti->getitrpos();
+            bool res = false;
+            while (!s1->ended() && !res)
+            {
+                vertextype v1 = s1->getnext().v.iv;
+                while (!s2->ended() && !res)
+                {
+                    vertextype v2 = s2->getnext().v.iv;
+                    res = res || g->adjacencymatrix[v1*g->dim + v2];
+                }
+                s2->reset();
+            }
+            delete s1;
+            delete s2;
+            return res;
+//        }
+//        std::cout << "Wrong number or types of parameters passed to Nssc\n";
+//        return false;
+    }
+    bool takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns, ps);
+    }
+};
+
+class Nsstally : public tally {
+    // cf. Diestel p. 187
+    // note it doesn't check the case of overlapping sets
+public:
+    Nsstally( mrecords* recin ) : tally( recin, "Nsst", "Number of X-Y edges (X,Y disjoint sets)")
+    {
+        valms p1;
+        p1.t = mtset;
+        valms p2;
+        p2.t = mtset;
+        nps.push_back(std::pair{"setA",p1});
+        nps.push_back(std::pair{"setB",p2});
+        bindnamedparams();
+    }
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+//        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
+            auto s1 = ps[0].seti->getitrpos();
+            auto s2 = ps[1].seti->getitrpos();
+            int res = 0;
+
+            bool* vertices = (bool*)malloc(g->dim * sizeof(bool));
+            memset (vertices, false, g->dim * sizeof(bool));
+            while (!s2->ended())
+                vertices[s2->getnext().v.iv] = true;
+
+            while (!s1->ended())
+            {
+                vertextype v1 = s1->getnext().v.iv;
+                for (int i = 0; i < g->dim; ++i) {
+                    if (vertices[i])
+                        res += g->adjacencymatrix[v1*g->dim + i] ? 1 : 0;
+                }
+            }
+            delete s1;
+            delete s2;
+            return res;
+//        }
+//        std::cout << "Wrong number or types of parameters passed to Nsst\n";
+//        return false;
+    }
+
+    int takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns, ps);
+    }
+};
+
+// following code around chromatic numbers found online
+
+// Function to check if it's safe to color a vertex with a
+// given color
+inline bool isSafe(int v, const std::vector<std::vector<int> >& graph,
+            const std::vector<int>& color, int c)
+{
+    for (int neighbor : graph[v]) {
+        if (color[neighbor] == c) {
+            return false; // If any adjacent vertex has the
+            // same color, it's not safe
         }
+    }
+    return true;
+}
+
+// Backtracking function to find a valid coloring
+inline bool graphColoringUtil(int v,
+                    const std::vector<std::vector<int> >& graph,
+                    std::vector<int>& color, int m)
+{
+    if (v == graph.size()) {
+        return true; // All vertices are colored, a solution
+        // is found
+    }
+
+    for (int c = 1; c <= m; ++c) {
+        if (isSafe(v, graph, color, c)) {
+            color[v] = c;
+
+            // Recur for the next vertices
+            if (graphColoringUtil(v + 1, graph, color, m)) {
+                return true;
+            }
+
+            // Backtrack
+            color[v] = 0;
+        }
+    }
+
+    return false; // No solution found for this coloring
+}
+
+// Main function to find chromatic number
+inline int graphColoring(const std::vector<std::vector<int> >& graph, int m)
+{
+    int n = graph.size();
+    std::vector<int> color(n, 0);
+
+    if (!graphColoringUtil(0, graph, color, m)) {
+        // std::cout << "No feasible solution exists";
         return 0;
     }
 
+    // Print the solution
+    // std::cout << "Vertex colors: ";
+    // for (int c : color) {
+        // std::cout << c << " ";
+    // }
+    // std::cout << std::endl;
+
+    // Count unique colors to determine chromatic number
+    std::unordered_set<int> uniqueColors(color.begin(),
+                                    color.end());
+    return uniqueColors.size();
+}
+
+inline std::vector<int> graphColoringtuple(const std::vector<std::vector<int> >& graph, int m)
+{
+    int n = graph.size();
+    std::vector<int> color(n, 0);
+
+    if (!graphColoringUtil(0, graph, color, m)) {
+        // std::cout << "No feasible coloring solution exists";
+        return {};
+    }
+
+    // Print the solution
+    // std::cout << "Vertex colors: ";
+    // for (int c : color) {
+        // std::cout << c << " ";
+    // }
+    // std::cout << std::endl;
+
+    // Count unique colors to determine chromatic number
+    std::unordered_set<int> uniqueColors(color.begin(),
+                                    color.end());
+    return color;
+}
+
+inline std::vector<std::vector<int>> convertadjacencymatrix( neighborstype* ns )
+{
+    std::vector<std::vector<int>> out;
+    out.resize(ns->dim);
+    for (int n = 0; n < ns->dim; ++n)
+    {
+        std::vector<int> neighbors {};
+        for (int i = 0; i < ns->degrees[n]; ++i)
+        {
+            neighbors.push_back( ns->neighborslist[n*ns->dim + i]);
+        }
+        out[n] = neighbors;
+    }
+    // for (auto a : out)
+    // {
+        // for (auto b : a)
+            // std::cout << b << " ";
+        // std::cout << "\n";
+    // }
+    // std::cout << std::endl;
+
+    return out;
+}
+
+class Chitally : public tally
+{
+public:
+    Chitally( mrecords* recin ) : tally( recin, "Chit", "Chromatic number of graph using back-tracking algorithm") {}
+    int takemeas( neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chit\n";
+//        }
+        graphtype* g = ns->g;
+        std::vector<std::vector<int> > graph = convertadjacencymatrix(ns);
+        int c = g->dim == 0 ? 0 : 1;
+        while (!graphColoring(graph,c) && c < g->dim)
+            ++c;
+        // auto res = graphColoring(convertadjacencymatrix(ns), g->dim);
+        return c;
+    }
+    int takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class Chituple : public set
+{
+public:
+    Chituple( mrecords* recin ) : set( recin, "Chip", "Coloring of a graph using back-tracking algorithm") {}
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chip\n";
+//        }
+        graphtype* g = ns->g;
+        std::vector<std::vector<int> > graph = convertadjacencymatrix(ns);
+        int c = 1;
+        while (!graphColoring(graph,c) && c < g->dim)
+            ++c;
+        auto color = graphColoringtuple(convertadjacencymatrix(ns), c);
+        std::vector<int> tot;
+        tot.resize(color.size());
+        int i = 0;
+        for (auto c : color )
+        {
+//            valms v;
+//            v.t = mtdiscrete;
+//            v.v.iv = c;
+            tot[i++] = c;
+        }
+        auto res = new setitrtuple<int>(tot);
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+// also sourced on the internet geeksforgeeks.org
+
+// Function to find the chromatic number using the greedy
+// coloring algorithm
+inline int greedyColoring(const std::vector<std::vector<int> >& graph)
+{
+    int n = graph.size();
+    std::vector<int> colors(n, -1);
+
+    for (int v = 0; v < n; ++v) {
+        std::unordered_set<int> usedColors;
+
+        // Check neighbors and mark their colors as used
+        for (int neighbor : graph[v]) {
+            if (colors[neighbor] != -1) {
+                usedColors.insert(colors[neighbor]);
+            }
+        }
+
+        // Find the smallest available color
+        for (int color = 1;; ++color) {
+            if (usedColors.find(color)
+                == usedColors.end()) {
+                colors[v] = color;
+                break;
+                }
+        }
+    }
+
+    // Find the maximum color used (chromatic number)
+    int chromaticNumber
+        = *std::max_element(colors.begin(), colors.end());
+    return chromaticNumber;
+}
+
+inline std::vector<int> greedyColoringtuple(const std::vector<std::vector<int> >& graph)
+{
+    int n = graph.size();
+    std::vector<int> colors(n, -1);
+
+    for (int v = 0; v < n; ++v) {
+        std::unordered_set<int> usedColors;
+
+        // Check neighbors and mark their colors as used
+        for (int neighbor : graph[v]) {
+            if (colors[neighbor] != -1) {
+                usedColors.insert(colors[neighbor]);
+            }
+        }
+
+        // Find the smallest available color
+        for (int color = 1;; ++color) {
+            if (usedColors.find(color)
+                == usedColors.end()) {
+                colors[v] = color;
+                break;
+                }
+        }
+    }
+
+    // Find the maximum color used (chromatic number)
+    int chromaticNumber
+        = *max_element(colors.begin(), colors.end()) + 1;
+    return colors;
+}
+
+
+class Chigreedytally : public tally
+{
+public:
+    Chigreedytally( mrecords* recin ) : tally( recin, "Chigreedyt", "Chromatic number of graph using greedy algorithm") {}
+    int takemeas(neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chigreedyt\n";
+//        }
+        graphtype* g = ns->g;
+        auto res = greedyColoring(convertadjacencymatrix(ns));
+        return res;
+    }
+    int takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class Chigreedytuple : public set
+{
+public:
+    Chigreedytuple( mrecords* recin ) : set( recin, "Chigreedyp", "Coloring of a graph using greedy algorithm") {}
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+//        if (ps.size() != 0)
+//        {
+//            std::cout << "Wrong number of parameters to Chigreedyp\n";
+//        }
+        graphtype* g = ns->g;
+        auto color = greedyColoringtuple(convertadjacencymatrix(ns));
+        std::vector<int> tot;
+        tot.resize(color.size());
+        int i = 0;
+        for (auto c : color )
+        {
+            // valms v;
+            // v.t = mtdiscrete;
+            // v.v.iv = c;
+            tot[i++] = c;
+        }
+        auto res = new setitrtuple<int>(tot);
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class Chiprimetally : public tally
+{
+public:
+    Chiprimetally( mrecords* recin ) : tally( recin, "Chiprimet", "Edge chromatic number of graph using back-tracking algorithm") {}
+    int takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        auto gedge = edgegraph(ns);
+        auto nsedge = neighborstype(gedge);
+        nsedge.computeneighborslist();
+        std::vector<std::vector<int>> graph = convertadjacencymatrix(&nsedge);
+        int c = nsedge.dim == 0 ? 0 : 1;
+        while (!graphColoring(graph,c) && c < nsedge.dim)
+            ++c;
+        // auto res = graphColoring(convertadjacencymatrix(ns), g->dim);
+        delete gedge;
+        return c;
+    }
+    int takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class Chiprimegreedytally : public tally
+{
+public:
+    Chiprimegreedytally( mrecords* recin ) : tally( recin, "Chiprimegreedyt", "Edge chromatic number of graph using greedy algorithm") {}
+    int takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        auto gedge = edgegraph(ns);
+        auto nsedge = neighborstype(gedge);
+        nsedge.computeneighborslist();
+        std::vector<std::vector<int>> graph = convertadjacencymatrix(&nsedge);
+        auto res = greedyColoring(graph);
+        delete gedge;
+        return res;
+    }
+    int takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class Separatescrit : public crit
+// Diestel p. --
+// FORALL (v1 IN A, FORALL (v2 IN B, FORALL (p IN Pathss(v1,v2), p CAP X != Nulls)))
+{
+public:
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        auto itrA = ps[0].seti->getitrpos();
+        auto itrB = ps[1].seti->getitrpos();
+        auto itrC = ps[2].seti->getitrpos();
+        bool* C = (bool*)malloc(g->dim * sizeof(bool));
+        memset (C, false, g->dim * sizeof(bool));
+        while (!itrC->ended())
+            C[itrC->getnext().v.iv] = true;;
+        delete itrC;
+        bool res = true;
+        while (!itrA->ended() && res)
+        {
+            vertextype v1 = itrA->getnext().v.iv;
+            while (!itrB->ended() && res)
+            {
+                vertextype v2 = itrB->getnext().v.iv;
+                std::vector<std::vector<vertextype>> out {};
+                pathsbetweentuples( g, ns, v1, v2, out );
+                for (auto p : out)
+                {
+                    bool found = false;
+                    for (auto v : p)
+                    {
+                        found = found || C[v];
+                        if (found)
+                            break;
+                    }
+                    res = res && found;
+                    if (!res)
+                        break;
+                }
+            }
+            if (res)
+                itrB->reset();
+        }
+        delete C;
+        delete itrA;
+        delete itrB; // C is deleted above
+        return res;
+    }
+
+    bool takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    Separatescrit( mrecords* recin ) : crit( recin, "Separatesc", "Sets A and B separated by set X")
+    {
+        valms v1;
+        v1.t = mtset;
+        nps.push_back(std::pair{"A",v1});
+        valms v2;
+        v2.t = mtset;
+        nps.push_back(std::pair{"B",v2});
+        valms v3;
+        v3.t = mtset;
+        nps.push_back(std::pair{"X",v3});
+        bindnamedparams();
+    }
+};
+
+class connvsscrit : public crit
+{
+    public:
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        auto itrA = ps[0].seti->getitrpos();
+        auto itrB = ps[1].seti->getitrpos();
+        bool res = false;
+        while (!itrA->ended() && !res)
+        {
+            vertextype v1 = itrA->getnext().v.iv;
+            while (!itrB->ended() && !res)
+            {
+                vertextype v2 = itrB->getnext().v.iv;
+                res = res || pathsbetweenmin( g, ns, v1, v2, 1);
+
+            }
+            if (!res)
+                itrB->reset();
+        }
+        delete itrA;
+        delete itrB;
+        return res;
+    }
+    bool takemeas( const int idx, const params& ps) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns, ps);
+    }
+    connvsscrit( mrecords* recin ) : crit( recin, "connvssc", "Something in set A has a path to set B")
+    {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"A",v});
+        nps.push_back(std::pair{"B",v});
+        bindnamedparams();
+    }
+};
+
+
+class connvcrit : public crit
+{
+public:
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        return pathsbetweenmin( g, ns, ps[0].v.iv, ps[1].v.iv, 1);
+    }
+    bool takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    connvcrit( mrecords* recin ) : crit( recin, "connvc", "exists at least one path from a to b")
+    {
+        valms v;
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        bindnamedparams();
+    }
+};
+
+class connvscrit : public crit
+{
+public:
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        auto vitr = ps[0].seti->getitrpos();
+        auto edgeitr = ps[1].seti->getitrpos();
+        bool* vertices = (bool*)malloc(g->dim * sizeof(bool));
+        memset (vertices, false, g->dim * sizeof(bool));
+        while (!vitr->ended())
+            vertices[vitr->getnext().v.iv] = true;
+        graphtype* gsub = new graphtype(g->dim);
+        memset (gsub->adjacencymatrix, false, g->dim * g->dim * sizeof(bool));
+        while (!edgeitr->ended())
+        {
+            valms e = edgeitr->getnext();
+            auto eitr = e.seti->getitrpos();
+            vertextype v1 = eitr->getnext().v.iv;
+            vertextype v2 = eitr->getnext().v.iv;
+            delete eitr;
+            if (vertices[v1] && vertices[v2]) // ... or (different functionality) add "&& g->adjacencymatrix[v1*g->dim + v2]"
+            {
+                gsub->adjacencymatrix[v1 * g->dim + v2] = true;
+                gsub->adjacencymatrix[v2 * g->dim + v1] = true;
+            }
+        }
+        delete vitr;
+        delete edgeitr;
+        auto nssub = new neighborstype(gsub);
+        nssub->computeneighborslist();
+        bool res = connectedsubsetcount(gsub,nssub,vertices,2) <= 1;
+        delete vertices;
+        delete gsub;
+        delete nssub;
+        return res;
+    }
+    bool takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    connvscrit( mrecords* recin ) : crit( recin, "connvsc", "Set is connected using given edges")
+    {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"vertexset",v});
+        nps.push_back(std::pair{"edgeset",v});
+        bindnamedparams();
+    }
 };

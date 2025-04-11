@@ -18,6 +18,11 @@ public:
     std::vector<graphoutcome<int>*> intitems {};
     std::vector<graphoutcome<bool>*> boolitems {};
     std::vector<graphoutcome<double>*> doubleitems {};
+    std::vector<graphoutcome<setitr*>*> setitems {};
+    std::vector<graphoutcome<setitr*>*> tupleitems {};
+    std::vector<graphoutcome<std::string*>*> stringitems {};
+    std::vector<graphoutcome<neighborstype*>*> graphitems {};
+
 
     graphitem() : abstractgraphitem() {
         classname = "GRAPH";
@@ -35,9 +40,24 @@ public:
         for (auto bo : boolitems) {
             delete &bo;
         }
-        for (auto fo : doubleitems) {
+        for (auto fo : doubleitems)
+        {
             delete &fo;
         }
+        for (auto so : setitems) {
+            delete &so;
+        }
+        for (auto to : tupleitems) {
+            delete &to;
+        }
+        for (auto ro : stringitems) {
+            delete &ro;
+        }
+        for (auto go : graphitems) {
+            delete &go;
+        }
+
+
     }
 
 };
@@ -100,17 +120,6 @@ public:
     isomorphismsoutcome(const graphitem* gi2in, const graphitem* giin, const int newvalue) : graphoutcome<int>(giin,newvalue), gi2{gi2in} {}
 };
 
-/*
-template<typename Tc>
-class abstractcriterionoutcome : public graphoutcome<Tc> {
-public:
-    abstractcriterion<Tc>* cr;
-    abstractcriterionoutcome(abstractcriterion<Tc>* crin, const graphitem* giin, Tc newcvalue)
-        : graphoutcome<Tc>(giin,newcvalue),cr{crin} {}
-    std::string name() override {return cr->shortname(); // "_abstractcriterion";
-    std::string longname() override {return cr->name;}
-};*/
-
 template<typename Tm>
 class abstractmeasureoutcome : public graphoutcome<Tm> {
     std::string _shortname;
@@ -133,31 +142,53 @@ public:
     std::string longname() override {return _name;}
 };
 
-
-/*
-class embedscriterionoutcome : public abstractcriterionoutcome<bool> {
+template<typename Tm>
+class setoutcome : public graphoutcome<Tm> {
+    std::string _shortname;
+    std::string _name;
 public:
-    const graphitem* flaggi;
-    embedscriterionoutcome( const graphitem* flaggiin, const embedscriterion* crin, const graphitem* giin, bool newvalue )
-        : abstractcriterionoutcome<bool>(crin, giin, newvalue), flaggi{flaggiin} {}
-    std::string flagname() {
-        if (flaggi != nullptr)
-            return flaggi->name;
-        else
-            return "<unnamed>"; // should never occur
-    }
-    std::string name() override {
-        return "embeds"+flagname();
-    }
-    std::string longname() override {
-        return "embeds " + flagname() + " criterion";
-    }
+    setoutcome(pameas<Tm>* pamin, const graphitem* giin, setitr* newvaluein )
+        : graphoutcome<Tm>(giin, newvaluein),_shortname{pamin->shortname}, _name{pamin->name} {}
+    std::string name() override {return _shortname;}
+    std::string longname() override {return _name;}
 };
-*/
 
+template<typename Tm>
+class tupleoutcome : public graphoutcome<Tm> {
+    std::string _shortname;
+    std::string _name;
+public:
+    tupleoutcome(pameas<Tm>* pamin, const graphitem* giin, setitr* newvaluein )
+        : graphoutcome<Tm>(giin, newvaluein),_shortname{pamin->shortname}, _name{pamin->name} {}
+    std::string name() override {return _shortname;}
+    std::string longname() override {return _name;}
+};
+
+template<typename Tm>
+class stringoutcome : public graphoutcome<Tm> {
+    std::string _shortname;
+    std::string _name;
+public:
+    stringoutcome(pameas<Tm>* pamin, const graphitem* giin, std::string* newvaluein )
+        : graphoutcome<Tm>(giin, newvaluein),_shortname{pamin->shortname}, _name{pamin->name} {}
+    std::string name() override {return _shortname;}
+    std::string longname() override {return _name;}
+};
+
+template<typename Tm>
+class gmeasoutcome : public graphoutcome<Tm> {
+    std::string _shortname;
+    std::string _name;
+public:
+    gmeasoutcome(pameas<Tm>* pamin, const graphitem* giin, neighborstype* newvaluein )
+        : graphoutcome<Tm>(giin, newvaluein),_shortname{pamin->shortname}, _name{pamin->name} {}
+    std::string name() override {return _shortname;}
+    std::string longname() override {return _name;}
+};
 
 inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
-    if (!intitems.empty() || !boolitems.empty() || !doubleitems.empty() || name != "") {
+    if (!intitems.empty() || !boolitems.empty() || !doubleitems.empty() || !setitems.empty()
+        || !tupleitems.empty() || name != "") {
         os << "/* #name=" << name << "\n";
         for (int i = 0; i < intitems.size(); ++i) {
             os << " * ";
@@ -170,6 +201,16 @@ inline void graphitem::osmachinereadablegraph( std::ostream &os ) {
         for (int i = 0; i < doubleitems.size(); ++i) {
             os << " * ";
             doubleitems[i]->osdata(os);
+        }
+        for (int i = 0; i < setitems.size(); ++i)
+        {
+            os << " * ";
+            setitems[i]->osdata(os);
+        }
+        for (int i = 0; i < tupleitems.size(); ++i)
+        {
+            os << " * ";
+            tupleitems[i]->osdata(os);
         }
         os << " */\n";
     }
