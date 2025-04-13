@@ -12,7 +12,7 @@
 
 #include <complex>
 #include <cstring>
-#include <oneapi/tbb/detail/_task.h>
+//#include <oneapi/tbb/detail/_task.h>
 
 #include "feature.h"
 #include "graphs.h"
@@ -46,6 +46,7 @@ inline bool is_string(const std::string& s)
     if (s.size() >= 2)
         if (s[0] == '"' && s[s.size()-1] == '"')
             return true;
+    return false;
 }
 
 inline bool evalsentence( logicalsentence ls, std::vector<bool> literals ) {
