@@ -13,8 +13,8 @@
 #include "asymp.h"
 #include "graphs.h"
 
-#define RANDOMRANGE 10000
-#define RANDOMRANGEdouble 10000.0
+#define RANDOMRANGE 10000000
+#define RANDOMRANGEdouble 10000000.0
 
 using weightstype = std::vector<double>;
 
@@ -189,13 +189,19 @@ public:
         //name = "random graph with edgecnt probability " + std::to_string(_edgecnt);
         //_edgecnt = edgecnt;
 
+        if (edgecnt >= RANDOMRANGE) {
+            std::cout << "r1: edgecnt must be less than RANDOMRANGE, = " << RANDOMRANGE << "\n";
+            exit(1);
+        }
+
         std::random_device dev;
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist10000(0,RANDOMRANGE-1);
+        const unsigned int upperlimit = RANDOMRANGE*double(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0);
         for (int n = 0; n < gptr->dim; ++n) {
             gptr->adjacencymatrix[n*gptr->dim + n] = 0;
             for (int i = n+1; i < gptr->dim; ++i) {
-                gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < (RANDOMRANGE*double(edgecnt)/(gptr->dim * (gptr->dim-1)/2.0)));
+                gptr->adjacencymatrix[n*gptr->dim + i] = (dist10000(rng) < upperlimit);
                 gptr->adjacencymatrix[i*gptr->dim + n] = gptr->adjacencymatrix[n*gptr->dim+i];
             }
         }
@@ -210,9 +216,9 @@ public:
     void randomgraph( graphtype*  gptr, double edgecnt ) {
         //_edgecnt = (int)edgecnt;
         //name = "random graph with edgecnt == " + std::to_string(edgecnt);
-        if (edgecnt > (gptr->dim * gptr->dim / 2)) {
-            std::cout << "Too many edges requested of randomgraph\n";
-            return;
+        if ((edgecnt > (gptr->dim * gptr->dim / 2)) || (edgecnt >= RANDOMRANGEdouble)) {
+            std::cout << "Too many edges requested of randomgraph: either above graph's size or above RANDOMRANGEdouble, = " << RANDOMRANGEdouble << "\n";
+            exit(1);
         }
         std::random_device dev;
         std::mt19937 rng(dev());
