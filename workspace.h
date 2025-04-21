@@ -450,6 +450,7 @@ public:
 
         if (verbositycmdlineincludes(verbositylevel,VERBOSE_CRITVERBOSE))
         {
+            os << "Criterion " << ac.name << " results graph-by-graph:\n";
             for (int i = 0; i < this->res.size(); ++i )
             {
                 os << this->gnames[i] << ": " << this->meas[i] << "\n";
@@ -554,6 +555,7 @@ public:
 
         if (verbositycmdlineincludes(verbositylevel,VERBOSE_MEASVERBOSE))
         {
+            os << "Measure " << this->pam.name << " results graph-by-graph:\n";
             for (int i = 0; i < this->res.size(); ++i )
             {
                 if (this->parentbool[i])
@@ -586,6 +588,78 @@ public:
     }
 };
 
+template<typename Tc>
+class checkbooleanitem : public chkmeasaitem<Tc> {
+public:
+    checkbooleanitem(pameas<Tc>& pamin ) : chkmeasaitem<Tc>(pamin) {
+        this->classname = "APPLYBOOLEANCRITERION";
+        this->verbositylevel = VERBOSE_APPLYCRITERION;
+    }
+    void freemem() override {
+
+        // graph items are already freed by graphitem freemem
+
+/*        for (int n = 0; n < fpslist.size(); ++n) {
+            if (fpslist[n]->nscnt > 0) {
+                freefps(fpslist[n]->ns,fpslist[n]->nscnt);
+                free(fpslist[n]->ns);
+            }
+        }*/ // no: the format has changed to a vector of pointers
+
+    }
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem(os,verbositylevel);
+
+
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_CRITVERBOSE))
+        {
+            os << "Criterion " << this->pam.getname() << " results graph-by-graph:\n";
+            for (int i = 0; i < this->res.size(); ++i )
+            {
+                if (this->parentbool[i])
+                {
+                     os << this->gnames[i] << ": " << this->meas[i] << "\n";
+                   // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                }
+            }
+        }
+
+
+
+        std::vector<std::pair<Tc,int>> count = {};
+        count.clear();
+        count.resize(0);
+        //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
+            os << "Criterion "<< this->pam.getname() << " results of graphs:\n";
+        for (int n = 0; n < this->res.size(); ++n) {
+            if (!this->parentbool[n])
+                continue;
+            if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL)) {
+                os << this->gnames[n]<<", number " << n+1 << " out of " << this->parentboolcnt;
+                os << ": " << this->res[n] << "\n";
+            }
+            bool found = false;
+            for (int i = 0; !found && (i < count.size()); ++i)
+            {
+                if (count[i].first == this->res[n]) {
+                    count[i].second += 1;
+                    found = true;
+                }
+            }
+            if (!found)
+                count.push_back({this->res[n],1});
+        }
+
+        for (int i = 0; i < count.size(); ++i)
+            os << "result == " << count[i].first << ": " << count[i].second << " out of " << this->parentboolcnt << ", " << (double)count[i].second / (double)this->parentboolcnt << "\n";
+
+
+        return true;
+    }
+};
 
 
 
@@ -620,6 +694,7 @@ public:
 
         if (verbositycmdlineincludes(verbositylevel,VERBOSE_TALLYVERBOSE))
         {
+            os << "Tally " << this->pam.getname() << " results graph-by-graph:\n";
             for (int i = 0; i < this->res.size(); ++i )
             {
                 if (this->parentbool[i])
@@ -639,7 +714,7 @@ public:
         count.clear();
         count.resize(0);
         //if (!verbositycmdlineincludes(verbositylevel,VERBOSE_MINIMAL))
-            os << "Criterion "<< this->pam.getname() << " results of graphs:\n";
+            os << "Tally "<< this->pam.getname() << " results of graphs:\n";
         for (int n = 0; n < this->res.size(); ++n) {
             if (!this->parentbool[n])
                 continue;

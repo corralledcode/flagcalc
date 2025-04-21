@@ -3708,7 +3708,7 @@ public:
             switch (iter[k]->t)
             {
             case mtbool: {
-                auto wi = new checkdiscreteitem<bool>(*alookup.a.cs);
+                auto wi = new checkbooleanitem(*alookup.a.cs);
                 populatewi<bool>(_ws, wi, threadbool,  items, eqclass,
                     glist, nslist, todo );
                 for (int m = 0; m < eqclass.size(); ++m)

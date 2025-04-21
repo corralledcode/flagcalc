@@ -13,8 +13,6 @@
 #include "asymp.h"
 #include "graphs.h"
 
-#define RANDOMRANGE 10000
-#define RANDOMRANGEdouble 10000.0
 
 class pairwisedisjointrandomgraph {
 public:
