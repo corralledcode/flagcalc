@@ -1,0 +1,36 @@
+/* Tetrahedron */
+
+abcd
+END END
+
+
+/* Octahedron */
+
+abc def abd bce caf
+END END
+
+
+/* Cube */
+
+-abcda -efghe
+ae bf cg dh
+END END
+
+
+/* Dodecahedron */
+
+-abcdea
+-afghb -bhijc -cjkld -dlmne -enofa
+-pqrstp
+op gq ir ks mt
+END END
+
+/* Icosahedron */
+
+abc
+abd bcf cah
+ahi aid bde bef cfg cgh
+jkl
+dij dej efk fgk ghl hil
+END END
+
