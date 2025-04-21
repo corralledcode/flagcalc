@@ -38,6 +38,9 @@
 #define VERBOSE_PAIRWISEDISJOINT "pd"
 #define VERBOSE_APPLYSET "set"
 #define VERBOSE_SETVERBOSE "allsets"
+#define VERBOSE_CRITVERBOSE "allcrit"
+#define VERBOSE_MEASVERBOSE "allmeas"
+#define VERBOSE_TALLYVERBOSE "alltally"
 
 #define VERBOSE_APPLYSTRING "strmeas"
 #define VERBOSE_APPLYGRAPH "measg"
@@ -444,6 +447,20 @@ public:
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
+
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_CRITVERBOSE))
+        {
+            for (int i = 0; i < this->res.size(); ++i )
+            {
+                os << this->gnames[i] << ": " << this->meas[i] << "\n";
+                // min = this->meas[i] < min ? this->meas[i] : min;
+                // sum += this->meas[i];
+                // max = this->meas[i] > max ? this->meas[i] : max;
+                // cnt++;
+            }
+        }
+
+
         std::vector<std::pair<Tc,int>> count = {};
         count.clear();
         count.resize(0);
@@ -535,6 +552,22 @@ public:
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
 
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_MEASVERBOSE))
+        {
+            for (int i = 0; i < this->res.size(); ++i )
+            {
+                if (this->parentbool[i])
+                {
+                    os << this->gnames[i] << ": " << this->meas[i] << "\n";
+                    // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                }
+            }
+        }
+
+
         Tm sum = 0;
         int cnt = 0;
         double max = - std::numeric_limits<double>::infinity();
@@ -583,6 +616,25 @@ public:
     }
     bool ositem( std::ostream& os, std::string verbositylevel ) override {
         workitems::ositem(os,verbositylevel);
+
+
+        if (verbositycmdlineincludes(verbositylevel,VERBOSE_TALLYVERBOSE))
+        {
+            for (int i = 0; i < this->res.size(); ++i )
+            {
+                if (this->parentbool[i])
+                {
+                     os << this->gnames[i] << ": " << this->meas[i] << "\n";
+                   // min = this->meas[i] < min ? this->meas[i] : min;
+                    // sum += this->meas[i];
+                    // max = this->meas[i] > max ? this->meas[i] : max;
+                    // cnt++;
+                }
+            }
+        }
+
+
+
         std::vector<std::pair<Tc,int>> count = {};
         count.clear();
         count.resize(0);
