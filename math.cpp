@@ -269,6 +269,24 @@ inline std::vector<std::string> parsecomponents( std::string str) {
         }
 
         if (ch == '[') {
+            if (partial != "") {
+                components.push_back(partial);
+                partial = "";
+            }
+            components.push_back("[");
+            continue;
+        }
+        if (ch == ']') {
+            if (partial != "") {
+                components.push_back(partial);
+                partial = "";
+            }
+            components.push_back("]");
+            continue;
+        }
+
+        /*
+        if (ch == '[') {
             bracketed = true;
         }
         if (ch == ']') {
@@ -277,7 +295,7 @@ inline std::vector<std::string> parsecomponents( std::string str) {
             components.push_back(partial);
             partial = "";
             continue;
-        }
+        }*/
         if (ch == '<')
         {
             if (partial == "<")
@@ -438,61 +456,8 @@ inline logicalsentence parsesentence( const std::string sentence ) {
 
 class formulaclass;
 
-/*
-inline const std::unordered_map<formulaoperator,bool> booleanops {
-                            {formulaoperator::foqexists,false},
-                            {formulaoperator::foqforall,false},
-                            {formulaoperator::foqsum,false},
-                            {formulaoperator::foqproduct,false},
-                            {formulaoperator::foqmin,false},
-                            {formulaoperator::foqmax,false},
-                            {formulaoperator::foqrange,false},
-                            {formulaoperator::foqaverage,false},
-                            {formulaoperator::foqtally,false},
-                            {formulaoperator::foqcount,false},
-                            {formulaoperator::foqset,false},
-                            {formulaoperator::foqdupeset,false},
-                            {formulaoperator::foqunion,false},
-                            {formulaoperator::foqdupeunion,false},
-                            {formulaoperator::foqintersection,false},
-                            {formulaoperator::fonaming,false},
-                            {formulaoperator::foexponent,false},
-                            {formulaoperator::fotimes,false},
-                            {formulaoperator::fodivide,false},
-                            {formulaoperator::fomodulus,false},
-                            {formulaoperator::foplus,false},
-                            {formulaoperator::fominus,false},
-                            {formulaoperator::foe,false},
-                            {formulaoperator::folte,false},
-                            {formulaoperator::folt,false},
-                            {formulaoperator::fogte,false},
-                            {formulaoperator::fogt,false},
-                            {formulaoperator::fone,false},
-                            {formulaoperator::foelt,false},
-                            {formulaoperator::fonot,false},
-                            {formulaoperator::foand,true},
-                            {formulaoperator::foor,true},
-                            {formulaoperator::foxor,true},
-                            {formulaoperator::foimplies,true},
-                            {formulaoperator::foiff,true},
-                            {formulaoperator::foif,true},
-                            {formulaoperator::founion,false},
-                            {formulaoperator::fodupeunion,false},
-                            {formulaoperator::fointersection,false},
-                            {formulaoperator::foswitch,false},
-                            {formulaoperator::focases, false},
-                            {formulaoperator::foin, false},
-                            {formulaoperator::foas, false},
-                            {formulaoperator::fotrue, false},
-                            {formulaoperator::fofalse, false},
-                            {formulaoperator::foconstant, false},
-                            {formulaoperator::fofunction, false},
-                            {formulaoperator::foliteral, false},
-                            {formulaoperator::foderef, false},
-                            {formulaoperator::fovariable, false}};
-*/
 
-/* actually faster than using the above map */
+
 inline bool booleanops( const formulaoperator fo)
 {
     return (fo == formulaoperator::foand
@@ -502,60 +467,7 @@ inline bool booleanops( const formulaoperator fo)
             || fo == formulaoperator::foxor
             || fo == formulaoperator::foif);
 }
-/*
-inline const std::unordered_map<formulaoperator,bool> equalityops {
-                            {formulaoperator::foqexists,false},
-                            {formulaoperator::foqforall,false},
-                            {formulaoperator::foqsum,false},
-                            {formulaoperator::foqproduct,false},
-                            {formulaoperator::foqmin,false},
-                            {formulaoperator::foqmax,false},
-                            {formulaoperator::foqrange,false},
-                            {formulaoperator::foqaverage,false},
-                            {formulaoperator::foqtally,false},
-                            {formulaoperator::foqcount,false},
-                            {formulaoperator::foqset,false},
-                            {formulaoperator::foqdupeset,false},
-                            {formulaoperator::foqunion,false},
-                            {formulaoperator::foqdupeunion,false},
-                            {formulaoperator::foqintersection,false},
-                            {formulaoperator::fonaming,false},
-                            {formulaoperator::foexponent,false},
-                            {formulaoperator::fotimes,false},
-                            {formulaoperator::fodivide,false},
-                            {formulaoperator::fomodulus,false},
-                            {formulaoperator::foplus,false},
-                            {formulaoperator::fominus,false},
-                            {formulaoperator::foe,true},
-                            {formulaoperator::folte,true},
-                            {formulaoperator::folt,true},
-                            {formulaoperator::fogte,true},
-                            {formulaoperator::fogt,true},
-                            {formulaoperator::fone,true},
-                            {formulaoperator::foelt,false},
-                            {formulaoperator::fonot,false},
-                            {formulaoperator::foand,false},
-                            {formulaoperator::foor,false},
-                            {formulaoperator::foxor,false},
-                            {formulaoperator::foimplies,false},
-                            {formulaoperator::foiff,false},
-                            {formulaoperator::foif,false},
-                            {formulaoperator::founion,false},
-                            {formulaoperator::fodupeunion,false},
-                            {formulaoperator::fointersection,false},
-                            {formulaoperator::foswitch,false},
-                            {formulaoperator::focases, false},
-                            {formulaoperator::foin, false},
-                            {formulaoperator::foas, false},
-                            {formulaoperator::fotrue, false},
-                            {formulaoperator::fofalse, false},
-                            {formulaoperator::foconstant, false},
-                            {formulaoperator::fofunction, false},
-                            {formulaoperator::foliteral, false},
-                            {formulaoperator::foderef, false},
-                            {formulaoperator::fovariable, false}};
-*/
-/* actually faster than using the above map */
+
 inline bool equalityops( const formulaoperator fo)
 {
     return (fo == formulaoperator::folte
@@ -568,60 +480,6 @@ inline bool equalityops( const formulaoperator fo)
             || fo == formulaoperator::fodisjoint);
 }
 
-/*
-inline const std::unordered_map<formulaoperator,bool> quantifierops {
-                            {formulaoperator::foqexists,true},
-                            {formulaoperator::foqforall,true},
-                            {formulaoperator::foqsum,true},
-                            {formulaoperator::foqproduct,true},
-                            {formulaoperator::foqmin,true},
-                            {formulaoperator::foqmax,true},
-                            {formulaoperator::foqrange,true},
-                            {formulaoperator::foqaverage,true},
-                            {formulaoperator::foqtally,true},
-                            {formulaoperator::foqcount,true},
-                            {formulaoperator::foqset,true},
-                            {formulaoperator::foqdupeset,true},
-                            {formulaoperator::foqunion,true},
-                            {formulaoperator::foqdupeunion,true},
-                            {formulaoperator::foqintersection,true},
-                            {formulaoperator::fonaming,false},
-                            {formulaoperator::foexponent,false},
-                            {formulaoperator::fotimes,false},
-                            {formulaoperator::fodivide,false},
-                            {formulaoperator::fomodulus,false},
-                            {formulaoperator::foplus,false},
-                            {formulaoperator::fominus,false},
-                            {formulaoperator::foe,false},
-                            {formulaoperator::folte,false},
-                            {formulaoperator::folt,false},
-                            {formulaoperator::fogte,false},
-                            {formulaoperator::fogt,false},
-                            {formulaoperator::fone,false},
-                            {formulaoperator::foelt,false},
-                            {formulaoperator::fonot,false},
-                            {formulaoperator::foand,false},
-                            {formulaoperator::foor,false},
-                            {formulaoperator::foxor,false},
-                            {formulaoperator::foimplies,false},
-                            {formulaoperator::foiff,false},
-                            {formulaoperator::foif,false},
-                            {formulaoperator::founion,false},
-                            {formulaoperator::fodupeunion,false},
-                            {formulaoperator::fointersection,false},
-                            {formulaoperator::foswitch,false},
-                            {formulaoperator::focases, false},
-                            {formulaoperator::foin, false},
-                            {formulaoperator::foas, false},
-                            {formulaoperator::fotrue, false},
-                            {formulaoperator::fofalse, false},
-                            {formulaoperator::foconstant, false},
-                            {formulaoperator::fofunction, false},
-                            {formulaoperator::foliteral, false},
-                            {formulaoperator::foderef, false},
-                            {formulaoperator::fovariable, false}};
-
-/* actually faster that using the above map */
 inline bool quantifierops( const formulaoperator fo )
 {
     return (fo == formulaoperator::foqforall
@@ -635,6 +493,7 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqtally
             || fo == formulaoperator::foqcount
             || fo == formulaoperator::foqset
+            || fo == formulaoperator::foqtuple
             || fo == formulaoperator::foqdupeset
             || fo == formulaoperator::foqunion
             || fo == formulaoperator::foqdupeunion
@@ -1045,6 +904,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
             double (*fn)(std::vector<double>&) = fc.v.fns.fn;
 
             std::vector<double> ps;
+            ps.clear();
             for (auto f : fc.v.fns.ps) {
                 auto a = evalinternal(*f,context);
                 valms r;
@@ -1077,7 +937,8 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
             switch (idx.t) {
             case mtbool: idx.v.iv = idx.v.bv ? 1 : 0;
                 break;
-            case mtcontinuous: idx.v.iv = (int)idx.v.dv;
+            case mtcontinuous:
+                    idx.v.iv = (int)(idx.v.dv);
                 break;
             }
             if (!pos->ended())
@@ -1474,8 +1335,9 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
             }
 
         case (formulaoperator::foqdupeset):
+        case (formulaoperator::foqtuple):
             {
-                res.t = mtset;
+                res.t = fc.fo == formulaoperator::foqdupeset ? mtset : mttuple;
                 std::vector<valms> tot {};
                 while (!supersetpos->ended())
                 {
@@ -1601,6 +1463,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                 res.seti = new setitrmodeone(tot);
                 break;
             }
+
 
         case (formulaoperator::foqunion):
         case (formulaoperator::foqintersection):
@@ -2103,7 +1966,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         if (is_operator(tok) && !is_quantifier(tok) && !is_naming(tok)) {
             if (operatorstack.size() >= 1) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
-                while ((ostok != "(") && (ostok != "{") && ostok != "<<" && (operatorprecedence(ostok,tok) >= 0)) {
+                while ((ostok != "(") && (ostok != "{") && ostok != "<<" && ostok != "[" && (operatorprecedence(ostok,tok) >= 0)) {
                     output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     if (operatorstack.size() >= 1)
@@ -2126,14 +1989,14 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         werevalues[werevalues.size() - 1] = true;
                     werevalues.push_back(false);
                 } else
-                {
-                    output.insert(output.begin(),tok);
-                    if (!werevalues.empty())
                     {
-                        werevalues.resize(werevalues.size() - 1);
-                        werevalues.push_back(true);
+                        output.insert(output.begin(),tok);
+                        if (!werevalues.empty())
+                        {
+                            werevalues.resize(werevalues.size() - 1);
+                            werevalues.push_back(true);
+                        }
                     }
-                }
             else
             {
                 output.insert(output.begin(),tok);
@@ -2149,20 +2012,20 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         if (tok == ",") {
             if (!operatorstack.empty()) {
                 std::string ostok = operatorstack[operatorstack.size()-1];
-                while (ostok != "(" && ostok != "{" && ostok != "<<") {
+                while (ostok != "(" && ostok != "{" && ostok != "<<" && ostok != "[") {
                     output.insert(output.begin(),ostok);
                     operatorstack.resize(operatorstack.size()-1);
                     if (!operatorstack.empty())
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Mismatched parentheses, curley braces, or tuple brackets\n";
+                        std::cout << "Mismatched parentheses, curley braces, brackets, or tuple brackets\n";
                         break;
                     }
                 }
             } else
             {
-                std::cout << "Mismatched parentheses, curley braces, or tuple brackets (loc 2)\n";
+                std::cout << "Mismatched parentheses, curley braces, brackets, or tuple brackets (loc 2)\n";
             }
             if (!werevalues.empty())
             {
@@ -2191,6 +2054,16 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                 werevalues.push_back(false);
             } else
                 werevalues.push_back(false);
+            continue;
+        }
+
+        if (tok == "[") {
+            operatorstack.push_back(SHUNTINGYARDDEREFKEY);
+            operatorstack.push_back(tok);
+            argcount.push_back(0);
+            if (!werevalues.empty())
+                werevalues[werevalues.size() - 1] = true;
+            werevalues.push_back(false);
             continue;
         }
 
@@ -2273,7 +2146,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             }
             if (n < components.size())
             {
-                if (components[n] == "(") {
+                if (components[n] == "[") {
                     // operatorstack.push_back(tok);
                     operatorstack.push_back(SHUNTINGYARDDEREFKEY);
                     argcount.push_back(0);
@@ -2370,7 +2243,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             }
             if (n < components.size())
             {
-                if (components[n] == "(") {
+                if (components[n] == "[") {
                     // operatorstack.push_back(tok);
                     operatorstack.push_back(SHUNTINGYARDDEREFKEY);
                     argcount.push_back(0);
@@ -2393,6 +2266,93 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             continue;
         }
 
+        if (tok == "]")
+        {
+            std::string ostok;
+            if (operatorstack.size() >= 1)
+            {
+                ostok = operatorstack[operatorstack.size()-1];
+                while (ostok != "[") {
+                    if (operatorstack.empty()) {
+                        std::cout << "Error mismatched brackets (loc 1)\n";
+                        return output;
+                    }
+                    output.insert(output.begin(),ostok);
+                    operatorstack.resize(operatorstack.size()-1);
+                    if (operatorstack.size() >= 1)
+                        ostok = operatorstack[operatorstack.size()-1];
+                    else
+                    {
+                        std::cout << "Error mismatched brackets (loc 2)\n";
+                        return output;
+                    }
+                }
+            }
+            if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "[") {
+                std::cout << "Error mismatched tuple brackets (loc 3)\n";
+                return output;
+            }
+            operatorstack.resize(operatorstack.size()-1);
+
+
+            if (operatorstack.size() > 0) {
+                ostok = operatorstack[operatorstack.size()-1];
+
+                // if (is_operator(ostok) && !is_quantifier(ostok)) {
+                    // continue;
+                // } else
+                    if (ostok == SHUNTINGYARDDEREFKEY)
+                    // if (is_function(ostok) || is_quantifier(ostok) || is_literal(ostok) || is_variable(ostok))
+                    {
+                        int a = 0;
+                        if (!argcount.empty())
+                        {
+                            a = argcount[argcount.size()-1];
+                            argcount.resize(argcount.size()-1);
+                        } else
+                            std::cout << "Mismatched argcount\n";
+                        bool w = false;
+                        if (!werevalues.empty())
+                        {
+                            w = werevalues[werevalues.size()-1];
+                            werevalues.resize(werevalues.size()-1);
+                        } else
+                            std::cout << "Mismatched werevalues (right bracket branch)\n";
+                        if (w == true)
+                            ++a;
+
+                        output.insert(output.begin(), std::to_string(a));
+                        output.insert(output.begin(), SHUNTINGYARDVARIABLEARGUMENTKEY);
+                        output.insert(output.begin(),ostok);
+                        operatorstack.resize(operatorstack.size()-1);
+                        // continue;
+                    } else
+                    {
+                        std::cout << "Error in brackets deref\n";
+                    }
+
+            }
+            if (n < components.size())
+            {
+                if (components[n] == "[") {
+                    // operatorstack.push_back(tok);
+                    operatorstack.push_back(SHUNTINGYARDDEREFKEY);
+                    argcount.push_back(0);
+                    if (!werevalues.empty())
+                        werevalues[werevalues.size() - 1] = true;
+                    werevalues.push_back(false);
+                    // operatorstack.push_back("(");
+                    // ++n;
+                    continue;
+                }
+            }
+
+
+            continue;
+        }
+
+
+
 
         if (tok == ")") {
 
@@ -2400,9 +2360,9 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             if (!operatorstack.empty())
             {
                 ostok = operatorstack[operatorstack.size()-1];
-                while (ostok != "(") {
+                while ((tok == ")" && ostok != "(") || (tok == "]" && ostok != "[")) {
                     if (operatorstack.empty()) {
-                        std::cout << "Error mismatched parentheses (loc 1)\n";
+                        std::cout << "Error mismatched parentheses or brackets (loc 1)\n";
                         return output;
                     }
                     output.insert(output.begin(),ostok);
@@ -2411,7 +2371,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Error mismatched parentheses (loc 2)\n";
+                        std::cout << "Error mismatched parentheses or brackets (loc 2)\n";
                         for (auto o : output)
                             std::cout << o << ", ";
                         std::cout << "\n";
@@ -2419,8 +2379,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     }
                 }
             }
-            if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
-                std::cout << "Error mismatched parentheses (loc 3)\n";
+            if (operatorstack.empty() || (tok == ")" && operatorstack[operatorstack.size()-1] != "(") || (tok == "]" && operatorstack[operatorstack.size()-1] != "[")) {
+                std::cout << "Error mismatched parentheses or brackets (loc 3)\n";
                 for (auto t : operatorstack) {
                     std::cout << t << ", ";
                 }
@@ -2456,7 +2416,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                             w = werevalues[werevalues.size()-1];
                             werevalues.resize(werevalues.size()-1);
                         } else
-                            std::cout << "Mismatched werevalues (right paren branch)\n";
+                            std::cout << "Mismatched werevalues (right paren/bracket branch)\n";
                         if (w == true)
                             ++a;
 
@@ -2470,7 +2430,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
 
             if (n < components.size())
             {
-                if (components[n] == "(") {
+                if (components[n] == "[" && tok == "]") {
                     // operatorstack.push_back(tok);
                     operatorstack.push_back(SHUNTINGYARDDEREFKEY);
                     argcount.push_back(0);
@@ -2490,8 +2450,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
 
     while (operatorstack.size()> 0) {
         std::string ostok = operatorstack[operatorstack.size()-1];
-        if (ostok == "(" || ostok == "{" || ostok == "<<") {
-            std::cout << "Error mismatched parentheses, curley braces, or tuple brackets: " << ostok << ", (loc 4)\n";
+        if (ostok == "(" || ostok == "{" || ostok == "<<" || ostok == "[") {
+            std::cout << "Error mismatched parentheses, curley braces, brackets, or tuple brackets: " << ostok << ", (loc 4)\n";
 
             for (auto t : operatorstack) {
                 std::cout << t << ", ";

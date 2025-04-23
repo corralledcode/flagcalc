@@ -135,8 +135,7 @@ inline double modfn(std::vector<double>& din) {
         std::cout << "Wrong number of arguments passed to modfn\n";
         return 0;
     } */
-    return (int)din[0] % (int)din[1];
-
+    return (int)(din[0]) % (int)(din[1]);
 }
 
 inline double stirlingfn(std::vector<double>& din)

@@ -2156,6 +2156,45 @@ public:
     }
 };
 
+class Automset : public set
+{
+    setitrmodeone* res {};
+public:
+
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto morphisms = enumisomorphisms(ns,ns);
+        std::vector<valms> totalitylocal {};
+        for (auto p : *morphisms) {
+            std::vector<valms> tot {};
+            tot.resize(p.size());
+            for (auto i : p)
+                tot[i.first].v.iv = i.second;
+            valms v;
+            v.t = mttuple;
+            v.seti = new setitrmodeone(tot);
+            totalitylocal.push_back(v);
+        }
+        res = new setitrmodeone(totalitylocal);
+        return res;
+    }
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Automset( mrecords* recin ) : set(recin,"Automs", "Set of automorphism tuples") {}
+    ~Automset()
+    {
+        if (res)
+            for (auto v : res->totality)
+                delete v.seti;
+    }
+};
+
+
 class Stuple : public set
 {
 public:
@@ -2197,13 +2236,6 @@ public:
     {
         auto ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
-
-        auto g = (*rec->gptrs)[idx];
-        auto itr = new setitrint(g->dim-1);
-        memset(itr->elts,true,(itr->maxint+1)*sizeof(bool));
-        itr->computed = false;
-        itr->reset();
-        return itr;
     }
     Vset( mrecords* recin ) : set(recin,"V", "Graph vertices set") {}
 };

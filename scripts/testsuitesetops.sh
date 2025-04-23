@@ -6,7 +6,7 @@ $PTH/flagcalc -r 10 10 1 -a e="V SETMINUS {2,4,8,11,15}" all -v set allsets i=mi
 $PTH/flagcalc -r 10 10 1 -a e="V SETXOR {2,4,8,13}" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 4 4 1 -a e="Ps(V)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 5 5 1 -a isp=storedprocedures.dat e="PairSet(V)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -r 5 5 1 -a s="FORALL (s IN Ps(V), Edgess(s) == SET (e IN E, e(0) ELT s AND e(1) ELT s, e))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 1 -a s="FORALL (s IN Ps(V), Edgess(s) == SET (e IN E, e[0] ELT s AND e[1] ELT s, e))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 5 5 1 -a s="FORALL (n IN dimm, FORALL (s IN Sizedsubset(V,n), st(s) == n))" all
 $PTH/flagcalc -r 5 5 1 -a s="<<0,2,4>> <= <<0,2,4,5,1>>" all -v i=minimal3.cfg
 $PTH/flagcalc -r 5 5 1 -a s="<<0,2,4>> <= <<0,2,3,4,5,1>>" all -v i=minimal3.cfg
@@ -54,11 +54,4 @@ $PTH/flagcalc -r 8 14 10 -a s="FORALL (p IN Setpartition(V), st(p) == 2, FORALL 
 
 # The claim below is that paths between any intermediate point between two vertices can be pasted together to recover the original paths
 $PTH/flagcalc -r 6 7.5 10 -a s="FORALL (v IN V, FORALL (u IN V, u != v, EXISTS (w IN V, Pathss(u,v) >= BIGCUP (x IN Pathss(u,w), SET (y IN Pathss(w,v),  Sp(x,st(x)-1) CUP y)))))" all -v i=minimal3.cfg
-
-
-
-
-
-
-
 

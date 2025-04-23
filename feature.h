@@ -1842,6 +1842,7 @@ public:
         auto (InducedSubgraphss) = setfactory<InducedSubgraphsset>;
         auto (Componentss) = setfactory<Componentsset>;
         auto (Edgess) = setfactory<Edgesset>;
+        auto (Automs) = setfactory<Automset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1861,6 +1862,7 @@ public:
         stsfactory.push_back(InducedSubgraphss);
         stsfactory.push_back(Componentss);
         stsfactory.push_back(Edgess);
+        stsfactory.push_back(Automs);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -2679,19 +2681,21 @@ protected:
 
     std::string bindformula( std::string sin, const measuretype mtin, const int roundin )
     {
-        const std::regex r {"\\[([[:alpha:]]\\w*)\\]"};
-        std::vector<std::string> out {};
+
+        /* const std::regex r {"\\[([[:alpha:]]\\w*)\\]"};
+        std::vector<std::string> out {}; */
         std::vector<std::string> out2 {};
 
-        for (std::sregex_iterator p(sin.begin(),sin.end(),r); p!=std::sregex_iterator{}; ++p)
+        /* for (std::sregex_iterator p(sin.begin(),sin.end(),r); p!=std::sregex_iterator{}; ++p)
         {
             out.push_back((*p)[1]);
-        }
+        } */
         const std::regex r2 {"([[:alpha:]]\\w*)"};
         for (std::sregex_iterator p( sin.begin(), sin.end(),r2); p != std::sregex_iterator{}; ++p)
         {
             out2.push_back((*p)[1]);
         }
+        /*
         for (int i = 0; i < out.size(); ++i)
         {
             if (is_number(out[i]))
@@ -2715,7 +2719,7 @@ protected:
             sin = std::regex_replace(sin,reg,replacement);
         }
         // std::cout << sin << "\n";
-
+*/
         for (int i = 0; i < out2.size(); ++i)
         {
             if (is_operator(out2[i]))

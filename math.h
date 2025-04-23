@@ -47,7 +47,7 @@ enum class formulaoperator
     folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt,
     foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
-    foqtally, foqcount, foqset, foqdupeset, foqunion, foqdupeunion, foqintersection,
+    foqtally, foqcount, foqset, foqdupeset, foqtuple, foqunion, foqdupeunion, foqintersection,
     foswitch, focases, foin, fonaming, foas,
     fosetminus, fosetxor, fomeet, fodisjoint};
 
@@ -76,6 +76,7 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"!=",formulaoperator::fone},
         {"SET",formulaoperator::foqset},
         {"SETD",formulaoperator::foqdupeset},
+           {"TUPLE", formulaoperator::foqtuple},
         {"FORALL",formulaoperator::foqforall},
         {"EXISTS",formulaoperator::foqexists},
         {"CUP",formulaoperator::founion},
@@ -2302,6 +2303,7 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foqcount,0},
                             {formulaoperator::foqset,0},
                             {formulaoperator::foqdupeset,0},
+                                {formulaoperator::foqtuple,0},
                             {formulaoperator::foqunion,0},
                             {formulaoperator::foqdupeunion,0},
                             {formulaoperator::foqintersection,0},

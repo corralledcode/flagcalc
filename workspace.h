@@ -809,7 +809,8 @@ class checksetitem : public chkmeasaitem<Tm> {
 public:
     checksetitem( pameas<Tm>& pamin ) : chkmeasaitem<Tm>(pamin) {
         this->classname = "APPLYSETCRITERION";
-        this->verbositylevel = VERBOSE_APPLYSET;
+        // this->verbositylevel = VERBOSE_APPLYSET;
+        this->verbositylevel = VERBOSE_APPLYCRITERION;
     }
     void freemem() override {
 
@@ -877,7 +878,8 @@ class checktupleitem : public chkmeasaitem<Tm> {
 public:
     checktupleitem( pameas<Tm>& pamin ) : chkmeasaitem<Tm>(pamin) {
         this->classname = "APPLYTUPLECRITERION";
-        this->verbositylevel = VERBOSE_APPLYSET;
+        // this->verbositylevel = VERBOSE_APPLYSET;
+        this->verbositylevel = VERBOSE_APPLYCRITERION;
     }
     void freemem() override {
 
