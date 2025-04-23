@@ -1,4 +1,4 @@
 
-[treec] != FORALL (FORALL ([pct](x,y) == 1,y IN V),x IN V)
+treec != FORALL (FORALL (pct(x,y) == 1,y IN V),x IN V)
 
 END

@@ -1,12 +1,12 @@
 
-EXISTS (left IN [Ps]([V]), [st](left) > 0 AND
-    EXISTS (right IN [Ps]([V]), [st](right) > 0 AND
+EXISTS (left IN Ps(V), st(left) > 0 AND
+    EXISTS (right IN Ps(V), st(right) > 0 AND
         FORALL (r IN right,
             FORALL (l IN left,
                 FORALL (r2 IN right,
                     FORALL (l2 IN left,
-                        [ac](l,r) AND NOT [ac](l,l2) AND NOT [ac](r,r2)
-                        AND [st](left) + [st](right) == [dimm]
+                        ac(l,r) AND NOT ac(l,l2) AND NOT ac(r,r2)
+                        AND st(left) + st(right) == dimm
                     )
                 )
             )
