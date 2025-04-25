@@ -25,6 +25,7 @@
 #define SHUNTINGYARDINLINESETKEY "_INLINESET7903822160"
 #define SHUNTINGYARDINLINETUPLEKEY "_INLINETUPLE7903822160"
 #define SHUNTINGYARDDEREFKEY "_DEREF7903822160"
+#define SHUNTINGYARDVARIABLEARGUMENTENDKEY "_VARIABLEARGUMENTENDKEY7903822160"
 
 inline bool is_number(const std::string& s)
 {
@@ -993,48 +994,6 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
 //                    match = match || mtareequal(v,itm);
                     match = match || mtareequalgenerous(itm,v);
 
-/*
-                    if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
-                        match = match || itm == v;
-                    else
-                        if (v.t == mtset)
-                        {
-                            if (itm.t == mtset || itm.t == mttuple)  // for now, auto convert a tuple to a set here
-                            {
-                                auto itmpos = itm.seti->getitrpos();
-                                auto pospos = v.seti->getitrpos();
-                                match = match || (setsubseteq(itmpos, pospos) && setsubseteq(pospos, itmpos));
-                                delete itmpos;
-                                delete pospos;
-                            } else
-                            {
-                                std::cout << "Mismatched types in call to ELT\n";
-                                exit(1);
-                            }
-                        } else
-                            if (v.t == mttuple)
-                            {
-                                if (itm.t == mttuple )
-                                {
-                                    auto itmpos = itm.seti->getitrpos();
-                                    auto pospos = v.seti->getitrpos();
-                                    match = match || (tupleeq(itmpos, pospos));
-                                    delete itmpos;
-                                    delete pospos;
-                                } else
-                                    if (itm.t == mtset) // for now, generously auto convert the tuple to a set
-                                    {
-                                        auto itmpos = itm.seti->getitrpos();
-                                        auto pospos = v.seti->getitrpos();
-                                        match = match || (setsubseteq(itmpos, pospos) && setsubseteq(pospos, itmpos));
-                                        delete itmpos;
-                                        delete pospos;
-                                    } else
-                                    {
-                                        std::cout << "Mismatched types in call to ELT\n";
-                                        exit(1);
-                                    }
-                            }*/
                 }
                 res.v.bv = match;
 
@@ -1078,12 +1037,12 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                         delete abstracttupleops;
                         break;}
                     default:
-                        std::cout << "Non-matching types in call to CUP, CAP, CUPD, SETMINUS, or SETXOR\n";
+                        std::cout << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
                         res.seti = nullptr;
                         break;
                 }
             else {
-                std::cout << "Non-matching types in call to CUP, CAP, CUPD, SETMINUS, or SETXOR\n";
+                std::cout << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
                 res.seti = nullptr;
             }
 /*            if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
@@ -1129,75 +1088,110 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
 
     if (fc.fo == formulaoperator::fonaming)
     {
-        valms v = evalinternal(*fc.fcright->boundvariable->superset, context);
-        context.push_back({fc.fcright->boundvariable->name,v});
+        for (int i = 0; i < fc.fcright->boundvariables.size(); ++i) {
+            valms v = evalinternal(*fc.fcright->boundvariables[i]->alias, context);
+            context.push_back({fc.fcright->boundvariables[i]->name,v});
+        }
         res = evalinternal(*fc.fcright, context);
-        context.resize(context.size()-1);
+        context.resize(context.size()-fc.fcright->boundvariables.size());
         return res;
     }
 
+
     // if (quantifierops.find(fc.fo)->second) {
     if (quantifierops(fc.fo)) {
-        res.v.bv = true;
+        std::vector<itrpos*> supersetpos {};
+        std::vector<int> i {};
+        std::vector<setitrint*> ss {};
+        std::vector<valms> vv {};
+        int originalcontextsize = context.size();
+        auto criterion = fc.fcright->criterion;
+        bool vacuouslytrue = false;
+        std::vector<bool> needtodeletevseti {};
+        needtodeletevseti.resize(fc.fcright->boundvariables.size());
+        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
+            valms v;
+            if (fc.fcright->boundvariables[j]->superset) {
+                v = evalinternal(*fc.fcright->boundvariables[j]->superset, context);
+                if (v.t == mtdiscrete || v.t == mtcontinuous)
+                {
+                    if (v.t == mtcontinuous)
+                        v.v.iv = (int)v.v.dv;
+                    if (v.v.iv >= 0)
+                        v.seti = new setitrint(v.v.iv-1);
+                    else
+                        v.seti = new setitrint(-1);
+                    v.t = mtset;
+                    needtodeletevseti[j] = true;
+                } else {
+                    if (v.t == mtbool)
+                        std::cout << "Cannot use mtbool for quantifier superset\n";
+                    needtodeletevseti[j] = false;
+                }
 
-        res.t = mtbool;
-        valms v = evalinternal(*fc.fcright->boundvariable->superset, context);
-        // valms v = evalinternal(*fc.v.qc->superset);
-        bool needtodeletevseti = false;
-        if (v.t == mtdiscrete || v.t == mtcontinuous)
-        {
-            if (v.t == mtcontinuous)
-                v.v.iv = (int)v.v.dv;
-            if (v.v.iv >= 0)
-                v.seti = new setitrint(v.v.iv-1);
-            else
-                v.seti = new setitrint(-1);
-            v.t = mtset;
-            needtodeletevseti = true;
-        } else
-        if (v.t == mtbool)
-            std::cout << "Cannot use mtbool for quantifier superset\n";
-        auto criterion = fc.v.qc->criterion;
-        int maxint = -1;
-        auto supersetpos = v.seti->getitrpos();
-        setitrint* ss = nullptr;
-        context.push_back({fc.fcright->boundvariable->name,fc.fcright->boundvariable->qs});
-        const int i = context.size()-1;
-        supersetpos->reset();
-        switch (fc.fo)
-        {
-        case (formulaoperator::foqexists):
-        case (formulaoperator::foqforall):
+                supersetpos.push_back(v.seti->getitrpos());
+                ss.push_back(nullptr);
+                context.push_back({fc.fcright->boundvariables[j]->name,fc.fcright->boundvariables[j]->qs});
+                i.push_back( context.size()-1 );
+                supersetpos[supersetpos.size()-1]->reset();
+                if (supersetpos[supersetpos.size()-1]->ended()) {
+                    vacuouslytrue = true;
+                } else
+                    context[i[i.size()-1]].second = supersetpos[supersetpos.size()-1]->getnext();
+                vv.push_back(v);
+            }
+        }
+        std::vector<int> a {};
+        a.resize(fc.fcright->boundvariables.size());
+        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
+            a[j] = -1;
+            if (fc.fcright->boundvariables[j]->alias) {
+                valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
+                context.push_back({fc.fcright->boundvariables[j]->name,v});
+                a[j] = context.size()-1;
+            }
+        }
+        switch (fc.fo) {
+            case (formulaoperator::foqexists):
+            case (formulaoperator::foqforall):
             {
-                while (!supersetpos->ended() && res.v.bv) {
-                    context[i].second = supersetpos->getnext();
+                int k = 0;
+                res.v.bv = true;
+                res.t = mtbool;
+                if (vacuouslytrue)
+                    k = supersetpos.size();
+                while (k < supersetpos.size() && res.v.bv) {
+
                     valms c;
+                    c.v.bv = true;
                     if (criterion) {
                         c = evalinternal(*criterion, context);
-                        if (c.t == mtbool && !c.v.bv)
-                            continue;
                         if (c.t != mtbool) {
                             std::cout << "Quantifier criterion requires boolean value\n";
                             exit(1);
                         }
                     }
-                    if (fc.fo == formulaoperator::foqexists)
-                        res.v.bv = res.v.bv && !evalinternal(*fc.fcright, context).v.bv;
-                    else //if (fc.fo == formulaoperator::foqforall)
-                        res.v.bv = res.v.bv && evalinternal(*fc.fcright, context).v.bv;
+                    if (c.v.bv)
+                        if (fc.fo == formulaoperator::foqexists)
+                            res.v.bv = res.v.bv && !evalinternal(*fc.fcright, context).v.bv;
+                        else
+                            res.v.bv = res.v.bv && evalinternal(*fc.fcright, context).v.bv;
                     // std::cout << fc.v.qc->qs.v.iv << " iv \n";
+
+                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
                 }
                 if (fc.fo == formulaoperator::foqexists)
                     res.v.bv = !res.v.bv;
                 break;
             }
-        case (formulaoperator::foqsum):
-        case (formulaoperator::foqproduct):
-        case (formulaoperator::foqmin):
-        case (formulaoperator::foqmax):
-        case (formulaoperator::foqrange):
-        case (formulaoperator::foqaverage):
-            {
+            case (formulaoperator::foqsum):
+            case (formulaoperator::foqproduct):
+            case (formulaoperator::foqmin):
+            case (formulaoperator::foqmax):
+            case (formulaoperator::foqrange):
+            case (formulaoperator::foqaverage): {
+                int k = 0;
                 res.t = mtcontinuous;
                 double min = std::numeric_limits<double>::infinity();
                 double max = -std::numeric_limits<double>::infinity();
@@ -1206,60 +1200,61 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                     res.v.dv = 0;
                 else if (fc.fo == formulaoperator::foqproduct)
                     res.v.dv = 1;;
-                while (!supersetpos->ended() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+
+                if (vacuouslytrue)
+                    k = supersetpos.size();
+                while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
                 {
-                    context[i].second = supersetpos->getnext();
                     valms c;
+                    c.t = mtbool;
+                    c.v.bv = true;
                     if (criterion) {
                         c = evalinternal(*criterion, context);
-                        if (c.t == mtbool && !c.v.bv)
-                            continue;
                         if (c.t != mtbool) {
                             std::cout << "Quantifier criterion requires boolean value\n";
                             exit(1);
                         }
                     }
-                    count++;  // this is not foqcount but rather to be used to find average
-                    // std::cout << "variables t == " << variables[i]->qs.t << ", name == " << fc.v.qc->name <<  std::endl;
-                    // std::cout << "supersetpos ended == " << supersetpos->ended() << std::endl;
-                    // for (fc.v.qc->qs.v.iv = 0; (res.v.bv) && fc.v.qc->qs.v.iv < supersetsize; ++fc.v.qc->qs.v.iv) {
-                    auto v = evalinternal(*fc.fcright, context);
-                    if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
-                        // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
-                            // || fc.fo == formulaoperator::foqaverage)
+                    if (c.v.bv)
                     {
-                        if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
-                            || fc.fo == formulaoperator::foqmax)
-                            res.v.dv = 0;
-                        switch (v.t)
+                        count++;  // this is not foqcount but rather to be used to find average
+                        auto v = evalinternal(*fc.fcright, context);
+                        if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
+                            // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
+                                // || fc.fo == formulaoperator::foqaverage)
                         {
-                        case mtcontinuous:
-                            res.v.dv += v.v.dv;
-                            break;
-                        case mtdiscrete:
-                            res.v.dv += v.v.iv;
-                            break;
-                        case mtbool:
-                            res.v.dv += v.v.bv ? 1 : 0;
-                            break;
-                        case mtset:
-                            res.v.dv += v.seti->getsize();
-                            break;
-                        }
+                            if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
+                                || fc.fo == formulaoperator::foqmax)
+                                res.v.dv = 0;
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv += v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv += v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv += v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv += v.seti->getsize();
+                                break;
+                            }
 
-                        if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
-                            || fc.fo == formulaoperator::foqmax)
-                        {
-                            if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
-                                min = res.v.dv;
-                            else
-                                min = res.v.dv < min ? res.v.dv : min;
-                            if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
-                                max = res.v.dv;
-                            else
-                                max = res.v.dv > max ? res.v.dv : max;
-                        }
-                    } else
+                            if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
+                                || fc.fo == formulaoperator::foqmax)
+                            {
+                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                    min = res.v.dv;
+                                else
+                                    min = res.v.dv < min ? res.v.dv : min;
+                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                    max = res.v.dv;
+                                else
+                                    max = res.v.dv > max ? res.v.dv : max;
+                            }
+                        } else
                         {
                             switch (v.t)
                             {
@@ -1280,247 +1275,179 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                             // std::cout << fc.v.qc->qs.v.iv << " iv \n";
                         }
 
+                    }
+                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
                 }
                 switch (fc.fo)
                 {
-                case(formulaoperator::foqrange):
-                    res.v.dv = max - min;
-                    break;
-                case (formulaoperator::foqaverage):
-                    res.v.dv = count > 0 ? res.v.dv / count : 0;
-                    break;
-                case (formulaoperator::foqmax):
-                    res.v.dv = max;
-                    break;
-                case (formulaoperator::foqmin):
-                    res.v.dv = min;
-                    break;
+                    case(formulaoperator::foqrange):
+                        res.v.dv = max - min;
+                        break;
+                    case (formulaoperator::foqaverage):
+                        res.v.dv = count > 0 ? res.v.dv / count : 0;
+                        break;
+                    case (formulaoperator::foqmax):
+                        res.v.dv = max;
+                        break;
+                    case (formulaoperator::foqmin):
+                        res.v.dv = min;
+                        break;
                 }
                 break;
             }
-        case formulaoperator::foqtally:
-        case formulaoperator::foqcount:
+            case formulaoperator::foqtally:
+            case formulaoperator::foqcount:
             {
+                int k = 0;
                 res.t = mtdiscrete;
                 res.v.iv = 0;
-                while (!supersetpos->ended())
-                {
-                    context[i].second = supersetpos->getnext();
-                    // variables[i]->qs = supersetpos->getnext();
+
+                if (vacuouslytrue)
+                    k = supersetpos.size();
+                while (k < supersetpos.size()) {
                     valms c;
+                    c.v.bv = true;
                     if (criterion) {
                         c = evalinternal(*criterion, context);
-                        if (c.t == mtbool && !c.v.bv)
-                            continue;
                         if (c.t != mtbool) {
                             std::cout << "Quantifier criterion requires boolean value\n";
                             exit(1);
                         }
                     }
-                    auto v = evalinternal(*fc.fcright, context);
-                    if (fc.fo == formulaoperator::foqcount) {
-                        valms tmp;
-                        mtconverttobool(v,tmp.v.bv);
-                        if (tmp.v.bv)
-                            ++res.v.iv;
-                    } else  if (fc.fo == formulaoperator::foqtally)
+                    if (c.v.bv)
                     {
-                        valms tmp;
-                        mtconverttodiscrete(v, tmp.v.iv);
-                        res.v.iv += tmp.v.iv;
+                        auto v = evalinternal(*fc.fcright, context);
+                        if (fc.fo == formulaoperator::foqcount) {
+                            valms tmp;
+                            mtconverttobool(v,tmp.v.bv);
+                            if (tmp.v.bv)
+                                ++res.v.iv;
+                        } else  if (fc.fo == formulaoperator::foqtally)
+                        {
+                            valms tmp;
+                            mtconverttodiscrete(v, tmp.v.iv);
+                            res.v.iv += tmp.v.iv;
+                        }
                     }
+                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
 
                 }
                 break;
             }
 
-        case (formulaoperator::foqdupeset):
-        case (formulaoperator::foqtuple):
+            case (formulaoperator::foqdupeset):
+            case (formulaoperator::foqtuple):
             {
+                int k = 0;
                 res.t = fc.fo == formulaoperator::foqdupeset ? mtset : mttuple;
                 std::vector<valms> tot {};
-                while (!supersetpos->ended())
+                if (vacuouslytrue)
+                    k = supersetpos.size();
+                while (k < supersetpos.size())
                 {
-                    context[i].second = supersetpos->getnext();
-                    // variables[i]->qs = supersetpos->getnext();
                     valms c;
+                    c.v.bv = true;
                     if (criterion) {
                         c = evalinternal(*criterion, context);
-                        if (c.t == mtbool && !c.v.bv)
-                            continue;
                         if (c.t != mtbool) {
                             std::cout << "Quantifier criterion requires boolean value\n";
                             exit(1);
                         }
                     }
-                    auto v = evalinternal(*fc.fcright, context);
-                    tot.push_back(v);
+                    if (c.v.bv)
+                    {
+                        auto v = evalinternal(*fc.fcright, context);
+                        tot.push_back(v);
+                    }
+                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
                 }
                 res.seti = new setitrmodeone(tot);
                 break;
             }
-        case (formulaoperator::foqset):
+            case (formulaoperator::foqset):
             {
+                int k = 0;
                 res.t = mtset;
                 std::vector<valms> tot {};
-                while (!supersetpos->ended())
+                if (vacuouslytrue)
+                    k = supersetpos.size();
+                while (k < supersetpos.size())
                 {
-                    context[i].second = supersetpos->getnext();
-                    // variables[i]->qs = supersetpos->getnext();
                     valms c;
+                    c.v.bv = true;
                     if (criterion) {
                         c = evalinternal(*criterion, context);
-                        if (c.t == mtbool && !c.v.bv)
-                            continue;
                         if (c.t != mtbool) {
                             std::cout << "Quantifier criterion requires boolean value\n";
                             exit(1);
                         }
                     }
-                    auto v = evalinternal(*fc.fcright, context);
-                    bool match = false;
-                    for (int i = 0; !match && i < tot.size(); i++)
+                    if (c.v.bv)
                     {
-                        match = match || mtareequal(tot[i], v);
-
-                       /*
-                        switch (tot[i].t)
+                        auto v = evalinternal(*fc.fcright, context);
+                        bool match = false;
+                        for (int i = 0; !match && i < tot.size(); i++)
                         {
-                        case mtdiscrete:
-                            switch (v.t)
-                            {
-                        case mtdiscrete:
-                            match = match || v.v.iv == tot[i].v.iv;
-                                break;
-                        case mtbool:
-                            match = match || v.v.bv == tot[i].v.iv;
-                                break;
-                        case mtcontinuous:
-                            match = match || abs(v.v.dv - tot[i].v.iv) < ABSCUTOFF;
-                                break;
-                            }
-                            break;
-                        case mtbool:
-                            switch (v.t)
-                            {
-                        case mtdiscrete:
-                            match = (match || v.v.iv != 0) == tot[i].v.bv;
-                                break;
-                        case mtbool:
-                            match = match || v.v.bv == tot[i].v.bv;
-                                break;
-                        case mtcontinuous:
-                            match = match || ((abs(v.v.dv) >= ABSCUTOFF) == tot[i].v.bv);
-                                break;
-                            }
-                            break;
-                        case mtcontinuous:
-                            switch (v.t)
-                            {
-                        case mtdiscrete:
-                            match = match || abs(v.v.iv - tot[i].v.dv) < ABSCUTOFF;
-                                break;
-                        case mtbool:
-                            match = match || (v.v.bv == (abs(tot[i].v.bv) >= ABSCUTOFF));
-                                break;
-                        case mtcontinuous:
-                            match = (match || abs(v.v.dv - tot[i].v.dv) < ABSCUTOFF);
-                                break;
-                            }
-                            break;
-                        case mtset:
-                            if (v.t == mtset || v.t == mttuple)
-                            {
-                                auto itr1 = tot[i].seti->getitrpos();
-                                auto itr2 = v.seti->getitrpos();
-                                match = match || (setsubseteq(itr1,itr2) && setsubseteq(itr2,itr1));
-                                delete itr1;
-                                delete itr2;
-                            } else
-                            {
-                                std::cout << "Mismatched to type set in SET\n";
-                            }
-                            break;
-                        case mttuple:
-                            if (v.t == mttuple || v.t == mtset)
-                            {
-                                auto itr1 = tot[i].seti->getitrpos();
-                                auto itr2 = v.seti->getitrpos();
-                                match = match || tupleeq(itr1,itr2);
-                                delete itr1;
-                                delete itr2;
-                            } else
-                            {
-                                std::cout << "Mismatched to type tuple in SET\n";
-                            }
-                            break;
-                        }*/
+                            match = match || mtareequal(tot[i], v);
+                        }
+                        if (!match)
+                            tot.push_back(v);
                     }
-                    if (!match)
-                        tot.push_back(v);
+                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                 }
-
                 res.seti = new setitrmodeone(tot);
                 break;
             }
 
 
-        case (formulaoperator::foqunion):
-        case (formulaoperator::foqintersection):
-        case (formulaoperator::foqdupeunion):
-            {
+            case (formulaoperator::foqunion):
+            case (formulaoperator::foqintersection):
+            case (formulaoperator::foqdupeunion): {
+                int k = 0;
                 res.t = mtset;
                 res.seti = nullptr;
                 std::vector<setitr*> composite {};
-                while (!supersetpos->ended())
+                if (vacuouslytrue)
+                    k = supersetpos.size();
+                while (k < supersetpos.size())
                 {
-                    context[i].second = supersetpos->getnext();
-                    // variables[i]->qs = supersetpos->getnext();
                     valms c;
+                    c.v.bv = true;
                     if (criterion) {
                         c = evalinternal(*criterion, context);
-                        if (c.t == mtbool && !c.v.bv)
-                            continue;
                         if (c.t != mtbool) {
                             std::cout << "Quantifier criterion requires boolean value\n";
                             exit(1);
                         }
                     }
-                    valms tempv;
-                    valms outv;
-                    tempv = evalinternal(*fc.fcright, context);
-                    mtconverttoset(tempv,outv.seti);
-                    composite.push_back(outv.seti);
+                    if (c.v.bv)
+                    {
+                        valms tempv;
+                        valms outv;
+                        tempv = evalinternal(*fc.fcright, context);
+                        mtconverttoset(tempv,outv.seti);
+                        composite.push_back(outv.seti);
+                    }
+                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                 }
 
                 auto abstractpluralsetops = getsetitrpluralops(composite);
 
                 res.seti = abstractpluralsetops->setops(fc.fo);
 
-
-/*                    switch (fc.fo)
-                    {
-                    case formulaoperator::foqunion:
-                        res.seti = res.seti ? new setitrunion( v.seti, res.seti) : v.seti;
-                        break;
-                    case formulaoperator::foqintersection:
-                        res.seti = res.seti ? new setitrintersection( v.seti, res.seti) : v.seti;
-                        break;
-                    case formulaoperator::foqdupeunion:
-                        res.seti = res.seti ? new setitrdupeunion( v.seti, res.seti) : v.seti;
-                        break;
-                    } */
-                }
                 if (!res.seti)
                     res.seti = new setitrint(-1);
                 break;
             }
-
-        delete ss;
-
-        if (needtodeletevseti)
-            delete v.seti;
-        context.resize(i);
+        }
+        for (int k = originalcontextsize; k < ss.size(); ++k) {
+            delete ss[k-originalcontextsize];
+            if (needtodeletevseti[k - originalcontextsize])
+                delete vv[k-originalcontextsize].seti;
+        }
+        context.resize(originalcontextsize);
 
         return res;
     }
@@ -1822,6 +1749,27 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
 
 }
 
+void evalmformula::quantifiermultipleadvance( const formulaclass& fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<int> &a )
+{
+    while (k < supersetpos.size() && supersetpos[k]->ended())
+        ++k;
+    if (k < supersetpos.size()) {
+        context[i[k]].second = supersetpos[k]->getnext();
+        for (int l = 0; l < k; ++l) {
+            supersetpos[l]->reset();
+            context[i[l]].second = supersetpos[l]->getnext();
+        }
+        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
+            if (a[j] >= 0) {
+                valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
+                context[a[j]].second = v;
+            }
+        }
+        k = 0;
+    }
+}
+
+
 inline valms evalmformula::eval( const formulaclass& fc, const namedparams& context )
 {
     // if (!fc.v.subgraph) {
@@ -1841,6 +1789,10 @@ inline valms evalmformula::eval( const formulaclass& fc, const namedparams& cont
     namedparams contextlocal = context;
     return evalinternal( fc, contextlocal );
 }
+
+
+
+
 
 evalformula::evalformula() {}
 
@@ -1983,6 +1935,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             if (n < components.size())
                 if (components[n] == "(")
                 {
+                    if (is_quantifier(tok) || is_naming(tok))
+                        output.insert(output.begin(),SHUNTINGYARDVARIABLEARGUMENTENDKEY);
                     operatorstack.push_back(tok);
                     argcount.push_back(0);
                     if (!werevalues.empty())
@@ -2355,14 +2309,13 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
 
 
         if (tok == ")") {
-
             std::string ostok;
             if (!operatorstack.empty())
             {
                 ostok = operatorstack[operatorstack.size()-1];
-                while ((tok == ")" && ostok != "(") || (tok == "]" && ostok != "[")) {
+                while (ostok != "(") {
                     if (operatorstack.empty()) {
-                        std::cout << "Error mismatched parentheses or brackets (loc 1)\n";
+                        std::cout << "Error mismatched parentheses (loc 1)\n";
                         return output;
                     }
                     output.insert(output.begin(),ostok);
@@ -2371,7 +2324,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Error mismatched parentheses or brackets (loc 2)\n";
+                        std::cout << "Error mismatched parentheses (loc 2)\n";
                         for (auto o : output)
                             std::cout << o << ", ";
                         std::cout << "\n";
@@ -2379,8 +2332,8 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     }
                 }
             }
-            if (operatorstack.empty() || (tok == ")" && operatorstack[operatorstack.size()-1] != "(") || (tok == "]" && operatorstack[operatorstack.size()-1] != "[")) {
-                std::cout << "Error mismatched parentheses or brackets (loc 3)\n";
+            if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
+                std::cout << "Error mismatched parentheses (loc 3)\n";
                 for (auto t : operatorstack) {
                     std::cout << t << ", ";
                 }
@@ -2416,7 +2369,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                             w = werevalues[werevalues.size()-1];
                             werevalues.resize(werevalues.size()-1);
                         } else
-                            std::cout << "Mismatched werevalues (right paren/bracket branch)\n";
+                            std::cout << "Mismatched werevalues (right paren branch)\n";
                         if (w == true)
                             ++a;
 
@@ -2525,6 +2478,7 @@ inline formulaclass* parseformulainternal(
 
         if (is_naming(tok))
         {
+            std::vector<qclass*> qcs {};
             auto qc = new qclass;
             int argcnt;
             if (pos+1 < q.size() && q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
@@ -2543,21 +2497,25 @@ inline formulaclass* parseformulainternal(
                     break;
                 }
             while (pos2+1 <= q.size() && (q[pos2] != AStok || namingcount >= 1)) {
-                namingcount += is_naming(q[pos2]) ? 1 : 0;
-                namingcount -= q[pos2] == AStok ? 1 : 0;
+                namingcount += (is_quantifier(q[pos2]) || is_naming(q[pos2])) ? 1 : 0;
+                namingcount -= q[pos2] == SHUNTINGYARDVARIABLEARGUMENTENDKEY ? 1 : 0;
                 ++pos2;
             }
-            if (pos2 >= q.size()) {
+            if (pos2 >= q.size() && namingcount == 0) {
                 std::cout << "'Naming' not containing an 'AS'\n";
                 exit(1);
             }
 
-            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
+            qc->superset = nullptr;
+            qc->alias = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
+            while (q[pos2+1] == SHUNTINGYARDVARIABLEARGUMENTENDKEY)
+                ++pos2;
             qc->name = q[++pos2];
-            qc->criterion = nullptr;
+            qcs.push_back(qc);
 
-            formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
-            fcright->boundvariable = qc;
+            formulaclass* fcright;
+            fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
+            fcright->boundvariables = qcs;
 
             // if (argcnt == 3)
             // {
@@ -2567,7 +2525,7 @@ inline formulaclass* parseformulainternal(
             formulaclass* fcleft = nullptr;
             formulaoperator o = lookupoperator(tok);
             formulavalue fv {};
-            fv.qc = qc;
+            fv.qcs = qcs;
             auto fc = fccombine(fv,fcleft,fcright,o);
 
             pos = pos2;
@@ -2578,14 +2536,14 @@ inline formulaclass* parseformulainternal(
         if (is_quantifier(tok)) {
 
 #ifdef QUANTIFIERMODE_PRECEDING
-            auto qc = new qclass;
-            qc->secondorder = false;
-            // qc->eval( q, ++pos);
+            std::vector<qclass*> qcs {};
+            // auto qc = new qclass;
+            // qc->secondorder = false;
             int argcnt;
             if (pos+1 < q.size() && q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
             {
                 argcnt = stoi(q[++pos]);
-                if (argcnt != 3 && argcnt != 2)
+                if (argcnt < 2)
                     std::cout << "Wrong number (" << argcnt << ") of arguments to a quantifier\n";
             }
             std::string INtok = "IN";
@@ -2595,36 +2553,90 @@ inline formulaclass* parseformulainternal(
                     INtok = s.first;
                     break;
                 }
+            std::string AStok = "AS";
+            for (auto s : operatorsmap)
+                if (s.second == formulaoperator::foas)
+                {
+                    AStok = s.first;
+                    break;
+                }
             int pos2 = pos+1;
+            int lastpos2 = pos2;
             int quantcount = 0;
-            while (pos2+1 <= q.size() && (q[pos2] != INtok || quantcount >= 1)) {
-                quantcount += is_quantifier(q[pos2]) ? 1 : 0;
-                quantcount -= q[pos2] == INtok ? 1 : 0;
-                ++pos2;
+            int INcount = 0;
+            while (pos2 < q.size() && q[pos2] != SHUNTINGYARDVARIABLEARGUMENTENDKEY && quantcount >= 0) {
+                while (pos2+1 <= q.size() && (q[pos2] != INtok || quantcount >= 1) && quantcount >= 0) {
+                    quantcount += (is_naming(q[pos2]) || is_quantifier(q[pos2])) ? 1 : 0;
+                    quantcount -= q[pos2] == SHUNTINGYARDVARIABLEARGUMENTENDKEY ? 1 : 0;
+                    ++pos2;
+                }
+
+                if (pos2 < q.size() && q[pos2] == INtok && quantcount == 0) {
+                    INcount++;
+                    auto qc = new qclass;
+                    qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
+                    qc->alias = nullptr;
+                    while (q[pos2+1] == SHUNTINGYARDVARIABLEARGUMENTENDKEY)
+                        ++pos2;
+                    qc->name = q[++pos2];
+                    qcs.push_back(qc);
+                    lastpos2 = pos2;
+                    pos2++;
+                }
             }
-            if (pos2 >= q.size()) {
+
+
+
+            if (pos2 >= q.size() && qcs.size() == 0) {
                 std::cout << "Quantifier not containing an 'IN'\n";
                 exit(1);
             }
-            qc->superset = parseformulainternal(q, pos2, litnumps,littypes,litnames, ps, fnptrs);
-            qc->name = q[++pos2];
-            qc->criterion = nullptr;
+
+
+            int pos3 = pos+1;
+            int lastpos3 = pos3;
+            int namingcount = 0;
+            int AScount = 0;
+
+            while (pos3 < q.size() && q[pos3] != SHUNTINGYARDVARIABLEARGUMENTENDKEY && namingcount >= 0) {
+                while (pos3+1 <= q.size() && (q[pos3] != AStok || namingcount >= 1) && namingcount >= 0) {
+                    namingcount += (is_naming(q[pos3]) || is_quantifier(q[pos3])) ? 1 : 0;
+                    namingcount -= q[pos3] == SHUNTINGYARDVARIABLEARGUMENTENDKEY ? 1 : 0;
+                    ++pos3;
+                }
+
+                if (pos3 < q.size() && q[pos3] == AStok && namingcount == 0) {
+                    AScount++;
+                    auto qc = new qclass;
+                    qc->superset = nullptr;
+                    qc->alias = parseformulainternal(q, pos3, litnumps,littypes,litnames, ps, fnptrs);
+                    while (q[pos3+1] == SHUNTINGYARDVARIABLEARGUMENTENDKEY)
+                        ++pos3;
+                    qc->name = q[++pos3];
+                    qcs.push_back(qc);
+                    lastpos3 = pos3;
+                    pos3++;
+                }
+            }
 
             formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
-            fcright->boundvariable = qc;
+            fcright->criterion = nullptr;
+            fcright->boundvariables = qcs;
 
-            if (argcnt == 3)
+            if (argcnt > (INcount + AScount + 1))
             {
-                qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  fnptrs);
+                fcright->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  fnptrs);
             }
 
             formulaclass* fcleft = nullptr;
             formulaoperator o = lookupoperator(tok);
             formulavalue fv {};
-            fv.qc = qc;
-            auto fc = fccombine(fv,fcleft,fcright,o);
+            fv.qcs = qcs;
 
-            pos = pos2;
+            auto fc = fccombine(fv,fcleft,fcright,o);
+            fc->boundvariables = qcs;
+
+            pos = pos > (lastpos2 > lastpos3 ? lastpos2 : lastpos3) ? pos : (lastpos2 > lastpos3 ? lastpos2 : lastpos3);
             return fc;
 #else
             // what follows needs to be revisited using argcnt aspect of Shunting Yard formula (variable arguments)
@@ -2861,7 +2873,7 @@ inline formulaclass* parseformulainternal(
 
 
 
-    std::cout << "Error in parsing formula \n";
+    std::cout << "Error in parsing formula\n";
     exit(1);
     auto fc = new formulaclass({},nullptr,nullptr,formulaoperator::foconstant);
     return fc;
@@ -2894,13 +2906,14 @@ inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> boun
     if (!fc)
         return false;
     if (quantifierops(fc->fo))
-    // if (quantifierops.find(fc->fo)->second)
     {
-        bound.push_back(fc->v.qc->name);
-        if (searchfcforvariable(fc->v.qc->superset,bound))
-            return true;
-        if (searchfcforvariable(fc->fcright, bound) || searchfcforvariable(fc->fcleft, bound))
-            return true;
+        for (int i = 0; i < fc->v.qcs.size(); ++i) {
+            bound.push_back(fc->v.qcs[i]->name);
+            if (searchfcforvariable(fc->v.qcs[i]->superset,bound))
+                return true;
+            if (searchfcforvariable(fc->fcright, bound) || searchfcforvariable(fc->fcleft, bound))
+                return true;
+        }
     }
     if (fc->fo == formulaoperator::fovariable)
     {

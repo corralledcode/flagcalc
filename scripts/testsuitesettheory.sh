@@ -239,6 +239,6 @@ $PTH/flagcalc -d f="-abcda -efghe ae bf cg dh" -a e="NAMING (A AS Automs, NAMING
 $PTH/flagcalc -d f="abc def abd bce caf" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), SET (h1 IN hs, SET (h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))), h2 ))))))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), SET (h1 IN hs, SET (h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))), h2 ))))))" all -v set allsets i=minimal3.cfg
 
-
+$PTH/flagcalc -r 8 5 10 -a s="EXISTS (y IN Sizedsubset(V,3), EXISTS (a IN V, b IN V, c IN V, d IN V, a!=b AND a!=c AND a!=d AND b!=c AND b!=d AND c!=d AND y == {a,b,c,d}))" all -v i=minimal3.cfg
 
 

@@ -2057,7 +2057,7 @@ public:
     std::string name;
     valms qs;
     formulaclass* superset;
-    formulaclass* criterion;
+    formulaclass* alias;
     formulaclass* value;
     bool secondorder = false;
     void eval( const std::vector<std::string>& q, int& pos)
@@ -2255,7 +2255,8 @@ struct formulavalue {
     valms v;
     litstruct lit;
     fnstruct fns;
-    qclass* qc;
+    std::vector<qclass*> qcs;
+    formulaclass* criterion;
     variablestruct vs;
     setstruct ss;
     bool subgraph;
@@ -2263,7 +2264,8 @@ struct formulavalue {
 
 class formulaclass {
 public:
-    qclass* boundvariable {};
+    std::vector<qclass*> boundvariables {};
+    formulaclass* criterion;
     formulavalue v;
     formulaclass* fcleft;
     formulaclass* fcright;

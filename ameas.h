@@ -518,6 +518,8 @@ public:
 
 class evalmformula : public evalformula
 {
+    void quantifiermultipleadvance( const formulaclass &fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<int> &a );
+
 public:
 
     int idx = -1;
@@ -527,6 +529,7 @@ public:
     valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& ps ) override;
     valms eval( const formulaclass& fc, const namedparams& context ) override;
     valms evalinternal( const formulaclass& fc, namedparams& context );
+
     evalmformula( mrecords* recin, const int idxin );
     evalmformula( mrecords* recin, neighborstype* nsin );
     ~evalmformula() {}
