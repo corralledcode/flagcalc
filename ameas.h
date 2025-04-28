@@ -519,6 +519,8 @@ public:
 class evalmformula : public evalformula
 {
     void quantifiermultipleadvance( const formulaclass &fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<int> &a );
+    int partitionforsort( std::vector<int> &arr, int start, int end, const formulaclass* fc, namedparams& context, std::vector<valms>* v );
+    void quickSort( std::vector<int> &arr, int start, int end, const formulaclass* fc, namedparams& context, std::vector<valms>* v );
 
 public:
 

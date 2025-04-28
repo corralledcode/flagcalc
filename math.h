@@ -51,7 +51,8 @@ enum class formulaoperator
     foqmedian, foqmode,
     foswitch, focases, foin, fonaming, foas,
     fosetminus, fosetxor, fomeet, fodisjoint,
-    fothreaded};
+    fothreaded,
+    forpartition, forsort};
 
 inline const std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -107,7 +108,9 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"SETXOR", formulaoperator::fosetxor},
         {"MEET", formulaoperator::fomeet},
         {"DISJOINT", formulaoperator::fodisjoint},
-        {"THREADED", formulaoperator::fothreaded}};
+        {"THREADED", formulaoperator::fothreaded},
+        {"PARTITION", formulaoperator::forpartition},
+        {"SORT", formulaoperator::forsort}};
 
 
 std::vector<std::string> parsecomponents( std::string str);

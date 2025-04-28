@@ -240,9 +240,18 @@ $PTH/flagcalc -d f="abc def abd bce caf" -a e="NAMING (A AS Automs, NAMING (C AS
 $PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), SET (h1 IN hs, SET (h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))), h2 ))))))" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a gm="SET (v1 IN V, v2 IN V, {v1,v2} ELT E, {v1,v2})" all -v measg set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="abc def abd bce caf" -a gm="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), SET (h1 IN hs, h2 IN hs, h1 != h2 AND EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))), {h1,h2} )))))" all -v measg set allsets i=minimal3.cfg
-$PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a gm="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), SET (h1 IN hs, h2 IN hs, h1 != h2 AND EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))), {h1,h2} )))))" all -v measg set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc def abd bce caf" -a gm="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), SET (h1 IN hs, h2 IN hs, h1 != h2 AND EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR  FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))), {h1,h2} )))))" all -v measg set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a gm="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), SET (h1 IN hs, h2 IN hs, h1 != h2 AND EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))), {h1,h2} )))))" all -v measg set allsets i=minimal3.cfg
 
 $PTH/flagcalc -r 8 5 10 -a s="EXISTS (y IN Sizedsubset(V,3), EXISTS (a IN V, b IN V, c IN V, d IN V, a!=b AND a!=c AND a!=d AND b!=c AND b!=d AND c!=d AND y == {a,b,c,d}))" all -v i=minimal3.cfg
 
+$PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), PARTITION (h1, h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))) )))))" all -v measg set allsets i=minimal3.cfg
+
+# 90 seconds on an i9 laptop...
+$PTH/flagcalc -d f="abc abd bcf cah ahi aid bde bef cfg cgh jkl dij dej efk fgk ghl hil" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), PARTITION (h1, h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))) )))))" all -v measg set allsets i=minimal3.cfg
+
+$PTH/flagcalc -d f="abc" -a p="SORT (s, t IN Ps(V), st(s) > st(t))" all -v set allsets i=minimal3.cfg
+
+$PTH/flagcalc -d f="abc abd bcf cah ahi aid bde bef cfg cgh jkl dij dej efk fgk ghl hil" -a p="SORT (s, t IN Ps(V), st(s) < st(t))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="a bc def ghij" -a p="SORT (s,t IN Ps(V), st(s) == cliquem(SubgraphonUg(s)) && st(t) == cliquem(SubgraphonUg(t)), st(s) < st(t))" all -v set allsets i=minimal3.cfg
 
