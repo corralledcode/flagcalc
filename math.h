@@ -48,8 +48,10 @@ enum class formulaoperator
     foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqtuple, foqunion, foqdupeunion, foqintersection,
+    foqmedian, foqmode,
     foswitch, focases, foin, fonaming, foas,
-    fosetminus, fosetxor, fomeet, fodisjoint};
+    fosetminus, fosetxor, fomeet, fodisjoint,
+    fothreaded};
 
 inline const std::map<std::string,formulaoperator> operatorsmap
     {{"^",formulaoperator::foexponent},
@@ -94,6 +96,8 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"BIGCUP",formulaoperator::foqunion},
         {"BIGCUPD",formulaoperator::foqdupeunion},
         {"BIGCAP", formulaoperator::foqintersection},
+        {"MEDIAN", formulaoperator::foqmedian},
+        {"MODE", formulaoperator::foqmode},
         {"?", formulaoperator::foswitch},
         {":", formulaoperator::focases},
         {"IN", formulaoperator::foin},
@@ -102,7 +106,8 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"SETMINUS", formulaoperator::fosetminus},
         {"SETXOR", formulaoperator::fosetxor},
         {"MEET", formulaoperator::fomeet},
-        {"DISJOINT", formulaoperator::fodisjoint}};
+        {"DISJOINT", formulaoperator::fodisjoint},
+        {"THREADED", formulaoperator::fothreaded}};
 
 
 std::vector<std::string> parsecomponents( std::string str);
@@ -496,33 +501,6 @@ class setitrunion : public setitrmodeone
 
             for (int i = 0; !found && i < temp.size(); i++)
                 found = mtareequal(temp[i], v);
-            /*
-                if (v.t == temp[i].t)
-                    if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)
-                        found = found || v == temp[i];
-                    else
-                    {
-                        if (v.t == mtset)
-                        {
-                            auto tmpitr1 = v.seti->getitrpos();
-                            auto tmpitr2 = temp[i].seti->getitrpos();
-                            found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
-                            delete tmpitr1;
-                            delete tmpitr2;
-                        } else
-                            if (v.t == mttuple)
-                            {
-                                auto tmpitr1 = v.seti->getitrpos();
-                                auto tmpitr2 = temp[i].seti->getitrpos();
-                                found = found || tupleeq( tmpitr1, tmpitr2);
-                                delete tmpitr1;
-                                delete tmpitr2;
-
-                            }
-                            else
-                                std::cout << "Unsupported type " << v.t << " in setitrunion\n";
-                    }
-            */
             if (!found)
                 temp.push_back(v);
         }
@@ -2270,6 +2248,7 @@ public:
     formulaclass* fcleft;
     formulaclass* fcright;
     formulaoperator fo;
+    bool threaded = false;
     formulaclass(formulavalue vin, formulaclass* fcleftin, formulaclass* fcrightin, formulaoperator foin)
         : v{vin}, fcleft(fcleftin), fcright(fcrightin), fo(foin) {}
     ~formulaclass() {
@@ -2305,10 +2284,12 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foqcount,0},
                             {formulaoperator::foqset,0},
                             {formulaoperator::foqdupeset,0},
-                                {formulaoperator::foqtuple,0},
+                            {formulaoperator::foqtuple,0},
                             {formulaoperator::foqunion,0},
                             {formulaoperator::foqdupeunion,0},
                             {formulaoperator::foqintersection,0},
+                            {formulaoperator::foqmedian,0},
+                            {formulaoperator::foqmode,0},
                             {formulaoperator::fonaming,0},
                             {formulaoperator::foexponent,1},
                             {formulaoperator::fotimes,2},
@@ -2691,15 +2672,57 @@ inline void mtconverttograph( const valms& vin, neighborstype*& vout )
     case mtset:
     case mttuple:
         {
-            int dim = vin.seti->getsize();
-            vout = new neighborstype(new graphtype(dim));
+            /* First count how many vertices */
+
             auto pos = vin.seti->getitrpos();
-            int i = 0;
-            vout->g->vertexlabels.resize(dim);
-            while (!pos->ended()) {
-                std::string* temp = &vout->g->vertexlabels[i++];
-                mtconverttostring(pos->getnext(), temp );
+            pos->reset();
+
+            std::vector<valms> tempvertices {};
+            std::vector<int> tempedges {};
+            while (!pos->ended())
+            {
+                auto edge = pos->getnext();
+                edge.seti->reset();
+                auto v1 = edge.seti->getnext();
+                auto v2 = edge.seti->getnext();
+                tempvertices.push_back(v1);
+                tempvertices.push_back(v2);
+                tempedges.push_back(tempvertices.size()-1);
+                tempedges.push_back(tempvertices.size()-2);
             }
+            std::vector<valms> vertices {};
+            std::vector<int> vertexindices {};
+            vertexindices.resize(tempvertices.size());
+            for (int i = 0; i < tempvertices.size(); ++i)
+            {
+                bool found = false;
+                int j;
+                for (j = 0; !found && j < vertices.size(); ++j)
+                    found = mtareequal(tempvertices[i], vertices[j]);
+                if (!found)
+                {
+                    vertices.push_back(tempvertices[i]);
+                    vertexindices[i] = vertices.size()-1;
+                } else
+                {
+                    vertexindices[i] = j-1;
+                }
+            }
+
+            delete pos;
+
+            int dim = vertices.size();
+            auto g = new graphtype(dim);
+            memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
+            for (int i = 0; i < vertexindices.size(); ++i)
+                for (int j = i+1; j < vertexindices.size(); ++j) {
+                    if (tempedges[i] == j || tempedges[j] == i)
+                    {
+                        g->adjacencymatrix[vertexindices[i]*dim + vertexindices[j]] = true;
+                        g->adjacencymatrix[vertexindices[j]*dim + vertexindices[i]] = true;
+                    }
+                }
+            vout = new neighbors(g);
             break;
         }
     case mtstring:

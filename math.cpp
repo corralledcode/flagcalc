@@ -498,7 +498,9 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqdupeset
             || fo == formulaoperator::foqunion
             || fo == formulaoperator::foqdupeunion
-            || fo == formulaoperator::foqintersection);
+            || fo == formulaoperator::foqintersection
+            || fo == formulaoperator::foqmedian
+            || fo == formulaoperator::foqmode);
 }
 
 template<typename T, typename T1, typename T2>
@@ -1097,9 +1099,10 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
         return res;
     }
 
-
     // if (quantifierops.find(fc.fo)->second) {
-    if (quantifierops(fc.fo)) {
+
+    if (quantifierops(fc.fo))
+    {
         std::vector<itrpos*> supersetpos {};
         std::vector<int> i {};
         std::vector<setitrint*> ss {};
@@ -1151,6 +1154,1094 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                 a[j] = context.size()-1;
             }
         }
+        /* THE FOLLOWING CODE THOUGH ELEGANT SLOWS DOWN BY A THREE-FOLD FACTOR
+                int k = 0;
+                double min;
+                double max;
+                int count;
+                std::vector<valms> tot;
+                std::vector<setitr*> composite;
+                switch (fc.fo)
+                {
+                case formulaoperator::foqexists:
+                case formulaoperator::foqforall:
+                    {
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        break;
+                    }
+                case (formulaoperator::foqsum):
+                case (formulaoperator::foqproduct):
+                case (formulaoperator::foqmin):
+                case (formulaoperator::foqmax):
+                case (formulaoperator::foqrange):
+                case (formulaoperator::foqaverage):
+                    {
+                        res.t = mtcontinuous;
+                        min = std::numeric_limits<double>::infinity();
+                        max = -std::numeric_limits<double>::infinity();
+                        count = 0; // this is not foqcount but rather to be used to find average
+                        if (fc.fo == formulaoperator::foqsum)
+                            res.v.dv = 0;
+                        else if (fc.fo == formulaoperator::foqproduct)
+                            res.v.dv = 1;
+                        break;
+                    }
+                case formulaoperator::foqtally:
+                case formulaoperator::foqcount:
+                    {
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        break;
+                    }
+                case (formulaoperator::foqdupeset):
+                case (formulaoperator::foqset):
+                case (formulaoperator::foqtuple):
+                    {
+                        res.t = fc.fo == formulaoperator::foqtuple ? mttuple : mtset;
+                        tot.clear();
+                        break;
+                    }
+                case (formulaoperator::foqunion):
+                case (formulaoperator::foqintersection):
+                case (formulaoperator::foqdupeunion):
+                    {
+                        res.t = mtset;
+                        res.seti = nullptr;
+                        composite.clear();
+                        break;
+                    }
+                }
+
+                if (vacuouslytrue)
+                    k = supersetpos.size();
+                bool done = false;
+                while (k < supersetpos.size() && !done) {
+                    switch (fc.fo)
+                    {
+                        case formulaoperator::foqexists:
+                        case formulaoperator::foqforall:
+                            {
+                                done = !res.v.bv;
+                                break;
+                            }
+                        case formulaoperator::foqsum:
+                        case formulaoperator::foqproduct:
+                        case formulaoperator::foqmin:
+                        case formulaoperator::foqmax:
+                        case formulaoperator::foqrange:
+                        case formulaoperator::foqaverage:
+                            {
+                                done = fc.fo == formulaoperator::foqproduct && res.v.dv == 0;
+                                break;
+                            }
+                    }
+                    valms c;
+                    c.v.bv = true;
+                    if (criterion) {
+                        c = evalinternal(*criterion, context);
+                        if (c.t != mtbool) {
+                            std::cout << "Quantifier criterion requires boolean value\n";
+                            exit(1);
+                        }
+                    }
+                    if (c.v.bv)
+                    {
+                        auto ei = evalinternal(*fc.fcright, context);
+                        switch (fc.fo)
+                        {
+                            case formulaoperator::foqexists:
+                            case formulaoperator::foqforall:
+                                {
+                                    if (fc.fo == formulaoperator::foqexists)
+                                        res.v.bv = res.v.bv && !ei.v.bv;
+                                    else
+                                        res.v.bv = res.v.bv && ei.v.bv;
+                                    break;
+                                }
+                            case formulaoperator::foqsum:
+                            case formulaoperator::foqproduct:
+                            case formulaoperator::foqmin:
+                            case formulaoperator::foqmax:
+                            case formulaoperator::foqrange:
+                            case formulaoperator::foqaverage:
+                                {
+                                    count++;  // this is not foqcount but rather to be used to find average
+                                    auto v = ei;
+                                    if (fc.fo != formulaoperator::foqproduct)
+                                    {
+                                        if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
+                                            || fc.fo == formulaoperator::foqmax)
+                                            res.v.dv = 0;
+                                        switch (v.t)
+                                        {
+                                        case mtcontinuous:
+                                            res.v.dv += v.v.dv;
+                                            break;
+                                        case mtdiscrete:
+                                            res.v.dv += v.v.iv;
+                                            break;
+                                        case mtbool:
+                                            res.v.dv += v.v.bv ? 1 : 0;
+                                            break;
+                                        case mtset:
+                                            res.v.dv += v.seti->getsize();
+                                            break;
+                                        }
+
+                                        if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
+                                            || fc.fo == formulaoperator::foqmax)
+                                        {
+                                            if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                                min = res.v.dv;
+                                            else
+                                                min = res.v.dv < min ? res.v.dv : min;
+                                            if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                                max = res.v.dv;
+                                            else
+                                                max = res.v.dv > max ? res.v.dv : max;
+                                        }
+                                    } else
+                                    {
+                                        switch (v.t)
+                                        {
+                                        case mtcontinuous:
+                                            res.v.dv *= v.v.dv;
+                                            break;
+                                        case mtdiscrete:
+                                            res.v.dv *= v.v.iv;
+                                            break;
+                                        case mtbool:
+                                            res.v.dv *= v.v.bv ? 1 : 0;
+                                            break;
+                                        case mtset:
+                                        case mttuple:
+                                            res.v.dv *= v.seti->getsize();
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            case formulaoperator::foqtally:
+                                {
+                                    auto v = ei;
+                                    valms tmp;
+                                    mtconverttodiscrete(v, tmp.v.iv);
+                                    res.v.iv += tmp.v.iv;
+                                    break;
+                                }
+                            case formulaoperator::foqcount:
+                                {
+                                    auto v = ei;
+                                    valms tmp;
+                                    mtconverttobool(v,tmp.v.bv);
+                                    if (tmp.v.bv)
+                                        ++res.v.iv;
+                                    break;
+                                }
+                            case formulaoperator::foqdupeset:
+                            case formulaoperator::foqtuple:
+                                {
+                                    auto v = ei;
+                                    tot.push_back(v);
+                                    break;
+                                }
+                            case formulaoperator::foqset:
+                                {
+                                    auto v = ei;
+                                    bool match = false;
+                                    for (int i = 0; !match && i < tot.size(); i++)
+                                    {
+                                        match = match || mtareequal(tot[i], v);
+                                    }
+                                    if (!match)
+                                        tot.push_back(v);
+                                    break;
+                                }
+                            case formulaoperator::foqunion:
+                            case formulaoperator::foqintersection:
+                            case formulaoperator::foqdupeunion:
+                                {
+                                    valms tempv;
+                                    valms outv;
+                                    tempv = ei;
+                                    mtconverttoset(tempv,outv.seti);
+                                    composite.push_back(outv.seti);
+                                    break;
+                                }
+
+                        }
+                    }
+                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                }
+                switch (fc.fo)
+                {
+                case formulaoperator::foqexists:
+                    {
+                        res.v.bv = !res.v.bv;
+                        break;
+                    }
+                case formulaoperator::foqrange:
+                    {
+                        res.v.dv = max - min;
+                        break;
+                    }
+                case formulaoperator::foqaverage:
+                    {
+                        res.v.dv = count > 0 ? res.v.dv / count : 0;
+                        break;
+                    }
+                case formulaoperator::foqmax:
+                    {
+                        res.v.dv = max;
+                        break;
+                    }
+                case formulaoperator::foqmin:
+                    {
+                        res.v.dv = min;
+                        break;
+                    }
+                case formulaoperator::foqdupeset:
+                case formulaoperator::foqtuple:
+                case formulaoperator::foqset:
+                    {
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqunion:
+                case formulaoperator::foqintersection:
+                case formulaoperator::foqdupeunion:
+                    {
+                        auto abstractpluralsetops = getsetitrpluralops(composite);
+                        res.seti = abstractpluralsetops->setops(fc.fo);
+                        if (!res.seti)
+                            res.seti = new setitrint(-1);
+                        break;
+                    }
+
+                }
+                for (int k = originalcontextsize; k < ss.size(); ++k) {
+                    delete ss[k-originalcontextsize];
+                    if (needtodeletevseti[k - originalcontextsize])
+                        delete vv[k-originalcontextsize].seti;
+                }
+                context.resize(originalcontextsize);
+                return res;
+        */
+
+        if (fc.threaded || !fc.threaded)
+        {
+            if (criterion)
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::foqexists:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && res.v.bv) {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                                res.v.bv = res.v.bv && !evalinternal(*fc.fcright, context).v.bv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.bv = !res.v.bv;
+                        break;
+                    }
+
+                case formulaoperator::foqforall:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && res.v.bv) {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                                res.v.bv = res.v.bv && evalinternal(*fc.fcright, context).v.bv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqsum:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0;
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
+                                    // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
+                                        // || fc.fo == formulaoperator::foqaverage)
+                                {
+                                    switch (v.t) // headache maintaining code, but this slows down due to switch'ing on each iterant
+                                    {
+                                    case mtcontinuous:
+                                        res.v.dv += v.v.dv;
+                                        break;
+                                    case mtdiscrete:
+                                        res.v.dv += v.v.iv;
+                                        break;
+                                    case mtbool:
+                                        res.v.dv += v.v.bv ? 1 : 0;
+                                        break;
+                                    case mtset:
+                                        res.v.dv += v.seti->getsize();
+                                        break;
+                                    }
+                                }
+
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqproduct:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 1;;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv *= v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv *= v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv *= v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                case mttuple:
+                                    res.v.dv *= v.seti->getsize();
+                                    break;
+                                }
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqmin:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv = v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv = v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv = v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv = v.seti->getsize();
+                                    break;
+                                }
+
+                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                    min = res.v.dv;
+                                else
+                                    min = res.v.dv < min ? res.v.dv : min;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = min;
+                        break;
+                    }
+                case formulaoperator::foqmax:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double max = -std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv = v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv = v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv = v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv = v.seti->getsize();
+                                    break;
+                                }
+                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                    max = res.v.dv;
+                                else
+                                    max = res.v.dv > max ? res.v.dv : max;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = max;
+                        break;
+                    }
+                case formulaoperator::foqrange:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+                        double max = -std::numeric_limits<double>::infinity();
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv = v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv = v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv = v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv = v.seti->getsize();
+                                    break;
+                                }
+
+                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                    min = res.v.dv;
+                                else
+                                    min = res.v.dv < min ? res.v.dv : min;
+                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                    max = res.v.dv;
+                                else
+                                    max = res.v.dv > max ? res.v.dv : max;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = max - min;
+                        break;
+                    }
+                case formulaoperator::foqaverage:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0.0;
+                        int count = 0; // this is not foqcount but rather to be used to find average
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                count++;  // this is not foqcount but rather to be used to find average
+                                auto v = evalinternal(*fc.fcright, context);
+
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv += v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv += v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv += v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv += v.seti->getsize();
+                                    break;
+                                }
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = count > 0 ? res.v.dv / count : 0;
+                        break;
+                    }
+                case formulaoperator::foqtally:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                valms tmp;
+                                mtconverttodiscrete(v, tmp.v.iv);
+                                res.v.iv += tmp.v.iv;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqcount:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                valms tmp;
+                                mtconverttobool(v,tmp.v.bv);
+                                if (tmp.v.bv)
+                                    ++res.v.iv;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqdupeset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                tot.push_back(v);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqtuple:
+                    {
+                        int k = 0;
+                        res.t = mttuple;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                tot.push_back(v);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                bool match = false;
+                                for (int i = 0; !match && i < tot.size(); i++)
+                                {
+                                    match = match || mtareequal(tot[i], v);
+                                }
+                                if (!match)
+                                    tot.push_back(v);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqunion:
+                case formulaoperator::foqintersection:
+                case formulaoperator::foqdupeunion:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        res.seti = nullptr;
+                        std::vector<setitr*> composite {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                valms tempv;
+                                valms outv;
+                                tempv = evalinternal(*fc.fcright, context);
+                                mtconverttoset(tempv,outv.seti);
+                                composite.push_back(outv.seti);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+
+                        auto abstractpluralsetops = getsetitrpluralops(composite);
+
+                        res.seti = abstractpluralsetops->setops(fc.fo);
+
+                        if (!res.seti)
+                            res.seti = new setitrint(-1);
+                        break;
+                    }
+                case formulaoperator::foqmedian:
+                    {
+                        std::cout << "No support yet for MEDIAN\n";
+                        exit(1);
+                        break;
+                    }
+                case formulaoperator::foqmode:
+                    {
+                        std::cout << "No support yet for MODE\n";
+                        exit(1);
+                        break;
+                    }
+                }
+
+            } else // case of no criterion
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::foqexists:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && res.v.bv) {
+                            res.v.bv = res.v.bv && !evalinternal(*fc.fcright, context).v.bv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.bv = !res.v.bv;
+                        break;
+                    }
+
+                case formulaoperator::foqforall:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && res.v.bv) {
+                            res.v.bv = res.v.bv && evalinternal(*fc.fcright, context).v.bv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqsum:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0;
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
+                                // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
+                                    // || fc.fo == formulaoperator::foqaverage)
+                            {
+                                switch (v.t) // headache maintaining code, but this slows down due to switch'ing on each iterant
+                                {
+                                case mtcontinuous:
+                                    res.v.dv += v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv += v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv += v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv += v.seti->getsize();
+                                    break;
+                                }
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqproduct:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 1;;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv *= v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv *= v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv *= v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                            case mttuple:
+                                res.v.dv *= v.seti->getsize();
+                                break;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqmin:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv = v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv = v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv = v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv = v.seti->getsize();
+                                break;
+                            }
+
+                            if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                min = res.v.dv;
+                            else
+                                min = res.v.dv < min ? res.v.dv : min;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = min;
+                        break;
+                    }
+                case formulaoperator::foqmax:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double max = -std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv = v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv = v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv = v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv = v.seti->getsize();
+                                break;
+                            }
+                            if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                max = res.v.dv;
+                            else
+                                max = res.v.dv > max ? res.v.dv : max;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = max;
+                        break;
+                    }
+                case formulaoperator::foqrange:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+                        double max = -std::numeric_limits<double>::infinity();
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv = v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv = v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv = v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv = v.seti->getsize();
+                                break;
+                            }
+
+                            if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                min = res.v.dv;
+                            else
+                                min = res.v.dv < min ? res.v.dv : min;
+                            if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                max = res.v.dv;
+                            else
+                                max = res.v.dv > max ? res.v.dv : max;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = max - min;
+                        break;
+                    }
+                case formulaoperator::foqaverage:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0.0;
+                        int count = 0; // this is not foqcount but rather to be used to find average
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            count++;  // this is not foqcount but rather to be used to find average
+                            auto v = evalinternal(*fc.fcright, context);
+
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv += v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv += v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv += v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv += v.seti->getsize();
+                                break;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = count > 0 ? res.v.dv / count : 0;
+                        break;
+                    }
+                case formulaoperator::foqtally:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            auto v = evalinternal(*fc.fcright, context);
+                            valms tmp;
+                            mtconverttodiscrete(v, tmp.v.iv);
+                            res.v.iv += tmp.v.iv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqcount:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            auto v = evalinternal(*fc.fcright, context);
+                            valms tmp;
+                            mtconverttobool(v,tmp.v.bv);
+                            if (tmp.v.bv)
+                                ++res.v.iv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqdupeset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            tot.push_back(v);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqtuple:
+                    {
+                        int k = 0;
+                        res.t = mttuple;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            tot.push_back(v);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            bool match = false;
+                            for (int i = 0; !match && i < tot.size(); i++)
+                            {
+                                match = match || mtareequal(tot[i], v);
+                            }
+                            if (!match)
+                                tot.push_back(v);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqunion:
+                case formulaoperator::foqintersection:
+                case formulaoperator::foqdupeunion:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        res.seti = nullptr;
+                        std::vector<setitr*> composite {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms tempv;
+                            valms outv;
+                            tempv = evalinternal(*fc.fcright, context);
+                            mtconverttoset(tempv,outv.seti);
+                            composite.push_back(outv.seti);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+
+                        auto abstractpluralsetops = getsetitrpluralops(composite);
+
+                        res.seti = abstractpluralsetops->setops(fc.fo);
+
+                        if (!res.seti)
+                            res.seti = new setitrint(-1);
+                        break;
+                    }
+                case formulaoperator::foqmedian:
+                    {
+                        std::cout << "No support yet for MEDIAN\n";
+                        exit(1);
+                        break;
+                    }
+                case formulaoperator::foqmode:
+                    {
+                        std::cout << "No support yet for MODE\n";
+                        exit(1);
+                        break;
+                    }
+                }
+            }
+
+
+        } else // case of not threaded quantifier
+        {
+            // to do
+        }
+
+
+        /* REPLACED WITH MORE EFFICIENT (ALBEIT MORE LONG) CODE
+
         switch (fc.fo) {
             case (formulaoperator::foqexists):
             case (formulaoperator::foqforall):
@@ -1441,7 +2532,7 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                     res.seti = new setitrint(-1);
                 break;
             }
-        }
+        } */
         for (int k = originalcontextsize; k < ss.size(); ++k) {
             delete ss[k-originalcontextsize];
             if (needtodeletevseti[k - originalcontextsize])
@@ -1451,6 +2542,18 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
 
         return res;
     }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     if (fc.fo == formulaoperator::foswitch)
@@ -1850,9 +2953,9 @@ inline bool is_function(std::string tok) {
 }
 
 inline bool is_literal(std::string tok) {
-    if ((tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']'))
-        return true;
-    else
+    // if ((tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']'))
+        // return true;
+    // else
         return is_function(tok);
 }
 
@@ -1866,9 +2969,9 @@ inline bool is_variable(std::string tok) {
 
 inline std::string get_literal(std::string tok) {
     if (is_literal(tok))
-        if (tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']')
-            return tok.substr(1,tok.size()-2);
-        else
+        // if (tok.size() > 2 && tok[0] == '[' && tok[tok.size()-1] == ']')
+            // return tok.substr(1,tok.size()-2);
+        // else
             return tok;
     return "";
 }
@@ -1886,6 +2989,14 @@ inline bool is_naming(std::string tok)
     for (auto q : operatorsmap)
         if (tok == q.first)
             return q.second == formulaoperator::fonaming;
+    return false;
+}
+
+inline bool is_threaded(std::string tok)
+{
+    for (auto q : operatorsmap)
+        if (tok == q.first)
+            return q.second == formulaoperator::fothreaded;
     return false;
 }
 
@@ -1930,10 +3041,11 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
             operatorstack.push_back(tok);
             continue;
         }
-        if (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok) || is_naming(tok))
+        if (is_literal(tok) || is_quantifier(tok) || is_function(tok) || is_variable(tok) || is_naming(tok) || is_threaded(tok))
         {
             if (n < components.size())
-                if (components[n] == "(")
+            {
+                if (components[n] == "(" || is_threaded(components[n]))
                 {
                     if (is_quantifier(tok) || is_naming(tok))
                         output.insert(output.begin(),SHUNTINGYARDVARIABLEARGUMENTENDKEY);
@@ -1943,15 +3055,15 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         werevalues[werevalues.size() - 1] = true;
                     werevalues.push_back(false);
                 } else
+                {
+                    output.insert(output.begin(),tok);
+                    if (!werevalues.empty())
                     {
-                        output.insert(output.begin(),tok);
-                        if (!werevalues.empty())
-                        {
-                            werevalues.resize(werevalues.size() - 1);
-                            werevalues.push_back(true);
-                        }
+                        werevalues.resize(werevalues.size() - 1);
+                        werevalues.push_back(true);
                     }
-            else
+                }
+            } else
             {
                 output.insert(output.begin(),tok);
                 if (!werevalues.empty())
@@ -2533,6 +3645,18 @@ inline formulaclass* parseformulainternal(
 
         }
 
+        if (is_threaded(tok))
+        {
+            formulavalue fv {};
+            auto fc = parseformulainternal(q,pos,litnumps,littypes,litnames,ps, fnptrs);
+            if (!quantifierops(fc->fo))
+            {
+                std::cout << "THREADED keyword must be followed by a quantifier\n";
+                fc = nullptr;
+            }
+            fc->threaded = true;
+            return fc;
+        }
         if (is_quantifier(tok)) {
 
 #ifdef QUANTIFIERMODE_PRECEDING
