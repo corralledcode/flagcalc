@@ -247,11 +247,19 @@ $PTH/flagcalc -r 8 5 10 -a s="EXISTS (y IN Sizedsubset(V,3), EXISTS (a IN V, b I
 
 $PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), PARTITION (h1, h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))) )))))" all -v measg set allsets i=minimal3.cfg
 
-# 90 seconds on an i9 laptop... now 84 seconds
-$PTH/flagcalc -d f="abc abd bcf cah ahi aid bde bef cfg cgh jkl dij dej efk fgk ghl hil" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), PARTITION (h1, h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))) )))))" all -v measg set allsets i=minimal3.cfg
+# THREADED PARTITION
+
+$PTH/flagcalc -d f="-abcdea -afghb -bhijc -cjkld -dlmne -enofa -pqrstp op gq ir ks mt" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), THREADED PARTITION (h1, h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))) )))))" all -v measg set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc abd bcf cah ahi aid bde bef cfg cgh jkl dij dej efk fgk ghl hil" -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), THREADED PARTITION (h1, h2 IN hs, EXISTS (a IN A, EXISTS (j IN NN(m), FORALL (i IN NN(m), a[h1[m - i - 1]] == h2[mod(i+j,m)]) OR FORALL (i IN NN(m), a[h1[i]] == h2[mod(i+j,m)]))) )))))" all -v measg set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d f="abc" -a p="SORT (s, t IN Ps(V), st(s) > st(t))" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d f="abc abd bcf cah ahi aid bde bef cfg cgh jkl dij dej efk fgk ghl hil" -a p="SORT (s, t IN Ps(V), st(s) < st(t))" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="a bc def ghij" -a p="SORT (s,t IN Ps(V), st(s) == cliquem(SubgraphonUg(s)) && st(t) == cliquem(SubgraphonUg(t)), st(s) < st(t))" all -v set allsets i=minimal3.cfg
 
+$PTH/flagcalc -d f="abcd" -a e="THREADED PARTITION (u,v IN Ps(V), st(u) % 2 == 0, st(u)==st(v)) " all -v measg set allsets i=minimal3.cfg
+
+# a few chosen from earlier in the script, now THREADED
+$PTH/flagcalc -r 10 10 1 -a s="THREADED FORALL (n IN NN(dimm), EXISTS (s IN Ps(V), EXISTS (t IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/(n+1)) AND st(t) == floor(n*dimm/(n+1)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 15 1 -a s="THREADED FORALL (s IN Ps(V), s == V OR EXISTS (t IN Ps(V), EXISTS (u IN Ps(V), (NOT (u <= s)) AND (NOT (t <= s)) AND ((s CAP t) <= s))))" all
+$PTH/flagcalc -d testbip12.dat -a s="THREADED EXISTS (n IN NN(dimm+1), EXISTS (l IN Sizedsubset(V,n), EXISTS (r IN Sizedsubset(V,dimm - n), st(r CUP l) == dimm AND FORALL (a IN l, FORALL (b IN l, NOT ac(a,b))) AND FORALL (c IN r, FORALL (d IN r, NOT ac(c,d))))))" all

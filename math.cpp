@@ -1159,6 +1159,55 @@ void evalmformula::quickSort( std::vector<int> &arr, int start, int end, formula
     quickSort(arr, p+1, end, fc,context,v);
 }
 
+void evalmformula::threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res)
+{
+    *c = evalinternal(*criterion, *context).v.bv;
+    if (c)
+        res->v = this->evalinternal(*fc, *context).v;
+}
+
+void evalmformula::threadeval(formulaclass* fc, namedparams* context, valms* res)
+{
+    res->v = this->evalinternal(*fc, *context).v;
+}
+
+void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a )
+{
+    auto contextidxA = context->size()-1;
+    auto contextidxB = context->size()-2;
+    if (v2->size() == 0)
+        return;
+    int i;
+    while (true)
+    {
+        bool found = false;
+        (*context)[contextidxB].second = (*v2)[0][0];
+        for (i = 0; i < v1->size() && !found; ++i)
+        {
+            (*context)[contextidxA].second = (*v1)[i][0];
+            found = evalinternal(*fc, *context).v.bv;
+        }
+        int k;
+        if (found)
+            k = i-1;
+        else
+        {
+            (*v1).resize(v1->size()+1);
+            k = v1->size()-1;
+            (*v1)[k].clear();
+        }
+        for (auto b : (*v2)[0])
+            (*v1)[k].push_back(b);
+        v2->erase(v2->begin());
+        if (v2->size() <= 0)
+            break;
+        for (int l = 0; l < a->size(); ++l) {
+            valms v = evalinternal(*fc->boundvariables[(*a)[l].second]->alias, *context);
+            (*context)[(*a)[l].first].second = v;
+        }
+    }
+
+}
 
 
 valms evalformula::eval( formulaclass& fc, namedparams& context) {}
@@ -1758,7 +1807,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 return res;
         */
 
-        if (fc.threaded || !fc.threaded)
+        if (!fc.threaded)
         {
             if (criterion)
             {
@@ -2563,9 +2612,916 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             }
 
 
-        } else // case of not threaded quantifier
+        } else // case of threaded quantifier
         {
-            // to do
+
+            if (criterion)
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::foqexists:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        std::vector<namedparams> contexts {};
+                        contexts.resize(thread_count);
+                        while (k < supersetpos.size() && res.v.bv)
+                        {
+                            int pos = 0;
+                            while (pos < thread_count && k < supersetpos.size())
+                            {
+                                contexts[pos] = context;
+                                // contexts[pos].clear();
+                                // for (auto c : context)
+                                // {
+                                    // contexts[pos].push_back(c);
+                                // }
+                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                                pos++;
+                            }
+
+                            std::vector<std::future<void>> t;
+                            t.resize(pos);
+                            std::vector<valms> ress;
+                            ress.resize(pos);
+                            bool c[pos];
+                            for (int m = 0; m < pos; ++m) {
+                                ress[m].v.bv = true;
+                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
+                            }
+                            for (int m = 0; m < pos ; ++m)
+                            {
+                                t[m].get();
+                                res.v.bv = (!c[m] || !ress[m].v.bv) && res.v.bv;
+                            }
+                        }
+                        res.v.bv = !res.v.bv;
+                        break;
+                    }
+
+                case formulaoperator::foqforall:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        std::vector<namedparams> contexts {};
+                        contexts.resize(thread_count);
+                        while (k < supersetpos.size() && res.v.bv)
+                        {
+                            int pos = 0;
+                            while (pos < thread_count && k < supersetpos.size())
+                            {
+                                contexts[pos] = context;
+                                // contexts[pos].clear();
+                                // for (auto c : context)
+                                // {
+                                // contexts[pos].push_back(c);
+                                // }
+                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                                pos++;
+                            }
+
+                            std::vector<std::future<void>> t;
+                            t.resize(pos);
+                            std::vector<valms> ress;
+                            ress.resize(pos);
+                            bool c[pos];
+                            for (int m = 0; m < pos; ++m) {
+                                ress[m].v.bv = true;
+                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
+                            }
+                            for (int m = 0; m < pos ; ++m)
+                            {
+                                t[m].get();
+                                res.v.bv = (!c[m] || ress[m].v.bv) && res.v.bv;
+                            }
+                        }
+                        break;
+                    }
+                case formulaoperator::foqsum:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0;
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
+                                    // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
+                                        // || fc.fo == formulaoperator::foqaverage)
+                                {
+                                    switch (v.t) // headache maintaining code, but this slows down due to switch'ing on each iterant
+                                    {
+                                    case mtcontinuous:
+                                        res.v.dv += v.v.dv;
+                                        break;
+                                    case mtdiscrete:
+                                        res.v.dv += v.v.iv;
+                                        break;
+                                    case mtbool:
+                                        res.v.dv += v.v.bv ? 1 : 0;
+                                        break;
+                                    case mtset:
+                                        res.v.dv += v.seti->getsize();
+                                        break;
+                                    }
+                                }
+
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqproduct:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 1;;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv *= v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv *= v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv *= v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                case mttuple:
+                                    res.v.dv *= v.seti->getsize();
+                                    break;
+                                }
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqmin:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv = v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv = v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv = v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv = v.seti->getsize();
+                                    break;
+                                }
+
+                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                    min = res.v.dv;
+                                else
+                                    min = res.v.dv < min ? res.v.dv : min;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = min;
+                        break;
+                    }
+                case formulaoperator::foqmax:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double max = -std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv = v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv = v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv = v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv = v.seti->getsize();
+                                    break;
+                                }
+                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                    max = res.v.dv;
+                                else
+                                    max = res.v.dv > max ? res.v.dv : max;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = max;
+                        break;
+                    }
+                case formulaoperator::foqrange:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+                        double max = -std::numeric_limits<double>::infinity();
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv = v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv = v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv = v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv = v.seti->getsize();
+                                    break;
+                                }
+
+                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                    min = res.v.dv;
+                                else
+                                    min = res.v.dv < min ? res.v.dv : min;
+                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                    max = res.v.dv;
+                                else
+                                    max = res.v.dv > max ? res.v.dv : max;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = max - min;
+                        break;
+                    }
+                case formulaoperator::foqaverage:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0.0;
+                        int count = 0; // this is not foqcount but rather to be used to find average
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                count++;  // this is not foqcount but rather to be used to find average
+                                auto v = evalinternal(*fc.fcright, context);
+
+                                switch (v.t)
+                                {
+                                case mtcontinuous:
+                                    res.v.dv += v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv += v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv += v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv += v.seti->getsize();
+                                    break;
+                                }
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = count > 0 ? res.v.dv / count : 0;
+                        break;
+                    }
+                case formulaoperator::foqtally:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                valms tmp;
+                                mtconverttodiscrete(v, tmp.v.iv);
+                                res.v.iv += tmp.v.iv;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqcount:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                valms tmp;
+                                mtconverttobool(v,tmp.v.bv);
+                                if (tmp.v.bv)
+                                    ++res.v.iv;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqdupeset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                tot.push_back(v);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqtuple:
+                    {
+                        int k = 0;
+                        res.t = mttuple;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                tot.push_back(v);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                auto v = evalinternal(*fc.fcright, context);
+                                bool match = false;
+                                for (int i = 0; !match && i < tot.size(); i++)
+                                {
+                                    match = match || mtareequal(tot[i], v);
+                                }
+                                if (!match)
+                                    tot.push_back(v);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqunion:
+                case formulaoperator::foqintersection:
+                case formulaoperator::foqdupeunion:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        res.seti = nullptr;
+                        std::vector<setitr*> composite {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms c = evalinternal(*criterion, context);
+                            if (c.v.bv)
+                            {
+                                valms tempv;
+                                valms outv;
+                                tempv = evalinternal(*fc.fcright, context);
+                                mtconverttoset(tempv,outv.seti);
+                                composite.push_back(outv.seti);
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+
+                        auto abstractpluralsetops = getsetitrpluralops(composite);
+
+                        res.seti = abstractpluralsetops->setops(fc.fo);
+
+                        if (!res.seti)
+                            res.seti = new setitrint(-1);
+                        break;
+                    }
+                case formulaoperator::foqmedian:
+                    {
+                        std::cout << "No support yet for MEDIAN\n";
+                        exit(1);
+                        break;
+                    }
+                case formulaoperator::foqmode:
+                    {
+                        std::cout << "No support yet for MODE\n";
+                        exit(1);
+                        break;
+                    }
+                }
+
+            } else // case of threaded and no criterion
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::foqexists:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        std::vector<namedparams> contexts {};
+                        contexts.resize(thread_count);
+                        while (k < supersetpos.size() && res.v.bv)
+                        {
+                            int pos = 0;
+                            while (pos < thread_count && k < supersetpos.size())
+                            {
+                                contexts[pos] = context;
+                                // contexts[pos].clear();
+                                // for (auto c : context)
+                                // {
+                                    // contexts[pos].push_back(c);
+                                // }
+                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                                pos++;
+                            }
+
+                            std::vector<std::future<void>> t;
+                            t.resize(pos);
+                            std::vector<valms> ress;
+                            ress.resize(pos);
+                            for (int m = 0; m < pos; ++m) {
+                                ress[m].v.bv = true;
+                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
+                            }
+                            for (int m = 0; m < pos ; ++m)
+                            {
+                                t[m].get();
+                                res.v.bv = (!ress[m].v.bv) && res.v.bv;
+                            }
+                        }
+                        res.v.bv = !res.v.bv;
+                        break;
+                    }
+
+                case formulaoperator::foqforall:
+                    {
+                        int k = 0;
+                        res.v.bv = true;
+                        res.t = mtbool;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        std::vector<namedparams> contexts {};
+                        contexts.resize(thread_count);
+                        while (k < supersetpos.size() && res.v.bv)
+                        {
+                            int pos = 0;
+                            while (pos < thread_count && k < supersetpos.size())
+                            {
+                                contexts[pos] = context;
+                                // contexts[pos].clear();
+                                // for (auto c : context)
+                                // {
+                                // contexts[pos].push_back(c);
+                                // }
+                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                                pos++;
+                            }
+
+                            std::vector<std::future<void>> t;
+                            t.resize(pos);
+                            std::vector<valms> ress;
+                            ress.resize(pos);
+                            for (int m = 0; m < pos; ++m) {
+                                ress[m].v.bv = true;
+                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
+                            }
+                            for (int m = 0; m < pos ; ++m)
+                            {
+                                t[m].get();
+                                res.v.bv = ress[m].v.bv && res.v.bv;
+                            }
+                        }
+                        break;
+                    }
+                case formulaoperator::foqsum:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0;
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
+                                // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
+                                    // || fc.fo == formulaoperator::foqaverage)
+                            {
+                                switch (v.t) // headache maintaining code, but this slows down due to switch'ing on each iterant
+                                {
+                                case mtcontinuous:
+                                    res.v.dv += v.v.dv;
+                                    break;
+                                case mtdiscrete:
+                                    res.v.dv += v.v.iv;
+                                    break;
+                                case mtbool:
+                                    res.v.dv += v.v.bv ? 1 : 0;
+                                    break;
+                                case mtset:
+                                    res.v.dv += v.seti->getsize();
+                                    break;
+                                }
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqproduct:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 1;;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv *= v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv *= v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv *= v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                            case mttuple:
+                                res.v.dv *= v.seti->getsize();
+                                break;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        break;
+                    }
+                case formulaoperator::foqmin:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv = v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv = v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv = v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv = v.seti->getsize();
+                                break;
+                            }
+
+                            if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                min = res.v.dv;
+                            else
+                                min = res.v.dv < min ? res.v.dv : min;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = min;
+                        break;
+                    }
+                case formulaoperator::foqmax:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double max = -std::numeric_limits<double>::infinity();
+
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv = v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv = v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv = v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv = v.seti->getsize();
+                                break;
+                            }
+                            if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                max = res.v.dv;
+                            else
+                                max = res.v.dv > max ? res.v.dv : max;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+
+                        }
+                        res.v.dv = max;
+                        break;
+                    }
+                case formulaoperator::foqrange:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        double min = std::numeric_limits<double>::infinity();
+                        double max = -std::numeric_limits<double>::infinity();
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv = v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv = v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv = v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv = v.seti->getsize();
+                                break;
+                            }
+
+                            if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                min = res.v.dv;
+                            else
+                                min = res.v.dv < min ? res.v.dv : min;
+                            if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                max = res.v.dv;
+                            else
+                                max = res.v.dv > max ? res.v.dv : max;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = max - min;
+                        break;
+                    }
+                case formulaoperator::foqaverage:
+                    {
+                        int k = 0;
+                        res.t = mtcontinuous;
+                        res.v.dv = 0.0;
+                        int count = 0; // this is not foqcount but rather to be used to find average
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        {
+                            count++;  // this is not foqcount but rather to be used to find average
+                            auto v = evalinternal(*fc.fcright, context);
+
+                            switch (v.t)
+                            {
+                            case mtcontinuous:
+                                res.v.dv += v.v.dv;
+                                break;
+                            case mtdiscrete:
+                                res.v.dv += v.v.iv;
+                                break;
+                            case mtbool:
+                                res.v.dv += v.v.bv ? 1 : 0;
+                                break;
+                            case mtset:
+                                res.v.dv += v.seti->getsize();
+                                break;
+                            }
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.v.dv = count > 0 ? res.v.dv / count : 0;
+                        break;
+                    }
+                case formulaoperator::foqtally:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            auto v = evalinternal(*fc.fcright, context);
+                            valms tmp;
+                            mtconverttodiscrete(v, tmp.v.iv);
+                            res.v.iv += tmp.v.iv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqcount:
+                    {
+                        int k = 0;
+                        res.t = mtdiscrete;
+                        res.v.iv = 0;
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size()) {
+                            auto v = evalinternal(*fc.fcright, context);
+                            valms tmp;
+                            mtconverttobool(v,tmp.v.bv);
+                            if (tmp.v.bv)
+                                ++res.v.iv;
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        break;
+                    }
+                case formulaoperator::foqdupeset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            tot.push_back(v);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqtuple:
+                    {
+                        int k = 0;
+                        res.t = mttuple;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            tot.push_back(v);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqset:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        std::vector<valms> tot {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            auto v = evalinternal(*fc.fcright, context);
+                            bool match = false;
+                            for (int i = 0; !match && i < tot.size(); i++)
+                            {
+                                match = match || mtareequal(tot[i], v);
+                            }
+                            if (!match)
+                                tot.push_back(v);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqunion:
+                case formulaoperator::foqintersection:
+                case formulaoperator::foqdupeunion:
+                    {
+                        int k = 0;
+                        res.t = mtset;
+                        res.seti = nullptr;
+                        std::vector<setitr*> composite {};
+                        if (vacuouslytrue)
+                            k = supersetpos.size();
+                        while (k < supersetpos.size())
+                        {
+                            valms tempv;
+                            valms outv;
+                            tempv = evalinternal(*fc.fcright, context);
+                            mtconverttoset(tempv,outv.seti);
+                            composite.push_back(outv.seti);
+                            quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+                        }
+
+                        auto abstractpluralsetops = getsetitrpluralops(composite);
+
+                        res.seti = abstractpluralsetops->setops(fc.fo);
+
+                        if (!res.seti)
+                            res.seti = new setitrint(-1);
+                        break;
+                    }
+                case formulaoperator::foqmedian:
+                    {
+                        std::cout << "No support yet for MEDIAN\n";
+                        exit(1);
+                        break;
+                    }
+                case formulaoperator::foqmode:
+                    {
+                        std::cout << "No support yet for MODE\n";
+                        exit(1);
+                        break;
+                    }
+                }
+            }
         }
 
 
@@ -2928,125 +3884,28 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         }
 
 
-        if (!criterion)
-        {
-            switch (fc.fo)
+        if (!fc.threaded)
+            if (!criterion) // RELATIONAL: not threaded, no criterion
             {
-            case formulaoperator::forpartition:
+                switch (fc.fo)
                 {
-                    std::vector<std::vector<valms>> tot {};
-                    res.t = mtset;
-
-                    if (fc.fcright->boundvariables.size() != 2)
+                case formulaoperator::forpartition:
                     {
-                        std::cout << "PARTITION relational quantifier requires exactly two variables\n";
-                        exit(1);
-                    }
-                    int contextidxB = context.size()-2;
-                    int contextidxA = context.size()-1;
-                    if (!vacuouslytrue)
-                        while (true)
+                        std::vector<std::vector<valms>> tot {};
+                        res.t = mtset;
+
+                        if (fc.fcright->boundvariables.size() != 2)
                         {
-                            bool found = false;
-                            int i;
-                            for (i = 0; i < tot.size() && !found; i++)
-                            {
-                                context[contextidxA].second = tot[i][0];
-                                found = evalinternal(*fc.fcright, context).v.bv;
-                            }
-                            if (found)
-                                tot[i-1].push_back(context[contextidxB].second);
-                            else
-                            {
-                                tot.resize(tot.size()+1);
-                                tot[tot.size()-1].clear();
-                                tot[tot.size()-1].push_back(context[contextidxB].second);
-                            }
-                            if (supersetpos[supersetpos.size()-2]->ended())
-                                break;
-                            context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
-                            for (int j = 0; j < a.size(); ++j) {
-                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                context[a[j].first].second = v;
-                            }
+                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            exit(1);
                         }
-                    std::vector<valms> c {};
-                    for (auto a : tot)
-                    {
-                        auto b = new setitrmodeone(a );
-                        valms r;
-                        r.t = mtset;
-                        r.seti = b;
-                        c.push_back(r);
-                    }
-                    res.seti = new setitrmodeone(c);
-                    break;
-                }
-            case formulaoperator::forsort:
-                {
-                    res.t = mttuple;
-                    if (fc.fcright->boundvariables.size() != 2)
-                    {
-                        std::cout << "SORT relational quantifier requires exactly two variables\n";
-                        exit(1);
-                    }
-                    std::vector<valms> v {};
-                    int contextidxB = context.size()-2;
-                    int contextidxA = context.size()-1;
-                    std::vector<int> arr;
-                    if (!vacuouslytrue)
-                        while (true)
-                        {
-                            v.push_back(context[contextidxA].second);
-                            if (supersetpos[supersetpos.size()-1]->ended())
-                                break;
-                            context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                            for (int j = 0; j < a.size(); ++j) {
-                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                context[a[j].first].second = v;
-                            }
-                        }
-                    arr.resize(v.size());
-                    for (int i = 0; i < arr.size(); i++)
-                    {
-                        arr[i] = i;
-                    }
-                    quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
-
-                    std::vector<valms> tot;
-                    tot.resize(arr.size());
-                    for (int i = 0; i < arr.size(); i++)
-                    {
-                        tot[i] = v[arr[i]];
-                    }
-                    res.seti = new setitrmodeone(tot);
-                    break;
-                }
-            }
-        } else
-        {
-            switch (fc.fo)
-            {
-            case formulaoperator::forpartition:
-                {
-                    std::vector<std::vector<valms>> tot {};
-                    res.t = mtset;
-
-                    if (fc.fcright->boundvariables.size() != 2)
-                    {
-                        std::cout << "PARTITION relational quantifier requires exactly two variables\n";
-                        exit(1);
-                    }
-                    int contextidxB = context.size()-2;
-                    int contextidxA = context.size()-1;
-                    if (!vacuouslytrue)
-                        while (true)
-                        {
-                            bool found = false;
-                            int i;
-                            auto c = evalinternal(*criterion, context);
-                            if (c.v.bv)
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        if (!vacuouslytrue)
+                            while (true)
                             {
+                                bool found = false;
+                                int i;
                                 for (i = 0; i < tot.size() && !found; i++)
                                 {
                                     context[contextidxA].second = tot[i][0];
@@ -3060,74 +3919,399 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     tot[tot.size()-1].clear();
                                     tot[tot.size()-1].push_back(context[contextidxB].second);
                                 }
+                                if (supersetpos[supersetpos.size()-2]->ended())
+                                    break;
+                                context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
+                                for (int j = 0; j < a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                    context[a[j].first].second = v;
+                                }
                             }
-                            if (supersetpos[supersetpos.size()-2]->ended())
-                                break;
-                            context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
-                            for (int j = 0; j < a.size(); ++j) {
-                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                context[a[j].first].second = v;
-                            }
-                        }
-                    std::vector<valms> c {};
-                    for (auto a : tot)
-                    {
-                        auto b = new setitrmodeone(a );
-                        valms r;
-                        r.t = mtset;
-                        r.seti = b;
-                        c.push_back(r);
-                    }
-                    res.seti = new setitrmodeone(c);
-                    break;
-                }
-            case formulaoperator::forsort:
-                {
-                    res.t = mttuple;
-                    if (fc.fcright->boundvariables.size() != 2)
-                    {
-                        std::cout << "SORT relational quantifier requires exactly two variables\n";
-                        exit(1);
-                    }
-                    std::vector<valms> v {};
-                    int contextidxB = context.size()-2;
-                    int contextidxA = context.size()-1;
-                    std::vector<int> arr;
-                    if (!vacuouslytrue)
-                        while (true)
+                        std::vector<valms> c {};
+                        for (auto a : tot)
                         {
-                            auto c = evalinternal(*criterion, context);
-                            if (c.v.bv)
+                            auto b = new setitrmodeone(a );
+                            valms r;
+                            r.t = mtset;
+                            r.seti = b;
+                            c.push_back(r);
+                        }
+                        res.seti = new setitrmodeone(c);
+                        break;
+                    }
+                case formulaoperator::forsort:
+                    {
+                        res.t = mttuple;
+                        if (fc.fcright->boundvariables.size() != 2)
+                        {
+                            std::cout << "SORT relational quantifier requires exactly two variables\n";
+                            exit(1);
+                        }
+                        std::vector<valms> v {};
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        std::vector<int> arr;
+                        if (!vacuouslytrue)
+                            while (true)
                             {
                                 v.push_back(context[contextidxA].second);
+                                if (supersetpos[supersetpos.size()-1]->ended())
+                                    break;
+                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                    context[a[j].first].second = v;
+                                }
                             }
-                            if (supersetpos[supersetpos.size()-1]->ended())
-                                break;
-                            context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                            for (int j = 0; j < a.size(); ++j) {
-                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                context[a[j].first].second = v;
-                            }
-
+                        arr.resize(v.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            arr[i] = i;
                         }
-                    arr.resize(v.size());
-                    for (int i = 0; i < arr.size(); i++)
-                    {
-                        arr[i] = i;
-                    }
-                    quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
 
-                    std::vector<valms> tot;
-                    tot.resize(arr.size());
-                    for (int i = 0; i < arr.size(); i++)
-                    {
-                        tot[i] = v[arr[i]];
+                        std::vector<valms> tot;
+                        tot.resize(arr.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            tot[i] = v[arr[i]];
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
                     }
-                    res.seti = new setitrmodeone(tot);
-                    break;
+                }
+            } else // RELATIONAL: case of criterion, not threaded
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::forpartition:
+                    {
+                        std::vector<std::vector<valms>> tot {};
+                        res.t = mtset;
+
+                        if (fc.fcright->boundvariables.size() != 2)
+                        {
+                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            exit(1);
+                        }
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        if (!vacuouslytrue)
+                            while (true)
+                            {
+                                bool found = false;
+                                int i;
+                                auto c = evalinternal(*criterion, context);
+                                if (c.v.bv)
+                                {
+                                    for (i = 0; i < tot.size() && !found; i++)
+                                    {
+                                        context[contextidxA].second = tot[i][0];
+                                        found = evalinternal(*fc.fcright, context).v.bv;
+                                    }
+                                    if (found)
+                                        tot[i-1].push_back(context[contextidxB].second);
+                                    else
+                                    {
+                                        tot.resize(tot.size()+1);
+                                        tot[tot.size()-1].clear();
+                                        tot[tot.size()-1].push_back(context[contextidxB].second);
+                                    }
+                                }
+                                if (supersetpos[supersetpos.size()-2]->ended())
+                                    break;
+                                context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
+                                for (int j = 0; j < a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                    context[a[j].first].second = v;
+                                }
+                            }
+                        std::vector<valms> c {};
+                        for (auto a : tot)
+                        {
+                            auto b = new setitrmodeone(a );
+                            valms r;
+                            r.t = mtset;
+                            r.seti = b;
+                            c.push_back(r);
+                        }
+                        res.seti = new setitrmodeone(c);
+                        break;
+                    }
+                case formulaoperator::forsort:
+                    {
+                        res.t = mttuple;
+                        if (fc.fcright->boundvariables.size() != 2)
+                        {
+                            std::cout << "SORT relational quantifier requires exactly two variables\n";
+                            exit(1);
+                        }
+                        std::vector<valms> v {};
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        std::vector<int> arr;
+                        if (!vacuouslytrue)
+                            while (true)
+                            {
+                                auto c = evalinternal(*criterion, context);
+                                if (c.v.bv)
+                                {
+                                    v.push_back(context[contextidxA].second);
+                                }
+                                if (supersetpos[supersetpos.size()-1]->ended())
+                                    break;
+                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                    context[a[j].first].second = v;
+                                }
+
+                            }
+                        arr.resize(v.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            arr[i] = i;
+                        }
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+
+                        std::vector<valms> tot;
+                        tot.resize(arr.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            tot[i] = v[arr[i]];
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
                 }
             }
+        else {
+            if (!criterion) // RELATIONAL: case of threaded, no criterion
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::forpartition:
+                    {
+                        std::vector<std::vector<valms>> tot {};
+                        res.t = mtset;
+
+                        if (fc.fcright->boundvariables.size() != 2)
+                        {
+                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            exit(1);
+                        }
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        std::vector<std::vector<std::vector<valms>>> v {};
+                        if (!vacuouslytrue)
+                        {
+                            std::vector<namedparams> contexts;
+                            contexts.resize(thread_count);
+                            for (int m = 0; m < thread_count; ++m)
+                                contexts[m].clear();
+                            for (auto c : context)
+                                for (int m = 0; m < thread_count; ++m)
+                                    contexts[m].push_back(c);
+
+                            v.resize(1);
+                            v[0].push_back({context[context.size()-1].second});
+                            while (!supersetpos[supersetpos.size()-1]->ended())
+                            {
+                                v.resize(v.size()+1);
+                                int i = v.size()-1;
+                                v[i].clear();
+                                v[i].push_back({supersetpos[supersetpos.size()-1]->getnext()});
+                            }
+                            while (v.size() >= 2)
+                            {
+                                int pos = thread_count <= ceil((v.size()-1)/2.0) ? thread_count : ceil((v.size()-1)/2.0);
+                                std::vector<std::future<void>> t;
+                                t.resize(pos);
+                                for (int m = 0; m < pos; ++m) {
+                                    int i = 2*m;
+                                    int j = 2*m+1;
+                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],&v[i],&v[j],&a);
+                                }
+                                for (int m = 0; m < pos ; ++m)
+                                    t[m].get();
+                                for (int m = pos-1; m >= 0; --m)
+                                    v.erase(v.begin()+2*m+1);
+                            }
+                        } else
+                            v.push_back({});
+                        std::vector<valms> c {};
+                        for (auto a : v[0])
+                        {
+                            auto b = new setitrmodeone(a );
+                            valms r;
+                            r.t = mtset;
+                            r.seti = b;
+                            c.push_back(r);
+                        }
+                        res.seti = new setitrmodeone(c);
+                        break;
+                    }
+                case formulaoperator::forsort:
+                    {
+                        res.t = mttuple;
+                        if (fc.fcright->boundvariables.size() != 2)
+                        {
+                            std::cout << "SORT relational quantifier requires exactly two variables\n";
+                            exit(1);
+                        }
+                        std::vector<valms> v {};
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        std::vector<int> arr;
+                        if (!vacuouslytrue)
+                            while (true)
+                            {
+                                v.push_back(context[contextidxA].second);
+                                if (supersetpos[supersetpos.size()-1]->ended())
+                                    break;
+                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                    context[a[j].first].second = v;
+                                }
+                            }
+                        arr.resize(v.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            arr[i] = i;
+                        }
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+
+                        std::vector<valms> tot;
+                        tot.resize(arr.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            tot[i] = v[arr[i]];
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                }
+            } else // RELATIONAL: case of threaded, criterion
+            {
+                switch (fc.fo)
+                {
+                case formulaoperator::forpartition:
+                    {
+                        std::vector<std::vector<valms>> tot {};
+                        res.t = mtset;
+
+                        if (fc.fcright->boundvariables.size() != 2)
+                        {
+                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            exit(1);
+                        }
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        std::vector<std::vector<std::vector<valms>>> v {};
+                        if (!vacuouslytrue)
+                        {
+                            std::vector<namedparams> contexts;
+                            contexts.resize(thread_count);
+                            for (int m = 0; m < thread_count; ++m)
+                                contexts[m].clear();
+                            for (auto c : context)
+                                for (int m = 0; m < thread_count; ++m)
+                                    contexts[m].push_back(c);
+
+                            v.resize(1);
+                            v[0].push_back({context[context.size()-1].second});
+                            while (!supersetpos[supersetpos.size()-1]->ended())
+                            {
+                                v.resize(v.size()+1);
+                                int i = v.size()-1;
+                                v[i].clear();
+                                v[i].push_back({supersetpos[supersetpos.size()-1]->getnext()});
+                                context[context.size()-2] = {fc.fcright->boundvariables[0]->name,v[i][v[i].size()-1][0]};
+                                context[context.size()-1] = {fc.fcright->boundvariables[1]->name,v[i][v[i].size()-1][0]};
+                                if (!evalinternal(*criterion,context).v.bv)
+                                    v[i].resize(v[i].size()-1);
+                            }
+                            while (v.size() >= 2)
+                            {
+                                int pos = thread_count <= ceil((v.size()-1)/2.0) ? thread_count : ceil((v.size()-1)/2.0);
+                                std::vector<std::future<void>> t;
+                                t.resize(pos);
+                                for (int m = 0; m < pos; ++m) {
+                                    int i = 2*m;
+                                    int j = 2*m+1;
+                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],&v[i],&v[j],&a);
+                                }
+                                for (int m = 0; m < pos ; ++m)
+                                    t[m].get();
+                                for (int m = pos-1; m >= 0; --m)
+                                    v.erase(v.begin()+2*m+1);
+                            }
+                        } else
+                            v.push_back({});
+                        std::vector<valms> c {};
+                        for (auto a : v[0])
+                        {
+                            auto b = new setitrmodeone(a );
+                            valms r;
+                            r.t = mtset;
+                            r.seti = b;
+                            c.push_back(r);
+                        }
+                        res.seti = new setitrmodeone(c);
+                        break;
+                    }
+                case formulaoperator::forsort:
+                    {
+                        res.t = mttuple;
+                        if (fc.fcright->boundvariables.size() != 2)
+                        {
+                            std::cout << "SORT relational quantifier requires exactly two variables\n";
+                            exit(1);
+                        }
+                        std::vector<valms> v {};
+                        int contextidxB = context.size()-2;
+                        int contextidxA = context.size()-1;
+                        std::vector<int> arr;
+                        if (!vacuouslytrue)
+                            while (true)
+                            {
+                                auto c = evalinternal(*criterion, context);
+                                if (c.v.bv)
+                                {
+                                    v.push_back(context[contextidxA].second);
+                                }
+                                if (supersetpos[supersetpos.size()-1]->ended())
+                                    break;
+                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                    context[a[j].first].second = v;
+                                }
+
+                            }
+                        arr.resize(v.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            arr[i] = i;
+                        }
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+
+                        std::vector<valms> tot;
+                        tot.resize(arr.size());
+                        for (int i = 0; i < arr.size(); i++)
+                        {
+                            tot[i] = v[arr[i]];
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                }
+            }
+
+
         }
+
         for (int k = originalcontextsize; k < ss.size(); ++k) {
             delete ss[k-originalcontextsize];
             if (needtodeletevseti[k - originalcontextsize])
@@ -4240,7 +5424,7 @@ inline formulaclass* parseformulainternal(
         {
             formulavalue fv {};
             auto fc = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
-            if (!quantifierops(fc->fo))
+            if (!quantifierops(fc->fo) && !relationalops(fc->fo))
             {
                 std::cout << "THREADED keyword must be followed by a quantifier\n";
                 fc = nullptr;

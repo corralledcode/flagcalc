@@ -507,7 +507,6 @@ public:
 };
 
 
-
 class evalmformula : public evalformula
 {
     void quantifiermultipleadvance( formulaclass &fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<std::pair<int,int>> &a );
@@ -523,6 +522,9 @@ public:
     valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& ps ) override;
     valms eval( formulaclass& fc, namedparams& context ) override;
     valms evalinternal( formulaclass& fc, namedparams& context );
+    void threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res);
+    void threadeval(formulaclass* fc, namedparams* context, valms* res);
+    void partitionmerge( formulaclass* fc, namedparams* context, std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
 
     evalmformula( mrecords* recin, const int idxin );
     evalmformula( mrecords* recin, neighborstype* nsin );
