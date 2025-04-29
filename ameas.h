@@ -165,18 +165,10 @@ public:
     virtual T takemeas( neighborstype* ns, namedparams& context, const params& ps )
     {
         return takemeas(ns,ps);
-        /* int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        return takemeas(ns,context); */
     }
     virtual T takemeas( const int idx, namedparams& context, const params& ps )
     {
         return takemeas(idx,ps);
-        /* int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        return takemeas(idx,context); */
     }
     virtual T takemeas( neighborstype* ns, namedparams& context ) {
         std::cout << "Error abstract ancestor class takemeas called, name is " << this->shortname << ": " << this->name << " (i)\n";
@@ -518,9 +510,9 @@ public:
 
 class evalmformula : public evalformula
 {
-    void quantifiermultipleadvance( const formulaclass &fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<int> &a );
-    int partitionforsort( std::vector<int> &arr, int start, int end, const formulaclass* fc, namedparams& context, std::vector<valms>* v );
-    void quickSort( std::vector<int> &arr, int start, int end, const formulaclass* fc, namedparams& context, std::vector<valms>* v );
+    void quantifiermultipleadvance( formulaclass &fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<std::pair<int,int>> &a );
+    int partitionforsort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v );
+    void quickSort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v );
 
 public:
 
@@ -529,8 +521,8 @@ public:
     mrecords* rec;
 
     valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& ps ) override;
-    valms eval( const formulaclass& fc, const namedparams& context ) override;
-    valms evalinternal( const formulaclass& fc, namedparams& context );
+    valms eval( formulaclass& fc, namedparams& context ) override;
+    valms evalinternal( formulaclass& fc, namedparams& context );
 
     evalmformula( mrecords* recin, const int idxin );
     evalmformula( mrecords* recin, neighborstype* nsin );

@@ -458,9 +458,66 @@ inline logicalsentence parsesentence( const std::string sentence ) {
 class formulaclass;
 
 
+inline std::map<formulaoperator,bool> booleanopslookup {
+                            {formulaoperator::foqexists,false},
+                            {formulaoperator::foqforall,false},
+                            {formulaoperator::foqsum,false},
+                            {formulaoperator::foqproduct,false},
+                            {formulaoperator::foqmin,false},
+                            {formulaoperator::foqmax,false},
+                            {formulaoperator::foqrange,false},
+                            {formulaoperator::foqaverage,false},
+                            {formulaoperator::foqtally,false},
+                            {formulaoperator::foqcount,false},
+                            {formulaoperator::foqset,false},
+                            {formulaoperator::foqdupeset,false},
+                            {formulaoperator::foqtuple,false},
+                            {formulaoperator::foqunion,false},
+                            {formulaoperator::foqdupeunion,false},
+                            {formulaoperator::foqintersection,false},
+                            {formulaoperator::foqmedian,false},
+                            {formulaoperator::foqmode,false},
+                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foexponent,false},
+                            {formulaoperator::fotimes,false},
+                            {formulaoperator::fodivide,false},
+                            {formulaoperator::fomodulus,false},
+                            {formulaoperator::foplus,false},
+                            {formulaoperator::fominus,false},
+                            {formulaoperator::foe,false},
+                            {formulaoperator::folte,false},
+                            {formulaoperator::folt,false},
+                            {formulaoperator::fogte,false},
+                            {formulaoperator::fogt,false},
+                            {formulaoperator::fone,false},
+                            {formulaoperator::foelt,false},
+                            {formulaoperator::fonot,false},
+                            {formulaoperator::foand,true},
+                            {formulaoperator::foor,true},
+                            {formulaoperator::foxor,true},
+                            {formulaoperator::foimplies,true},
+                            {formulaoperator::foiff,true},
+                            {formulaoperator::foif,true},
+                            {formulaoperator::founion,false},
+                            {formulaoperator::fodupeunion,false},
+                            {formulaoperator::fointersection,false},
+                            {formulaoperator::foswitch,false},
+                            {formulaoperator::focases, false},
+                            {formulaoperator::foin, false},
+                            {formulaoperator::foas, false},
+                            {formulaoperator::fosetminus, false},
+                            {formulaoperator::fosetxor, false},
+                            {formulaoperator::fomeet, false},
+                            {formulaoperator::fodisjoint, false},
+                            {formulaoperator::fothreaded, false},
+                            {formulaoperator::forsort, false},
+                            {formulaoperator::forpartition, false}
+};
+
 
 inline bool booleanops( const formulaoperator fo)
 {
+    // return booleanopslookup[fo];
     return (fo == formulaoperator::foand
             || fo == formulaoperator::foor
             || fo == formulaoperator::foimplies
@@ -469,8 +526,66 @@ inline bool booleanops( const formulaoperator fo)
             || fo == formulaoperator::foif);
 }
 
+inline std::map<formulaoperator,bool> equalityopslookup {
+                            {formulaoperator::foqexists,false},
+                            {formulaoperator::foqforall,false},
+                            {formulaoperator::foqsum,false},
+                            {formulaoperator::foqproduct,false},
+                            {formulaoperator::foqmin,false},
+                            {formulaoperator::foqmax,false},
+                            {formulaoperator::foqrange,false},
+                            {formulaoperator::foqaverage,false},
+                            {formulaoperator::foqtally,false},
+                            {formulaoperator::foqcount,false},
+                            {formulaoperator::foqset,false},
+                            {formulaoperator::foqdupeset,false},
+                            {formulaoperator::foqtuple,false},
+                            {formulaoperator::foqunion,false},
+                            {formulaoperator::foqdupeunion,false},
+                            {formulaoperator::foqintersection,false},
+                            {formulaoperator::foqmedian,false},
+                            {formulaoperator::foqmode,false},
+                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foexponent,false},
+                            {formulaoperator::fotimes,false},
+                            {formulaoperator::fodivide,false},
+                            {formulaoperator::fomodulus,false},
+                            {formulaoperator::foplus,false},
+                            {formulaoperator::fominus,false},
+                            {formulaoperator::foe,true},
+                            {formulaoperator::folte,true},
+                            {formulaoperator::folt,true},
+                            {formulaoperator::fogte,true},
+                            {formulaoperator::fogt,true},
+                            {formulaoperator::fone,true},
+                            {formulaoperator::foelt,false},
+                            {formulaoperator::fonot,false},
+                            {formulaoperator::foand,false},
+                            {formulaoperator::foor,false},
+                            {formulaoperator::foxor,false},
+                            {formulaoperator::foimplies,false},
+                            {formulaoperator::foiff,false},
+                            {formulaoperator::foif,false},
+                            {formulaoperator::founion,false},
+                            {formulaoperator::fodupeunion,false},
+                            {formulaoperator::fointersection,false},
+                            {formulaoperator::foswitch,false},
+                            {formulaoperator::focases, false},
+                            {formulaoperator::foin, false},
+                            {formulaoperator::foas, false},
+                            {formulaoperator::fosetminus, false},
+                            {formulaoperator::fosetxor, false},
+                            {formulaoperator::fomeet, true},
+                            {formulaoperator::fodisjoint, true},
+                            {formulaoperator::fothreaded, false},
+                            {formulaoperator::forsort, false},
+                            {formulaoperator::forpartition, false}
+};
+
+
 inline bool equalityops( const formulaoperator fo)
 {
+    // return equalityopslookup[fo];
     return (fo == formulaoperator::folte
             || fo == formulaoperator::folt
             || fo == formulaoperator::foe
@@ -481,8 +596,67 @@ inline bool equalityops( const formulaoperator fo)
             || fo == formulaoperator::fodisjoint);
 }
 
+inline std::map<formulaoperator,bool> quantifieropslookup {
+                            {formulaoperator::foqexists,true},
+                            {formulaoperator::foqforall,true},
+                            {formulaoperator::foqsum,true},
+                            {formulaoperator::foqproduct,true},
+                            {formulaoperator::foqmin,true},
+                            {formulaoperator::foqmax,true},
+                            {formulaoperator::foqrange,true},
+                            {formulaoperator::foqaverage,true},
+                            {formulaoperator::foqtally,true},
+                            {formulaoperator::foqcount,true},
+                            {formulaoperator::foqset,true},
+                            {formulaoperator::foqdupeset,true},
+                            {formulaoperator::foqtuple,true},
+                            {formulaoperator::foqunion,true},
+                            {formulaoperator::foqdupeunion,true},
+                            {formulaoperator::foqintersection,true},
+                            {formulaoperator::foqmedian,true},
+                            {formulaoperator::foqmode,true},
+                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foexponent,false},
+                            {formulaoperator::fotimes,false},
+                            {formulaoperator::fodivide,false},
+                            {formulaoperator::fomodulus,false},
+                            {formulaoperator::foplus,false},
+                            {formulaoperator::fominus,false},
+                            {formulaoperator::foe,false},
+                            {formulaoperator::folte,false},
+                            {formulaoperator::folt,false},
+                            {formulaoperator::fogte,false},
+                            {formulaoperator::fogt,false},
+                            {formulaoperator::fone,false},
+                            {formulaoperator::foelt,false},
+                            {formulaoperator::fonot,false},
+                            {formulaoperator::foand,false},
+                            {formulaoperator::foor,false},
+                            {formulaoperator::foxor,false},
+                            {formulaoperator::foimplies,false},
+                            {formulaoperator::foiff,false},
+                            {formulaoperator::foif,false},
+                            {formulaoperator::founion,false},
+                            {formulaoperator::fodupeunion,false},
+                            {formulaoperator::fointersection,false},
+                            {formulaoperator::foswitch,false},
+                            {formulaoperator::focases, false},
+                            {formulaoperator::foin, false},
+                            {formulaoperator::foas, false},
+                            {formulaoperator::fosetminus, false},
+                            {formulaoperator::fosetxor, false},
+                            {formulaoperator::fomeet, false},
+                            {formulaoperator::fodisjoint, false},
+                            {formulaoperator::fothreaded, false},
+                            {formulaoperator::forsort, false},
+                            {formulaoperator::forpartition, false}
+};
+
+
+
 inline bool quantifierops( const formulaoperator fo )
 {
+    // return quantifieropslookup[fo];
     return (fo == formulaoperator::foqforall
             || fo == formulaoperator::foqexists
             || fo == formulaoperator::foqproduct
@@ -503,8 +677,66 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqmode);
 }
 
+inline std::map<formulaoperator,bool> relationalopslookup {
+                            {formulaoperator::foqexists,false},
+                            {formulaoperator::foqforall,false},
+                            {formulaoperator::foqsum,false},
+                            {formulaoperator::foqproduct,false},
+                            {formulaoperator::foqmin,false},
+                            {formulaoperator::foqmax,false},
+                            {formulaoperator::foqrange,false},
+                            {formulaoperator::foqaverage,false},
+                            {formulaoperator::foqtally,false},
+                            {formulaoperator::foqcount,false},
+                            {formulaoperator::foqset,false},
+                            {formulaoperator::foqdupeset,false},
+                            {formulaoperator::foqtuple,false},
+                            {formulaoperator::foqunion,false},
+                            {formulaoperator::foqdupeunion,false},
+                            {formulaoperator::foqintersection,false},
+                            {formulaoperator::foqmedian,false},
+                            {formulaoperator::foqmode,false},
+                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foexponent,false},
+                            {formulaoperator::fotimes,false},
+                            {formulaoperator::fodivide,false},
+                            {formulaoperator::fomodulus,false},
+                            {formulaoperator::foplus,false},
+                            {formulaoperator::fominus,false},
+                            {formulaoperator::foe,false},
+                            {formulaoperator::folte,false},
+                            {formulaoperator::folt,false},
+                            {formulaoperator::fogte,false},
+                            {formulaoperator::fogt,false},
+                            {formulaoperator::fone,false},
+                            {formulaoperator::foelt,false},
+                            {formulaoperator::fonot,false},
+                            {formulaoperator::foand,false},
+                            {formulaoperator::foor,false},
+                            {formulaoperator::foxor,false},
+                            {formulaoperator::foimplies,false},
+                            {formulaoperator::foiff,false},
+                            {formulaoperator::foif,false},
+                            {formulaoperator::founion,false},
+                            {formulaoperator::fodupeunion,false},
+                            {formulaoperator::fointersection,false},
+                            {formulaoperator::foswitch,false},
+                            {formulaoperator::focases, false},
+                            {formulaoperator::foin, false},
+                            {formulaoperator::foas, false},
+                            {formulaoperator::fosetminus, false},
+                            {formulaoperator::fosetxor, false},
+                            {formulaoperator::fomeet, false},
+                            {formulaoperator::fodisjoint, false},
+                            {formulaoperator::fothreaded, false},
+                            {formulaoperator::forsort, true},
+                            {formulaoperator::forpartition, true}
+};
+
+
 inline bool relationalops( const formulaoperator fo )
 {
+    // return relationalopslookup[fo];
     return (fo == formulaoperator::forsort
             || fo == formulaoperator::forpartition);
 }
@@ -793,48 +1025,90 @@ valms evalformula::evalpslit( const int idx, namedparams& context, neighborstype
 
 
 
-valms evalformula::evalvariable( const variablestruct& v, const namedparams& context, const std::vector<int>& vidxin ) {
+valms evalformula::evalvariable( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin ) {
 
-    // if (v.l < 0)
-    //    v.l = lookup_variable(v.name,context);
-    int temp = lookup_variable(v.name,context); // next place to obtain big speedup...
+    // int temp = lookup_variable(v.name,context);
     valms res;
-    if (temp < 0)
-    {
-        res.t = mtdiscrete;
-        res.v.iv = 0;
-        std::cout << "Unknown variable " << v.name << std::endl;
-    } else
-    {
-        if (vidxin.size() == 0)
-            res = context[temp].second;
-        else {
-            if (vidxin.size() != 1)
-            {
-                std::cout << "Wrong number of parameters passed to de-index a variable\n";
-            } else
-            {
-                int index = vidxin[0];
-                auto pos = context[temp].second.seti->getitrpos();
-                int i = 0;
-                if (!pos->ended())
-                    while (!pos->ended() && i++ <= index)
-                        res = pos->getnext();
-                else
-                {
-                    std::cout << "Indexing into the empty set\n";
-                    res.t = mtdiscrete;
-                    res.v.iv = 0;
-                }
-            }
-        }
-
-    }
+    res = context[v.l].second;
     return res;
 }
 
+valms evalformula::evalvariablederef( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin ) {
 
-int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, const formulaclass* fc, namedparams& context, std::vector<valms>* v ) {
+    valms res;
+    int index = vidxin[0];
+    auto pos = context[v.l].second.seti->getitrpos();
+    pos->reset();
+    int i = 0;
+    if (!pos->ended())
+        while (!pos->ended() && i++ <= index)
+            res = pos->getnext();
+    else
+    {
+        std::cout << "Indexing into the empty set\n";
+        res.t = mtdiscrete;
+        res.v.iv = 0;
+    }
+
+    return res;
+}
+
+void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& context )
+{
+    if (fc)
+    {
+        if (fc->fo == formulaoperator::fovariable || fc->fo == formulaoperator::fovariablederef)
+        {
+            if (fc->v.vs.l < 0)
+                if (context[context.size()-1].first == fc->v.vs.name)
+                    fc->v.vs.l = context.size()-1;
+                else
+                {
+                    bool found = false;
+                    int j;
+                    for (j = context.size()-2; j >= 0 && !found; j--)
+                        found = context[j].first == fc->v.vs.name;
+                    if (!found)
+                        std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
+                    else
+                        fc->v.vs.l = j+1;
+                }
+        } else if (quantifierops(fc->fo) || fc->fo == formulaoperator::fonaming || relationalops(fc->fo))
+        {
+            valms v;
+            // int startingsize = context.size();
+            namedparams contexttemp = context;
+            for (int i = 0; i < fc->fcright->boundvariables.size(); i++)
+            {
+                preprocessbindvariablenames(fc->fcright->boundvariables[i]->superset, context);
+                preprocessbindvariablenames(fc->fcright->boundvariables[i]->alias, context);
+                contexttemp.push_back({fc->fcright->boundvariables[i]->name,v });
+            }
+            preprocessbindvariablenames(fc->fcright->criterion, contexttemp);
+            preprocessbindvariablenames(fc->fcright,contexttemp);
+            // context.resize(startingsize);
+        } else
+        {
+            preprocessbindvariablenames(fc->fcright,context);
+            preprocessbindvariablenames(fc->fcleft,context);
+            preprocessbindvariablenames(fc->criterion,context);
+            preprocessbindvariablenames(fc->v.criterion,context);
+            for (int i = 0; i < fc->boundvariables.size(); ++i)
+            {
+                preprocessbindvariablenames(fc->boundvariables[i]->alias,context);
+                preprocessbindvariablenames(fc->boundvariables[i]->superset,context);
+                preprocessbindvariablenames(fc->boundvariables[i]->value,context);
+            }
+            for (int i = 0; i < fc->v.fns.ps.size(); ++i)
+                preprocessbindvariablenames(fc->v.fns.ps[i],context);
+            for (int i = 0; i < fc->v.lit.ps.size(); ++i)
+                preprocessbindvariablenames(fc->v.lit.ps[i],context);
+        }
+    }
+}
+
+
+int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v ) {
     int pivot = arr[start];
     int count = 0;
 
@@ -874,7 +1148,7 @@ int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, c
     return pivotIndex;
 }
 
-void evalmformula::quickSort( std::vector<int> &arr, int start, int end, const formulaclass* fc, namedparams& context, std::vector<valms>* v ) {
+void evalmformula::quickSort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v ) {
 
     if (start >= end)
         return;
@@ -887,42 +1161,38 @@ void evalmformula::quickSort( std::vector<int> &arr, int start, int end, const f
 
 
 
-valms evalformula::eval( const formulaclass& fc, const namedparams& context) {}
+valms evalformula::eval( formulaclass& fc, namedparams& context) {}
 
 
-valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
+valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 {
     valms res;
     if (fc.fo == formulaoperator::foliteral) {
         if (fc.v.lit.ps.empty())
         {
-            if (fc.v.lit.l >= 0 && fc.v.lit.l < literals.size()) {
+            // if (fc.v.lit.l >= 0 && fc.v.lit.l < literals.size()) {
                 res = literals[fc.v.lit.l];
-            } else {
-                if (fc.v.lit.l < 0 && ((int)literals.size() + fc.v.lit.l >= 0))
-                {
-                    res = literals[literals.size() + fc.v.lit.l];
-                }
-                else {
-                    std::cout << "Error eval'ing formula\n";
-                    exit(1);
-                    return res;
-                }
-            }
+            // } else {
+                // if (fc.v.lit.l < 0 && ((int)literals.size() + fc.v.lit.l >= 0))
+                // {
+                    // res = literals[literals.size() + fc.v.lit.l];
+                // }
+                // else {
+                    // std::cout << "Error eval'ing formula\n";
+                    // exit(1);
+                    // return res;
+                // }
+            // }
         } else {
             std::vector<valms> ps {};
             int i = 0;
             for (auto f : fc.v.lit.ps) {
                 ps.push_back(evalinternal(*f, context));
-                // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
-                // std::cout << fc.v.lit.ps[i++]->v.qc->qs.t << "\n";
             }
             neighborstype* subgraph {};
             if (fc.v.subgraph)
             {
-                //                subgraph = ps[0].v.nsv;
                 subgraph = ps[0].v.nsv;
-                // ps.erase(ps.begin());
                 ps.erase(ps.begin());
             }
             res = evalpslit(fc.v.lit.l, context, subgraph, ps);
@@ -1021,29 +1291,29 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
             delete pos;
             return res;
         }
-    case formulaoperator::fovariable: {
-            if (fc.v.vs.ps.empty())
-            {
-                std::vector<int> ps {};
-                res = evalvariable(fc.v.vs, context, ps);
-            } else {
-                std::vector<int> ps {};
-                for (auto f : fc.v.vs.ps) {
-                    ps.push_back(evalinternal(*f, context).v.iv);
-                    // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
-                }
-                res = evalvariable(fc.v.vs, context,ps);
-            }
+    case formulaoperator::fovariable:
+        {
+            std::vector<int> ps {};
+            res = evalvariable(fc.v.vs, context, ps);
             return res;
-    }
+        }
+
+    case formulaoperator::fovariablederef:
+        {
+            std::vector<int> ps {};
+            for (auto f : fc.v.vs.ps) {
+                ps.push_back(evalinternal(*f, context).v.iv);
+                // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
+            }
+            res = evalvariable(fc.v.vs, context,ps);
+            return res;
+        }
 
     case (formulaoperator::foelt):
         {
             res.t = measuretype::mtbool;
             valms set = evalinternal(*fc.fcright,context );
             valms itm = evalinternal( *fc.fcleft,context );
-
-
             if (set.t == mtset || set.t == mttuple)
             {
                 //                res.v.bv = set.seti->iselt(itm);
@@ -1204,14 +1474,13 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                 vv.push_back(v);
             }
         }
-        std::vector<int> a {};
-        a.resize(fc.fcright->boundvariables.size());
-        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-            a[j] = -1;
+        std::vector<std::pair<int,int>> a {};
+        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j)
+        {
             if (fc.fcright->boundvariables[j]->alias) {
                 valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
                 context.push_back({fc.fcright->boundvariables[j]->name,v});
-                a[j] = context.size()-1;
+                a.push_back({context.size()-1,j});
             }
         }
         /* THE FOLLOWING CODE THOUGH ELEGANT SLOWS DOWN BY A THREE-FOLD FACTOR
@@ -2648,14 +2917,13 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                 vv.push_back(v);
             }
         }
-        std::vector<int> a {};
-        a.resize(fc.fcright->boundvariables.size());
-        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-            a[j] = -1;
+        std::vector<std::pair<int,int>> a {};
+        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j)
+        {
             if (fc.fcright->boundvariables[j]->alias) {
                 valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
                 context.push_back({fc.fcright->boundvariables[j]->name,v});
-                a[j] = context.size()-1;
+                a.push_back({context.size()-1,j});
             }
         }
 
@@ -2697,13 +2965,10 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                             if (supersetpos[supersetpos.size()-2]->ended())
                                 break;
                             context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
-                            for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-                                if (a[j] >= 0) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
-                                    context[a[j]].second = v;
-                                }
+                            for (int j = 0; j < a.size(); ++j) {
+                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                context[a[j].first].second = v;
                             }
-
                         }
                     std::vector<valms> c {};
                     for (auto a : tot)
@@ -2736,11 +3001,9 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                             if (supersetpos[supersetpos.size()-1]->ended())
                                 break;
                             context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                            for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-                                if (a[j] >= 0) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
-                                    context[a[j]].second = v;
-                                }
+                            for (int j = 0; j < a.size(); ++j) {
+                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                context[a[j].first].second = v;
                             }
                         }
                     arr.resize(v.size());
@@ -2801,13 +3064,10 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                             if (supersetpos[supersetpos.size()-2]->ended())
                                 break;
                             context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
-                            for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-                                if (a[j] >= 0) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
-                                    context[a[j]].second = v;
-                                }
+                            for (int j = 0; j < a.size(); ++j) {
+                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                context[a[j].first].second = v;
                             }
-
                         }
                     std::vector<valms> c {};
                     for (auto a : tot)
@@ -2844,12 +3104,11 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
                             if (supersetpos[supersetpos.size()-1]->ended())
                                 break;
                             context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                            for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-                                if (a[j] >= 0) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
-                                    context[a[j]].second = v;
-                                }
+                            for (int j = 0; j < a.size(); ++j) {
+                                valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+                                context[a[j].first].second = v;
                             }
+
                         }
                     arr.resize(v.size());
                     for (int i = 0; i < arr.size(); i++)
@@ -2877,17 +3136,6 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
         context.resize(originalcontextsize);
         return res;
     }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3187,30 +3435,29 @@ valms evalmformula::evalinternal( const formulaclass& fc, namedparams& context )
 
 }
 
-void evalmformula::quantifiermultipleadvance( const formulaclass& fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<int> &a )
+void evalmformula::quantifiermultipleadvance( formulaclass& fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<std::pair<int,int>> &a )
 {
     while (k < supersetpos.size() && supersetpos[k]->ended())
         ++k;
-    if (k < supersetpos.size()) {
+    if (k < supersetpos.size())
+    {
         context[i[k]].second = supersetpos[k]->getnext();
         for (int l = 0; l < k; ++l) {
             supersetpos[l]->reset();
             context[i[l]].second = supersetpos[l]->getnext();
         }
-        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-            if (a[j] >= 0) {
-                valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
-                context[a[j]].second = v;
-            }
+        for (int j = 0; j < a.size(); ++j)
+        {
+            valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+            context[a[j].first].second = v;
         }
         k = 0;
     }
 }
 
 
-inline valms evalmformula::eval( const formulaclass& fc, const namedparams& context )
+inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
 {
-    // if (!fc.v.subgraph) {
     if (idx >= 0)
     {
         literals.resize(rec->literals.size());
@@ -3220,12 +3467,18 @@ inline valms evalmformula::eval( const formulaclass& fc, const namedparams& cont
     {
         literals.clear();
     }
-    // } else
-    // { // subgraph case
-        // literals.clear();
+
+    // namedparams contextlocal {};
+    // for (int i = 0; i < context.size(); ++i)
+    // {
+        // contextlocal.push_back(context[i]);
+        // bindvariablenames(&fc,contextlocal);
     // }
-    namedparams contextlocal = context;
-    return evalinternal( fc, contextlocal );
+
+    // auto contextlocal = context;
+    preprocessbindvariablenames(&fc,context);
+
+    return evalinternal( fc, context );
 }
 
 
@@ -3972,11 +4225,6 @@ inline formulaclass* parseformulainternal(
             fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
             fcright->boundvariables = qcs;
 
-            // if (argcnt == 3)
-            // {
-                // qc->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  fnptrs);
-            // }
-
             formulaclass* fcleft = nullptr;
             formulaoperator o = lookupoperator(tok);
             formulavalue fv {};
@@ -3991,7 +4239,7 @@ inline formulaclass* parseformulainternal(
         if (is_threaded(tok))
         {
             formulavalue fv {};
-            auto fc = parseformulainternal(q,pos,litnumps,littypes,litnames,ps, fnptrs);
+            auto fc = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
             if (!quantifierops(fc->fo))
             {
                 std::cout << "THREADED keyword must be followed by a quantifier\n";
@@ -4058,13 +4306,10 @@ inline formulaclass* parseformulainternal(
                 }
             }
 
-
-
             if (pos2 >= q.size() && qcs.size() == 0) {
                 std::cout << "Quantifier not containing an 'IN'\n";
                 exit(1);
             }
-
 
             int pos3 = pos+1;
             int lastpos3 = pos3;
@@ -4297,7 +4542,7 @@ inline formulaclass* parseformulainternal(
                 pos += 2;
                 if (q[pos] == "1")
                 {
-                    fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+                    fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariablederef);
                     fc->v.vs.name = tok;
                     fc->v.vs.l = -1;
                     fc->v.vs.ps.clear();
@@ -4316,11 +4561,6 @@ inline formulaclass* parseformulainternal(
             return fc;
         }
     }
-
-
-
-
-
 
     std::cout << "Error in parsing formula\n";
     exit(1);
@@ -4364,7 +4604,7 @@ inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> boun
                 return true;
         }
     }
-    if (fc->fo == formulaoperator::fovariable)
+    if (fc->fo == formulaoperator::fovariable || fc->fo == formulaoperator::fovariablederef)
     {
         for (auto s : bound)
             if (fc->v.vs.name == s)

@@ -45,7 +45,7 @@ enum class formulaoperator
     foqforall, foqexists,
     foplus, fominus, fotimes, fodivide, foexponent, fomodulus,
     folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt,
-    foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable,
+    foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable, fovariablederef,
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqtuple, foqunion, foqdupeunion, foqintersection,
     foqmedian, foqmode,
@@ -213,10 +213,6 @@ bool graphsequal( graphtype* g1, graphtype* g2 );
 using params = std::vector<valms>;
 
 using namedparams = std::vector<std::pair<std::string,valms>>;
-
-class setitr;
-
-class itrpos;
 
 class setitr
 {
@@ -2037,9 +2033,9 @@ class qclass {
 public:
     std::string name;
     valms qs;
-    formulaclass* superset;
-    formulaclass* alias;
-    formulaclass* value;
+    formulaclass* superset {};
+    formulaclass* alias {};
+    formulaclass* value {};
     bool secondorder = false;
     void eval( const std::vector<std::string>& q, int& pos)
     {
@@ -2230,8 +2226,6 @@ inline int lookup_variable( const std::string& tok, const namedparams& context) 
     return i+1;
 }
 
-
-
 struct formulavalue {
     valms v;
     litstruct lit;
@@ -2246,7 +2240,7 @@ struct formulavalue {
 class formulaclass {
 public:
     std::vector<qclass*> boundvariables {};
-    formulaclass* criterion;
+    formulaclass* criterion {};
     formulavalue v;
     formulaclass* fcleft;
     formulaclass* fcright;
@@ -2261,10 +2255,10 @@ public:
         //    for (auto fnf : v.fns.ps)
         //        delete fnf;
         //}
-        if (fo == formulaoperator::fovariable) {
+        // if (fo == formulaoperator::fovariable) {
             //if (v.v.t == mtset || v.v.t == mtpairset)
             //    delete v.v.seti;
-        }
+        // }
     }
 
 };
@@ -2343,14 +2337,18 @@ formulaclass* parseformula(
 
 class evalformula
 {
+protected:
+    void preprocessbindvariablenames( formulaclass* fc, namedparams& context );
+
 public:
     graphtype* g {};
     std::vector<valms> literals {};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
 
     virtual valms evalpslit( const int idx, namedparams& context, neighborstype* subgraph, params& ps );
-    virtual valms evalvariable( const variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
-    virtual valms eval( const formulaclass& fc, const namedparams& context );
+    virtual valms evalvariable( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
+    virtual valms evalvariablederef( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
+    virtual valms eval( formulaclass& fc, namedparams& context );
     evalformula();
 
     ~evalformula()
