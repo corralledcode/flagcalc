@@ -1,3 +1,3 @@
-[connm] > 1 END
-[forestc] AND ([connm] <= 1) END
-[treec] END
+connm > 1 END
+forestc AND (connm <= 1) END
+treec END
