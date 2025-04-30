@@ -4270,16 +4270,22 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             }
                             while (v.size() > 1)
                             {
-                                const int pos = thread_count <= ceil((v.size())/2.0) ? thread_count : ceil((v.size())/2.0);
+                                const int pos = thread_count <= ceil((v.size()-1)/2.0) ? thread_count-1 : ceil((v.size()-1)/2.0);
                                 std::vector<std::future<void>> t;
-                                t.resize(pos);
+                                t.resize(pos+1);
                                 for (int m = 0; m < pos; ++m) {
                                     const int i = m;
                                     const int j = pos + m;
                                     t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],&v[i],&v[j],&a);
                                 }
-                                for (int m = 0; m < pos ; ++m)
-                                    t[m].get();
+                                if (v.size() % 2 != 0)
+                                    t[pos] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[pos],&v[0],&v[v.size()-1],&a);
+                                if (v.size() % 2 != 0)
+                                    for (int m = 0; m < pos+1 ; ++m)
+                                        t[m].get();
+                                else
+                                    for (int m = 0; m < pos; ++m)
+                                        t[m].get();
                                 v.resize(pos);
                                 // for (int m = pos-1; m >= 0; --m)
                                     // v.erase(v.begin()+2*m+1);
