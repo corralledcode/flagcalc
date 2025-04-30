@@ -1077,23 +1077,21 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                     }
                 else
                 {
-                    std::cout << "Unknown variable name " << fc->v.vs.name << "\n";
+                    std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables (2))\n";
                 }
             }
         } else if (quantifierops(fc->fo) || fc->fo == formulaoperator::fonaming || relationalops(fc->fo))
         {
             valms v;
-            // int startingsize = context.size();
             namedparams contexttemp = context;
             for (int i = 0; i < fc->fcright->boundvariables.size(); i++)
             {
-                preprocessbindvariablenames(fc->fcright->boundvariables[i]->superset, context);
-                preprocessbindvariablenames(fc->fcright->boundvariables[i]->alias, context);
+                preprocessbindvariablenames(fc->fcright->boundvariables[i]->superset, contexttemp);
+                preprocessbindvariablenames(fc->fcright->boundvariables[i]->alias, contexttemp);
                 contexttemp.push_back({fc->fcright->boundvariables[i]->name,v });
             }
             preprocessbindvariablenames(fc->fcright->criterion, contexttemp);
             preprocessbindvariablenames(fc->fcright,contexttemp);
-            // context.resize(startingsize);
         } else
         {
             preprocessbindvariablenames(fc->fcright,context);
@@ -1178,10 +1176,9 @@ void evalmformula::threadeval(formulaclass* fc, namedparams* context, valms* res
     *res = this->evalinternal(*fc, *context);
 }
 
-void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a )
+void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int  contextidxB,
+    std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a )
 {
-    auto contextidxA = context->size()-1;
-    auto contextidxB = context->size()-2;
     if (v2->size() == 0)
         return;
     while (true)
@@ -3982,6 +3979,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         auto criterion = fc.fcright->criterion;
         bool vacuouslytrue = false;
         std::vector<bool> needtodeletevseti {};
+        int contextidxA = -1;
+        int contextidxB = -1;
         needtodeletevseti.resize(fc.fcright->boundvariables.size());
         for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
             valms v;
@@ -4006,6 +4005,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 supersetpos.push_back(v.seti->getitrpos());
                 ss.push_back(nullptr);
                 context.push_back({fc.fcright->boundvariables[j]->name,fc.fcright->boundvariables[j]->qs});
+                if (contextidxB < 0)
+                    contextidxB = context.size()-1;
+                else
+                    contextidxA = context.size()-1;
                 i.push_back( context.size()-1 );
                 supersetpos[supersetpos.size()-1]->reset();
                 if (supersetpos[supersetpos.size()-1]->ended()) {
@@ -4036,13 +4039,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<std::vector<valms>> tot {};
                         res.t = mtset;
 
-                        if (fc.fcright->boundvariables.size() != 2)
-                        {
-                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
-                            exit(1);
-                        }
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
+                        // if (fc.fcright->boundvariables.size() != 2)
+                        // {
+                            // std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            // exit(1);
+                        // }
                         if (!vacuouslytrue)
                             while (true)
                             {
@@ -4090,8 +4091,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             exit(1);
                         }
                         std::vector<valms> v {};
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
                         std::vector<int> arr;
                         if (!vacuouslytrue)
                             while (true)
@@ -4131,13 +4130,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<std::vector<valms>> tot {};
                         res.t = mtset;
 
-                        if (fc.fcright->boundvariables.size() != 2)
-                        {
-                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
-                            exit(1);
-                        }
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
+                        // if (fc.fcright->boundvariables.size() != 2)
+                        // {
+                            // std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            // exit(1);
+                        // }
                         if (!vacuouslytrue)
                             while (true)
                             {
@@ -4163,6 +4160,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (supersetpos[supersetpos.size()-2]->ended())
                                     break;
                                 context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
+                                context[contextidxA].second = context[contextidxB].second;
                                 for (int j = 0; j < a.size(); ++j) {
                                     valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
                                     context[a[j].first].second = v;
@@ -4237,37 +4235,23 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<std::vector<valms>> tot {};
                         res.t = mtset;
 
-                        if (fc.fcright->boundvariables.size() != 2)
-                        {
-                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
-                            exit(1);
-                        }
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
+                        // if (fc.fcright->boundvariables.size() != 2)
+                        // {
+                            // std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            // exit(1);
+                        // } not true if using AS
                         std::vector<std::vector<std::vector<valms>>> v {};
                         if (!vacuouslytrue)
                         {
                             std::vector<namedparams> contexts;
                             contexts.resize(thread_count);
                             for (int m = 0; m < thread_count; ++m)
-                            {
-                                // contexts[m].clear();
                                 contexts[m] = context;
-                            }
-                            // for (auto c : context)
-                                // for (int m = 0; m < thread_count; ++m)
-                                    // contexts[m].push_back(c);
 
-                            v.push_back({{context[context.size()-1].second}});
+                            v.push_back({{context[contextidxA].second}});
                             const int j = supersetpos.size()-1;
                             while (!supersetpos[supersetpos.size()-1]->ended())
-                            {
                                 v.push_back({{supersetpos[j]->getnext()}});
-                                // v.resize(v.size()+1);
-                                // int i = v.size()-1;
-                                // v[i].clear();
-                                // v[i].push_back({supersetpos[supersetpos.size()-1]->getnext()});
-                            }
                             while (v.size() > 1)
                             {
                                 const int pos = thread_count <= ceil((v.size()-1)/2.0) ? thread_count-1 : ceil((v.size()-1)/2.0);
@@ -4276,10 +4260,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 for (int m = 0; m < pos; ++m) {
                                     const int i = m;
                                     const int j = pos + m;
-                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],&v[i],&v[j],&a);
+                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA,contextidxB,&v[i],&v[j],&a);
                                 }
                                 if (v.size() % 2 != 0)
-                                    t[pos] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[pos],&v[0],&v[v.size()-1],&a);
+                                    t[pos] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[pos],contextidxA,contextidxB,&v[0],&v[v.size()-1],&a);
                                 if (v.size() % 2 != 0)
                                     for (int m = 0; m < pos+1 ; ++m)
                                         t[m].get();
@@ -4353,52 +4337,64 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     {
                         std::vector<std::vector<valms>> tot {};
                         res.t = mtset;
-
-                        if (fc.fcright->boundvariables.size() != 2)
-                        {
-                            std::cout << "PARTITION relational quantifier requires exactly two variables\n";
-                            exit(1);
-                        }
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
+                        // if (fc.fcright->boundvariables.size() != 2)
+                        // {
+                            // std::cout << "PARTITION relational quantifier requires exactly two variables\n";
+                            // exit(1);
+                        // } // not true if using AS in addition to IN
                         std::vector<std::vector<std::vector<valms>>> v {};
                         if (!vacuouslytrue)
                         {
                             std::vector<namedparams> contexts;
                             contexts.resize(thread_count);
                             for (int m = 0; m < thread_count; ++m)
-                                contexts[m].clear();
-                            for (auto c : context)
-                                for (int m = 0; m < thread_count; ++m)
-                                    contexts[m].push_back(c);
+                                contexts[m] = context;
 
-                            v.resize(1);
-                            v[0].push_back({context[context.size()-1].second});
+                            v.push_back({{context[contextidxA].second}});
+                            const int i = v.size()-1;
+                            context[contextidxB].second = v[i][0][0];
+                            context[contextidxA].second = v[i][0][0];
+                            for (int l = 0; l < a.size(); ++l) {
+                                valms v = evalinternal(*fc.boundvariables[a[l].second]->alias, context);
+                                context[a[l].first].second = v;
+                            }
+                            if (!evalinternal(*criterion,context).v.bv)
+                                v.resize(i);
+                            const int j = supersetpos.size()-1;
                             while (!supersetpos[supersetpos.size()-1]->ended())
                             {
-                                v.resize(v.size()+1);
-                                int i = v.size()-1;
-                                v[i].clear();
-                                v[i].push_back({supersetpos[supersetpos.size()-1]->getnext()});
-                                context[context.size()-2] = {fc.fcright->boundvariables[0]->name,v[i][v[i].size()-1][0]};
-                                context[context.size()-1] = {fc.fcright->boundvariables[1]->name,v[i][v[i].size()-1][0]};
-                                if (!evalinternal(*criterion,context).v.bv)
-                                    v[i].resize(v[i].size()-1);
-                            }
-                            while (v.size() >= 2)
-                            {
-                                int pos = thread_count <= ceil((v.size()-1)/2.0) ? thread_count : ceil((v.size()-1)/2.0);
-                                std::vector<std::future<void>> t;
-                                t.resize(pos);
-                                for (int m = 0; m < pos; ++m) {
-                                    int i = 2*m;
-                                    int j = 2*m+1;
-                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],&v[i],&v[j],&a);
+                                v.push_back({{supersetpos[j]->getnext()}});
+                                const int i = v.size()-1;
+                                context[contextidxB].second = v[i][0][0];
+                                context[contextidxA].second = v[i][0][0];
+                                for (int l = 0; l < a.size(); ++l) {
+                                    valms v = evalinternal(*fc.boundvariables[a[l].second]->alias, context);
+                                    context[a[l].first].second = v;
                                 }
-                                for (int m = 0; m < pos ; ++m)
-                                    t[m].get();
-                                for (int m = pos-1; m >= 0; --m)
-                                    v.erase(v.begin()+2*m+1);
+                                if (!evalinternal(*criterion,context).v.bv)
+                                    v.resize(i);
+                            }
+                            while (v.size() > 1)
+                            {
+                                const int pos = thread_count <= ceil((v.size()-1)/2.0) ? thread_count-1 : ceil((v.size()-1)/2.0);
+                                std::vector<std::future<void>> t;
+                                t.resize(pos+1);
+                                for (int m = 0; m < pos; ++m) {
+                                    const int i = m;
+                                    const int j = pos + m;
+                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA, contextidxB, &v[i],&v[j],&a);
+                                }
+                                if (v.size() % 2 != 0)
+                                    t[pos] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[pos],contextidxA,contextidxB,&v[0],&v[v.size()-1],&a);
+                                if (v.size() % 2 != 0)
+                                    for (int m = 0; m < pos+1 ; ++m)
+                                        t[m].get();
+                                else
+                                    for (int m = 0; m < pos; ++m)
+                                        t[m].get();
+                                v.resize(pos);
+                                // for (int m = pos-1; m >= 0; --m)
+                                    // v.erase(v.begin()+2*m+1);
                             }
                         } else
                             v.push_back({});

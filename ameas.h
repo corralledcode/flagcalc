@@ -524,7 +524,8 @@ public:
     valms evalinternal( formulaclass& fc, namedparams& context );
     void threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res);
     void threadeval(formulaclass* fc, namedparams* context, valms* res);
-    void partitionmerge( formulaclass* fc, namedparams* context, std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
+    void partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int contextidxB,
+        std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
 
     evalmformula( mrecords* recin, const int idxin );
     evalmformula( mrecords* recin, neighborstype* nsin );
