@@ -260,6 +260,15 @@ $PTH/flagcalc -d f="a bc def ghij" -a p="SORT (s,t IN Ps(V), st(s) == cliquem(Su
 $PTH/flagcalc -d f="abcd" -a e="THREADED PARTITION (u,v IN Ps(V), st(u) % 2 == 0, st(u)==st(v)) " all -v measg set allsets i=minimal3.cfg
 
 # a few chosen from earlier in the script, now THREADED
-$PTH/flagcalc -r 10 10 1 -a s="THREADED FORALL (n IN NN(dimm), EXISTS (s IN Ps(V), EXISTS (t IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/(n+1)) AND st(t) == floor(n*dimm/(n+1)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 11 10 1 -a s="THREADED FORALL (n IN NN(dimm), EXISTS (s IN Ps(V), EXISTS (t IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/(n+1)) AND st(t) == floor(n*dimm/(n+1)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 11 10 1 -a s="FORALL (n IN NN(dimm), THREADED EXISTS (s IN Ps(V), EXISTS (t IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/(n+1)) AND st(t) == floor(n*dimm/(n+1)))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 15 1 -a s="THREADED FORALL (s IN Ps(V), s == V OR EXISTS (t IN Ps(V), EXISTS (u IN Ps(V), (NOT (u <= s)) AND (NOT (t <= s)) AND ((s CAP t) <= s))))" all
 $PTH/flagcalc -d testbip12.dat -a s="THREADED EXISTS (n IN NN(dimm+1), EXISTS (l IN Sizedsubset(V,n), EXISTS (r IN Sizedsubset(V,dimm - n), st(r CUP l) == dimm AND FORALL (a IN l, FORALL (b IN l, NOT ac(a,b))) AND FORALL (c IN r, FORALL (d IN r, NOT ac(c,d))))))" all
+
+$PTH/flagcalc -r 11 10 1 -a e="THREADED SET (n IN dimm, SET (s IN Ps(V), t IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/(n+1)) AND st(t) == floor(n*dimm/(n+1)), {s,t}))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 11 10 1 -a e="THREADED SET (n IN dimm, SET (s IN Ps(V), t IN Ps(V), (s CUP t) == V AND st(s) == n AND st(t) == dimm-n, {s,t}))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 11 10 1 -a e="SET (n IN dimm, THREADED SET (s IN Ps(V), SET (t IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/(n+1)) AND st(t) == floor(n*dimm/(n+1)), {s,t})))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 11 10 1 -a e="SET (n IN dimm, THREADED SETD (s IN Ps(V), SETD (t IN Ps(V), (s CUPD t) == V AND st(s) == n AND st(t) == dimm-n, {s,t})))" all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 150 75 1 -a e="THREADED PARTITION (u,v IN V, connvc(u,v))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set allsets i=minimal3.cfg

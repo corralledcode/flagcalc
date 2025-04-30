@@ -1060,19 +1060,26 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
         if (fc->fo == formulaoperator::fovariable || fc->fo == formulaoperator::fovariablederef)
         {
             if (fc->v.vs.l < 0)
-                if (context[context.size()-1].first == fc->v.vs.name)
-                    fc->v.vs.l = context.size()-1;
+            {
+                if (context.size()>0)
+                    if (context[context.size()-1].first == fc->v.vs.name)
+                        fc->v.vs.l = context.size()-1;
+                    else
+                    {
+                        bool found = false;
+                        int j;
+                        for (j = context.size()-2; j >= 0 && !found; j--)
+                            found = context[j].first == fc->v.vs.name;
+                        if (!found)
+                            std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
+                        else
+                            fc->v.vs.l = j+1;
+                    }
                 else
                 {
-                    bool found = false;
-                    int j;
-                    for (j = context.size()-2; j >= 0 && !found; j--)
-                        found = context[j].first == fc->v.vs.name;
-                    if (!found)
-                        std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
-                    else
-                        fc->v.vs.l = j+1;
+                    std::cout << "Unknown variable name " << fc->v.vs.name << "\n";
                 }
+            }
         } else if (quantifierops(fc->fo) || fc->fo == formulaoperator::fonaming || relationalops(fc->fo))
         {
             valms v;
@@ -1177,28 +1184,29 @@ void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, std::
     auto contextidxB = context->size()-2;
     if (v2->size() == 0)
         return;
-    int i;
     while (true)
     {
+        int i;
         bool found = false;
-        (*context)[contextidxB].second = (*v2)[0][0];
+        (*context)[contextidxB].second = (*v2)[v2->size()-1][0];
         for (i = 0; i < v1->size() && !found; ++i)
         {
             (*context)[contextidxA].second = (*v1)[i][0];
+            for (int l = 0; l < a->size(); ++l) {
+                valms v = evalinternal(*fc->boundvariables[(*a)[l].second]->alias, *context);
+                (*context)[(*a)[l].first].second = v;
+            }
             found = evalinternal(*fc, *context).v.bv;
         }
         int k;
         if (found)
-            k = i-1;
-        else
         {
-            (*v1).resize(v1->size()+1);
-            k = v1->size()-1;
-            (*v1)[k].clear();
-        }
-        for (auto b : (*v2)[0])
-            (*v1)[k].push_back(b);
-        v2->erase(v2->begin());
+            k = i-1;
+            for (auto b : (*v2)[v2->size()-1])
+                (*v1)[k].push_back(b);
+        } else
+            (*v1).push_back((*v2)[v2->size()-1]);
+        v2->resize(v2->size()-1);
         if (v2->size() <= 0)
             break;
         for (int l = 0; l < a->size(); ++l) {
@@ -1206,7 +1214,6 @@ void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, std::
             (*context)[(*a)[l].first].second = v;
         }
     }
-
 }
 
 
@@ -2283,21 +2290,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
                                     // || fc.fo == formulaoperator::foqaverage)
                             {
-                                switch (v.t) // headache maintaining code, but this slows down due to switch'ing on each iterant
-                                {
-                                case mtcontinuous:
-                                    res.v.dv += v.v.dv;
-                                    break;
-                                case mtdiscrete:
-                                    res.v.dv += v.v.iv;
-                                    break;
-                                case mtbool:
-                                    res.v.dv += v.v.bv ? 1 : 0;
-                                    break;
-                                case mtset:
-                                    res.v.dv += v.seti->getsize();
-                                    break;
-                                }
+                                double out;
+                                mtconverttocontinuous(v,out);
+                                res.v.dv += out;
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
 
@@ -2314,24 +2309,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (k < supersetpos.size() && !(res.v.dv == 0))
                         {
                             auto v = evalinternal(*fc.fcright, context);
-                            switch (v.t)
-                            {
-                            case mtcontinuous:
-                                res.v.dv *= v.v.dv;
-                                break;
-                            case mtdiscrete:
-                                res.v.dv *= v.v.iv;
-                                break;
-                            case mtbool:
-                                res.v.dv *= v.v.bv ? 1 : 0;
-                                break;
-                            case mtset:
-                            case mttuple:
-                                res.v.dv *= v.seti->getsize();
-                                break;
-                            }
+                            double out;
+                            mtconverttocontinuous(v,out);
+                            res.v.dv *= out;
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
                         }
                         break;
                     }
@@ -2346,22 +2327,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
                         {
                             auto v = evalinternal(*fc.fcright, context);
-                            switch (v.t)
-                            {
-                            case mtcontinuous:
-                                res.v.dv = v.v.dv;
-                                break;
-                            case mtdiscrete:
-                                res.v.dv = v.v.iv;
-                                break;
-                            case mtbool:
-                                res.v.dv = v.v.bv ? 1 : 0;
-                                break;
-                            case mtset:
-                                res.v.dv = v.seti->getsize();
-                                break;
-                            }
-
+                            mtconverttocontinuous(v,res.v.dv);
                             if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                 min = res.v.dv;
                             else
@@ -2383,21 +2349,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
                         {
                             auto v = evalinternal(*fc.fcright, context);
-                            switch (v.t)
-                            {
-                            case mtcontinuous:
-                                res.v.dv = v.v.dv;
-                                break;
-                            case mtdiscrete:
-                                res.v.dv = v.v.iv;
-                                break;
-                            case mtbool:
-                                res.v.dv = v.v.bv ? 1 : 0;
-                                break;
-                            case mtset:
-                                res.v.dv = v.seti->getsize();
-                                break;
-                            }
+                            mtconverttocontinuous(v,res.v.dv);
                             if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
                                 max = res.v.dv;
                             else
@@ -2419,22 +2371,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
                         {
                             auto v = evalinternal(*fc.fcright, context);
-                            switch (v.t)
-                            {
-                            case mtcontinuous:
-                                res.v.dv = v.v.dv;
-                                break;
-                            case mtdiscrete:
-                                res.v.dv = v.v.iv;
-                                break;
-                            case mtbool:
-                                res.v.dv = v.v.bv ? 1 : 0;
-                                break;
-                            case mtset:
-                                res.v.dv = v.seti->getsize();
-                                break;
-                            }
-
+                            mtconverttocontinuous(v,res.v.dv);
                             if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                 min = res.v.dv;
                             else
@@ -2456,26 +2393,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         int count = 0; // this is not foqcount but rather to be used to find average
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        while (k < supersetpos.size())
                         {
                             count++;  // this is not foqcount but rather to be used to find average
                             auto v = evalinternal(*fc.fcright, context);
-
-                            switch (v.t)
-                            {
-                            case mtcontinuous:
-                                res.v.dv += v.v.dv;
-                                break;
-                            case mtdiscrete:
-                                res.v.dv += v.v.iv;
-                                break;
-                            case mtbool:
-                                res.v.dv += v.v.bv ? 1 : 0;
-                                break;
-                            case mtset:
-                                res.v.dv += v.seti->getsize();
-                                break;
-                            }
+                            double out;
+                            mtconverttocontinuous(v,out);
+                            res.v.dv += out;
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
                         res.v.dv = count > 0 ? res.v.dv / count : 0;
@@ -2676,11 +2600,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (pos < thread_count && k < supersetpos.size())
                             {
                                 contexts[pos] = context;
-                                // contexts[pos].clear();
-                                // for (auto c : context)
-                                // {
-                                // contexts[pos].push_back(c);
-                                // }
                                 quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                                 pos++;
                             }
@@ -2732,30 +2651,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
-                                    switch (ress[m].t)
-                                    {
-                                    case mtcontinuous:
-                                        {
-                                            res.v.dv += ress[m].v.dv;
-                                            break;
-                                        }
-                                    case mtdiscrete:
-                                        {
-                                            res.v.dv += ress[m].v.iv;
-                                            break;
-                                        }
-                                    case mtbool:
-                                        {
-                                            res.v.dv += ress[m].v.bv ? 1 : 0;
-                                            break;
-                                        }
-                                    case mtset:
-                                    case mttuple:
-                                        {
-                                            res.v.dv += ress[m].seti->getsize();
-                                            break;
-                                        }
-                                    }
+                                {
+                                    double out;
+                                    mtconverttocontinuous(ress[m],out);
+                                    res.v.dv += out;
+                                }
                         }
                         break;
                     }
@@ -2789,30 +2689,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
-                                    switch (ress[m].t)
-                                    {
-                                    case mtcontinuous:
-                                        {
-                                            res.v.dv *= ress[m].v.dv;
-                                            break;
-                                        }
-                                    case mtdiscrete:
-                                        {
-                                            res.v.dv *= ress[m].v.iv;
-                                            break;
-                                        }
-                                    case mtbool:
-                                        {
-                                            res.v.dv *= ress[m].v.bv ? 1 : 0;
-                                            break;
-                                        }
-                                    case mtset:
-                                    case mttuple:
-                                        {
-                                            res.v.dv *= ress[m].seti->getsize();
-                                            break;
-                                        }
-                                    }
+                                {
+                                    double out;
+                                    mtconverttocontinuous(ress[m],out);
+                                    res.v.dv *= out;
+                                }
                         }
                         break;
                     }
@@ -2848,30 +2729,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
-                                    switch (ress[m].t)
-                                    {
-                                    case mtcontinuous:
-                                        {
-                                            res.v.dv = ress[m].v.dv;
-                                            break;
-                                        }
-                                    case mtdiscrete:
-                                        {
-                                            res.v.dv = ress[m].v.iv;
-                                            break;
-                                        }
-                                    case mtbool:
-                                        {
-                                            res.v.dv = ress[m].v.bv ? 1 : 0;
-                                            break;
-                                        }
-                                    case mtset:
-                                    case mttuple:
-                                        {
-                                            res.v.dv = ress[m].seti->getsize();
-                                            break;
-                                        }
-                                    }
+                                    mtconverttocontinuous(ress[m],res.v.dv);
                                     if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                         min = res.v.dv;
                                     else
@@ -2913,30 +2771,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
-                                    switch (ress[m].t)
-                                    {
-                                    case mtcontinuous:
-                                        {
-                                            res.v.dv = ress[m].v.dv;
-                                            break;
-                                        }
-                                    case mtdiscrete:
-                                        {
-                                            res.v.dv = ress[m].v.iv;
-                                            break;
-                                        }
-                                    case mtbool:
-                                        {
-                                            res.v.dv = ress[m].v.bv ? 1 : 0;
-                                            break;
-                                        }
-                                    case mtset:
-                                    case mttuple:
-                                        {
-                                            res.v.dv = ress[m].seti->getsize();
-                                            break;
-                                        }
-                                    }
+                                    mtconverttocontinuous(ress[m],res.v.dv);
                                     if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
                                         max = res.v.dv;
                                     else
@@ -2979,30 +2814,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
-                                    switch (ress[m].t)
-                                    {
-                                    case mtcontinuous:
-                                        {
-                                            res.v.dv = ress[m].v.dv;
-                                            break;
-                                        }
-                                    case mtdiscrete:
-                                        {
-                                            res.v.dv = ress[m].v.iv;
-                                            break;
-                                        }
-                                    case mtbool:
-                                        {
-                                            res.v.dv = ress[m].v.bv ? 1 : 0;
-                                            break;
-                                        }
-                                    case mtset:
-                                    case mttuple:
-                                        {
-                                            res.v.dv = ress[m].seti->getsize();
-                                            break;
-                                        }
-                                    }
+                                    mtconverttocontinuous(ress[m],res.v.dv);
                                     if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                         min = res.v.dv;
                                     else
@@ -3049,30 +2861,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (c[m])
                                 {
                                     ++count;
-                                    switch (ress[m].t)
-                                    {
-                                    case mtcontinuous:
-                                        {
-                                            res.v.dv += ress[m].v.dv;
-                                            break;
-                                        }
-                                    case mtdiscrete:
-                                        {
-                                            res.v.dv += ress[m].v.iv;
-                                            break;
-                                        }
-                                    case mtbool:
-                                        {
-                                            res.v.dv += ress[m].v.bv ? 1 : 0;
-                                            break;
-                                        }
-                                    case mtset:
-                                    case mttuple:
-                                        {
-                                            res.v.dv += ress[m].seti->getsize();
-                                            break;
-                                        }
-                                    }
+                                    double out;
+                                    mtconverttocontinuous(ress[m],out);
+                                    res.v.dv += out;
                                 }
                         }
                         res.v.dv = count > 0 ? res.v.dv/count : 0;
@@ -3109,9 +2900,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
-                                    valms tmp;
-                                    mtconverttodiscrete(ress[m],tmp.v.iv);
-                                    res.v.iv += tmp.v.iv;
+                                    int tmp;
+                                    mtconverttodiscrete(ress[m],tmp);
+                                    res.v.iv += tmp;
                                 }
                         }
                         break;
@@ -3147,9 +2938,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
-                                    valms tmp;
-                                    mtconverttobool(ress[m],tmp.v.bv);
-                                    if (tmp.v.bv)
+                                    bool tmp;
+                                    mtconverttobool(ress[m],tmp);
+                                    if (tmp)
                                         ++res.v.iv;
                                 }
                         }
@@ -3208,7 +2999,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                                 pos++;
                             }
-
                             std::vector<std::future<void>> t;
                             t.resize(pos);
                             std::vector<valms> ress;
@@ -3243,7 +3033,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                                 pos++;
                             }
-
                             std::vector<std::future<void>> t;
                             t.resize(pos);
                             std::vector<valms> ress;
@@ -3257,9 +3046,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (c[m]) {
                                     bool match = false;
                                     for (int i = 0; !match && i < tot.size(); i++)
-                                    {
                                         match = match || mtareequal(tot[i], ress[m]);
-                                    }
                                     if (!match)
                                         tot.push_back(ress[m]);
                                 }
@@ -3301,9 +3088,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
-                                    valms outv;
-                                    mtconverttoset(ress[m],outv.seti);
-                                    composite.push_back(outv.seti);
+                                    setitr* out;
+                                    mtconverttoset(ress[m],out);
+                                    composite.push_back(out);
                                 }
                         }
                         auto abstractpluralsetops = getsetitrpluralops(composite);
@@ -3346,11 +3133,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (pos < thread_count && k < supersetpos.size())
                             {
                                 contexts[pos] = context;
-                                // contexts[pos].clear();
-                                // for (auto c : context)
-                                // {
-                                // contexts[pos].push_back(c);
-                                // }
                                 quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                                 pos++;
                             }
@@ -3388,11 +3170,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (pos < thread_count && k < supersetpos.size())
                             {
                                 contexts[pos] = context;
-                                // contexts[pos].clear();
-                                // for (auto c : context)
-                                // {
-                                // contexts[pos].push_back(c);
-                                // }
                                 quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                                 pos++;
                             }
@@ -3440,31 +3217,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
                             for (int m = 0; m < pos; ++m)
                                 t[m].get();
+
                             for (int m = 0; m < pos ; ++m)
-                                switch (ress[m].t)
-                                {
-                                case mtcontinuous:
-                                    {
-                                        res.v.dv += ress[m].v.dv;
-                                        break;
-                                    }
-                                case mtdiscrete:
-                                    {
-                                        res.v.dv += ress[m].v.iv;
-                                        break;
-                                    }
-                                case mtbool:
-                                    {
-                                        res.v.dv += ress[m].v.bv ? 1 : 0;
-                                        break;
-                                    }
-                                case mtset:
-                                case mttuple:
-                                    {
-                                        res.v.dv += ress[m].seti->getsize();
-                                        break;
-                                    }
-                                }
+                            {
+                                double out;
+                                mtconverttocontinuous(ress[m],out);
+                                res.v.dv += out;
+                            }
                         }
                         break;
                     }
@@ -3496,30 +3255,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
-                                switch (ress[m].t)
-                                {
-                                case mtcontinuous:
-                                    {
-                                        res.v.dv *= ress[m].v.dv;
-                                        break;
-                                    }
-                                case mtdiscrete:
-                                    {
-                                        res.v.dv *= ress[m].v.iv;
-                                        break;
-                                    }
-                                case mtbool:
-                                    {
-                                        res.v.dv *= ress[m].v.bv ? 1 : 0;
-                                        break;
-                                    }
-                                case mtset:
-                                case mttuple:
-                                    {
-                                        res.v.dv *= ress[m].seti->getsize();
-                                        break;
-                                    }
-                                }
+                            {
+                                double out;
+                                mtconverttocontinuous(ress[m],out);
+                                res.v.dv *= out;
+                            }
                         }
                         break;
                     }
@@ -3553,30 +3293,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
                             {
-                                switch (ress[m].t)
-                                {
-                                case mtcontinuous:
-                                    {
-                                        res.v.dv = ress[m].v.dv;
-                                        break;
-                                    }
-                                case mtdiscrete:
-                                    {
-                                        res.v.dv = ress[m].v.iv;
-                                        break;
-                                    }
-                                case mtbool:
-                                    {
-                                        res.v.dv = ress[m].v.bv ? 1 : 0;
-                                        break;
-                                    }
-                                case mtset:
-                                case mttuple:
-                                    {
-                                        res.v.dv = ress[m].seti->getsize();
-                                        break;
-                                    }
-                                }
+                                mtconverttocontinuous(ress[m],res.v.dv);
                                 if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                     min = res.v.dv;
                                 else
@@ -3616,30 +3333,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
                             {
-                                switch (ress[m].t)
-                                {
-                                case mtcontinuous:
-                                    {
-                                        res.v.dv = ress[m].v.dv;
-                                        break;
-                                    }
-                                case mtdiscrete:
-                                    {
-                                        res.v.dv = ress[m].v.iv;
-                                        break;
-                                    }
-                                case mtbool:
-                                    {
-                                        res.v.dv = ress[m].v.bv ? 1 : 0;
-                                        break;
-                                    }
-                                case mtset:
-                                case mttuple:
-                                    {
-                                        res.v.dv = ress[m].seti->getsize();
-                                        break;
-                                    }
-                                }
+                                mtconverttocontinuous(ress[m],res.v.dv);
                                 if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
                                     max = res.v.dv;
                                 else
@@ -3680,30 +3374,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
                             {
-                                switch (ress[m].t)
-                                {
-                                case mtcontinuous:
-                                    {
-                                        res.v.dv = ress[m].v.dv;
-                                        break;
-                                    }
-                                case mtdiscrete:
-                                    {
-                                        res.v.dv = ress[m].v.iv;
-                                        break;
-                                    }
-                                case mtbool:
-                                    {
-                                        res.v.dv = ress[m].v.bv ? 1 : 0;
-                                        break;
-                                    }
-                                case mtset:
-                                case mttuple:
-                                    {
-                                        res.v.dv = ress[m].seti->getsize();
-                                        break;
-                                    }
-                                }
+                                mtconverttocontinuous(ress[m],res.v.dv);
                                 if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                     min = res.v.dv;
                                 else
@@ -3748,30 +3419,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                             {
                                 ++count;
-                                switch (ress[m].t)
-                                {
-                                case mtcontinuous:
-                                    {
-                                        res.v.dv += ress[m].v.dv;
-                                        break;
-                                    }
-                                case mtdiscrete:
-                                    {
-                                        res.v.dv += ress[m].v.iv;
-                                        break;
-                                    }
-                                case mtbool:
-                                    {
-                                        res.v.dv += ress[m].v.bv ? 1 : 0;
-                                        break;
-                                    }
-                                case mtset:
-                                case mttuple:
-                                    {
-                                        res.v.dv += ress[m].seti->getsize();
-                                        break;
-                                    }
-                                }
+                                double out;
+                                mtconverttocontinuous(ress[m],out);
+                                res.v.dv += out;
                             }
                         }
                         res.v.dv = count > 0 ? res.v.dv/count : 0;
@@ -3806,9 +3456,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
                             {
-                                valms tmp;
-                                mtconverttodiscrete(ress[m],tmp.v.iv);
-                                res.v.iv += tmp.v.iv;
+                                int out;
+                                mtconverttodiscrete(ress[m],out);
+                                res.v.iv += out;
                             }
                         }
                         break;
@@ -3842,9 +3492,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 t[m].get();
                             for (int m = 0; m < pos ; ++m)
                             {
-                                valms tmp;
-                                mtconverttobool(ress[m],tmp.v.bv);
-                                if (tmp.v.bv)
+                                bool out;
+                                mtconverttobool(ress[m],out);
+                                if (out)
                                     ++res.v.iv;
                             }
                         }
@@ -4016,7 +3666,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 }
             }
         }
-
 
         /* REPLACED WITH MORE EFFICIENT (ALBEIT MORE LONG) CODE
 
@@ -4378,7 +4027,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
 
         if (!fc.threaded)
-            if (!criterion) // RELATIONAL: not threaded, no criterion
+            if (!criterion) // RELATIONAL: case of not threaded, no criterion
             {
                 switch (fc.fo)
                 {
@@ -4601,34 +4250,39 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<namedparams> contexts;
                             contexts.resize(thread_count);
                             for (int m = 0; m < thread_count; ++m)
-                                contexts[m].clear();
-                            for (auto c : context)
-                                for (int m = 0; m < thread_count; ++m)
-                                    contexts[m].push_back(c);
+                            {
+                                // contexts[m].clear();
+                                contexts[m] = context;
+                            }
+                            // for (auto c : context)
+                                // for (int m = 0; m < thread_count; ++m)
+                                    // contexts[m].push_back(c);
 
-                            v.resize(1);
-                            v[0].push_back({context[context.size()-1].second});
+                            v.push_back({{context[context.size()-1].second}});
+                            const int j = supersetpos.size()-1;
                             while (!supersetpos[supersetpos.size()-1]->ended())
                             {
-                                v.resize(v.size()+1);
-                                int i = v.size()-1;
-                                v[i].clear();
-                                v[i].push_back({supersetpos[supersetpos.size()-1]->getnext()});
+                                v.push_back({{supersetpos[j]->getnext()}});
+                                // v.resize(v.size()+1);
+                                // int i = v.size()-1;
+                                // v[i].clear();
+                                // v[i].push_back({supersetpos[supersetpos.size()-1]->getnext()});
                             }
-                            while (v.size() >= 2)
+                            while (v.size() > 1)
                             {
-                                int pos = thread_count <= ceil((v.size()-1)/2.0) ? thread_count : ceil((v.size()-1)/2.0);
+                                const int pos = thread_count <= ceil((v.size())/2.0) ? thread_count : ceil((v.size())/2.0);
                                 std::vector<std::future<void>> t;
                                 t.resize(pos);
                                 for (int m = 0; m < pos; ++m) {
-                                    int i = 2*m;
-                                    int j = 2*m+1;
+                                    const int i = m;
+                                    const int j = pos + m;
                                     t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],&v[i],&v[j],&a);
                                 }
                                 for (int m = 0; m < pos ; ++m)
                                     t[m].get();
-                                for (int m = pos-1; m >= 0; --m)
-                                    v.erase(v.begin()+2*m+1);
+                                v.resize(pos);
+                                // for (int m = pos-1; m >= 0; --m)
+                                    // v.erase(v.begin()+2*m+1);
                             }
                         } else
                             v.push_back({});
