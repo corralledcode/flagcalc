@@ -1179,13 +1179,12 @@ void evalmformula::threadeval(formulaclass* fc, namedparams* context, valms* res
 void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int  contextidxB,
     std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a )
 {
-    if (v2->size() == 0)
-        return;
-    while (true)
+    while (v2->size() > 0)
     {
         int i;
+        const int k = v2->size()-1;
         bool found = false;
-        (*context)[contextidxB].second = (*v2)[v2->size()-1][0];
+        (*context)[contextidxB].second = (*v2)[k][0];
         for (i = 0; i < v1->size() && !found; ++i)
         {
             (*context)[contextidxA].second = (*v1)[i][0];
@@ -1195,21 +1194,13 @@ void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int c
             }
             found = evalinternal(*fc, *context).v.bv;
         }
-        int k;
         if (found)
         {
-            k = i-1;
-            for (auto b : (*v2)[v2->size()-1])
-                (*v1)[k].push_back(b);
+            for (auto b : (*v2)[k])
+                (*v1)[i-1].push_back(b);
         } else
-            (*v1).push_back((*v2)[v2->size()-1]);
-        v2->resize(v2->size()-1);
-        if (v2->size() <= 0)
-            break;
-        for (int l = 0; l < a->size(); ++l) {
-            valms v = evalinternal(*fc->boundvariables[(*a)[l].second]->alias, *context);
-            (*context)[(*a)[l].first].second = v;
-        }
+            (*v1).push_back((*v2)[k]);
+        v2->resize(k);
     }
 }
 
@@ -4250,23 +4241,23 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                             v.push_back({{context[contextidxA].second}});
                             const int j = supersetpos.size()-1;
-                            while (!supersetpos[supersetpos.size()-1]->ended())
+                            while (!supersetpos[j]->ended())
                                 v.push_back({{supersetpos[j]->getnext()}});
                             int sz = v.size();
                             while (sz > 1)
                             {
-                                const int pos = thread_count <= ceil((sz)/2.0) ? thread_count : ceil((sz)/2.0);
-                                if (pos < thread_count)
-                                    if ((sz % 2) == 1)
-                                    {
-                                        v.push_back(v[0]);
-                                        ++sz;
-                                    }
+                                const int pos = thread_count <= ceil((sz-1)/2.0) ? thread_count : ceil((sz-1)/2.0);
+                                // if (pos < thread_count)
+                                    // if ((sz % 2) == 1)
+                                    // {
+                                        // v.push_back(v[0]);
+                                        // ++sz;
+                                    // }
                                 std::vector<std::future<void>> t;
                                 t.resize(pos);
                                 for (int m = 0; m < pos; ++m) {
                                     const int i = m; // (sz - 2*pos) + m;
-                                    const int j = m + pos; //(sz - pos) + m;
+                                    const int j = pos + m; // + pos; //(sz - pos) + m;
                                     t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA,contextidxB,&v[i],&v[j],&a);
                                 }
                                 // if (v.size() % 2 != 0)
@@ -4277,6 +4268,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 // else
                                     for (int m = 0; m < pos; ++m)
                                         t[m].get();
+                                // v.resize(sz - pos);
                                 v.erase(v.begin()+pos, v.begin()+2*pos);
                                 // v.resize(sz-pos);
                                 // v.resize(pos);
@@ -4388,18 +4380,18 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int sz = v.size();
                             while (sz > 1)
                             {
-                                const int pos = thread_count <= ceil((sz)/2.0) ? thread_count : ceil((sz)/2.0);
-                                if (pos < thread_count)
-                                    if ((sz % 2) == 1)
-                                    {
-                                        v.push_back(v[0]);
-                                        ++sz;
-                                    }
+                                const int pos = thread_count <= ceil((sz-1)/2.0) ? thread_count : ceil((sz-1)/2.0);
+                                // if (pos < thread_count)
+                                // if ((sz % 2) == 1)
+                                // {
+                                // v.push_back(v[0]);
+                                // ++sz;
+                                // }
                                 std::vector<std::future<void>> t;
                                 t.resize(pos);
                                 for (int m = 0; m < pos; ++m) {
                                     const int i = m; // (sz - 2*pos) + m;
-                                    const int j = m + pos; //(sz - pos) + m;
+                                    const int j = pos + m; // + pos; //(sz - pos) + m;
                                     t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA,contextidxB,&v[i],&v[j],&a);
                                 }
                                 // if (v.size() % 2 != 0)
@@ -4410,6 +4402,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 // else
                                 for (int m = 0; m < pos; ++m)
                                     t[m].get();
+                                // v.resize(sz - pos);
                                 v.erase(v.begin()+pos, v.begin()+2*pos);
                                 // v.resize(sz-pos);
                                 // v.resize(pos);
