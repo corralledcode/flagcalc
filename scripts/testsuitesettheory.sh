@@ -274,3 +274,5 @@ $PTH/flagcalc -r 11 10 1 -a e="SET (n IN dimm, THREADED SETD (s IN Ps(V), SETD (
 
 $PTH/flagcalc -r 150 75 1 -a e="THREADED PARTITION (u,v IN V, connvc(u,v))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set allsets i=minimal3.cfg
+
+# 4:42 runtime 4/30/2025 on i9 13900hx
