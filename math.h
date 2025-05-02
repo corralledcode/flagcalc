@@ -137,7 +137,7 @@ struct variablestruct
 {
     int l;
     std::string name;
-    std::vector<formulaclass*> ps;
+    std::vector<formulaclass*> ps {};
 };
 
 struct setstruct
@@ -221,7 +221,8 @@ public:
 
     itrpos* getitrpos();
 
-    int pos = -1;
+
+    long int pos = -1;
     virtual int getsize() {return 0;}
     measuretype t = mtdiscrete;
 
@@ -245,6 +246,7 @@ public:
         return false;
     }
     setitr() {}
+
     virtual ~setitr();
 };
 
@@ -252,7 +254,7 @@ class itrpos
 {
 public:
     setitr* parent;
-    int pos = -1;
+    long int pos = -1;
     bool ended()
     {
         // std::cout << "itrpos.ended " << pos+1 << ", " << parent->getsize() << "\n";
@@ -263,7 +265,7 @@ public:
     virtual valms getnext()
     {
         if (ended())
-            std::cout << "setitr.getnext() called with ended == true\n";
+            std::cout << "itrpos.getnext() called with ended == true\n";
         ++pos;
         while (pos >= parent->totality.size() && !parent->ended())
         {
@@ -277,10 +279,17 @@ public:
                 std::cout << "pos " << pos << ", parent->pos == " << parent->pos << ", parent->totality.size() == " << parent->totality.size() << std::endl;
                 if (parent->ended())
                     break;
+                std::cout << "itrpos::getnext calling parent->getnext...\n";
                 parent->getnext();
+                std::cout << "...complete\n";
+
             }
             if (!parent->ended())
+            {
+                // std::cout << "[2] itrpos::getnext calling parent->getnext...\n";
                 parent->getnext();
+                // std::cout << "[2] ...complete\n";
+            }
         }
         if (pos < parent->totality.size())
         {
@@ -300,16 +309,10 @@ public:
 inline itrpos* setitr::getitrpos()
 {
     auto itr = new itrpos(this);
-    //itrs.push_back(itr);
     return itr;
 }
 
-inline setitr::~setitr()
-{
-    // for (itrpos* itr : itrs)
-        // delete itr;
-    // itrs.clear();
-}
+inline setitr::~setitr() {}
 
 inline bool operator==(const valms& a1, const valms& a2)
 {
@@ -435,6 +438,15 @@ class setitrmodeone : public setitr
     setitrmodeone( std::vector<valms> totalityin )
     {
         totality = totalityin;
+/*        for (int i = 0; i < totality.size(); ++i)
+            if (totality[i].t == mtset || totality[i].t == mttuple)
+            {
+                auto itr = totality[i].seti->getitrpos();
+                while (!itr->ended())
+                    itr->getnext();
+                totality[i].seti = new setitrmodeone(itr->parent->totality);
+                delete itr;
+            }*/
         computed = true;
     }
 
@@ -920,10 +932,12 @@ protected:
         totality[1].t = mtdiscrete;
         totality[0].v.iv = inta;
         totality[1].v.iv = intb;
+        computed = true;
     }
     public:
     setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
 };
+
 class setitrint2d : public setitrmodeone {
 public:
     setitrint* itrint;
@@ -978,7 +992,7 @@ public:
         int k = 0;
         for (int i = 0; i+1 < dim1; ++i)
             for (int j = i+1; j < dim2; ++j) {
-                if (itrint->elts[i*dim1 + j]) {
+                if (itrint->elts[i*dim2 + j]) {
                     valms v;
                     v.t = mtset;
                     v.seti = new setitrintpair(i,j);

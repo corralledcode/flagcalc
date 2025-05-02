@@ -526,6 +526,12 @@ public:
     void threadeval(formulaclass* fc, namedparams* context, valms* res);
     void partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int contextidxB,
         std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
+    void threadsafeadvance(formulaclass& fc,std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
+        std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<valms>& ress);
+    void threadsafeadvancewithcriterion(formulaclass& fc, formulaclass& criterion, std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
+        std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<bool>& c, std::vector<valms>& ress);
+
+
 
     evalmformula( mrecords* recin, const int idxin );
     evalmformula( mrecords* recin, neighborstype* nsin );
@@ -667,10 +673,7 @@ public:
         graphrecs.setsize(sz);
         efv.resize(sz);
         for (int i = 0; i < sz; ++i)
-        {
             efv[i] = new evalmformula(this, i);
-        }
-
     }
 
     void setmsize( const int mszin )
@@ -694,8 +697,14 @@ public:
     }
 };
 
-inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalformula(), rec{recin}, idx{idxin} {}
-inline evalmformula::evalmformula( mrecords* recin, neighborstype* nsin ) : evalformula(), rec{recin}, ns{nsin} {}
+inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalformula(), rec{recin}, idx{idxin}
+{
+    ns = (*recin->nsptrs)[idx];
+}
+inline evalmformula::evalmformula( mrecords* recin, neighborstype* nsin ) : evalformula(), rec{recin}, ns{nsin}
+{
+
+}
 
 
 inline valms evalmformula::evalpslit( const int l, namedparams& context, neighborstype* subgraph, params& ps )
@@ -739,73 +748,6 @@ inline valms evalmformula::evalpslit( const int l, namedparams& context, neighbo
         ps[i] = tempps;
     }
 
-/*
-        switch(tmpps[i].second.t)
-        {
-        case measuretype::mtbool:
-        switch (psin[i].t)
-        {
-            case measuretype::mtbool: break;
-            case measuretype::mtcontinuous: psin[i].v.bv = !(abs(psin[i].v.dv) < 0.0000001);
-            psin[i].t = mtbool;
-            break;
-            case mtdiscrete: psin[i].v.bv = (bool)psin[i].v.iv;
-            psin[i].t = mtbool;
-            break;
-            default:
-            psin[i].t = tmpps[i].second.t;
-            psin[i].v.bv = false;
-            break;
-        }
-        break;
-        case measuretype::mtdiscrete:
-            switch (psin[i].t)
-        {
-    case measuretype::mtbool: psin[i].v.iv = (int)psin[i].v.bv;
-            psin[i].t = mtdiscrete;
-            break;
-    case measuretype::mtcontinuous: psin[i].v.iv = std::lround(psin[i].v.dv);
-            psin[i].t = mtdiscrete;
-            break;
-    case mtdiscrete: break;
-    default:
-        psin[i].t = tmpps[i].second.t;
-            psin[i].v.iv = 0;
-            break;
-        }
-            break;
-    case measuretype::mtcontinuous:
-        switch (psin[i].t)
-        {
-    case measuretype::mtbool: psin[i].v.dv = (double)psin[i].v.bv;
-            psin[i].t = mtcontinuous;
-            break;
-    case measuretype::mtcontinuous: break;
-    case mtdiscrete: psin[i].v.dv = (double)psin[i].v.iv;
-            psin[i].t = mtcontinuous;
-            break;
-    default:
-        psin[i].t = tmpps[i].second.t;
-            psin[i].v.dv = 0;
-            break;
-        }
-            break;
-    case measuretype::mtset:
-        if (psin[i].t != mtset && psin[i].t != mttuple)
-        {
-            std::cout << "Set or tuple type required as parameter number " << i << "\n";
-            exit(1);
-        }
-            break;
-    case measuretype::mttuple:
-        if (psin[i].t != mttuple && psin[i].t != mtset)
-        {
-            std::cout << "Tuple or set type required as parameter number " << i << "\n";
-            exit(1);
-        }
-            break;
-        }
-*/
     valms r;
     r.t = a.t;
     if (subgraph)
@@ -2127,10 +2069,10 @@ public:
                 std::vector<valms> tot {};
                 for (auto i : p)
                     tot.push_back(v[i]);
-                valms v;
-                v.t = mttuple;
-                v.seti = new setitrmodeone(tot);
-                totalitylocal.push_back(v);
+                valms v2;
+                v2.t = mttuple;
+                v2.seti = new setitrmodeone(tot);
+                totalitylocal.push_back(v2);
             }
 
             res = new setitrmodeone(totalitylocal);
@@ -2156,6 +2098,60 @@ public:
     }
 };
 
+/*
+class Permintset : public set
+{
+    setitrmodeone* res {};
+public:
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        // if (res)
+        // for (auto v : res->totality)
+        // delete v.seti;
+        if (ps.size() == 1)
+        {
+            std::vector<std::vector<int>> perms = getpermutations(ps[0].v.iv);
+            std::vector<valms> totalitylocal {};
+            for (auto p : perms)
+            {
+                std::vector<valms> tot {};
+                for (auto i : p)
+                {
+                    valms v3;
+                    v3.t = mtdiscrete;
+                    v3.v.iv = i;
+                    tot.push_back(v3);
+                }
+                valms v2;
+                v2.t = mttuple;
+                v2.seti = new setitrmodeone(tot);
+                totalitylocal.push_back(v2);
+            }
+
+            res = new setitrmodeone(totalitylocal);
+            return res;
+        }
+        std::cout << "Error in Permintset::takemeas\n";
+        exit(1);
+        return nullptr;;
+    }
+
+    Permintset( mrecords* recin ) : set(recin,"Permints", "Set of permutation of ints tuples")
+    {
+        valms v {};
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"maxint",v});
+        bindnamedparams();
+    }
+    ~Permintset()
+    {
+        if (res)
+            for (auto v : res->totality)
+                delete v.seti;
+    }
+};
+*/
+
 class Automset : public set
 {
     setitrmodeone* res {};
@@ -2169,7 +2165,10 @@ public:
             std::vector<valms> tot {};
             tot.resize(p.size());
             for (auto i : p)
+            {
                 tot[i.first].v.iv = i.second;
+                tot[i.first].t = mtdiscrete;
+            }
             valms v;
             v.t = mttuple;
             v.seti = new setitrmodeone(tot);

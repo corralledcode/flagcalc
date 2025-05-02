@@ -276,3 +276,7 @@ $PTH/flagcalc -r 150 75 1 -a e="THREADED PARTITION (u,v IN V, connvc(u,v))" all 
 $PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set allsets i=minimal3.cfg
 
 # 4:42 runtime 4/30/2025 on i9 13900hx
+
+# 5:36 runtime 5/1/2025 on same
+
+# 5:57 runtime 5/1/2025 on same

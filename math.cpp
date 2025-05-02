@@ -1049,6 +1049,7 @@ valms evalformula::evalvariablederef( variablestruct& v, const namedparams& cont
         res.t = mtdiscrete;
         res.v.iv = 0;
     }
+    delete pos;
 
     return res;
 }
@@ -1108,6 +1109,9 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                 preprocessbindvariablenames(fc->v.fns.ps[i],context);
             for (int i = 0; i < fc->v.lit.ps.size(); ++i)
                 preprocessbindvariablenames(fc->v.lit.ps[i],context);
+            for (int i = 0; i < fc->v.vs.ps.size(); ++i)
+                preprocessbindvariablenames(fc->v.vs.ps[i],context);
+
         }
     }
 }
@@ -1205,6 +1209,82 @@ void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int c
 }
 
 
+void evalmformula::threadsafeadvance(formulaclass& fc,std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
+    std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<valms>& ress)
+{
+    pos = 0;
+    std::vector<namedparams> contexts {};
+    contexts.resize(thread_count);
+    while (pos < thread_count && k < supersetpos.size())
+    {
+        contexts[pos] = context;
+
+        // for (int i = 0; i < context.size(); ++i)
+            // if (context[i].second.t == mtset || context[i].second.t == mttuple)
+            // {
+                // auto itr = context[i].second.seti->getitrpos();
+                // while (!itr->ended())
+                    // itr->getnext();
+                // contexts[pos][i].second.seti = new setitrmodeone(itr->parent->totality);
+                // delete itr;
+                // while (!context[i].second.seti->ended())
+                    // context[i].second.seti->getnext();
+                // context[i].second.seti->reset();
+                // contexts[pos][i].second.seti = new setitr(*context[i].second.seti);
+            // }
+        quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+        pos++;
+    }
+
+    std::vector<std::future<void>> t;
+    t.resize(pos);
+    ress.resize(pos);
+    for (int m = 0; m < pos; ++m)
+        t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
+    for (int m = 0; m < pos ; ++m)
+        t[m].get();
+}
+
+void evalmformula::threadsafeadvancewithcriterion(formulaclass& fc, formulaclass& criterion, std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
+    std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<bool>& c, std::vector<valms>& ress)
+{
+    pos = 0;
+    std::vector<namedparams> contexts {};
+    contexts.resize(thread_count);
+    while (pos < thread_count && k < supersetpos.size())
+    {
+        contexts[pos] = context;
+        // for (auto c : contexts[pos])
+            // if (c.second.t == mtset || c.second.t == mttuple)
+                // while (!c.second.seti->ended())
+                    // c.second.seti->getnext();
+        quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
+        pos++;
+    }
+
+    std::vector<std::future<void>> t;
+    t.resize(pos);
+    ress.resize(pos);
+    c.resize(pos);
+    std::vector<valms> cress;
+    cress.resize(pos);
+    for (int m = 0; m < pos; ++m)
+        t[m] = std::async(&evalmformula::threadeval,this,&criterion,&contexts[m],&cress[m]);
+    for (int m = 0; m < pos; ++m)
+        t[m].get();
+    for (int m = 0; m < pos; ++m)
+        if (cress[m].v.bv)
+        {
+            t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
+            c[m] = true;
+        } else
+            c[m] = false;
+    for (int m = 0; m < pos ; ++m)
+        if (cress[m].v.bv)
+            t[m].get();
+}
+
+
 valms evalformula::eval( formulaclass& fc, namedparams& context) {}
 
 
@@ -1214,19 +1294,28 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     if (fc.fo == formulaoperator::foliteral) {
         if (fc.v.lit.ps.empty())
         {
-            // if (fc.v.lit.l >= 0 && fc.v.lit.l < literals.size()) {
+            switch (literals[fc.v.lit.l].t)
+            {
+            case mtset:
+                {
+                    std::vector<valms> ps {};
+                    res = evalpslit(fc.v.lit.l,context,nullptr,ps);
+                    // res.seti = (*rec->setrecs.pmsv)[rec->m[fc.v.lit.l].second]->takemeas(ns);
+                    // res.t = mtset;
+                    break;
+                }
+            case mttuple:
+                {
+                    std::vector<valms> ps {};
+                    res = evalpslit(fc.v.lit.l,context,nullptr,ps);
+                    // res.seti = (*rec->setrecs.pmsv)[rec->m[fc.v.lit.l].second]->takemeas(ns);
+                    // res.t = mttuple;
+                    break;
+                }
+            default:
                 res = literals[fc.v.lit.l];
-            // } else {
-                // if (fc.v.lit.l < 0 && ((int)literals.size() + fc.v.lit.l >= 0))
-                // {
-                    // res = literals[literals.size() + fc.v.lit.l];
-                // }
-                // else {
-                    // std::cout << "Error eval'ing formula\n";
-                    // exit(1);
-                    // return res;
-                // }
-            // }
+            }
+
         } else {
             std::vector<valms> ps {};
             int i = 0;
@@ -1239,7 +1328,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 subgraph = ps[0].v.nsv;
                 ps.erase(ps.begin());
             }
-            res = evalpslit(fc.v.lit.l, context, subgraph, ps);
+            res = evalpslit(fc.v.lit.l,context,subgraph,ps);
+
         }
         return res;
     }
@@ -1487,9 +1577,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         std::vector<bool> needtodeletevseti {};
         needtodeletevseti.resize(fc.fcright->boundvariables.size());
         for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-            valms v;
             if (fc.fcright->boundvariables[j]->superset) {
-                v = evalinternal(*fc.fcright->boundvariables[j]->superset, context);
+                valms v = evalinternal(*fc.fcright->boundvariables[j]->superset, context);
                 if (v.t == mtdiscrete || v.t == mtcontinuous)
                 {
                     if (v.t == mtcontinuous)
@@ -1527,280 +1616,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 a.push_back({context.size()-1,j});
             }
         }
-        /* THE FOLLOWING CODE THOUGH ELEGANT SLOWS DOWN BY A THREE-FOLD FACTOR
-                int k = 0;
-                double min;
-                double max;
-                int count;
-                std::vector<valms> tot;
-                std::vector<setitr*> composite;
-                switch (fc.fo)
-                {
-                case formulaoperator::foqexists:
-                case formulaoperator::foqforall:
-                    {
-                        res.v.bv = true;
-                        res.t = mtbool;
-                        break;
-                    }
-                case (formulaoperator::foqsum):
-                case (formulaoperator::foqproduct):
-                case (formulaoperator::foqmin):
-                case (formulaoperator::foqmax):
-                case (formulaoperator::foqrange):
-                case (formulaoperator::foqaverage):
-                    {
-                        res.t = mtcontinuous;
-                        min = std::numeric_limits<double>::infinity();
-                        max = -std::numeric_limits<double>::infinity();
-                        count = 0; // this is not foqcount but rather to be used to find average
-                        if (fc.fo == formulaoperator::foqsum)
-                            res.v.dv = 0;
-                        else if (fc.fo == formulaoperator::foqproduct)
-                            res.v.dv = 1;
-                        break;
-                    }
-                case formulaoperator::foqtally:
-                case formulaoperator::foqcount:
-                    {
-                        res.t = mtdiscrete;
-                        res.v.iv = 0;
-                        break;
-                    }
-                case (formulaoperator::foqdupeset):
-                case (formulaoperator::foqset):
-                case (formulaoperator::foqtuple):
-                    {
-                        res.t = fc.fo == formulaoperator::foqtuple ? mttuple : mtset;
-                        tot.clear();
-                        break;
-                    }
-                case (formulaoperator::foqunion):
-                case (formulaoperator::foqintersection):
-                case (formulaoperator::foqdupeunion):
-                    {
-                        res.t = mtset;
-                        res.seti = nullptr;
-                        composite.clear();
-                        break;
-                    }
-                }
-
-                if (vacuouslytrue)
-                    k = supersetpos.size();
-                bool done = false;
-                while (k < supersetpos.size() && !done) {
-                    switch (fc.fo)
-                    {
-                        case formulaoperator::foqexists:
-                        case formulaoperator::foqforall:
-                            {
-                                done = !res.v.bv;
-                                break;
-                            }
-                        case formulaoperator::foqsum:
-                        case formulaoperator::foqproduct:
-                        case formulaoperator::foqmin:
-                        case formulaoperator::foqmax:
-                        case formulaoperator::foqrange:
-                        case formulaoperator::foqaverage:
-                            {
-                                done = fc.fo == formulaoperator::foqproduct && res.v.dv == 0;
-                                break;
-                            }
-                    }
-                    valms c;
-                    c.v.bv = true;
-                    if (criterion) {
-                        c = evalinternal(*criterion, context);
-                        if (c.t != mtbool) {
-                            std::cout << "Quantifier criterion requires boolean value\n";
-                            exit(1);
-                        }
-                    }
-                    if (c.v.bv)
-                    {
-                        auto ei = evalinternal(*fc.fcright, context);
-                        switch (fc.fo)
-                        {
-                            case formulaoperator::foqexists:
-                            case formulaoperator::foqforall:
-                                {
-                                    if (fc.fo == formulaoperator::foqexists)
-                                        res.v.bv = res.v.bv && !ei.v.bv;
-                                    else
-                                        res.v.bv = res.v.bv && ei.v.bv;
-                                    break;
-                                }
-                            case formulaoperator::foqsum:
-                            case formulaoperator::foqproduct:
-                            case formulaoperator::foqmin:
-                            case formulaoperator::foqmax:
-                            case formulaoperator::foqrange:
-                            case formulaoperator::foqaverage:
-                                {
-                                    count++;  // this is not foqcount but rather to be used to find average
-                                    auto v = ei;
-                                    if (fc.fo != formulaoperator::foqproduct)
-                                    {
-                                        if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
-                                            || fc.fo == formulaoperator::foqmax)
-                                            res.v.dv = 0;
-                                        switch (v.t)
-                                        {
-                                        case mtcontinuous:
-                                            res.v.dv += v.v.dv;
-                                            break;
-                                        case mtdiscrete:
-                                            res.v.dv += v.v.iv;
-                                            break;
-                                        case mtbool:
-                                            res.v.dv += v.v.bv ? 1 : 0;
-                                            break;
-                                        case mtset:
-                                            res.v.dv += v.seti->getsize();
-                                            break;
-                                        }
-
-                                        if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
-                                            || fc.fo == formulaoperator::foqmax)
-                                        {
-                                            if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
-                                                min = res.v.dv;
-                                            else
-                                                min = res.v.dv < min ? res.v.dv : min;
-                                            if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
-                                                max = res.v.dv;
-                                            else
-                                                max = res.v.dv > max ? res.v.dv : max;
-                                        }
-                                    } else
-                                    {
-                                        switch (v.t)
-                                        {
-                                        case mtcontinuous:
-                                            res.v.dv *= v.v.dv;
-                                            break;
-                                        case mtdiscrete:
-                                            res.v.dv *= v.v.iv;
-                                            break;
-                                        case mtbool:
-                                            res.v.dv *= v.v.bv ? 1 : 0;
-                                            break;
-                                        case mtset:
-                                        case mttuple:
-                                            res.v.dv *= v.seti->getsize();
-                                            break;
-                                        }
-                                    }
-                                    break;
-                                }
-                            case formulaoperator::foqtally:
-                                {
-                                    auto v = ei;
-                                    valms tmp;
-                                    mtconverttodiscrete(v, tmp.v.iv);
-                                    res.v.iv += tmp.v.iv;
-                                    break;
-                                }
-                            case formulaoperator::foqcount:
-                                {
-                                    auto v = ei;
-                                    valms tmp;
-                                    mtconverttobool(v,tmp.v.bv);
-                                    if (tmp.v.bv)
-                                        ++res.v.iv;
-                                    break;
-                                }
-                            case formulaoperator::foqdupeset:
-                            case formulaoperator::foqtuple:
-                                {
-                                    auto v = ei;
-                                    tot.push_back(v);
-                                    break;
-                                }
-                            case formulaoperator::foqset:
-                                {
-                                    auto v = ei;
-                                    bool match = false;
-                                    for (int i = 0; !match && i < tot.size(); i++)
-                                    {
-                                        match = match || mtareequal(tot[i], v);
-                                    }
-                                    if (!match)
-                                        tot.push_back(v);
-                                    break;
-                                }
-                            case formulaoperator::foqunion:
-                            case formulaoperator::foqintersection:
-                            case formulaoperator::foqdupeunion:
-                                {
-                                    valms tempv;
-                                    valms outv;
-                                    tempv = ei;
-                                    mtconverttoset(tempv,outv.seti);
-                                    composite.push_back(outv.seti);
-                                    break;
-                                }
-
-                        }
-                    }
-                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                }
-                switch (fc.fo)
-                {
-                case formulaoperator::foqexists:
-                    {
-                        res.v.bv = !res.v.bv;
-                        break;
-                    }
-                case formulaoperator::foqrange:
-                    {
-                        res.v.dv = max - min;
-                        break;
-                    }
-                case formulaoperator::foqaverage:
-                    {
-                        res.v.dv = count > 0 ? res.v.dv / count : 0;
-                        break;
-                    }
-                case formulaoperator::foqmax:
-                    {
-                        res.v.dv = max;
-                        break;
-                    }
-                case formulaoperator::foqmin:
-                    {
-                        res.v.dv = min;
-                        break;
-                    }
-                case formulaoperator::foqdupeset:
-                case formulaoperator::foqtuple:
-                case formulaoperator::foqset:
-                    {
-                        res.seti = new setitrmodeone(tot);
-                        break;
-                    }
-                case formulaoperator::foqunion:
-                case formulaoperator::foqintersection:
-                case formulaoperator::foqdupeunion:
-                    {
-                        auto abstractpluralsetops = getsetitrpluralops(composite);
-                        res.seti = abstractpluralsetops->setops(fc.fo);
-                        if (!res.seti)
-                            res.seti = new setitrint(-1);
-                        break;
-                    }
-
-                }
-                for (int k = originalcontextsize; k < ss.size(); ++k) {
-                    delete ss[k-originalcontextsize];
-                    if (needtodeletevseti[k - originalcontextsize])
-                        delete vv[k-originalcontextsize].seti;
-                }
-                context.resize(originalcontextsize);
-                return res;
-        */
 
         if (!fc.threaded)
         {
@@ -1854,30 +1669,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             if (c.v.bv)
                             {
                                 auto v = evalinternal(*fc.fcright, context);
-                                if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
-                                    // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
-                                        // || fc.fo == formulaoperator::foqaverage)
-                                {
-                                    switch (v.t) // headache maintaining code, but this slows down due to switch'ing on each iterant
-                                    {
-                                    case mtcontinuous:
-                                        res.v.dv += v.v.dv;
-                                        break;
-                                    case mtdiscrete:
-                                        res.v.dv += v.v.iv;
-                                        break;
-                                    case mtbool:
-                                        res.v.dv += v.v.bv ? 1 : 0;
-                                        break;
-                                    case mtset:
-                                        res.v.dv += v.seti->getsize();
-                                        break;
-                                    }
-                                }
-
+                                double out;
+                                mtconverttocontinuous(v,out);
+                                res.v.dv += out;
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
                         }
                         break;
                     }
@@ -1894,25 +1690,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             if (c.v.bv)
                             {
                                 auto v = evalinternal(*fc.fcright, context);
-                                switch (v.t)
-                                {
-                                case mtcontinuous:
-                                    res.v.dv *= v.v.dv;
-                                    break;
-                                case mtdiscrete:
-                                    res.v.dv *= v.v.iv;
-                                    break;
-                                case mtbool:
-                                    res.v.dv *= v.v.bv ? 1 : 0;
-                                    break;
-                                case mtset:
-                                case mttuple:
-                                    res.v.dv *= v.seti->getsize();
-                                    break;
-                                }
+                                double out;
+                                mtconverttocontinuous(v,out);
+                                res.v.dv *= out;
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
                         }
                         break;
                     }
@@ -1924,35 +1706,20 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        while (k < supersetpos.size())
                         {
                             valms c = evalinternal(*criterion, context);
                             if (c.v.bv)
                             {
                                 auto v = evalinternal(*fc.fcright, context);
-                                switch (v.t)
-                                {
-                                case mtcontinuous:
-                                    res.v.dv = v.v.dv;
-                                    break;
-                                case mtdiscrete:
-                                    res.v.dv = v.v.iv;
-                                    break;
-                                case mtbool:
-                                    res.v.dv = v.v.bv ? 1 : 0;
-                                    break;
-                                case mtset:
-                                    res.v.dv = v.seti->getsize();
-                                    break;
-                                }
-
+                                double out;
+                                mtconverttocontinuous(v,res.v.dv);
                                 if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                     min = res.v.dv;
                                 else
                                     min = res.v.dv < min ? res.v.dv : min;
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
                         }
                         res.v.dv = min;
                         break;
@@ -1965,34 +1732,19 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        while (k < supersetpos.size())
                         {
                             valms c = evalinternal(*criterion, context);
                             if (c.v.bv)
                             {
                                 auto v = evalinternal(*fc.fcright, context);
-                                switch (v.t)
-                                {
-                                case mtcontinuous:
-                                    res.v.dv = v.v.dv;
-                                    break;
-                                case mtdiscrete:
-                                    res.v.dv = v.v.iv;
-                                    break;
-                                case mtbool:
-                                    res.v.dv = v.v.bv ? 1 : 0;
-                                    break;
-                                case mtset:
-                                    res.v.dv = v.seti->getsize();
-                                    break;
-                                }
+                                mtconverttocontinuous(v,res.v.dv);
                                 if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
                                     max = res.v.dv;
                                 else
                                     max = res.v.dv > max ? res.v.dv : max;
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
                         }
                         res.v.dv = max;
                         break;
@@ -2005,28 +1757,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        while (k < supersetpos.size())
                         {
                             valms c = evalinternal(*criterion, context);
                             if (c.v.bv)
                             {
                                 auto v = evalinternal(*fc.fcright, context);
-                                switch (v.t)
-                                {
-                                case mtcontinuous:
-                                    res.v.dv = v.v.dv;
-                                    break;
-                                case mtdiscrete:
-                                    res.v.dv = v.v.iv;
-                                    break;
-                                case mtbool:
-                                    res.v.dv = v.v.bv ? 1 : 0;
-                                    break;
-                                case mtset:
-                                    res.v.dv = v.seti->getsize();
-                                    break;
-                                }
-
+                                mtconverttocontinuous(v,res.v.dv);
                                 if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                     min = res.v.dv;
                                 else
@@ -2049,29 +1786,16 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         int count = 0; // this is not foqcount but rather to be used to find average
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
+                        while (k < supersetpos.size())
                         {
                             valms c = evalinternal(*criterion, context);
                             if (c.v.bv)
                             {
                                 count++;  // this is not foqcount but rather to be used to find average
                                 auto v = evalinternal(*fc.fcright, context);
-
-                                switch (v.t)
-                                {
-                                case mtcontinuous:
-                                    res.v.dv += v.v.dv;
-                                    break;
-                                case mtdiscrete:
-                                    res.v.dv += v.v.iv;
-                                    break;
-                                case mtbool:
-                                    res.v.dv += v.v.bv ? 1 : 0;
-                                    break;
-                                case mtset:
-                                    res.v.dv += v.seti->getsize();
-                                    break;
-                                }
+                                double out;
+                                mtconverttocontinuous(v,out);
+                                res.v.dv += out;
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
@@ -2174,9 +1898,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 auto v = evalinternal(*fc.fcright, context);
                                 bool match = false;
                                 for (int i = 0; !match && i < tot.size(); i++)
-                                {
                                     match = match || mtareequal(tot[i], v);
-                                }
                                 if (!match)
                                     tot.push_back(v);
                             }
@@ -2469,7 +2191,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             auto v = evalinternal(*fc.fcright, context);
                             bool match = false;
-                            for (int i = 0; !match && i < tot.size(); i++)
+                            for (int i = 0; !match && i < tot.size(); ++i)
                             {
                                 match = match || mtareequal(tot[i], v);
                             }
@@ -2537,37 +2259,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size() && res.v.bv)
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                // contexts[pos].clear();
-                                // for (auto c : context)
-                                // {
-                                    // contexts[pos].push_back(c);
-                                // }
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m) {
-                                ress[m].v.bv = true;
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            }
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
-                            {
-                                t[m].get();
                                 res.v.bv = (!c[m] || !ress[m].v.bv) && res.v.bv;
-                            }
                         }
                         res.v.bv = !res.v.bv;
                         break;
@@ -2580,32 +2279,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size() && res.v.bv)
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m) {
-                                ress[m].v.bv = true;
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            }
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
-                            {
-                                t[m].get();
                                 res.v.bv = (!c[m] || ress[m].v.bv) && res.v.bv;
-                            }
                         }
                         break;
                     }
@@ -2616,27 +2297,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2654,27 +2320,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 1;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size() && res.v.dv != 0)
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2693,27 +2344,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double min = std::numeric_limits<double>::infinity();
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2735,27 +2371,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2778,27 +2399,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2824,27 +2430,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         int count = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2864,27 +2455,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.iv = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2902,27 +2478,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.iv = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -2941,27 +2502,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                     tot.push_back(ress[m]);
@@ -2976,26 +2522,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                     tot.push_back(ress[m]);
@@ -3010,26 +2542,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m]) {
                                     bool match = false;
@@ -3052,27 +2570,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<setitr*> composite {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            bool c[pos];
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadevalcriterion,this,fc.fcright,criterion,&contexts[m],&c[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            std::vector<bool> c;
+                            threadsafeadvancewithcriterion(fc,*criterion,supersetpos,k,context,i,a,pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3113,31 +2616,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size() && res.v.bv)
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m) {
-                                ress[m].v.bv = true;
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            }
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                            {
-                                t[m].get();
                                 res.v.bv = !ress[m].v.bv && res.v.bv;
-                            }
                         }
                         res.v.bv = !res.v.bv;
                         break;
@@ -3150,31 +2635,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size() && res.v.bv)
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m) {
-                                ress[m].v.bv = true;
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            }
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                            {
-                                t[m].get();
                                 res.v.bv = ress[m].v.bv && res.v.bv;
-                            }
                         }
                         break;
                     }
@@ -3185,27 +2652,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos; ++m)
-                                t[m].get();
-
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 double out;
@@ -3222,26 +2673,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 1;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size() && res.v.dv != 0)
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 double out;
@@ -3259,26 +2695,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double min = std::numeric_limits<double>::infinity();
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 mtconverttocontinuous(ress[m],res.v.dv);
@@ -3299,26 +2720,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 mtconverttocontinuous(ress[m],res.v.dv);
@@ -3340,26 +2746,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 mtconverttocontinuous(ress[m],res.v.dv);
@@ -3384,26 +2775,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         int count = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 ++count;
@@ -3422,26 +2798,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.iv = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 int out;
@@ -3458,26 +2819,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.iv = 0;
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 bool out;
@@ -3495,26 +2841,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                                 tot.push_back(ress[m]);
                         }
@@ -3528,26 +2859,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                                 tot.push_back(ress[m]);
                         }
@@ -3561,26 +2877,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m) {
                                 bool match = false;
                                 for (int i = 0; !match && i < tot.size(); i++)
@@ -3604,26 +2905,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<setitr*> composite {};
                         if (vacuouslytrue)
                             k = supersetpos.size();
-                        std::vector<namedparams> contexts {};
-                        contexts.resize(thread_count);
                         while (k < supersetpos.size())
                         {
                             int pos = 0;
-                            while (pos < thread_count && k < supersetpos.size())
-                            {
-                                contexts[pos] = context;
-                                quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                                pos++;
-                            }
-
-                            std::vector<std::future<void>> t;
-                            t.resize(pos);
                             std::vector<valms> ress;
-                            ress.resize(pos);
-                            for (int m = 0; m < pos; ++m)
-                                t[m] = std::async(&evalmformula::threadeval,this,fc.fcright,&contexts[m],&ress[m]);
-                            for (int m = 0; m < pos ; ++m)
-                                t[m].get();
+                            threadsafeadvance(fc,supersetpos,k,context,i,a,pos,ress);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 valms outv;
@@ -3655,304 +2941,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             }
         }
 
-        /* REPLACED WITH MORE EFFICIENT (ALBEIT MORE LONG) CODE
-
-        switch (fc.fo) {
-            case (formulaoperator::foqexists):
-            case (formulaoperator::foqforall):
-            {
-                int k = 0;
-                res.v.bv = true;
-                res.t = mtbool;
-                if (vacuouslytrue)
-                    k = supersetpos.size();
-                while (k < supersetpos.size() && res.v.bv) {
-
-                    valms c;
-                    c.v.bv = true;
-                    if (criterion) {
-                        c = evalinternal(*criterion, context);
-                        if (c.t != mtbool) {
-                            std::cout << "Quantifier criterion requires boolean value\n";
-                            exit(1);
-                        }
-                    }
-                    if (c.v.bv)
-                        if (fc.fo == formulaoperator::foqexists)
-                            res.v.bv = res.v.bv && !evalinternal(*fc.fcright, context).v.bv;
-                        else
-                            res.v.bv = res.v.bv && evalinternal(*fc.fcright, context).v.bv;
-                    // std::cout << fc.v.qc->qs.v.iv << " iv \n";
-
-                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
-                }
-                if (fc.fo == formulaoperator::foqexists)
-                    res.v.bv = !res.v.bv;
-                break;
-            }
-            case (formulaoperator::foqsum):
-            case (formulaoperator::foqproduct):
-            case (formulaoperator::foqmin):
-            case (formulaoperator::foqmax):
-            case (formulaoperator::foqrange):
-            case (formulaoperator::foqaverage): {
-                int k = 0;
-                res.t = mtcontinuous;
-                double min = std::numeric_limits<double>::infinity();
-                double max = -std::numeric_limits<double>::infinity();
-                int count = 0; // this is not foqcount but rather to be used to find average
-                if (fc.fo == formulaoperator::foqsum)
-                    res.v.dv = 0;
-                else if (fc.fo == formulaoperator::foqproduct)
-                    res.v.dv = 1;;
-
-                if (vacuouslytrue)
-                    k = supersetpos.size();
-                while (k < supersetpos.size() && !(fc.fo == formulaoperator::foqproduct && res.v.dv == 0))
-                {
-                    valms c;
-                    c.t = mtbool;
-                    c.v.bv = true;
-                    if (criterion) {
-                        c = evalinternal(*criterion, context);
-                        if (c.t != mtbool) {
-                            std::cout << "Quantifier criterion requires boolean value\n";
-                            exit(1);
-                        }
-                    }
-                    if (c.v.bv)
-                    {
-                        count++;  // this is not foqcount but rather to be used to find average
-                        auto v = evalinternal(*fc.fcright, context);
-                        if (fc.fo != formulaoperator::foqproduct)   // formulaoperator::foqsum || fc.fo == formulaoperator::foqrange
-                            // || fc.fo == formulaoperator::foqmin || fc.fo == formulaoperator::foqmax
-                                // || fc.fo == formulaoperator::foqaverage)
-                        {
-                            if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
-                                || fc.fo == formulaoperator::foqmax)
-                                res.v.dv = 0;
-                            switch (v.t)
-                            {
-                            case mtcontinuous:
-                                res.v.dv += v.v.dv;
-                                break;
-                            case mtdiscrete:
-                                res.v.dv += v.v.iv;
-                                break;
-                            case mtbool:
-                                res.v.dv += v.v.bv ? 1 : 0;
-                                break;
-                            case mtset:
-                                res.v.dv += v.seti->getsize();
-                                break;
-                            }
-
-                            if (fc.fo == formulaoperator::foqrange || fc.fo == formulaoperator::foqmin
-                                || fc.fo == formulaoperator::foqmax)
-                            {
-                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
-                                    min = res.v.dv;
-                                else
-                                    min = res.v.dv < min ? res.v.dv : min;
-                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
-                                    max = res.v.dv;
-                                else
-                                    max = res.v.dv > max ? res.v.dv : max;
-                            }
-                        } else
-                        {
-                            switch (v.t)
-                            {
-                            case mtcontinuous:
-                                res.v.dv *= v.v.dv;
-                                break;
-                            case mtdiscrete:
-                                res.v.dv *= v.v.iv;
-                                break;
-                            case mtbool:
-                                res.v.dv *= v.v.bv ? 1 : 0;
-                                break;
-                            case mtset:
-                            case mttuple:
-                                res.v.dv *= v.seti->getsize();
-                                break;
-                            }
-                            // std::cout << fc.v.qc->qs.v.iv << " iv \n";
-                        }
-
-                    }
-                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
-                }
-                switch (fc.fo)
-                {
-                    case(formulaoperator::foqrange):
-                        res.v.dv = max - min;
-                        break;
-                    case (formulaoperator::foqaverage):
-                        res.v.dv = count > 0 ? res.v.dv / count : 0;
-                        break;
-                    case (formulaoperator::foqmax):
-                        res.v.dv = max;
-                        break;
-                    case (formulaoperator::foqmin):
-                        res.v.dv = min;
-                        break;
-                }
-                break;
-            }
-            case formulaoperator::foqtally:
-            case formulaoperator::foqcount:
-            {
-                int k = 0;
-                res.t = mtdiscrete;
-                res.v.iv = 0;
-
-                if (vacuouslytrue)
-                    k = supersetpos.size();
-                while (k < supersetpos.size()) {
-                    valms c;
-                    c.v.bv = true;
-                    if (criterion) {
-                        c = evalinternal(*criterion, context);
-                        if (c.t != mtbool) {
-                            std::cout << "Quantifier criterion requires boolean value\n";
-                            exit(1);
-                        }
-                    }
-                    if (c.v.bv)
-                    {
-                        auto v = evalinternal(*fc.fcright, context);
-                        if (fc.fo == formulaoperator::foqcount) {
-                            valms tmp;
-                            mtconverttobool(v,tmp.v.bv);
-                            if (tmp.v.bv)
-                                ++res.v.iv;
-                        } else  if (fc.fo == formulaoperator::foqtally)
-                        {
-                            valms tmp;
-                            mtconverttodiscrete(v, tmp.v.iv);
-                            res.v.iv += tmp.v.iv;
-                        }
-                    }
-                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
-                }
-                break;
-            }
-
-            case (formulaoperator::foqdupeset):
-            case (formulaoperator::foqtuple):
-            {
-                int k = 0;
-                res.t = fc.fo == formulaoperator::foqdupeset ? mtset : mttuple;
-                std::vector<valms> tot {};
-                if (vacuouslytrue)
-                    k = supersetpos.size();
-                while (k < supersetpos.size())
-                {
-                    valms c;
-                    c.v.bv = true;
-                    if (criterion) {
-                        c = evalinternal(*criterion, context);
-                        if (c.t != mtbool) {
-                            std::cout << "Quantifier criterion requires boolean value\n";
-                            exit(1);
-                        }
-                    }
-                    if (c.v.bv)
-                    {
-                        auto v = evalinternal(*fc.fcright, context);
-                        tot.push_back(v);
-                    }
-                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-
-                }
-                res.seti = new setitrmodeone(tot);
-                break;
-            }
-            case (formulaoperator::foqset):
-            {
-                int k = 0;
-                res.t = mtset;
-                std::vector<valms> tot {};
-                if (vacuouslytrue)
-                    k = supersetpos.size();
-                while (k < supersetpos.size())
-                {
-                    valms c;
-                    c.v.bv = true;
-                    if (criterion) {
-                        c = evalinternal(*criterion, context);
-                        if (c.t != mtbool) {
-                            std::cout << "Quantifier criterion requires boolean value\n";
-                            exit(1);
-                        }
-                    }
-                    if (c.v.bv)
-                    {
-                        auto v = evalinternal(*fc.fcright, context);
-                        bool match = false;
-                        for (int i = 0; !match && i < tot.size(); i++)
-                        {
-                            match = match || mtareequal(tot[i], v);
-                        }
-                        if (!match)
-                            tot.push_back(v);
-                    }
-                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                }
-                res.seti = new setitrmodeone(tot);
-                break;
-            }
-
-
-            case (formulaoperator::foqunion):
-            case (formulaoperator::foqintersection):
-            case (formulaoperator::foqdupeunion): {
-                int k = 0;
-                res.t = mtset;
-                res.seti = nullptr;
-                std::vector<setitr*> composite {};
-                if (vacuouslytrue)
-                    k = supersetpos.size();
-                while (k < supersetpos.size())
-                {
-                    valms c;
-                    c.v.bv = true;
-                    if (criterion) {
-                        c = evalinternal(*criterion, context);
-                        if (c.t != mtbool) {
-                            std::cout << "Quantifier criterion requires boolean value\n";
-                            exit(1);
-                        }
-                    }
-                    if (c.v.bv)
-                    {
-                        valms tempv;
-                        valms outv;
-                        tempv = evalinternal(*fc.fcright, context);
-                        mtconverttoset(tempv,outv.seti);
-                        composite.push_back(outv.seti);
-                    }
-                    quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
-                }
-
-                auto abstractpluralsetops = getsetitrpluralops(composite);
-
-                res.seti = abstractpluralsetops->setops(fc.fo);
-
-                if (!res.seti)
-                    res.seti = new setitrint(-1);
-                break;
-            }
-        } */
-        for (int k = originalcontextsize; k < ss.size(); ++k) {
-            delete ss[k-originalcontextsize];
-            if (needtodeletevseti[k - originalcontextsize])
-                delete vv[k-originalcontextsize].seti;
+        for (int k = 0; k < ss.size(); ++k) {
+            delete ss[k];
+            if (needtodeletevseti[k])
+                delete vv[k].seti;
         }
+        for (int i = 0; i < supersetpos.size(); ++i)
+            delete supersetpos[i];
+
+
         context.resize(originalcontextsize);
 
         return res;
@@ -3974,9 +2971,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         int contextidxB = -1;
         needtodeletevseti.resize(fc.fcright->boundvariables.size());
         for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-            valms v;
             if (fc.fcright->boundvariables[j]->superset) {
-                v = evalinternal(*fc.fcright->boundvariables[j]->superset, context);
+                valms v = evalinternal(*fc.fcright->boundvariables[j]->superset, context);
                 if (v.t == mtdiscrete || v.t == mtcontinuous)
                 {
                     if (v.t == mtcontinuous)
@@ -4269,6 +3265,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     for (int m = 0; m < pos; ++m)
                                         t[m].get();
                                 // v.resize(sz - pos);
+
                                 v.erase(v.begin()+pos, v.begin()+2*pos);
                                 // v.resize(sz-pos);
                                 // v.resize(pos);
@@ -4475,11 +3472,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
         }
 
-        for (int k = originalcontextsize; k < ss.size(); ++k) {
-            delete ss[k-originalcontextsize];
-            if (needtodeletevseti[k - originalcontextsize])
-                delete vv[k-originalcontextsize].seti;
+        for (int k = 0; k < ss.size(); ++k) {
+            delete ss[k];
+            if (needtodeletevseti[k])
+                delete vv[k].seti;
         }
+        for (int i = 0; i < supersetpos.size(); ++i)
+            delete supersetpos[i];
         context.resize(originalcontextsize);
         return res;
     }
@@ -4784,8 +3783,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
 void evalmformula::quantifiermultipleadvance( formulaclass& fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<std::pair<int,int>> &a )
 {
-    while (k < supersetpos.size() && supersetpos[k]->ended())
-        ++k;
+    if (k < supersetpos.size())
+        while (supersetpos[k]->ended())
+        {
+            ++k;
+            if (k >= supersetpos.size())
+                break;
+        }
+    // while (k < supersetpos.size() && supersetpos[k]->ended())
+        // ++k;
     if (k < supersetpos.size())
     {
         context[i[k]].second = supersetpos[k]->getnext();

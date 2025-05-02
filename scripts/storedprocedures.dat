@@ -105,5 +105,11 @@ MIN (X IN Ps(V), Separatesc(A,B,X), st(X))
 
 END
 
+mtbool EachComponentComplete
+
+THREADED EXISTS (s IN Setpartition(V), FORALL (t IN s, u IN V, v IN V, u != v, (ac(u,v) IF (u ELT t AND v ELT t)) AND ((u ELT t AND NOT v ELT t ) IMPLIES NOT ac(u,v))))
+
+END
+
 
 #include "../scripts/recursion.dat"
