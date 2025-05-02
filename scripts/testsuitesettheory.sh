@@ -280,3 +280,5 @@ $PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set all
 # 5:36 runtime 5/1/2025 on same
 
 # 5:57 runtime 5/1/2025 on same
+
+# 5:23 runtime 5/1/2025 after idealizeset

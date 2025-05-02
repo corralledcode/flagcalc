@@ -17,6 +17,7 @@ $PTH/flagcalc -d f="ab -cde" -a gm="NAMING (p AS THREADED PARTITION (u, v IN V, 
 # two out of three:
 $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS THREADED PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS THREADED BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
 
 # two out of four:
 $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="abcd=efghi" -a s="EXISTS (s IN Setpartition(V), FORALL (t IN s, FORALL (u IN t, v IN t, connvc(u,v))) AND FORALL (t1 IN s, t2 IN s, t1 != t2, FORALL (u IN t1, v IN t2, !connvc(u,v))) AND edgecm == SUM (a IN s, st(a)*(st(a)-1)/2))" all -v i=minimal3.cfg

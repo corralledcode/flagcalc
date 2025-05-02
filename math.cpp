@@ -1180,7 +1180,7 @@ void evalmformula::threadeval(formulaclass* fc, namedparams* context, valms* res
     *res = this->evalinternal(*fc, *context);
 }
 
-void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int  contextidxB,
+inline void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int  contextidxB,
     std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a )
 {
     while (v2->size() > 0)
@@ -1209,7 +1209,7 @@ void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int c
 }
 
 
-void evalmformula::threadsafeadvance(formulaclass& fc,std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
+inline void evalmformula::threadsafeadvance(formulaclass& fc,std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
     std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<valms>& ress)
 {
     pos = 0;
@@ -1218,20 +1218,6 @@ void evalmformula::threadsafeadvance(formulaclass& fc,std::vector<itrpos*>& supe
     while (pos < thread_count && k < supersetpos.size())
     {
         contexts[pos] = context;
-
-        // for (int i = 0; i < context.size(); ++i)
-            // if (context[i].second.t == mtset || context[i].second.t == mttuple)
-            // {
-                // auto itr = context[i].second.seti->getitrpos();
-                // while (!itr->ended())
-                    // itr->getnext();
-                // contexts[pos][i].second.seti = new setitrmodeone(itr->parent->totality);
-                // delete itr;
-                // while (!context[i].second.seti->ended())
-                    // context[i].second.seti->getnext();
-                // context[i].second.seti->reset();
-                // contexts[pos][i].second.seti = new setitr(*context[i].second.seti);
-            // }
         quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
         pos++;
     }
@@ -1245,7 +1231,7 @@ void evalmformula::threadsafeadvance(formulaclass& fc,std::vector<itrpos*>& supe
         t[m].get();
 }
 
-void evalmformula::threadsafeadvancewithcriterion(formulaclass& fc, formulaclass& criterion, std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
+inline void evalmformula::threadsafeadvancewithcriterion(formulaclass& fc, formulaclass& criterion, std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
     std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<bool>& c, std::vector<valms>& ress)
 {
     pos = 0;
@@ -1254,10 +1240,6 @@ void evalmformula::threadsafeadvancewithcriterion(formulaclass& fc, formulaclass
     while (pos < thread_count && k < supersetpos.size())
     {
         contexts[pos] = context;
-        // for (auto c : contexts[pos])
-            // if (c.second.t == mtset || c.second.t == mttuple)
-                // while (!c.second.seti->ended())
-                    // c.second.seti->getnext();
         quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
         pos++;
     }
@@ -1283,6 +1265,126 @@ void evalmformula::threadsafeadvancewithcriterion(formulaclass& fc, formulaclass
         if (cress[m].v.bv)
             t[m].get();
 }
+
+void idealizeset( std::vector<valms>& tot, valms& res)
+{
+    int i = 0;
+    int maxint = -1;
+    while (i < tot.size() && tot[i].t == mtdiscrete && tot[i].v.iv >= 0)
+    {
+        maxint = tot[i].v.iv > maxint ? tot[i].v.iv : maxint;
+        ++i;
+    }
+    if (i == tot.size())
+    {
+        bool* elts;
+        elts = new bool[maxint+1];
+        memset(elts,false,sizeof(bool) * (maxint+1));
+        for (int i = 0; i < tot.size(); i++)
+            elts[tot[i].v.iv] = true;
+        res.seti = new setitrint(maxint,elts);
+        res.t = mtset;
+        return;
+    }
+    i = 0;
+    maxint = -1;
+
+    /*
+    while (i < tot.size() && (tot[i].t == mtset || tot[i].t == mttuple) && tot[i].seti->getsize() == 2)
+    {
+        auto itr = tot[i].seti->getitrpos();
+        valms one = itr->getnext();
+        valms two = itr->getnext();
+        delete itr;
+        if (one.t == mtdiscrete && two.t == mtdiscrete && one.v.iv >= 0 && two.v.iv >= 0)
+        {
+            int maxinttemp = one.v.iv > two.v.iv ? one.v.iv : two.v.iv;
+            maxint = maxinttemp > maxint ? maxinttemp : maxint;
+        }
+        ++i;
+    }
+    if (i < tot.size())
+        res.seti = new setitrmodeone(tot);
+    else
+    {
+        bool* elts;
+        elts = new bool[(maxint+1)*(maxint+1)];
+        memset(elts,false,sizeof(bool) * (maxint+1)*(maxint+1));
+        for (int i = 0; i < tot.size(); i++)
+        {
+            auto itr = tot[i].seti->getitrpos();
+            valms one = itr->getnext();
+            valms two = itr->getnext();
+            delete itr;
+            if (one.v.iv < two.v.iv)
+                elts[one.v.iv*(maxint+1) + two.v.iv] = true;
+            else
+                elts[two.v.iv*(maxint+1) + one.v.iv] = true;
+        }
+        res.seti = new setitrint2dsymmetric(maxint+1,elts);
+        return;
+    }*/
+
+    res.seti = new setitrmodeone(tot);
+}
+
+
+void idealizetuple( std::vector<valms>& tot, valms& res)
+{
+    int i = 0;
+    int maxint = -1;
+    std::vector<int> tot2;
+    tot2.resize(tot.size());
+    while (i < tot.size() && tot[i].t == mtdiscrete)
+        tot2[i++] = tot[i].v.iv;
+    if (i == tot.size())
+    {
+        res.seti = new setitrtuple(tot2);
+        res.t = mttuple;
+        return;
+    }
+
+    /*
+    while (i < tot.size() && (tot[i].t == mtset || tot[i].t == mttuple) && tot[i].seti->getsize() == 2)
+    {
+        auto itr = tot[i].seti->getitrpos();
+        valms one = itr->getnext();
+        valms two = itr->getnext();
+        delete itr;
+        if (one.t == mtdiscrete && two.t == mtdiscrete && one.v.iv >= 0 && two.v.iv >= 0)
+        {
+            int maxinttemp = one.v.iv > two.v.iv ? one.v.iv : two.v.iv;
+            maxint = maxinttemp > maxint ? maxinttemp : maxint;
+        }
+        ++i;
+    }
+    if (i < tot.size())
+        res.seti = new setitrmodeone(tot);
+    else
+    {
+        bool* elts;
+        elts = new bool[(maxint+1)*(maxint+1)];
+        memset(elts,false,sizeof(bool) * (maxint+1)*(maxint+1));
+        for (int i = 0; i < tot.size(); i++)
+        {
+            auto itr = tot[i].seti->getitrpos();
+            valms one = itr->getnext();
+            valms two = itr->getnext();
+            delete itr;
+            if (one.v.iv < two.v.iv)
+                elts[one.v.iv*(maxint+1) + two.v.iv] = true;
+            else
+                elts[two.v.iv*(maxint+1) + one.v.iv] = true;
+        }
+        res.seti = new setitrint2dsymmetric(maxint+1,elts);
+        return;
+    }*/
+
+    res.seti = new setitrmodeone(tot);
+}
+
+
+
 
 
 valms evalformula::eval( formulaclass& fc, namedparams& context) {}
@@ -1348,10 +1450,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 return res;
             case mtset:
             case mttuple:
-                // std::vector<valms> tot {};
-                // for (int i = 0; i < fc.v.ss.elts.size(); ++i)
-                // tot.push_back(evalinternal(*fc.v.ss.elts[i]));
-                // res.seti = new setitrmodeone(tot);
                 res.seti = new setitrformulae(rec, idx, fc.v.ss.elts, context ); // doesn't compute in time, that is, misses variables in a quantifier
                 return res;
             case mtstring:
@@ -1448,9 +1546,17 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             res.t = measuretype::mtbool;
             valms set = evalinternal(*fc.fcright,context );
             valms itm = evalinternal( *fc.fcleft,context );
+
             if (set.t == mtset || set.t == mttuple)
             {
                 //                res.v.bv = set.seti->iselt(itm);
+                auto abstractsetops = getsetitrop(set.seti);
+                res.t = mtbool;
+                res.v.bv = abstractsetops->iselt( itm );
+/*
+
+
+
                 auto pos = set.seti->getitrpos();
                 pos->reset();
                 bool match = false;
@@ -1462,7 +1568,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                 }
                 res.v.bv = match;
-
+*/
                 // if (itm.v.iv >= set.setsize)
                 // {
                 // std::cout << "Set size exceeded in call to ELT\n";
@@ -1860,7 +1966,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqtuple:
@@ -1880,7 +1987,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizetuple(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqset:
@@ -1904,7 +2012,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             }
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
                         break;
                     }
                 case formulaoperator::foqunion:
@@ -2161,7 +2269,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             tot.push_back(v);
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqtuple:
@@ -2177,7 +2286,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             tot.push_back(v);
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizetuple(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqset:
@@ -2199,7 +2309,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 tot.push_back(v);
                             quantifiermultipleadvance(fc,supersetpos,k,context,i,a);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqunion:
@@ -2512,7 +2623,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (c[m])
                                     tot.push_back(ress[m]);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqtuple:
@@ -2532,7 +2644,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (c[m])
                                     tot.push_back(ress[m]);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizetuple(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqset:
@@ -2557,7 +2670,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                         tot.push_back(ress[m]);
                                 }
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqunion:
@@ -2849,7 +2963,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 tot.push_back(ress[m]);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqtuple:
@@ -2867,7 +2982,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 tot.push_back(ress[m]);
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizetuple(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqset:
@@ -2892,7 +3008,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     tot.push_back(ress[m]);
                             }
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 case formulaoperator::foqunion:
@@ -3060,10 +3177,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> c {};
                         for (auto a : tot)
                         {
-                            auto b = new setitrmodeone(a );
                             valms r;
-                            r.t = mtset;
-                            r.seti = b;
+                            idealizeset(a,r);
+                            // auto b = new setitrmodeone(a );
                             c.push_back(r);
                         }
                         res.seti = new setitrmodeone(c);
@@ -3104,7 +3220,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             tot[i] = v[arr[i]];
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 }
@@ -3156,10 +3274,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> c {};
                         for (auto a : tot)
                         {
-                            auto b = new setitrmodeone(a );
                             valms r;
-                            r.t = mtset;
-                            r.seti = b;
+                            idealizeset(a,r);
+                            // auto b = new setitrmodeone(a );
+                            // valms r;
+                            // r.t = mtset;
+                            // r.seti = b;
                             c.push_back(r);
                         }
                         res.seti = new setitrmodeone(c);
@@ -3207,7 +3327,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             tot[i] = v[arr[i]];
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 }
@@ -3243,12 +3364,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (sz > 1)
                             {
                                 const int pos = thread_count <= ceil((sz-1)/2.0) ? thread_count : ceil((sz-1)/2.0);
-                                // if (pos < thread_count)
-                                    // if ((sz % 2) == 1)
-                                    // {
-                                        // v.push_back(v[0]);
-                                        // ++sz;
-                                    // }
                                 std::vector<std::future<void>> t;
                                 t.resize(pos);
                                 for (int m = 0; m < pos; ++m) {
@@ -3256,32 +3371,23 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     const int j = pos + m; // + pos; //(sz - pos) + m;
                                     t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA,contextidxB,&v[i],&v[j],&a);
                                 }
-                                // if (v.size() % 2 != 0)
-                                    // t[pos] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[pos],contextidxA,contextidxB,&v[0],&v[v.size()-1],&a);
-                                // if (v.size() % 2 != 0)
-                                    // for (int m = 0; m < pos+1 ; ++m)
-                                        // t[m].get();
-                                // else
-                                    for (int m = 0; m < pos; ++m)
-                                        t[m].get();
-                                // v.resize(sz - pos);
+                                for (int m = 0; m < pos; ++m)
+                                    t[m].get();
 
                                 v.erase(v.begin()+pos, v.begin()+2*pos);
-                                // v.resize(sz-pos);
-                                // v.resize(pos);
                                 sz = v.size();
-                                // for (int m = pos-1; m >= 0; --m)
-                                    // v.erase(v.begin()+2*m+1);
                             }
                         } else
                             v.push_back({});
                         std::vector<valms> c {};
                         for (auto a : v[0])
                         {
-                            auto b = new setitrmodeone(a );
                             valms r;
-                            r.t = mtset;
-                            r.seti = b;
+                            idealizeset(a,r);
+                            // auto b = new setitrmodeone(a );
+                            // valms r;
+                            // r.t = mtset;
+                            // r.seti = b;
                             c.push_back(r);
                         }
                         res.seti = new setitrmodeone(c);
@@ -3324,7 +3430,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             tot[i] = v[arr[i]];
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 }
@@ -3378,12 +3485,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (sz > 1)
                             {
                                 const int pos = thread_count <= ceil((sz-1)/2.0) ? thread_count : ceil((sz-1)/2.0);
-                                // if (pos < thread_count)
-                                // if ((sz % 2) == 1)
-                                // {
-                                // v.push_back(v[0]);
-                                // ++sz;
-                                // }
                                 std::vector<std::future<void>> t;
                                 t.resize(pos);
                                 for (int m = 0; m < pos; ++m) {
@@ -3391,31 +3492,22 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     const int j = pos + m; // + pos; //(sz - pos) + m;
                                     t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA,contextidxB,&v[i],&v[j],&a);
                                 }
-                                // if (v.size() % 2 != 0)
-                                // t[pos] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[pos],contextidxA,contextidxB,&v[0],&v[v.size()-1],&a);
-                                // if (v.size() % 2 != 0)
-                                // for (int m = 0; m < pos+1 ; ++m)
-                                // t[m].get();
-                                // else
                                 for (int m = 0; m < pos; ++m)
                                     t[m].get();
-                                // v.resize(sz - pos);
                                 v.erase(v.begin()+pos, v.begin()+2*pos);
-                                // v.resize(sz-pos);
-                                // v.resize(pos);
                                 sz = v.size();
-                                // for (int m = pos-1; m >= 0; --m)
-                                // v.erase(v.begin()+2*m+1);
                             }
                         } else
                             v.push_back({});
                         std::vector<valms> c {};
                         for (auto a : v[0])
                         {
-                            auto b = new setitrmodeone(a );
                             valms r;
-                            r.t = mtset;
-                            r.seti = b;
+                            idealizeset(a,r);
+                            // auto b = new setitrmodeone(a );
+                            // valms r;
+                            // r.t = mtset;
+                            // r.seti = b;
                             c.push_back(r);
                         }
                         res.seti = new setitrmodeone(c);
@@ -3463,7 +3555,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             tot[i] = v[arr[i]];
                         }
-                        res.seti = new setitrmodeone(tot);
+                        idealizeset(tot,res);
+                        // res.seti = new setitrmodeone(tot);
                         break;
                     }
                 }
@@ -4159,6 +4252,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     }
 
             }
+            /*
             if (n < components.size())
             {
                 if (components[n] == "[") {
@@ -4172,7 +4266,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     // ++n;
                     continue;
                 }
-            }
+            }*/
 
 
             continue;
@@ -4256,6 +4350,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     }
 
             }
+            /*
             if (n < components.size())
             {
                 if (components[n] == "[") {
@@ -4270,7 +4365,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     continue;
                 }
             }
-
+*/
 
             continue;
         }

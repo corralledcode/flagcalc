@@ -208,6 +208,7 @@ void mtconverttype1( const valms& vin, valms& vout );
 void mtconverttype2( const valms& vin, valms& vout );
 
 bool mtareequal( const valms& v1, const valms& v2 );
+bool mtareequalgenerous( const valms& v, const valms& w );
 bool graphsequal( graphtype* g1, graphtype* g2 );
 
 using params = std::vector<valms>;
@@ -438,15 +439,6 @@ class setitrmodeone : public setitr
     setitrmodeone( std::vector<valms> totalityin )
     {
         totality = totalityin;
-/*        for (int i = 0; i < totality.size(); ++i)
-            if (totality[i].t == mtset || totality[i].t == mttuple)
-            {
-                auto itr = totality[i].seti->getitrpos();
-                while (!itr->ended())
-                    itr->getnext();
-                totality[i].seti = new setitrmodeone(itr->parent->totality);
-                delete itr;
-            }*/
         computed = true;
     }
 
@@ -774,7 +766,7 @@ public:
 inline void fastsetunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out);
 
 
-class setitrint : public setitrmodeone // has subset functionality built in
+class setitrint : public setitrmodeone
 {
     public:
     int maxint;
@@ -1469,6 +1461,40 @@ public:
     virtual setitr* setops( const formulaoperator fo ) {auto out = new setitrint(-1); return out;};
     virtual bool boolsetops( const formulaoperator fo ) {return false;};
 };
+class setitrfastop : public setitrabstractops
+{
+public:
+    setitrint* cast;
+    virtual bool iselt( valms v )
+    {
+        return v.t == mtdiscrete && cast->elts[v.v.iv];
+    }
+    setitrfastop( setitrint* castin ) : cast(castin) {};
+};
+class setitrfast2dsymmetricop : public setitrabstractops
+{
+public:
+    setitrint2dsymmetric* cast;
+    virtual bool iselt( valms v )
+    {
+        if (v.t != mtset && v.t != mttuple)
+            return false;
+        if (v.seti->getsize() != 2)
+            return false;
+        auto itr = v.seti->getitrpos();
+        auto one = itr->getnext();
+        auto two = itr->getnext();
+        delete itr;
+        if (one.v.iv > two.v.iv)
+        {
+            auto temp = one.v.iv;
+            one.v.iv = two.v.iv;
+            two.v.iv = temp;
+        }
+        return one.t == mtdiscrete && two.t == mtdiscrete && cast->itrint->elts[one.v.iv*(cast->dim1) + two.v.iv];
+    }
+    setitrfast2dsymmetricop( setitrint2dsymmetric* castin ) : cast(castin) {};
+};
 class setitrfastops : public setitrabstractops {
 public:
     setitrint* castA;
@@ -1692,6 +1718,24 @@ public:
         return fastboolsetops( castA2d->itrint, castB2d->itrint, fo );
     }
     setitrfast2dops( setitrint2d* castA2din, setitrint2d* castB2din ) : castA2d{castA2din}, castB2d{castB2din} {}
+};
+class setitrslowop : public setitrabstractops
+{
+public:
+    setitr* cast;
+    virtual bool iselt( valms v )
+    {
+        auto pos = cast->getitrpos();
+        pos->reset();
+        bool match = false;
+        while ( !match && !pos->ended())
+        {
+            auto v2 = pos->getnext();
+            match = match || mtareequalgenerous( v ,v2);
+        }
+        return match;
+    }
+    setitrslowop( setitr* castin ) : cast(castin) {};
 };
 
 class setitrslowops : public setitrabstractops {
@@ -1939,6 +1983,16 @@ public:
     }
     setitrtupleslowops( setitr* setAin, setitr* setBin ) : setA{setAin}, setB{setBin} {}
 };
+
+inline setitrabstractops* getsetitrop( setitr* set ) {
+    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(set))
+        return new setitrfast2dsymmetricop( cast2d );
+    if (setitrint* cast = dynamic_cast<setitrint*>(set))
+        return new setitrfastop( cast );
+    // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(set))
+        // return new setitrfastssop( castss );
+    return new setitrslowop( set );
+}
 
 inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
     if (setitrint2dsymmetric* castA2d = dynamic_cast<setitrint2dsymmetric*>(setA))

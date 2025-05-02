@@ -2084,6 +2084,7 @@ public:
             delete N;
             delete S;
             delete s;
+            valms res;
             return new setitrmodeone(nbrs);
             // }
 //        }
