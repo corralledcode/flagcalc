@@ -20,8 +20,8 @@
 #include "mantel.h"
 #include "thread_pool.cpp"
 #include "ameas.h"
-#include "meas.cpp"
-#include "probsub.cpp"
+#include "meas.cu"
+#include "probsub.cu"
 #include "math.h"
 
 //default is to enumisomorphisms
@@ -730,7 +730,7 @@ public:
         }
 
         auto stoptime = std::chrono::high_resolution_clock::now();
-        auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stoptime - starttime);
 
         if (verbositycmdlineincludes(verbositylevel,VERBOSE_VERBOSITYRUNTIME))
         {
@@ -1705,6 +1705,7 @@ public:
         auto (connvsc) = critfactory<connvscrit>;
         auto (indnpc) = critfactory<indnpcrit>;
         auto (nwisec) = critfactory<nwisecrit>;
+        auto (toBoolc) = critfactory<toBoolcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1729,6 +1730,7 @@ public:
         crsfactory.push_back(connvsc);
         crsfactory.push_back(indnpc);
         crsfactory.push_back(nwisec);
+        crsfactory.push_back(toBoolc);
 
         // ...
 
@@ -1755,6 +1757,7 @@ public:
         auto (lcircm) = measfactory<legacycircumferencemeas>;
         auto (diamm) = measfactory<diametermeas>;
         auto (gm) = measfactory<girthmeas>;
+        auto (toRealm) = measfactory<toRealmeas>;
 
         mssfactory.push_back(ms1);
         mssfactory.push_back(ms2);
@@ -1770,6 +1773,7 @@ public:
         mssfactory.push_back(lcircm);
         mssfactory.push_back(diamm);
         mssfactory.push_back(gm);
+        mssfactory.push_back(toRealm);
 
         // ,,,
 
@@ -1798,6 +1802,7 @@ public:
         auto (Chiprimegreedyt) = tallyfactory<Chiprimegreedytally>;
         auto (Nsst) = tallyfactory<Nsstally>;
         auto (cyclest) = tallyfactory<cyclestally>;
+        auto (toIntt) = tallyfactory<toInttally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(indnt);
@@ -1817,6 +1822,7 @@ public:
         tysfactory.push_back(Chiprimegreedyt);
         tysfactory.push_back(Nsst);
         tysfactory.push_back(cyclest);
+        tysfactory.push_back(toIntt);
 
         // ...
 
@@ -1873,10 +1879,14 @@ public:
         auto (Chip) = tuplefactory<Chituple>;
         auto (Chigreedyp) = tuplefactory<Chigreedytuple>;
         auto (Sp) = tuplefactory<Stuple>;
+        auto (CUDAnwalksbetweenp) = tuplefactory<CUDAnwalksbetweentuple>;
+        auto (nwalksbetweenp) = tuplefactory<nwalksbetweentuple>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
         ossfactory.push_back(Sp);
+        ossfactory.push_back(CUDAnwalksbetweenp);
+        ossfactory.push_back(nwalksbetweenp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));

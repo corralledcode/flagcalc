@@ -40,3 +40,10 @@ $PTH/flagcalc -d f="abcdef" -a s="THREADED FORALL (r IN Ps(V), st(r) == 2 IMPLIE
 $PTH/flagcalc -d f="abcdef" -a s="THREADED SETD (r IN Ps(V), st(r) == 2, r) == E" all -v i=minimal3.cfg
 
 $PTH/flagcalc -d f="abcdefghi" -a s="THREADED SET (r IN Ps(V), st(r) == 2, {r[0],r[1]}) == E" all -v i=minimal3.cfg
+
+# elementary number theory
+
+$PTH/flagcalc -d f="abcdefghi" -a isp="../scripts/storedprocedures.dat" s="FORALL (v IN V, v > 0, ntphi(n) == phi(n))" all -v i=minimal3.cfg
+$PTH/flagcalc -d massivegraph.dat -a isp="../scripts/storedprocedures.dat" z="SUM (d IN V, v AS dimm, d1 AS d+1, mod(v,d1) == 0, ntphi(d1))" all -v i=minimal3.cfg
+$PTH/flagcalc -d massivegraph.dat -a z="SUM (d IN V, d > 1, phi(d))" all -a isp="../scripts/storedprocedures.dat" z="SUM (d IN V, d > 1, ntphi(d))" -v i=minimal3.cfg
+$PTH/flagcalc -d massivegraph.dat -a isp="../scripts/storedprocedures.dat" s="FORALL (d IN V, d > 1, phi(d) == ntphi(d))" all -v i=minimal3.cfg

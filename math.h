@@ -43,15 +43,15 @@ logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2,
 enum class formulaoperator
 {foliteral,fofunction, foconstant, foderef,
     foqforall, foqexists,
-    foplus, fominus, fotimes, fodivide, foexponent, fomodulus,
-    folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt,
-    foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable, fovariablederef,
+    foplus, fominus, fotimes, fodivide, foexponent, fomodulus, // 11
+    folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt, // 21
+    foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable, fovariablederef, //32
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqtuple, foqunion, foqdupeunion, foqintersection,
     foqmedian, foqmode,
     foswitch, focases, foin, fonaming, foas,
     fosetminus, fosetxor, fomeet, fodisjoint,
-    fothreaded,
+    fothreaded, fogpu,
     forpartition, forsort};
 
 inline const std::map<std::string,formulaoperator> operatorsmap
@@ -109,6 +109,7 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"MEET", formulaoperator::fomeet},
         {"DISJOINT", formulaoperator::fodisjoint},
         {"THREADED", formulaoperator::fothreaded},
+        {"GPU", formulaoperator::fogpu},
         {"PARTITION", formulaoperator::forpartition},
         {"SORT", formulaoperator::forsort}};
 
@@ -124,6 +125,7 @@ class formulaclass;
 struct fnstruct {
     double (*fn)(std::vector<double>&);
     std::vector<formulaclass*> ps;
+    std::string nm {};
 };
 
 struct litstruct
@@ -890,6 +892,14 @@ public:
 };
 
 template<>
+inline valms setitrtuple<uint>::assignvalms( uint elt ) {
+    valms v;
+    v.t = mtdiscrete;
+    v.v.iv = elt;
+    return v;
+}
+
+template<>
 inline valms setitrtuple<int>::assignvalms( int elt ) {
     valms v;
     v.t = mtdiscrete;
@@ -911,6 +921,7 @@ inline valms setitrtuple<bool>::assignvalms( bool elt ) {
     return v;
 }
 
+
 class setitrintpair : public setitrmodeone
 {
 protected:
@@ -929,6 +940,31 @@ protected:
     public:
     setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
 };
+
+/*
+class setitrintpair : public setitrint
+{
+protected:
+    int inta;
+    int intb;
+public:
+    void compute() override
+    {
+        memset(elts,false,sizeof(bool)*(maxint+1));
+        elts[inta] = true;
+        elts[intb] = true;
+        // totality.resize(2);
+        // totality[0].t = mtdiscrete;
+        // totality[1].t = mtdiscrete;
+        // totality[0].v.iv = inta;
+        // totality[1].v.iv = intb;
+        // computed = true;
+        setitrint::compute();
+    }
+public:
+    setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin}, setitrint(intain > intbin ? intain : intbin) {}
+};*/
+
 
 class setitrint2d : public setitrmodeone {
 public:
@@ -1456,8 +1492,8 @@ inline setitrtuple<T>* fasttupleops( setitrtuple<T>* tupleA, setitrtuple<T>* tup
 }
 class setitrabstractops : public setitrmodeone {
 public:
-    virtual int setopunioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
-    virtual int setopintersectioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
+    virtual int setopunioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n"; return -1;}
+    virtual int setopintersectioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n"; return -1;}
     virtual setitr* setops( const formulaoperator fo ) {auto out = new setitrint(-1); return out;};
     virtual bool boolsetops( const formulaoperator fo ) {return false;};
 };
@@ -2104,6 +2140,7 @@ public:
     formulaclass* superset {};
     formulaclass* alias {};
     formulaclass* value {};
+    int CUDAfastidx = -1;
     bool secondorder = false;
     void eval( const std::vector<std::string>& q, int& pos)
     {
@@ -2253,37 +2290,6 @@ public:
 */
 
 
-// Function to compute Stirling numbers of
-// the second kind S(n, k) with memoization
-inline int stirling(int n, int k) {
-
-    // Base cases
-    if (n == 0 && k == 0) return 1;
-    if (k == 0 || n == 0) return 0;
-    if (n == k) return 1;
-    if (k == 1) return 1;
-
-
-    // Recursive formula
-    return k * stirling(n - 1, k) + stirling(n - 1, k - 1);
-}
-
-// Function to calculate the total number of
-// ways to partition a set of `n` elements
-inline int bellNumber(int n) {
-
-    int result = 0;
-
-    // Sum up Stirling numbers S(n, k) for all
-    // k from 1 to n
-    for (int k = 1; k <= n; ++k) {
-        result += stirling(n, k);
-    }
-    return result;
-}
-
-
-
 inline int lookup_variable( const std::string& tok, const namedparams& context) {
     bool found = false;
     int i = context.size() - 1;
@@ -2314,6 +2320,7 @@ public:
     formulaclass* fcright;
     formulaoperator fo;
     bool threaded = false;
+    bool gpu = false;
     formulaclass(formulavalue vin, formulaclass* fcleftin, formulaclass* fcrightin, formulaoperator foin)
         : v{vin}, fcleft(fcleftin), fcright(fcrightin), fo(foin) {}
     ~formulaclass() {
@@ -2425,7 +2432,7 @@ public:
 
 };
 
-// outdated by map in math.cpp
+// outdated by map in math.cu
 // inline bool quantifierops( const formulaoperator fo );
 
 
@@ -2851,8 +2858,9 @@ inline bool mtareequal( const valms& v, const valms& w ) { // initially overload
     switch (v.t) {
         case mtbool:
         case mtdiscrete:
-        case mtcontinuous:
             return v == w;
+        case mtcontinuous:
+            return abs(v.v.dv - w.v.dv) < ABSCUTOFF;
         case mtset: {
             auto abstractsetops = getsetitrops( v.seti, w.seti );
             bool res = abstractsetops->boolsetops( formulaoperator::foe );

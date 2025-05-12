@@ -12,6 +12,7 @@
 #include <functional>
 #include <stdexcept>
 
+#include "cuda.cuh"
 #include "graphio.h"
 #include "math.h"
 #include "graphs.h"
@@ -526,10 +527,7 @@ public:
     void threadeval(formulaclass* fc, namedparams* context, valms* res);
     void partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int contextidxB,
         std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
-    void threadsafeadvance(formulaclass& fc,std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
-        std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<valms>& ress);
-    void threadsafeadvancewithcriterion(formulaclass& fc, formulaclass& criterion, std::vector<itrpos*>& supersetpos, int& k, namedparams& context,
-        std::vector<int>& i, std::vector<std::pair<int,int>> &a, int& pos, std::vector<bool>& c, std::vector<valms>& ress);
+    void childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, uint& sz);
 
 
 
@@ -2055,24 +2053,46 @@ public:
         // if (res)
             // for (auto v : res->totality)
                 // delete v.seti;
+
         if (ps.size() == 1)
         {
             auto itr = ps[0].seti->getitrpos();
             std::vector<valms> v {};
+            bool allint = true;
+            int maxint = -1;
             while (!itr->ended())
+            {
                 v.push_back(itr->getnext());
+                // allint = allint && v[v.size()-1].t == mtdiscrete && v[v.size()-1].v.iv >= 0;
+                // if (allint)
+                    // maxint = maxint < v[v.size()-1].v.iv ? v[v.size()-1].v.iv : maxint;
+            }
             delete itr;
             std::vector<std::vector<int>> ps = getpermutations(v.size());
             std::vector<valms> totalitylocal {};
-            for (auto p : ps)
+            if (true) // (!allint)
+                for (auto p : ps)
+                {
+                    std::vector<valms> tot {};
+                    for (auto i : p)
+                        tot.push_back(v[i]);
+                    valms v2;
+                    v2.t = mttuple;
+                    v2.seti = new setitrmodeone(tot);
+                    totalitylocal.push_back(v2);
+                }
+            else
             {
-                std::vector<valms> tot {};
-                for (auto i : p)
-                    tot.push_back(v[i]);
-                valms v2;
-                v2.t = mttuple;
-                v2.seti = new setitrmodeone(tot);
-                totalitylocal.push_back(v2);
+                for (auto p : ps)
+                {
+                    std::vector<int> tot {};
+                    for (auto i : p)
+                        tot.push_back(v[i].v.iv);
+                    valms v2;
+                    v2.t = mttuple;
+                    v2.seti = new setitrtuple<int>(tot);
+                    totalitylocal.push_back(v2);
+                }
             }
 
             res = new setitrmodeone(totalitylocal);
@@ -2860,6 +2880,8 @@ class TupletoSet : public set
             return res;
         } else // ... add support for boolean and continuous tuples
         {
+            if (ps[0].t == mtset || ps[0].t == mttuple)
+                return ps[0].seti;
             std::cout << "Error in TupletoSet::takemeas: dynamic cast error, wrong type passed\n";
             exit(1);
         }
@@ -2873,6 +2895,25 @@ class TupletoSet : public set
         bindnamedparams();
     }
 };
+
+class toInttally : public tally
+{public: int takemeas(const int idx, const params& ps) override
+    {int out; mtconverttodiscrete(ps[0],out); return out;}
+    toInttally( mrecords* recin ) : tally(recin, "toInt", "Converts a value to an int value")
+    {valms v {}; v.t = mtcontinuous; nps.push_back(std::pair{"input",v}); bindnamedparams();}};
+
+class toRealmeas : public meas
+{public: double takemeas(const int idx, const params& ps) override
+    {double out; mtconverttocontinuous(ps[0],out); return out;}
+    toRealmeas( mrecords* recin ) : meas(recin, "toReal", "Converts a value to a real (continuous) value")
+    { valms v {}; v.t = mtdiscrete; nps.push_back(std::pair{"input",v}); bindnamedparams();}};
+
+class toBoolcrit : public crit
+{public: bool takemeas(const int idx, const params& ps) override
+    {bool out; mtconverttobool(ps[0],out); return out;}
+    toBoolcrit( mrecords* recin ) : crit(recin, "toBool", "Converts a value to a boolean value")
+    {valms v {}; v.t = mtdiscrete; nps.push_back(std::pair{"input",v}); bindnamedparams();}};
+
 
 class Pathsset : public set
 {
