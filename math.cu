@@ -1442,6 +1442,7 @@ void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& co
 
     CUDAdataspaces Cdss {};
     CUDAdataspaces CdssNEW {};
+    Cdss.g = this->ns->g;
 
     CUDAextendedcontext modelCec {};
     quantifiermanager qm(this,fc,context);
@@ -1933,7 +1934,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 res.v.bv = true;
                 res.t = mtbool;
                 for (int l = 0; (l < sz) && res.v.bv; ++l)
-                    res.v.bv = res.v.bv && (!to_mtbool(out[l]).v.bv || (crit[l] == false));
+                    if (crit[l] == true)
+                        res.v.bv = res.v.bv && !to_mtbool(out[l]).v.bv;
                 res.v.bv = !res.v.bv;
                 break;
             }
@@ -1942,7 +1944,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 res.v.bv = true;
                 res.t = mtbool;
                 for (int l = 0; (l < sz) && res.v.bv; l++)
-                    res.v.bv = res.v.bv && (to_mtbool(out[l]).v.bv || (crit[l] == false));
+                    if (crit[l] == true)
+                        res.v.bv = res.v.bv && to_mtbool(out[l]).v.bv;
                 break;
             }
         case formulaoperator::foqsum:

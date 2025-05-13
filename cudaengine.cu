@@ -80,7 +80,9 @@ __global__ void wrapCUDAevalcriterionfast( bool* crit, CUDAvalms* out, CUDAexten
 void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext& Cec, const CUDAfcptr start,
     const uint dimm, const uint sz )
 {
+#ifdef CUDADEBUG2
     auto starttime = std::chrono::high_resolution_clock::now();
+#endif
 
     CUDAextendedcontext h_Cec = Cec;
     CUDAextendedcontext* d_Cec;
@@ -91,12 +93,14 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
     cudaMalloc((void**)&h_Cec.CUDAcontext, Cec.CUDAcontextsize*sizeof(CUDAnamedvariable));
     cudaMalloc((void**)&h_Cec.CUDAliteralarray, Cec.CUDAliteralarraysize*sizeof(CUDAliteral));
     cudaMalloc((void**)&h_Cec.fastn,sizeof(CUDAvdimn));
+    cudaMalloc((void**)&h_Cec.g.adjacencymatrix, Cec.g.dim*Cec.g.dim*sizeof(bool));
 
     cudaMemcpy(h_Cec.CUDAfcarray, Cec.CUDAfcarray,Cec.CUDAfcarraysize*sizeof(CUDAfc),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.namedvararray, Cec.namedvararray,Cec.namedvararraysize*sizeof(CUDAnamedvariable),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.CUDAvalsarray, Cec.CUDAvalsarray,Cec.CUDAvalsarraysize,cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.CUDAcontext, Cec.CUDAcontext,Cec.CUDAcontextsize*sizeof(CUDAnamedvariable),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.CUDAliteralarray, Cec.CUDAliteralarray,Cec.CUDAliteralarraysize*sizeof(CUDAliteral),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.g.adjacencymatrix, Cec.g.adjacencymatrix,Cec.g.dim*Cec.g.dim*sizeof(bool),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&d_Cec,sizeof(CUDAextendedcontext));
 
@@ -108,7 +112,7 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
     cudaMalloc((void**)&d_out, sz*sizeof(CUDAvalms));
     cudaMalloc((void**)&d_crit, sz*sizeof(bool));
 
-    int blockSize = 256;
+    int blockSize = 1024;
     int numBlocks = (sz + blockSize - 1) / blockSize;
 
 
@@ -118,7 +122,7 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
 
     size_t pValue;
     cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
-    cudaDeviceSetLimit(cudaLimitStackSize,2048);
+    cudaDeviceSetLimit(cudaLimitStackSize,4096);
     cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
 
 #ifdef CUDADEBUG2
@@ -151,7 +155,10 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
     cudaFree(h_Cec.CUDAvalsarray);
     cudaFree(h_Cec.CUDAcontext);
     cudaFree(h_Cec.CUDAliteralarray);
+    cudaFree(h_Cec.fastn);
+    cudaFree(h_Cec.g.adjacencymatrix);
 
+    cudaFree(d_Cec);
     cudaFree(d_out);
     cudaFree(d_crit);
 
@@ -177,27 +184,41 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
 {
     auto starttime = std::chrono::high_resolution_clock::now();
 
-    CUDAextendedcontext h_Cecs[sz];
+    auto h_Cecs = new CUDAextendedcontext[sz];
+    CUDAextendedcontext h_Cec;
     CUDAextendedcontext* d_Cecs;
     cudaMalloc((void**)&d_Cecs,sz*sizeof(CUDAextendedcontext));
 
+    if (sz == 0)
+        return;
+
+    h_Cec = Cecs[0];
+
+    cudaMalloc((void**)&h_Cec.CUDAfcarray,Cecs[0].CUDAfcarraysize*sizeof(CUDAfc));
+    cudaMalloc((void**)&h_Cec.CUDAliteralarray, Cecs[0].CUDAliteralarraysize*sizeof(CUDAliteral));
+    cudaMalloc((void**)&h_Cec.g.adjacencymatrix, Cecs[0].g.dim*Cecs[0].g.dim*sizeof(bool));
+
+    cudaMemcpy(h_Cec.CUDAfcarray, Cecs[0].CUDAfcarray,Cecs[0].CUDAfcarraysize*sizeof(CUDAfc),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.CUDAliteralarray, Cecs[0].CUDAliteralarray,Cecs[0].CUDAliteralarraysize*sizeof(CUDAliteral),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.g.adjacencymatrix, Cecs[0].g.adjacencymatrix,Cecs[0].g.dim*Cecs[0].g.dim*sizeof(bool),cudaMemcpyHostToDevice);
+
     for (int i = 0; i < sz; ++i)
     {
-        h_Cecs[i] = Cecs[i];
+        // h_Cecs[i] = Cecs[i];
 
-        cudaMalloc((void**)&h_Cecs[i].CUDAfcarray,Cecs[i].CUDAfcarraysize*sizeof(CUDAfc));
+        h_Cecs[i] = h_Cec;
+
         cudaMalloc((void**)&h_Cecs[i].namedvararray, Cecs[i].namedvararraysize*sizeof(CUDAnamedvariable));
         cudaMalloc((void**)&h_Cecs[i].CUDAvalsarray,Cecs[i].CUDAvalsarraysize);
         cudaMalloc((void**)&h_Cecs[i].CUDAcontext, Cecs[i].CUDAcontextsize*sizeof(CUDAnamedvariable));
-        cudaMalloc((void**)&h_Cecs[i].CUDAliteralarray, Cecs[i].CUDAliteralarraysize*sizeof(CUDAliteral));
-        // cudaMalloc((void**)&h_Cecs[i].fastn,sizeof(CUDAvdimn));
 
-        cudaMemcpy(h_Cecs[i].CUDAfcarray, Cecs[i].CUDAfcarray,Cecs[i].CUDAfcarraysize*sizeof(CUDAfc),cudaMemcpyHostToDevice);
         cudaMemcpy(h_Cecs[i].namedvararray, Cecs[i].namedvararray,Cecs[i].namedvararraysize*sizeof(CUDAnamedvariable),cudaMemcpyHostToDevice);
         cudaMemcpy(h_Cecs[i].CUDAvalsarray, Cecs[i].CUDAvalsarray,Cecs[i].CUDAvalsarraysize,cudaMemcpyHostToDevice);
         cudaMemcpy(h_Cecs[i].CUDAcontext, Cecs[i].CUDAcontext,Cecs[i].CUDAcontextsize*sizeof(CUDAnamedvariable),cudaMemcpyHostToDevice);
-        cudaMemcpy(h_Cecs[i].CUDAliteralarray, Cecs[i].CUDAliteralarray,Cecs[i].CUDAliteralarraysize*sizeof(CUDAliteral),cudaMemcpyHostToDevice);
-        // cudaMemcpy(h_Cecs[i].fastn, Cecs[i].fastn,sizeof(CUDAvdimn),cudaMemcpyHostToDevice);
+
+        // cudaMemcpy(&h_Cecs[i].CUDAfcarray, h_Cec.CUDAfcarray, sizeof(CUDAfc*), cudaMemcpyHostToDevice);
+        // cudaMemcpy(&h_Cecs[i].CUDAliteralarray, h_Cec.CUDAliteralarray, sizeof(CUDAliteral*), cudaMemcpyHostToDevice);
+        // cudaMemcpy(&h_Cecs[i].g.adjacencymatrix, h_Cec.g.adjacencymatrix, sizeof(bool*), cudaMemcpyHostToDevice);
 
 #ifdef CUDADEBUG
         for (int j = 0; j < Cecs[i].CUDAfcarraysize; ++j)
@@ -226,7 +247,7 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
 
     size_t pValue;
     cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
-    cudaDeviceSetLimit(cudaLimitStackSize,2048);
+    cudaDeviceSetLimit(cudaLimitStackSize,4096);
     cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
 
 #ifdef CUDADEBUG2
@@ -256,17 +277,21 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
     cudaMemcpy( out, d_out, sz * sizeof(CUDAvalms), cudaMemcpyDeviceToHost);
     cudaMemcpy( crit, d_crit, sz * sizeof(bool), cudaMemcpyDeviceToHost);
 
+    cudaFree(h_Cec.CUDAfcarray);
+    cudaFree(h_Cec.CUDAliteralarray);
+    cudaFree(h_Cec.g.adjacencymatrix);
     for (auto i = 0; i < sz; ++i)
     {
-        cudaFree(h_Cecs[i].CUDAfcarray);
         cudaFree(h_Cecs[i].namedvararray);
         cudaFree(h_Cecs[i].CUDAvalsarray);
         cudaFree(h_Cecs[i].CUDAcontext);
-        cudaFree(h_Cecs[i].CUDAliteralarray);
     }
     cudaFree(d_out);
     cudaFree(d_crit);
-    cudaFree(h_Cecs);
+
+    // delete d_Cecs;  // segfaults
+
+    delete h_Cecs;
 
 #ifdef CUDADEBUG2
     auto stoptime = std::chrono::high_resolution_clock::now();

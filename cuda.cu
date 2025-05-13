@@ -573,12 +573,19 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
             CUDAnamedvariableptr j = Cec.CUDAliteralarray[Cfc.literal].inputvariabletypesptr;
             CUDAnamedvariableptr k = Cfc.namedvar;
             uint argcnt = 0;
+            while (j >= 0)
+            {
+                argcnt++;
+                j = Cec.namedvararray[j].next;
+            }
+            auto args = new CUDAvalms[argcnt];
+            j = Cec.CUDAliteralarray[Cfc.literal].inputvariabletypesptr;
+            int l = 0;
             while (j >= 0 && k >= 0)
             {
                 measuretype t = Cec.namedvararray[j].ufc.v.t;
                 auto v = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t);
-                Cec.namedvararray[k].ufc.v = v;
-                argcnt++;
+                args[l++] = v;
                 j = Cec.namedvararray[j].next;
                 k = Cec.namedvararray[k].next;
             }
@@ -587,28 +594,29 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
             {
             case measuretype::mtcontinuous:
                 {
-                    res.v.dv = Cec.CUDAliteralarray[Cfc.literal].function.fncontinuous(Cec,Cfc.namedvar);
+                    res.v.dv = Cec.CUDAliteralarray[Cfc.literal].function.fncontinuous(Cec,args);
                     break;
                 }
             case measuretype::mtdiscrete:
                 {
-                    res.v.iv = (Cec.CUDAliteralarray[Cfc.literal].function.fndiscrete)(Cec,Cfc.namedvar);
+                    res.v.iv = (Cec.CUDAliteralarray[Cfc.literal].function.fndiscrete)(Cec,args);
                     break;
                 }
             case measuretype::mtbool:
                 {
-                    res.v.bv = Cec.CUDAliteralarray[Cfc.literal].function.fnbool(Cec,Cfc.namedvar);
+                    res.v.bv = Cec.CUDAliteralarray[Cfc.literal].function.fnbool(Cec,args);
                     break;
                 }
             case measuretype::mtset:
                 {
-                    res.v.seti = Cec.CUDAliteralarray[Cfc.literal].function.fnset(Cec,Cfc.namedvar);
+                    res.v.seti = Cec.CUDAliteralarray[Cfc.literal].function.fnset(Cec,args);
                     break;
                 }
             }
-
+            delete args;
             return res;
         }
+    case formulaoperator::fone:
     case formulaoperator::foe:
         {
             auto v1 = CUDAevalinternal(Cec,Cfc.fcleft);
@@ -643,6 +651,8 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
                 }
             } else
                 res.v.bv = false;
+            if (Cfc.fo == formulaoperator::fone)
+                res.v.bv = !res.v.bv;
             return res; // add all remaining cases
         }
     case formulaoperator::folt:

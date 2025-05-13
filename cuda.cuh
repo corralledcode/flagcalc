@@ -128,11 +128,11 @@ struct CUDAextendedcontext;
 
 union CUDAfunction
 {
-    bool (*fnbool)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
-    long int (*fndiscrete)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
-    double (*fncontinuous)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
-    CUDAseti (*fnset)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
-    CUDAseti (*fntuple)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
+    bool (*fnbool)(const CUDAextendedcontext&, const CUDAvalms*);
+    long int (*fndiscrete)(const CUDAextendedcontext&, const CUDAvalms*);
+    double (*fncontinuous)(const CUDAextendedcontext&, const CUDAvalms*);
+    CUDAseti (*fnset)(const CUDAextendedcontext&, const CUDAvalms*);
+    CUDAseti (*fntuple)(const CUDAextendedcontext&, const CUDAvalms*);
 };
 
 struct CUDAliteral
@@ -163,6 +163,12 @@ struct CUDAfc
 
 using CUDAvdimn = long int[GPUQUANTFASTDIM];
 
+struct CUDAgraph {
+    int dim;
+    bool* adjacencymatrix;
+};
+
+
 struct CUDAextendedcontext
 {
 
@@ -185,6 +191,8 @@ struct CUDAextendedcontext
 
     CUDAvdimn fastn;
     uint numfastn;
+
+    CUDAgraph g;
 };
 
 
@@ -206,6 +214,8 @@ public:
     CUDAfcptr fctop;
     std::vector<CUDAliteral> Clv {};
     std::vector<CUDAnamedvariable> Ccv {}; // CUDAcontext
+
+    graphtype* g;
 
     uint totalsz = 0;
 
@@ -246,6 +256,7 @@ public:
             Cdstarget.Clv.insert( Cdstarget.Clv.begin(), Cl );
         for (auto Cc : Ccv)
             Cdstarget.Ccv.insert( Cdstarget.Ccv.begin(), Cc );
+        Cdstarget.g = g;
     }
 
     void copyCUDAdataspaces( CUDAdataspaces& Cdstarget )
@@ -263,6 +274,7 @@ public:
             Cdstarget.Clv.push_back( Cl );
         for (auto Cc : Ccv)
             Cdstarget.Ccv.push_back( Cc );
+        Cdstarget.g = g;
     }
 
     void populateCUDAecvolatileonly( CUDAextendedcontext& Cec )
@@ -341,7 +353,8 @@ public:
 
         //
 
-
+        Cec.g.adjacencymatrix = g->adjacencymatrix;
+        Cec.g.dim = g->dim;
     }
 };
 
@@ -379,6 +392,7 @@ inline CUDAvalms to_mtbool( const CUDAvalms v )
         }
     default:
         std::cout << "Not yet implemented to_mtbool type\n";
+        res.v.bv = false;
         break;
     }
     return res;
@@ -672,13 +686,13 @@ __device__ inline CUDAvalms CUDAvalmsto_specified( const CUDAextendedcontext& Ce
 __device__ inline CUDAvalms CUDAlookupnamedvariable(const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr, uint count, const measuretype& mt)
 {
     CUDAvalms res;
-    res.t = mt;
     CUDAnamedvariableptr ptr = Cnvptr;
     while (count > 0)
     {
         count--;
         ptr = Cec.namedvararray[ptr].next;
     }
+    res.t = mt;
     res = CUDAvalmsto_specified(Cec,Cec.namedvararray[ptr].ufc.v,mt);
     return res;
 }

@@ -12,7 +12,7 @@ $PTH/flagcalc -d f="abcd" -a s="GPU FORALL (s IN Ps(V), t IN Ps(V), u IN Ps(V), 
 
 $PTH/flagcalc -d f="abcd" -a s="GPU FORALL (u IN V, v IN V, w IN V, x IN V, u1 AS u+1, v1 AS v+1, w1 AS w+1, x1 AS x+1, 1, log(u1*v1*w1*x1) == (log(u1) + log(v1) + log(w1) + log(x1)))"
 
-$PTH/flagcalc -d f="abcd" -a s="FORALL (s IN Ps(V), GPU FORALL (u IN V, v IN V, w IN V, x IN V, u1 AS u+1, v1 AS v+1, w1 AS w+1, x1 AS x+1, 1, (u ELT s AND v ELT s AND w ELT s AND x ELT s) IMPLIES log(u1*v1*w1*x1) == 1+(log(u1) + log(v1) + log(w1) + log(x1))))"
+$PTH/flagcalc -d f="abcd" -a s="FORALL (s IN Ps(V), GPU FORALL (u IN V, v IN V, w IN V, x IN V, u1 AS u+1, v1 AS v+1, w1 AS w+1, x1 AS x+1, 1, (u ELT s AND v ELT s AND w ELT s AND x ELT s) IMPLIES log(u1*v1*w1*x1) == (log(u1) + log(v1) + log(w1) + log(x1))))"
 
 $PTH/flagcalc -d f="abcd" -a s="GPU SUM (u IN V, v IN V, w IN V, x IN V, u1 AS u+1, v1 AS v+1, w1 AS w+1, x1 AS x+1, log(u1*v1*w1*x1) - ((log(u1) + log(v1) + log(w1) + log(x1))))"
 
@@ -81,3 +81,9 @@ $PTH/flagcalc -d massivegraph.dat -a z="GPU SUM (v1 IN V, v2 IN V, v3 IN V, v1 <
 $PTH/flagcalc -d massivegraph.dat -a z="SUM (v1 IN V, v2 IN V, v3 IN V, v1 < v2 AND v2 < v3, v1+v2+v3)" -v i=minimal3.cfg
 
 # runtime of 1:31 on an i9 with a 4050 GPU
+
+$PTH/flagcalc -d f="abcdefghijklmnopqrstuvwxyza1b1c1d1e1f1g1h1i1j1k1l1m1n1o1p1q1r1s1t1u1v1w1x1y1z1" -a s="GPU FORALL (v1 IN V, v2 IN V, v1 != v2, ac(v1,v2))" -a s="GPU FORALL (v1 IN V, v2 IN V, v1 != v2, ac(v1,v2))" -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcdefghijklmnopqrstuvwxyza1b1c1d1e1f1g1h1i1j1k1l1m1n1o1p1q1r1s1t1u1v1w1x1y1z1" -a s="FORALL (v1 IN V, v2 IN V, v1 != v2, ac(v1,v2))" -v i=minimal3.cfg
+
+
+# 1:18 5/13/2025
