@@ -77,6 +77,19 @@ __global__ void wrapCUDAevalcriterionfast( bool* crit, CUDAvalms* out, CUDAexten
     }
 }
 
+
+__global__ void CUDAcomputeneighborslistenmasse( const CUDAgraph* gs, CUDAneighbors* ns, const long int sz)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < sz)
+    {
+        for (int i = 0; i < gs[index].dim; ++i)
+            CUDAcomputeneighborslistsingle(&gs[index],&ns[index],i);
+    }
+}
+
+
 void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext& Cec, const CUDAfcptr start,
     const uint dimm, const uint sz )
 {
@@ -427,5 +440,119 @@ void CUDAcomputeneighborslistwrapper( graphtype* g, neighborstype* ns )
     cudaFree(d_ns);
     cudaFree(d_g);
 
+
+}
+
+
+void CUDAcomputeneighborslistenmassewrapper( std::vector<graphtype*>& gv, std::vector<neighborstype*>& nsv )
+{
+
+    const int sz = gv.size();
+
+    auto h_gs = new CUDAgraph[sz];
+
+    auto h_ns = new CUDAneighbors[sz];
+
+    for (int i = 0; i < sz; ++i)
+    {
+        int dim = gv[i]->dim;
+        h_gs[i].dim = dim;
+        cudaMalloc((void**)&h_gs[i].adjacencymatrix,dim*dim*sizeof(bool));
+        cudaMalloc((void**)&h_ns[i].neighborslist,dim*dim*sizeof(CUDAvertextype));
+        cudaMalloc((void**)&h_ns[i].nonneighborslist,dim*dim*sizeof(CUDAvertextype));
+        cudaMalloc((void**)&h_ns[i].degrees,dim*sizeof(int));
+
+        cudaMemcpy(h_gs[i].adjacencymatrix,gv[i]->adjacencymatrix,sizeof(bool)*dim*dim,cudaMemcpyHostToDevice);
+    }
+
+    CUDAgraph* d_gs;
+    CUDAneighbors* d_ns;
+
+    cudaMalloc((void**)&d_gs, sz*sizeof(CUDAgraph));
+    cudaMemcpy(d_gs, h_gs,sz*sizeof(CUDAgraph),cudaMemcpyHostToDevice);
+
+    cudaMalloc((void**)&d_ns,sz*sizeof(CUDAneighbors));
+    cudaMemcpy(d_ns,h_ns,sz*sizeof(CUDAneighbors),cudaMemcpyHostToDevice);
+
+    int blockSize = 1024;
+    int numBlocks = (sz + blockSize - 1) / blockSize;
+
+
+#ifdef CUDADEBUG2
+    auto starttime2 = std::chrono::high_resolution_clock::now();
+#endif
+
+    // size_t pValue;
+    // cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
+    // cudaDeviceSetLimit(cudaLimitStackSize,2048);
+    // cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
+
+#ifdef CUDADEBUG2
+
+    std::cout << "cudaDeviceGetLimit(cudaLimitStackSize) == " << pValue << std::endl;
+
+#endif
+
+
+    CUDAcomputeneighborslistenmasse<<<numBlocks,blockSize>>>(d_gs,d_ns,sz);
+
+    cudaDeviceSynchronize();
+#ifdef CUDADEBUG2
+
+    auto stoptime2 = std::chrono::high_resolution_clock::now();
+    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stoptime2 - starttime2);
+
+    std::cout << "CUDA runtime excluding cudaMalloc and cudaMemcpy: " << duration2.count() << " microseconds" << std::endl;
+#endif
+
+
+    cudaMemcpy(h_ns,d_ns,sz*sizeof(CUDAneighbors), cudaMemcpyDeviceToHost);
+
+    for (int i = 0; i < sz; ++i)
+    {
+        long int dim = gv[i]->dim;
+
+        nsv[i] = new neighbors(gv[i],false); // tell it not to compute the neighborslist
+
+        cudaMemcpy( nsv[i]->degrees, h_ns[i].degrees, dim * sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy( nsv[i]->neighborslist, h_ns[i].neighborslist, dim*dim * sizeof(CUDAvertextype), cudaMemcpyDeviceToHost);
+        cudaMemcpy( nsv[i]->nonneighborslist, h_ns[i].nonneighborslist, dim*dim * sizeof(CUDAvertextype), cudaMemcpyDeviceToHost);
+
+        nsv[i]->g = gv[i];
+        nsv[i]->maxdegree = -1;
+        for (int j = 0; j < dim; ++j)
+            nsv[i]->maxdegree = nsv[i]->degrees[j] > nsv[i]->maxdegree ? nsv[i]->degrees[j] : nsv[i]->maxdegree;
+        // std::cout << nsv[i]->maxdegree;
+
+        // osadjacencymatrix(std::cout, gv[i]);
+        // osneighbors(std::cout, nsv[i]);
+
+        cudaFree( &d_ns[i].neighborslist );
+        cudaFree( &d_ns[i].nonneighborslist );
+        cudaFree( &d_ns[i].degrees );
+        cudaFree( &d_gs[i].adjacencymatrix );
+
+    }
+
+    cudaFree( d_ns );
+
+    delete[] h_ns;
+    // std::cout << std::endl;
+
+    // for (auto l = 0; l < g->dim; ++l)
+    // {
+        // std::cout << "l == " << l << ": ";
+        // for (auto k = 0; k < (g->dim - ns->degrees[l]); ++k)
+            // std::cout << "engine " << k << ": " << ns->nonneighborslist[g->dim*l + k] << ".. ";
+        // std::cout << std::endl;
+    // }
+
+    // for (auto l = 0; l < g->dim; ++l)
+    // {
+        // std::cout << "l2 == " << l << ": ";
+        // for (auto k = 0; k < ns->degrees[l]; ++k)
+            // std::cout << "engine " << k << ": " << ns->neighborslist[g->dim*l + k] << ".. ";
+        // std::cout << std::endl;
+    // }
 
 }

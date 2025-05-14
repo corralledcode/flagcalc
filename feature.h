@@ -20,6 +20,7 @@
 #include "mantel.h"
 #include "thread_pool.cpp"
 #include "ameas.h"
+#include "cudaengine.cuh"
 #include "meas.cu"
 #include "probsub.cu"
 #include "math.h"
@@ -595,11 +596,24 @@ public:
             }
         }
 
+#ifdef CUDAFORCOMPUTENEIGHBORSLISTENMASSE
+
+        std::vector<neighborstype*> nsv;
+        nsv.resize(cnt);
+        CUDAcomputeneighborslistenmassewrapper(gv,nsv);
+
+        for (int i = 0; i < cnt; ++i)
+        {
+            auto wi = new graphitem;
+            wi->ns = nsv[i];
+            wi->g = gv[i];
+            wi->name = _ws->getuniquename(wi->classname);
+            gv[i]->vertexlabels = vertexlabels;
+            _ws->items.push_back( wi );
+        }
+
+#else
         for (int i = 0; i < cnt; ++i) {
-
-            //starray.push_back(std::chrono::high_resolution_clock::now());
-
-
             auto wi = new graphitem;
             wi->ns = new neighbors(gv[i]);
             wi->g = gv[i];
@@ -607,6 +621,7 @@ public:
             gv[i]->vertexlabels = vertexlabels;
             _ws->items.push_back( wi );
         }
+#endif
 /*        for (int i = 0; i < cnt; ++i) {
             _ws->items[s+i]->name = _ws->getuniquename(_ws->items[s+i]->classname);
         }*/
@@ -1749,7 +1764,7 @@ public:
         auto (ms4) = measfactory<avgdegreemeas>;
         auto (ms5) = measfactory<mindegreemeas>;
         auto (ms6) = measfactory<maxdegreemeas>;
-        // auto (ms7) = measfactory<legacygirthmeas>;
+        auto (ms7) = measfactory<legacygirthmeas>;
         auto (mc) = measfactory<maxcliquemeas>;
         auto (cnm) = measfactory<connectedmeas>;
         auto (rm) = measfactory<radiusmeas>;
@@ -1765,7 +1780,7 @@ public:
         mssfactory.push_back(ms4);
         mssfactory.push_back(ms5);
         mssfactory.push_back(ms6);
-        // mssfactory.push_back(ms7);
+        mssfactory.push_back(ms7);
         mssfactory.push_back(mc);
         mssfactory.push_back(cnm);
         mssfactory.push_back(rm);

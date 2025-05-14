@@ -90,3 +90,5 @@ $PTH/flagcalc -d f="abcdefghijklmnopqrstuvwxyza1b1c1d1e1f1g1h1i1j1k1l1m1n1o1p1q1
 
 $PTH/flagcalc -d f="abcd efghi ijkl mnop" -a p="GPU TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -a p="GPU TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -a p="TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc d efg hi ij kl mno p" -a s="GPU TUPLE (v1 IN V, v2 IN V, connvc(v1,v2)) == TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -v i=minimal3.cfg
+
+# 0:46 5/14/2025

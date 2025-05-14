@@ -71,6 +71,24 @@ public:
         degrees = (int*)malloc(dim * sizeof(int) );
         computeneighborslist();
     }
+    neighbors(graphtype* gin, bool compute ) : dim{ gin->dim }
+    {
+        g = gin;
+        if (g == nullptr) {
+            std::cout << "Can't create a neighbor object with a null graph\n";
+            //dim = 0;
+            maxdegree=0;
+            return;
+        }
+        //dim = g->dim;
+        maxdegree = 0;
+        neighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
+        nonneighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
+        degrees = (int*)malloc(dim * sizeof(int) );
+        if (compute)
+            computeneighborslist();
+    }
+
     ~neighbors() {
         free(neighborslist);
         free(nonneighborslist);

@@ -18,6 +18,6 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
 
 void CUDAcomputeneighborslistwrapper( graphtype* g, neighborstype* ns );
 
-
+void CUDAcomputeneighborslistenmassewrapper( std::vector<graphtype*>& gs, std::vector<neighborstype*>& ns );
 
 #endif //CUDAENGINE_CUH
