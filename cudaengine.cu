@@ -141,7 +141,7 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
 
     size_t pValue;
     cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
-    cudaDeviceSetLimit(cudaLimitStackSize,4096);
+    cudaDeviceSetLimit(cudaLimitStackSize,2048);
     cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
 
 #ifdef CUDADEBUG2
@@ -343,6 +343,78 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
 {
     CUDAevalwithcriterion(crit, out, Cecs, Cecs[0].fctop, sz);
 }
+
+void CUDAcountpathsbetweenwrapper(int* out, int walklength, const bool* adjmatrix, const int dim )
+{
+    int* d_out;
+    int* d_in1;
+    int* d_in2;
+
+    int in1[dim * dim];
+    int in2[dim * dim];
+
+    memset(in1,0,sizeof(int) * dim * dim);
+    for (int i = 0; i < dim; ++i)
+        in1[i*dim+i] = 1;
+    for (int i = 0; i < dim*dim; ++i)
+        in2[i] = adjmatrix[i];
+
+#ifdef CUDADEBUG2
+
+    auto starttime = std::chrono::high_resolution_clock::now();
+#endif
+
+    cudaMalloc(&d_out,dim*dim*sizeof(int));
+    cudaMalloc(&d_in1,dim*dim*sizeof(int));
+    cudaMalloc(&d_in2,dim*dim*sizeof(int));
+    cudaMemcpy(d_in1,in1,dim*dim*sizeof(int),cudaMemcpyHostToDevice);
+    cudaMemcpy(d_in2,in2,dim*dim*sizeof(int),cudaMemcpyHostToDevice);
+
+    // Define the grid and block dimensions
+    int blockSize = dim;
+    int numBlocks = dim; // (blockSize + dim + 1)/blockSize;
+
+    // dim3 blockSize = (dim,dim);
+    // dim3 numBlocks  = ((dim+blockSize.x - 1)/blockSize.x, (dim+blockSize.y - 1)/blockSize.y);
+
+#ifdef CUDADEBUG2
+
+    auto starttime2 = std::chrono::high_resolution_clock::now();
+
+#endif
+
+    // Launch the kernel
+    for (int i = 0; i < walklength; ++i)
+    {
+        CUDAsquarematrixmultiply<<<numBlocks, blockSize>>>(d_out, d_in1, d_in2, dim);
+        cudaMemcpy(d_in1,d_out,dim*dim*sizeof(int),cudaMemcpyDeviceToDevice);
+    }
+
+    cudaDeviceSynchronize();
+
+#ifdef CUDADEBUG2
+    auto stoptime2 = std::chrono::high_resolution_clock::now();
+    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stoptime2 - starttime2);
+
+    std::cout << "CUDA runtime excluding cudaMalloc and cudaMemcpy: " << duration2.count() << " microseconds" << std::endl;
+#endif
+
+    // Copy the result back to the host
+    cudaMemcpy(out, d_out, dim * dim * sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_out);
+    cudaFree(d_in1);
+    cudaFree(d_in2);
+
+#ifdef CUDADEBUG2
+    auto stoptime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stoptime - starttime);
+
+    std::cout << "CUDA runtime including cudaMalloc and cudaMemcpy: " << duration.count() << " microseconds" << std::endl;
+#endif
+
+};
+
 
 void CUDAcomputeneighborslistwrapper( graphtype* g, neighborstype* ns )
 {
@@ -554,5 +626,71 @@ void CUDAcomputeneighborslistenmassewrapper( std::vector<graphtype*>& gv, std::v
             // std::cout << "engine " << k << ": " << ns->neighborslist[g->dim*l + k] << ".. ";
         // std::cout << std::endl;
     // }
+
+}
+
+
+void CUDAverticesconnectedmatrixwrapper( const graphtype* g, const neighborstype* ns, bool* out )
+{
+
+    const int dim = g->dim;
+    const int sz = dim*dim;
+
+    bool* d_out;
+
+    cudaMalloc((void**)&d_out,dim*dim*sizeof(bool));
+
+    // for (int i = 0; i < dim; ++i)
+    // {
+        // cudaMemcpy(&d_partitions[i*sz],g->adjacencymatrix,dim*dim*sizeof(bool),cudaMemcpyHostToDevice);
+    // }
+    // cudaMemcpy(d_indices,ns->neighborslist,dim*sizeof(int),cudaMemcpyHostToDevice);
+
+    cudaMemcpy(d_out,out,dim*dim*sizeof(bool),cudaMemcpyHostToDevice);
+
+    int blockSize = 1024;
+    int numBlocks = (sz + blockSize - 1) / blockSize;
+
+#ifdef CUDADEBUG2
+    auto starttime2 = std::chrono::high_resolution_clock::now();
+#endif
+
+    // size_t pValue;
+    // cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
+    // cudaDeviceSetLimit(cudaLimitStackSize,2048);
+    // cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
+
+#ifdef CUDADEBUG2
+
+    std::cout << "cudaDeviceGetLimit(cudaLimitStackSize) == " << pValue << std::endl;
+
+#endif
+
+    for (int i = 0; i < ceil(log(dim)/log(2)); ++i)
+        CUDAverticesconnectedmatrix<<<numBlocks,blockSize>>>(d_out, d_out, dim);
+
+    cudaDeviceSynchronize();
+#ifdef CUDADEBUG2
+
+    auto stoptime2 = std::chrono::high_resolution_clock::now();
+    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stoptime2 - starttime2);
+
+    std::cout << "CUDA runtime excluding cudaMalloc and cudaMemcpy: " << duration2.count() << " microseconds" << std::endl;
+#endif
+
+    cudaMemcpy(out,d_out,dim*dim*sizeof(bool), cudaMemcpyDeviceToHost);
+
+    // for (int i = 0; i < dim; ++i)
+    // {
+        // for (int j = 0; j < sz; ++j)
+            // std::cout << h_partitions[i*sz + j] << " ";
+        // std::cout << std::endl;
+    // }
+
+    cudaFree( d_out );
+
+    // delete[] h_ns;
+
+
 
 }

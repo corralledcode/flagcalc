@@ -838,7 +838,7 @@ class setitrtuple : public setitrmodeone
 public:
     T* elts = nullptr;
     int length;
-    int maxelt = -1;
+    // int maxelt = -1;
 
     virtual valms assignvalms( T elt )
     {
@@ -851,7 +851,7 @@ public:
         totality.resize(length);
         for (int i = 0; i < length; ++i) {
             totality[i] = assignvalms(elts[i]);
-            maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
+            // maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
         }
         computed = true;
         reset();
@@ -898,7 +898,13 @@ inline valms setitrtuple<uint>::assignvalms( uint elt ) {
     v.v.iv = elt;
     return v;
 }
-
+template<>
+inline valms setitrtuple<long int>::assignvalms( long int elt ) {
+    valms v;
+    v.t = mtdiscrete;
+    v.v.iv = elt;
+    return v;
+}
 template<>
 inline valms setitrtuple<int>::assignvalms( int elt ) {
     valms v;
@@ -921,6 +927,16 @@ inline valms setitrtuple<bool>::assignvalms( bool elt ) {
     return v;
 }
 
+template<typename T>
+class setitrtuple2d : public setitrtuple<setitrtuple<T>*>
+{
+public:
+    valms assignvalms( setitrtuple<T>* elt )
+    {
+        valms v; v.t = mttuple; v.seti = elt; return v;
+    }
+    setitrtuple2d(std::vector<setitrtuple<T>*>& vecin) : setitrtuple<setitrtuple<T>*>(vecin) {}
+};
 
 class setitrintpair : public setitrmodeone
 {

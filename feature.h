@@ -391,7 +391,7 @@ public:
 
 
         unsigned const thread_count = std::thread::hardware_concurrency();
-        //unsigned const thread_count = 1;
+        // unsigned const thread_count = 1;
 
         int cnt = 0;
         const double section = double(outof) / double(thread_count);
@@ -1896,12 +1896,16 @@ public:
         auto (Sp) = tuplefactory<Stuple>;
         auto (CUDAnwalksbetweenp) = tuplefactory<CUDAnwalksbetweentuple>;
         auto (nwalksbetweenp) = tuplefactory<nwalksbetweentuple>;
+        auto (Connvp) = tuplefactory<Connvtuple>;
+        auto (CUDAConnvp) = tuplefactory<CUDAConnvtuple>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
         ossfactory.push_back(Sp);
         ossfactory.push_back(CUDAnwalksbetweenp);
         ossfactory.push_back(nwalksbetweenp);
+        ossfactory.push_back(Connvp);
+        ossfactory.push_back(CUDAConnvp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));

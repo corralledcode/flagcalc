@@ -230,5 +230,9 @@ void copygraph( graphtype* g1, graphtype* g2 );
 
 std::vector<std::vector<int>> getpermutations( const int i );
 
+void verticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns  );
+
+void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns );
+
 
 #endif //GRAPHS_H

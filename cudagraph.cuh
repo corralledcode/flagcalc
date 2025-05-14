@@ -105,7 +105,8 @@ __device__ inline void deleteCUDAneighbors(CUDAneighbors& ns)
     free(ns.degrees);
 }
 
-__device__ inline void CUDAcopygraph( const CUDAgraph* g1, CUDAgraph* g2 ) {
+__device__ inline void CUDAcopygraph( const CUDAgraph* g1, CUDAgraph* g2 )
+{
     if (g1->dim != g2->dim) {
         // std::cout << "Mismatched dimensions in copygraph\n";
         return;
@@ -114,10 +115,10 @@ __device__ inline void CUDAcopygraph( const CUDAgraph* g1, CUDAgraph* g2 ) {
         g2->adjacencymatrix[i] = g1->adjacencymatrix[i];
 }
 
-
 __device__ int CUDApathsbetweenmin( const CUDAgraph* g, const CUDAneighbors* ns, CUDAvertextype v1, CUDAvertextype v2, int min );
-
-
+__global__ inline void CUDAneighborcount( int* out, bool* adjmatrix, int dim );
+__global__ inline void CUDAsquarematrixmultiply( int* out, int* in1, int* in2, const int dim );
+__global__ inline void CUDAverticesconnectedmatrix( bool* out, bool* adj, const int dim);
 
 
 #endif //CUDAGRAPH_CUH

@@ -6,6 +6,9 @@
 #include "graphs.h"
 #include <unordered_set>
 
+#include "cudagraph.cuh"
+#include "cudaengine.cuh"
+
 
 class kncrit : public crit
 {
@@ -2784,4 +2787,52 @@ public:
 };
 
 
+class Connvtuple : public set
+{
+public:
+    Connvtuple( mrecords* recin ) : set( recin, "Connvp", "Matrix of connectedness") {}
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+        bool* out = new bool[dim*dim];
+        verticesconnectedmatrix( out, g, ns );
+        std::vector<setitrtuple<bool>*> tuples {};
+        tuples.resize(dim);
+        for (int i = 0; i < dim; ++i)
+            tuples[i] = new setitrtuple<bool>(dim,&out[i*dim]);
+        auto res = new setitrtuple2d<bool>(tuples);
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class CUDAConnvtuple : public set
+{
+public:
+    CUDAConnvtuple( mrecords* recin ) :
+        set( recin, "CUDAConnvp", "CUDA boolean matrix of connected vertices") {};
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+        bool* out = new bool[dim*dim];
+        CUDAverticesconnectedmatrix( out, g, ns );
+        std::vector<setitrtuple<bool>*> tuples {};
+        tuples.resize(dim);
+        for (int i = 0; i < dim; ++i)
+            tuples[i] = new setitrtuple<bool>(dim,&out[i*dim]);
+        auto res = new setitrtuple2d<bool>(tuples);
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
 

@@ -718,40 +718,6 @@ __device__ inline CUDAvalms CUDAlookupnamedvariable(const CUDAextendedcontext& C
 }
 
 
-__global__ inline void CUDAneighborcount( int* out, bool* adjmatrix, int dim )
-{
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (index < dim)
-    {
-        out[index] = 0;
-        for (int j = index+1; j < dim; ++j)
-            out[index] += adjmatrix[index * dim + j];
-    }
-}
-
-
-
-__global__ inline void CUDAsquarematrixmultiply( int* out, int* in1, int* in2, const int dim )
-{
-    // int row = blockIdx.y * blockDim.y + threadIdx.y;
-    // int col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    int index = blockIdx.x * blockDim.x + threadIdx.x;
-
-    int row = index / dim;
-    int col = index % dim;
-
-    int sum = 0;
-
-    if (row < dim && col < dim)
-    {
-        for (int i = 0; i < dim; ++i)
-            sum += in1[row * dim + i] * in2[i * dim + col];
-        out[row * dim + col] = sum;
-    }
-}
-
 inline void squarematrixmultiply( int* out, int* in1, int* in2, const int dim )
 {
 
@@ -765,76 +731,6 @@ inline void squarematrixmultiply( int* out, int* in1, int* in2, const int dim )
         }
 }
 
-inline void CUDAcountpathsbetweenwrapper(int* out, int walklength, const bool* adjmatrix, const int dim )
-{
-    int* d_out;
-    int* d_in1;
-    int* d_in2;
-
-    int in1[dim * dim];
-    int in2[dim * dim];
-
-    memset(in1,0,sizeof(int) * dim * dim);
-    for (int i = 0; i < dim; ++i)
-        in1[i*dim+i] = 1;
-    for (int i = 0; i < dim*dim; ++i)
-        in2[i] = adjmatrix[i];
-
-#ifdef CUDADEBUG2
-
-    auto starttime = std::chrono::high_resolution_clock::now();
-#endif
-
-    cudaMalloc(&d_out,dim*dim*sizeof(int));
-    cudaMalloc(&d_in1,dim*dim*sizeof(int));
-    cudaMalloc(&d_in2,dim*dim*sizeof(int));
-    cudaMemcpy(d_in1,in1,dim*dim*sizeof(int),cudaMemcpyHostToDevice);
-    cudaMemcpy(d_in2,in2,dim*dim*sizeof(int),cudaMemcpyHostToDevice);
-
-    // Define the grid and block dimensions
-    int blockSize = dim;
-    int numBlocks = dim; // (blockSize + dim + 1)/blockSize;
-
-    // dim3 blockSize = (dim,dim);
-    // dim3 numBlocks  = ((dim+blockSize.x - 1)/blockSize.x, (dim+blockSize.y - 1)/blockSize.y);
-
-#ifdef CUDADEBUG2
-
-    auto starttime2 = std::chrono::high_resolution_clock::now();
-
-#endif
-
-    // Launch the kernel
-    for (int i = 0; i < walklength; ++i)
-    {
-        CUDAsquarematrixmultiply<<<numBlocks, blockSize>>>(d_out, d_in1, d_in2, dim);
-        cudaMemcpy(d_in1,d_out,dim*dim*sizeof(int),cudaMemcpyDeviceToDevice);
-    }
-
-    cudaDeviceSynchronize();
-
-#ifdef CUDADEBUG2
-    auto stoptime2 = std::chrono::high_resolution_clock::now();
-    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stoptime2 - starttime2);
-
-    std::cout << "CUDA runtime excluding cudaMalloc and cudaMemcpy: " << duration2.count() << " microseconds" << std::endl;
-#endif
-
-    // Copy the result back to the host
-    cudaMemcpy(out, d_out, dim * dim * sizeof(int), cudaMemcpyDeviceToHost);
-
-    cudaFree(d_out);
-    cudaFree(d_in1);
-    cudaFree(d_in2);
-
-#ifdef CUDADEBUG2
-    auto stoptime = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stoptime - starttime);
-
-    std::cout << "CUDA runtime including cudaMalloc and cudaMemcpy: " << duration.count() << " microseconds" << std::endl;
-#endif
-
-};
 
 
 #endif // CUDA_CUH

@@ -2867,12 +2867,15 @@ class TupletoSet : public set
             setitr* res;
             if (!s->computed)
                 s->compute();
-            if (s->maxelt >= 0) {
-                bool* elts = new bool[s->maxelt+1];
-                memset(elts,false,(s->maxelt+1)*sizeof(bool));
+            int maxelt = -1;
+            for (int i = 0; i < s->length; ++i)
+                maxelt = maxelt < s->elts[i] ? s->elts[i] : maxelt;
+            if (maxelt >= 0) {
+                bool* elts = new bool[maxelt+1];
+                memset(elts,false,(maxelt+1)*sizeof(bool));
                 for (auto i = 0; i < s->length; ++i)
                     elts[s->elts[i]] = true;
-                res = new setitrint(s->maxelt,elts);
+                res = new setitrint(maxelt,elts);
             } else {
                 std::cout << "Expected maxelt not found in setitrtuple class item\n";
                 res = new setitrmodeone(s->totality);

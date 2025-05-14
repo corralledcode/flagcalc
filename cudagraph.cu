@@ -4,6 +4,42 @@
 
 #include "cudagraph.cuh"
 
+
+
+__global__ inline void CUDAneighborcount( int* out, bool* adjmatrix, int dim )
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < dim)
+    {
+        out[index] = 0;
+        for (int j = index+1; j < dim; ++j)
+            out[index] += adjmatrix[index * dim + j];
+    }
+}
+
+
+__global__ inline void CUDAsquarematrixmultiply( int* out, int* in1, int* in2, const int dim )
+{
+    // int row = blockIdx.y * blockDim.y + threadIdx.y;
+    // int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int row = index / dim;
+    int col = index % dim;
+
+    int sum = 0;
+
+    if (row < dim && col < dim)
+    {
+        for (int i = 0; i < dim; ++i)
+            sum += in1[row * dim + i] * in2[i * dim + col];
+        out[row * dim + col] = sum;
+    }
+}
+
+
 __device__ int CUDApathsbetweenmin( const CUDAgraph* g, const CUDAneighbors* ns, CUDAvertextype v1, CUDAvertextype v2, int min )
 {
     if (v1 == v2 || min <= 0)
@@ -39,3 +75,19 @@ __device__ inline int CUDApathsbetweencount( const CUDAgraph* g, const CUDAneigh
     // CUDApathsbetweenmin(g,ns,v1,v2,-1);
     return -1;
 }
+
+__global__ inline void CUDAverticesconnectedmatrix( bool* out, bool* adj, const int dim)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    CUDAvertextype row = index / dim;
+    CUDAvertextype col = index % dim;
+
+    if (index < dim*dim)
+    {
+        int cnt = 0;
+        for (int i = 0; i < dim && !cnt; ++i)
+            cnt += out[row*dim + i] && adj[i*dim + col];
+        out[row*dim + col] = out[row*dim + col] || cnt;
+    }
+}
+

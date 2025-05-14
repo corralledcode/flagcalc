@@ -2701,3 +2701,93 @@ int cyclescount( graphtype* g, neighborstype* ns )
     delete g2;
     return res;
 }
+
+void verticesconnectedlist( const graphtype* g, vertextype* partitions, int* pindices  )
+{
+    int lead = 0;
+    const int d = g->dim;
+    const int pfactor = d*d;
+    if (d == 0)
+        return;
+    const bool* am = g->adjacencymatrix;
+    for (int i = 0; i < d; ++i)
+    {
+        partitions[i*pfactor + pindices[i]] = i;
+        ++pindices[i];
+    }
+    bool changed;
+    while (changed || lead+1 < d)
+    {
+        ++lead;
+        changed = false;
+        if (lead >= g->dim)
+            lead = 1;
+        // for (int i = 0; i < d; ++i)
+        // {
+            // std::cout << i << ": ";
+            // for (int j = 0; j < pindices[i]; ++j)
+                // std::cout << partitions[i*pfactor + j] << " ";
+            // std::cout << std::endl;
+        // }
+        // std::cout << std::endl;
+
+        for (int j = 0; j < pindices[lead]; ++j)
+            for (int i = 0; (i < lead) && !changed; ++i)
+            {
+                for (int k = 0; k < pindices[i] && !changed; ++k)
+                {
+                    auto v1 = partitions[lead*pfactor + j];
+                    auto v2 = partitions[i*pfactor + k];
+                    if (am[v1*d + v2])
+                    {
+                        for (auto l = 0; l < pindices[lead]; ++l)
+                            partitions[i*pfactor + pindices[i] + l] = partitions[lead*pfactor + l];
+                        pindices[i] += pindices[lead];
+                        // if (pindices[i] >= pfactor)
+                            // std::cout << "bug\n";
+                        pindices[lead] = 0;
+                        changed = true;
+                        lead = i;
+                    }
+                }
+            }
+    }
+}
+
+void verticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns )
+{
+
+    const int dim = g->dim;
+    const int pfactor = dim*dim;
+    auto partitions = (vertextype*)malloc(dim*pfactor*sizeof(vertextype));
+    for (int i = 0; i < dim; ++i)
+        memcpy(&partitions[i*dim*dim],&ns->neighborslist[i*dim],dim*sizeof(vertextype));
+    // memcpy(partitions,ns->neighborslist,dim*dim*sizeof(vertextype));
+    auto pindices = (int*)malloc(dim*sizeof(int));
+    memcpy(pindices,ns->degrees,dim*sizeof(int));
+    verticesconnectedlist( g, partitions, pindices );
+
+    memset(out,0,dim*dim*sizeof(bool));
+    for (int i = 0; i < dim; ++i)
+        for (int j = 0; j < pindices[i]; ++j)
+            for (int k = j; k < pindices[i]; ++k)
+            {
+                auto v1 = partitions[i*pfactor + j];
+                auto v2 = partitions[i*pfactor + k];
+                out[v1*dim + v2] = true;
+                out[v2*dim + v1] = true;
+            }
+    delete pindices;
+    delete partitions;
+}
+
+void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns )
+{
+
+    const int dim = g->dim;
+    // auto out = (bool*)malloc(dim*dim*sizeof(bool));
+    memcpy(out,g->adjacencymatrix,dim*dim*sizeof(bool));
+    for (int i = 0; i < dim; ++i)
+        out[i*dim + i] = true;
+    CUDAverticesconnectedmatrixwrapper(g,ns,out);
+}
