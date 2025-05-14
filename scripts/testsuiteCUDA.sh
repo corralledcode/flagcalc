@@ -41,7 +41,7 @@ $PTH/flagcalc -d massivegraph.dat -a a="GPU SUM (w IN V, v AS dimm, mod(v*v+1,w+
 $PTH/flagcalc -d f="a b c d e f g h i j k" -a z="GPU SUM (u IN V, v IN V, w IN V, 1 <= u*v*w, phi(u*v*w))" -a z="GPU SUM (u IN V, v IN V, w IN V, 1 <= u*v*w, phi(u*v*w))" -a z="SUM (u IN V, v IN V, w IN V, 1 <= u*v*w, phi(u*v*w))" -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcdefgh" -a z="GPU SUM (u IN V, v IN V, 1 <= u*v AND u + 1 <= v, nchoosek(v,u))" -a z="GPU SUM (u IN V, v IN V, 1 <= u*v AND u + 1 <= v, nchoosek(v,u))" -a z="SUM (u IN V, v IN V, 1 <= u*v AND u + 1 <= v, nchoosek(v,u))" -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcdefghijklm" -a s="GPU FORALL (u IN V, v IN V, 1 <= u*v AND u + 1 <= v, nchoosek(v,u) == nchoosek(v, v - u))" -a s="GPU FORALL (u IN V, v IN V, 1 <= u*v AND u + 1 <= v, nchoosek(v,u) == nchoosek(v, v - u))" -a s="FORALL (u IN V, v IN V, 1 <= u*v AND u + 1 <= v, nchoosek(v,u) == nchoosek(v, v - u))" -v i=minimal3.cfg
-$PTH/flagcalc -d f="abcdefghijklm" -a s="GPU FORALL (u IN V, v IN V, 1 <= u*v, gamma(u*v/v))" -a s="GPU FORALL (u IN V, v IN V, 1 <= u*v, gamma(u*v/v))" -a s="FORALL (u IN V, v IN V, 1 <= u*v, gamma(u*v/v))" -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcdefghijklm" -a s="GPU FORALL (u IN V, v IN V, 1 <= u*v, gamma(u*v/v))" -a s="GPU FORALL (u IN V, v IN V, 1 <= u*v, gamma(u*v/v))" -a s="FORALL (u IN V, v IN V, 1 <= u*v, gamma(u*v/v) > 0)" -v i=minimal3.cfg
 
 $PTH/flagcalc -d f="abcdefghijklmnopq" -a s="SUM (a IN SET (n IN V, 1, GPU SUM (k IN NN(n + 1), 1, nchoosek(n,k))), a) == GPU SUM (n IN V, 1, exp(log(2)*n))" -a a="SUM (a IN SET (n IN V, 1, GPU SUM (k IN NN(n + 1), 1, nchoosek(n,k))), a)" -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcdefghijklmnopq" -a z="SUM (a IN SET (n IN V, 1, SUM (k IN NN(n + 1), 1, nchoosek(n,k))), a)" -a a="SUM (n IN V, 1, exp(log(2)*n))"  -v i=minimal3.cfg
@@ -87,3 +87,6 @@ $PTH/flagcalc -d f="abcdefghijklmnopqrstuvwxyza1b1c1d1e1f1g1h1i1j1k1l1m1n1o1p1q1
 
 
 # 1:18 5/13/2025
+
+$PTH/flagcalc -d f="abcd efghi ijkl mnop" -a p="GPU TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -a p="GPU TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -a p="TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abc d efg hi ij kl mno p" -a s="GPU TUPLE (v1 IN V, v2 IN V, connvc(v1,v2)) == TUPLE (v1 IN V, v2 IN V, connvc(v1,v2))" -v i=minimal3.cfg

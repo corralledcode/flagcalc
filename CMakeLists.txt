@@ -40,6 +40,8 @@ add_executable(flagcalc main.cu
         cudafn.cu
         cudaengine.cu
         cudaengine.cuh
+        cudagraph.cu
+        cudagraph.cuh
 )
 
 

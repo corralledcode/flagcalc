@@ -4,13 +4,30 @@
 
 #ifndef CUDA_CUH
 #define CUDA_CUH
+
 #include "math.h"
 
 // #define CUDADEBUG
 // #define CUDADEBUG2
 #define GPUQUANTFASTDIM 3
+// #define CUDAFORCOMPUTENEIGHBORSLIST
 
 struct CUDAvalms;
+
+struct CUDAgraph {
+    int dim;
+    bool* adjacencymatrix;
+};
+
+
+struct CUDAneighbors
+{
+    CUDAgraph* g;
+    int* neighborslist;
+    int* degrees;
+    int maxdegree;
+    int* nonneighborslist;
+};
 
 
 using CUDAvalmsptr = int;
@@ -163,12 +180,6 @@ struct CUDAfc
 
 using CUDAvdimn = long int[GPUQUANTFASTDIM];
 
-struct CUDAgraph {
-    int dim;
-    bool* adjacencymatrix;
-};
-
-
 struct CUDAextendedcontext
 {
 
@@ -193,6 +204,7 @@ struct CUDAextendedcontext
     uint numfastn;
 
     CUDAgraph g;
+    CUDAneighbors ns;
 };
 
 
@@ -216,6 +228,7 @@ public:
     std::vector<CUDAnamedvariable> Ccv {}; // CUDAcontext
 
     graphtype* g;
+    neighborstype* ns;
 
     uint totalsz = 0;
 
@@ -275,6 +288,7 @@ public:
         for (auto Cc : Ccv)
             Cdstarget.Ccv.push_back( Cc );
         Cdstarget.g = g;
+        Cdstarget.ns = ns;
     }
 
     void populateCUDAecvolatileonly( CUDAextendedcontext& Cec )
@@ -355,6 +369,10 @@ public:
 
         Cec.g.adjacencymatrix = g->adjacencymatrix;
         Cec.g.dim = g->dim;
+        Cec.ns.maxdegree = ns->maxdegree;
+        Cec.ns.neighborslist = ns->neighborslist;
+        Cec.ns.nonneighborslist = ns->nonneighborslist;
+        Cec.ns.degrees = ns->degrees;
     }
 };
 

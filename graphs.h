@@ -54,39 +54,8 @@ public:
     int* degrees;
     int maxdegree;
     int* nonneighborslist;
-    bool computeneighborslist() {
-        maxdegree = -1;
-        int* nondegrees = new int[dim];
-        for (int n = 0; n < dim; ++n) {
-            degrees[n] = 0;
-            for (int i = 0; i < dim; ++i) {
-                if (g->adjacencymatrix[n*dim + i]) {
-                    neighborslist[n * dim + degrees[n]] = i;
-                    degrees[n]++;
-                }
-            }
-            maxdegree = (degrees[n] > maxdegree ? degrees[n] : maxdegree );
-        }
-        for (int n = 0; n < dim; ++n) {
-            nondegrees[n] = 0;
-            for (int i = 0; i < dim; ++i) {
-                if (!g->adjacencymatrix[n*dim + i] && (n != i)) {
-                    nonneighborslist[n*dim + nondegrees[n]] = i;
-                    nondegrees[n]++;
-                }
-            }
-        }
-        for (int n = 0; n < dim; ++n) {
-            if (degrees[n] + nondegrees[n] != dim-1) {
-                std::cout << "BUG in computeneighborslist\n";
-                osadjacencymatrix( std::cout, g);
-                return false;
-            }
-        }
-        delete nondegrees;
-
-        return true;
-    }
+    bool computeneighborslist();
+    bool CPUcomputeneighborslist();
     neighbors(graphtype* gin) : dim{ gin->dim } {
         g = gin;
         if (g == nullptr) {
@@ -97,8 +66,8 @@ public:
         }
         //dim = g->dim;
         maxdegree = 0;
-        neighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
-        nonneighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
+        neighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
+        nonneighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
         degrees = (int*)malloc(dim * sizeof(int) );
         computeneighborslist();
     }

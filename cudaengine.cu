@@ -2,9 +2,9 @@
 // Created by peterglenn on 5/12/25.
 //
 
-#include "cuda.cuh"
 #include "cudaengine.cuh"
 #include "cudafn.cu"
+// #include "cudagraph.cuh"
 
 #include <cuda_runtime.h>
 
@@ -94,6 +94,9 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
     cudaMalloc((void**)&h_Cec.CUDAliteralarray, Cec.CUDAliteralarraysize*sizeof(CUDAliteral));
     cudaMalloc((void**)&h_Cec.fastn,sizeof(CUDAvdimn));
     cudaMalloc((void**)&h_Cec.g.adjacencymatrix, Cec.g.dim*Cec.g.dim*sizeof(bool));
+    cudaMalloc((void**)&h_Cec.ns.neighborslist, Cec.g.dim*Cec.g.dim*sizeof(vertextype));
+    cudaMalloc((void**)&h_Cec.ns.nonneighborslist, Cec.g.dim*Cec.g.dim*sizeof(vertextype));
+    cudaMalloc((void**)&h_Cec.ns.degrees, Cec.g.dim*sizeof(int));
 
     cudaMemcpy(h_Cec.CUDAfcarray, Cec.CUDAfcarray,Cec.CUDAfcarraysize*sizeof(CUDAfc),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.namedvararray, Cec.namedvararray,Cec.namedvararraysize*sizeof(CUDAnamedvariable),cudaMemcpyHostToDevice);
@@ -101,6 +104,9 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
     cudaMemcpy(h_Cec.CUDAcontext, Cec.CUDAcontext,Cec.CUDAcontextsize*sizeof(CUDAnamedvariable),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.CUDAliteralarray, Cec.CUDAliteralarray,Cec.CUDAliteralarraysize*sizeof(CUDAliteral),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.g.adjacencymatrix, Cec.g.adjacencymatrix,Cec.g.dim*Cec.g.dim*sizeof(bool),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.ns.neighborslist, Cec.ns.neighborslist,Cec.g.dim*Cec.g.dim*sizeof(CUDAvertextype),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.ns.nonneighborslist, Cec.ns.nonneighborslist,Cec.g.dim*Cec.g.dim*sizeof(CUDAvertextype),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.ns.degrees, Cec.ns.degrees,Cec.g.dim*sizeof(int),cudaMemcpyHostToDevice);
 
     cudaMalloc((void**)&d_Cec,sizeof(CUDAextendedcontext));
 
@@ -157,6 +163,9 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
     cudaFree(h_Cec.CUDAliteralarray);
     cudaFree(h_Cec.fastn);
     cudaFree(h_Cec.g.adjacencymatrix);
+    cudaFree(h_Cec.ns.neighborslist);
+    cudaFree(h_Cec.ns.nonneighborslist);
+    cudaFree(h_Cec.ns.degrees);
 
     cudaFree(d_Cec);
     cudaFree(d_out);
@@ -197,10 +206,16 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
     cudaMalloc((void**)&h_Cec.CUDAfcarray,Cecs[0].CUDAfcarraysize*sizeof(CUDAfc));
     cudaMalloc((void**)&h_Cec.CUDAliteralarray, Cecs[0].CUDAliteralarraysize*sizeof(CUDAliteral));
     cudaMalloc((void**)&h_Cec.g.adjacencymatrix, Cecs[0].g.dim*Cecs[0].g.dim*sizeof(bool));
+    cudaMalloc((void**)&h_Cec.ns.neighborslist, Cecs[0].g.dim*Cecs[0].g.dim*sizeof(vertextype));
+    cudaMalloc((void**)&h_Cec.ns.nonneighborslist, Cecs[0].g.dim*Cecs[0].g.dim*sizeof(vertextype));
+    cudaMalloc((void**)&h_Cec.ns.degrees, Cecs[0].g.dim*sizeof(int));
 
     cudaMemcpy(h_Cec.CUDAfcarray, Cecs[0].CUDAfcarray,Cecs[0].CUDAfcarraysize*sizeof(CUDAfc),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.CUDAliteralarray, Cecs[0].CUDAliteralarray,Cecs[0].CUDAliteralarraysize*sizeof(CUDAliteral),cudaMemcpyHostToDevice);
     cudaMemcpy(h_Cec.g.adjacencymatrix, Cecs[0].g.adjacencymatrix,Cecs[0].g.dim*Cecs[0].g.dim*sizeof(bool),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.ns.neighborslist, Cecs[0].ns.neighborslist,Cecs[0].g.dim*Cecs[0].g.dim*sizeof(vertextype),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.ns.nonneighborslist, Cecs[0].ns.nonneighborslist,Cecs[0].g.dim*Cecs[0].g.dim*sizeof(vertextype),cudaMemcpyHostToDevice);
+    cudaMemcpy(h_Cec.ns.degrees, Cecs[0].ns.degrees,Cecs[0].g.dim*sizeof(int),cudaMemcpyHostToDevice);
 
     for (int i = 0; i < sz; ++i)
     {
@@ -280,6 +295,9 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
     cudaFree(h_Cec.CUDAfcarray);
     cudaFree(h_Cec.CUDAliteralarray);
     cudaFree(h_Cec.g.adjacencymatrix);
+    cudaFree(h_Cec.ns.neighborslist);
+    cudaFree(h_Cec.ns.nonneighborslist);
+    cudaFree(h_Cec.ns.degrees);
     for (auto i = 0; i < sz; ++i)
     {
         cudaFree(h_Cecs[i].namedvararray);
@@ -313,3 +331,101 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
     CUDAevalwithcriterion(crit, out, Cecs, Cecs[0].fctop, sz);
 }
 
+void CUDAcomputeneighborslistwrapper( graphtype* g, neighborstype* ns )
+{
+
+    if (g->dim == 0)
+        return;
+
+    CUDAgraph* d_g;
+    CUDAgraph h_g;
+    h_g.dim = g->dim;
+
+    CUDAneighbors h_ns;
+
+    cudaMalloc((void**)&h_g.adjacencymatrix,g->dim*g->dim*sizeof(bool));
+    cudaMalloc((void**)&h_ns.neighborslist,g->dim*g->dim*sizeof(CUDAvertextype));
+    cudaMalloc((void**)&h_ns.nonneighborslist,g->dim*g->dim*sizeof(CUDAvertextype));
+    cudaMalloc((void**)&h_ns.degrees,g->dim*sizeof(int));
+
+    cudaMemcpy(h_g.adjacencymatrix,g->adjacencymatrix,sizeof(bool)*g->dim*g->dim,cudaMemcpyHostToDevice);
+
+    cudaMalloc((void**)&d_g, sizeof(CUDAgraph));
+    cudaMemcpy(d_g, &h_g,sizeof(CUDAgraph),cudaMemcpyHostToDevice);
+
+    CUDAneighbors* d_ns;
+
+    cudaMalloc((void**)&d_ns,sizeof(CUDAneighbors));
+    cudaMemcpy(d_ns,&h_ns,sizeof(CUDAneighbors),cudaMemcpyHostToDevice);
+
+    // hostnewCUDAneighbors(d_g, d_ns, g->dim);
+
+    int blockSize = 1024;
+    int numBlocks = (g->dim + blockSize - 1) / blockSize;
+
+
+#ifdef CUDADEBUG2
+    auto starttime2 = std::chrono::high_resolution_clock::now();
+#endif
+
+    // size_t pValue;
+    // cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
+    // cudaDeviceSetLimit(cudaLimitStackSize,2048);
+    // cudaDeviceGetLimit(&pValue,cudaLimitStackSize);
+
+#ifdef CUDADEBUG2
+
+    std::cout << "cudaDeviceGetLimit(cudaLimitStackSize) == " << pValue << std::endl;
+
+#endif
+
+
+    CUDAcomputeneighborslist<<<numBlocks,blockSize>>>(d_g,d_ns);
+
+    cudaDeviceSynchronize();
+#ifdef CUDADEBUG2
+
+    auto stoptime2 = std::chrono::high_resolution_clock::now();
+    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stoptime2 - starttime2);
+
+    std::cout << "CUDA runtime excluding cudaMalloc and cudaMemcpy: " << duration2.count() << " microseconds" << std::endl;
+#endif
+    cudaMemcpy(&h_ns,d_ns,sizeof(CUDAneighbors), cudaMemcpyDeviceToHost);
+    cudaMemcpy( ns->degrees, h_ns.degrees, g->dim * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy( ns->neighborslist, h_ns.neighborslist, g->dim*g->dim * sizeof(CUDAvertextype), cudaMemcpyDeviceToHost);
+    cudaMemcpy( ns->nonneighborslist, h_ns.nonneighborslist, g->dim*g->dim * sizeof(CUDAvertextype), cudaMemcpyDeviceToHost);
+
+    // osadjacencymatrix(std::cout, g);
+    // osneighbors(std::cout, ns);
+
+    ns->g = g;
+    ns->maxdegree = -1;
+    for (int i = 0; i < g->dim; ++i)
+        ns->maxdegree = ns->degrees[i] > ns->maxdegree ? ns->degrees[i] : ns->maxdegree;
+    // std::cout << std::endl;
+
+    // for (auto l = 0; l < g->dim; ++l)
+    // {
+        // std::cout << "l == " << l << ": ";
+        // for (auto k = 0; k < (g->dim - ns->degrees[l]); ++k)
+            // std::cout << "engine " << k << ": " << ns->nonneighborslist[g->dim*l + k] << ".. ";
+        // std::cout << std::endl;
+    // }
+
+    // for (auto l = 0; l < g->dim; ++l)
+    // {
+        // std::cout << "l2 == " << l << ": ";
+        // for (auto k = 0; k < ns->degrees[l]; ++k)
+            // std::cout << "engine " << k << ": " << ns->neighborslist[g->dim*l + k] << ".. ";
+        // std::cout << std::endl;
+    // }
+
+    cudaFree(&d_ns->neighborslist);
+    cudaFree(&d_ns->nonneighborslist);
+    cudaFree(&d_ns->degrees);
+    cudaFree(&d_g->adjacencymatrix);
+    cudaFree(d_ns);
+    cudaFree(d_g);
+
+
+}

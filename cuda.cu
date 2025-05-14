@@ -572,23 +572,47 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
             CUDAvalms res;
             CUDAnamedvariableptr j = Cec.CUDAliteralarray[Cfc.literal].inputvariabletypesptr;
             CUDAnamedvariableptr k = Cfc.namedvar;
-            uint argcnt = 0;
+            uint argcnt = j >= 0;
+            measuretype t0, t1;
+            CUDAvalms v[2]; // the plan is use two "registers" as a best guess as to how many args are needed
+            if (argcnt > 0)
+            {
+                t0 = Cec.namedvararray[j].ufc.v.t;
+                v[0] = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t0);
+                j = Cec.namedvararray[j].next;
+                k = Cec.namedvararray[k].next;
+                if (k >= 0)
+                {
+                    t1 = Cec.namedvararray[j].ufc.v.t;
+                    v[1] = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t1);
+                    argcnt = 2;
+                    j = Cec.namedvararray[j].next;
+                    k = Cec.namedvararray[k].next;
+                }
+            }
             while (j >= 0)
             {
                 argcnt++;
                 j = Cec.namedvararray[j].next;
             }
-            auto args = new CUDAvalms[argcnt];
-            j = Cec.CUDAliteralarray[Cfc.literal].inputvariabletypesptr;
-            int l = 0;
-            while (j >= 0 && k >= 0)
+            CUDAvalms* args;
+            bool needtodelete = false;
+            if (argcnt > 2)
             {
-                measuretype t = Cec.namedvararray[j].ufc.v.t;
-                auto v = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t);
-                args[l++] = v;
-                j = Cec.namedvararray[j].next;
-                k = Cec.namedvararray[k].next;
+                args = new CUDAvalms[argcnt];
+                needtodelete = true;
+                int l = 2;
+                while (j >= 0 && k >= 0)
+                {
+                    measuretype t = Cec.namedvararray[j].ufc.v.t;
+                    auto v = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t);
+                    args[l++] = v;
+                    j = Cec.namedvararray[j].next;
+                    k = Cec.namedvararray[k].next;
+                }
             }
+            else
+                args = v;
             res.t = Cec.CUDAliteralarray[Cfc.literal].t;
             switch (res.t)
             {
@@ -613,7 +637,8 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
                     break;
                 }
             }
-            delete args;
+            if (needtodelete)
+                delete args;
             return res;
         }
     case formulaoperator::fone:

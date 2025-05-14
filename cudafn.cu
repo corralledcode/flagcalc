@@ -13,6 +13,7 @@
 
 #include <cstring>;
 
+#include "cudagraph.cuh"
 
 
 __device__ inline int CUDAtotient( long int n)
@@ -134,8 +135,16 @@ __device__ inline bool CUDAac( const CUDAextendedcontext& Cec, const CUDAvalms* 
     long int b = CUDAto_mtdiscrete(args[1]);
     return Cec.g.adjacencymatrix[a*Cec.g.dim + b];}
 
+__device__ inline bool CUDAconnvc( const CUDAextendedcontext& Cec, const CUDAvalms* args )
+{ // vertices are connected
+    long int a = CUDAto_mtdiscrete(args[0]);
+    long int b = CUDAto_mtdiscrete(args[1]);
+    return CUDApathsbetweenmin( &Cec.g, &Cec.ns, a, b, 1 ) > 0;
+}
+
 inline CUDAliteral CUDAsizetallyfn = {false,16, mtdiscrete, -1, { .fndiscrete = &CUDAsizetally}};
 inline CUDAliteral CUDAacfn = {false,17, mtbool, -1, { .fnbool = &CUDAac}};
+inline CUDAliteral CUDAconnvcfn = {false,18, mtbool, -1, { .fnbool = &CUDAconnvc}};
 
 inline std::map<std::string,std::pair<CUDAliteral,std::vector<CUDAvalms>>> global_CUDAfnptrs
     {{"log", {CUDAlogfn,{{.t = mtcontinuous}}}},
@@ -155,7 +164,8 @@ inline std::map<std::string,std::pair<CUDAliteral,std::vector<CUDAvalms>>> globa
      {"sqrt",{CUDAsqrtfn,{{.t = mtcontinuous}}}},
      {"phi",{CUDAphifn,{{.t = mtdiscrete}}}},
      {"st",{CUDAsizetallyfn,{{.t = mtset}}}},
-     {"ac",{CUDAacfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}}};
+     {"ac",{CUDAacfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}},
+     {"connvc",{CUDAconnvcfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}}};
 
 __device__ inline void populateCUDAfnarraydevice( CUDAliteral* lits, const uint litssize ) // absolutely bizarre, the second argument must be int not uint
 {
@@ -182,6 +192,7 @@ __device__ inline void populateCUDAfnarraydevice( CUDAliteral* lits, const uint 
         case 15: lit.function.fndiscrete = CUDAphi; break;
         case 16: lit.function.fndiscrete = CUDAsizetally; break;
         case 17: lit.function.fnbool = CUDAac; break;
+        case 18: lit.function.fnbool = CUDAconnvc; break;
         default: lit.function.fndiscrete = CUDAfloor; break;
         }
         lits[i] = lit;

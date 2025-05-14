@@ -1227,7 +1227,7 @@ public:
 
 
         unsigned const thread_count = std::thread::hardware_concurrency();
-        //unsigned const thread_count = 1;
+        // unsigned const thread_count = 1;
 
         std::vector<std::future<void>> t {};
         t.resize(items.size());
@@ -1749,7 +1749,7 @@ public:
         auto (ms4) = measfactory<avgdegreemeas>;
         auto (ms5) = measfactory<mindegreemeas>;
         auto (ms6) = measfactory<maxdegreemeas>;
-        auto (ms7) = measfactory<legacygirthmeas>;
+        // auto (ms7) = measfactory<legacygirthmeas>;
         auto (mc) = measfactory<maxcliquemeas>;
         auto (cnm) = measfactory<connectedmeas>;
         auto (rm) = measfactory<radiusmeas>;
@@ -1765,7 +1765,7 @@ public:
         mssfactory.push_back(ms4);
         mssfactory.push_back(ms5);
         mssfactory.push_back(ms6);
-        mssfactory.push_back(ms7);
+        // mssfactory.push_back(ms7);
         mssfactory.push_back(mc);
         mssfactory.push_back(cnm);
         mssfactory.push_back(rm);

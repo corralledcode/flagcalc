@@ -50,6 +50,7 @@
 #include <vector>
 #include <string>
 
+#include "cudaengine.cuh"
 #include "mathfn.cu"
 #ifdef THREADPOOL
 #include "thread_pool.cpp"
@@ -59,6 +60,51 @@
 #endif
 
 #define MAXFACTORIAL 0
+
+inline bool neighbors::computeneighborslist()
+{
+#ifdef CUDAFORCOMPUTENEIGHBORSLIST
+    CUDAcomputeneighborslistwrapper(g, this);
+#else
+    CPUcomputeneighborslist();
+#endif
+    return true;
+}
+inline bool neighbors::CPUcomputeneighborslist() {
+    maxdegree = -1;
+    int* nondegrees = new int[dim];
+    for (int n = 0; n < dim; ++n) {
+        degrees[n] = 0;
+        for (int i = 0; i < dim; ++i) {
+            if (g->adjacencymatrix[n*dim + i]) {
+                neighborslist[n * dim + degrees[n]] = i;
+                degrees[n]++;
+            }
+        }
+        maxdegree = (degrees[n] > maxdegree ? degrees[n] : maxdegree );
+    }
+    for (int n = 0; n < dim; ++n) {
+        nondegrees[n] = 0;
+        for (int i = 0; i < dim; ++i) {
+            if (!g->adjacencymatrix[n*dim + i] && (n != i)) {
+                nonneighborslist[n*dim + nondegrees[n]] = i;
+                nondegrees[n]++;
+            }
+        }
+    }
+    for (int n = 0; n < dim; ++n) {
+        if (degrees[n] + nondegrees[n] != dim-1) {
+            std::cout << "BUG in computeneighborslist\n";
+            osadjacencymatrix( std::cout, g);
+            return false;
+        }
+    }
+    delete nondegrees;
+
+    return true;
+}
+
+
 
 int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == w2; 1 if w1 < w2
     int res = -1;
@@ -392,6 +438,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
                                 ++tmpn;
                             }
                         }
+                        // std::cout << fps[vidx].ns->v << std::endl;
                         takefingerprint( ns, fps[vidx].ns, tmpn );
                     } else {
                         if ((deg > 0) && invert) {
@@ -400,17 +447,24 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
                             //std::cout << "degree " << ns->degrees[fps[vidx].v] << "\n";
                             fps[vidx].ns = (FP*)malloc(deg * sizeof(FP));
                             for (int n = 0; n < (dim - ns->degrees[fps[vidx].v] - 1); ++n) {
+                                // std::cout << "Hark also: " << n << ", " << fps[vidx].v << std::endl;
+                                // osneighbors(std::cout, ns);
                                 vertextype nv = ns->nonneighborslist[dim*fps[vidx].v + n];
+                                // for (auto k = 0; k < dim; ++k)
+                                    // std::cout << "nnl " << k << ": " << ns->nonneighborslist[dim*fps[vidx].v + k] << ".. ";
+                                // std::cout << std::endl;
                                 //std::cout << "nv = " << nv << "\n";
                                 if (nv != parentv) {
                                     fps[vidx].ns[tmpn].parent = &(fps[vidx]);
                                     fps[vidx].ns[tmpn].v = nv;
+                                    // std::cout << "hark: " << nv << std::endl;
                                     fps[vidx].ns[tmpn].ns = nullptr;
                                     fps[vidx].ns[tmpn].nscnt = 0;
                                     fps[vidx].ns[tmpn].invert = ns->degrees[fps[vidx].v] >= halfdegree;
                                     ++tmpn;  // tmp keeps a separate count from n in order to account for the omitted parentv
                                 }
                             }
+                            // std::cout << fps[vidx].ns->v << std::endl;
                             takefingerprint( ns, fps[vidx].ns, tmpn  );
                         } else {
                             fps[vidx].ns = nullptr;

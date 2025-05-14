@@ -1443,6 +1443,7 @@ void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& co
     CUDAdataspaces Cdss {};
     CUDAdataspaces CdssNEW {};
     Cdss.g = this->ns->g;
+    Cdss.ns = this->ns;
 
     CUDAextendedcontext modelCec {};
     quantifiermanager qm(this,fc,context);
