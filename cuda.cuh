@@ -418,6 +418,8 @@ inline CUDAvalms to_mtbool( const CUDAvalms v )
     return res;
 }
 
+
+
 inline CUDAvalms to_mtdiscrete( const CUDAvalms v )
 {
     CUDAvalms res;
@@ -439,6 +441,8 @@ inline CUDAvalms to_mtdiscrete( const CUDAvalms v )
     }
     return res;
 }
+
+
 
 inline CUDAvalms to_mtcontinuous( const CUDAvalms v )
 {

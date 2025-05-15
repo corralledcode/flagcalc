@@ -2454,6 +2454,80 @@ public:
 
 inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> bound = {});
 
+inline valms to_mtbool( const valms v )
+{
+    valms res;
+    res.t = mtbool;
+    switch (v.t)
+    {
+    case mtbool:
+        {
+            res.v.bv = v.v.bv;
+            break;
+        }
+    case mtdiscrete:
+        {
+            res.v.bv = (bool)v.v.iv;
+            break;
+        }
+    case mtcontinuous:
+        {
+            res.v.bv = (bool)v.v.dv;
+            break;
+        }
+    default:
+        std::cout << "Not yet implemented to_mtbool type\n";
+        res.v.bv = false;
+        break;
+    }
+    return res;
+}
+
+inline valms to_mtdiscrete( const valms v )
+{
+    valms res;
+    res.t = mtdiscrete;
+    switch (v.t)
+    {
+    case mtbool:
+        res.v.iv = v.v.bv ? 1 : 0;
+        break;
+    case mtdiscrete:
+        res.v.iv = v.v.iv;
+        break;
+    case mtcontinuous:
+        res.v.iv = v.v.dv;
+        break;
+    default:
+        std::cout << "Not yet implemented to_mtdiscrete type\n";
+        break;
+    }
+    return res;
+}
+
+inline valms to_mtcontinuous( const valms v )
+{
+    valms res;
+    res.t = mtcontinuous;
+    switch (v.t)
+    {
+    case mtbool:
+        res.v.dv = v.v.bv;
+        break;
+    case mtdiscrete:
+        res.v.dv = v.v.iv;
+        break;
+    case mtcontinuous:
+        res.v.dv = v.v.dv;
+        break;
+    default:
+        std::cout << "Not yet implemented to_mtcontinuous type\n";
+        break;
+    }
+    return res;
+}
+
+
 inline void mtconvertboolto( const bool vin, valms& vout )
 {
     switch (vout.t)

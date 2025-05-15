@@ -1176,7 +1176,7 @@ void evalmformula::quickSort( std::vector<int> &arr, int start, int end, formula
 
 void evalmformula::threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res)
 {
-    *c = evalinternal(*criterion, *context).v.bv;
+    *c = to_mtbool(evalinternal(*criterion, *context)).v.bv;
     if (*c)
         *res = this->evalinternal(*fc, *context);
 }
@@ -1230,9 +1230,12 @@ public:
     bool vacuouslytrue = false;
     std::vector<bool> needtodeletevseti {};
     std::vector<std::pair<int,int>> a;
+    int contextidxA = -1;
+    int contextidxB = -1;
 
     void prepwork()
     {
+
         originalcontextsize = context.size();
         criterion = fc.fcright->criterion;
         needtodeletevseti.resize(fc.fcright->boundvariables.size());
@@ -1254,10 +1257,15 @@ public:
                         std::cout << "Cannot use mtbool for quantifier superset\n";
                     needtodeletevseti[j] = false;
                 }
-
                 supersetpos.push_back(v.seti->getitrpos());
                 ss.push_back(nullptr);
                 context.push_back({fc.fcright->boundvariables[j]->name,fc.fcright->boundvariables[j]->qs});
+
+                if (contextidxB < 0)
+                    contextidxB = context.size()-1;
+                else
+                    contextidxA = context.size()-1;
+
                 i.push_back( context.size()-1 );
                 supersetpos[supersetpos.size()-1]->reset();
                 if (supersetpos[supersetpos.size()-1]->ended()) {
@@ -2156,9 +2164,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         res.v.bv = true;
                         while (!qm.ended() && res.v.bv) {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
                             if (c.v.bv)
-                                res.v.bv = res.v.bv && !evalinternal(*fc.fcright, context).v.bv;
+                                res.v.bv = res.v.bv && !to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
                             qm.multipleadvance();
                         }
                         res.v.bv = !res.v.bv;
@@ -2170,9 +2178,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.bv = true;
                         res.t = mtbool;
                         while (!qm.ended() && res.v.bv) {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
                             if (c.v.bv)
-                                res.v.bv = res.v.bv && evalinternal(*fc.fcright, context).v.bv;
+                                res.v.bv = res.v.bv && to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
                             qm.multipleadvance();
                         }
                         break;
@@ -2443,7 +2451,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         res.v.bv = true;
                         while (!qm.ended() && res.v.bv) {
-                            res.v.bv = res.v.bv && !evalinternal(*fc.fcright, context).v.bv;
+                            res.v.bv = res.v.bv && !to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
                             qm.multipleadvance();
                         }
                         res.v.bv = !res.v.bv;
@@ -2455,7 +2463,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.bv = true;
                         res.t = mtbool;
                         while (!qm.ended() && res.v.bv) {
-                            res.v.bv = res.v.bv && evalinternal(*fc.fcright, context).v.bv;
+                            res.v.bv = res.v.bv && to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
                             qm.multipleadvance();
                         }
                         break;
@@ -2687,7 +2695,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<bool> c;
                             qm.threadsafeadvancewithcriterion(pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
-                                res.v.bv = (!c[m] || !ress[m].v.bv) && res.v.bv;
+                                if (c[m])
+                                    res.v.bv = !to_mtbool(ress[m]).v.bv && res.v.bv;
                         }
                         res.v.bv = !res.v.bv;
                         break;
@@ -2704,7 +2713,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<bool> c;
                             qm.threadsafeadvancewithcriterion(pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
-                                res.v.bv = (!c[m] || ress[m].v.bv) && res.v.bv;
+                                if (c[m])
+                                    res.v.bv = to_mtbool(ress[m]).v.bv && res.v.bv;
                         }
                         break;
                     }
@@ -3003,7 +3013,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                res.v.bv = (!ress[m].v.bv) && res.v.bv;
+                                res.v.bv = (!ress[m].v.bv) && to_mtbool(res).v.bv;
                         }
                         res.v.bv = !res.v.bv;
                         break;
@@ -3019,7 +3029,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                res.v.bv = ress[m].v.bv && res.v.bv;
+                                res.v.bv = ress[m].v.bv && to_mtbool(res).v.bv;
                         }
                         break;
                     }
@@ -3294,65 +3304,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
     if (relationalops(fc.fo))
     {
-        std::vector<itrpos*> supersetpos {};
-        std::vector<int> i {};
-        std::vector<setitrint*> ss {};
-        std::vector<valms> vv {};
-        int originalcontextsize = context.size();
-        auto criterion = fc.fcright->criterion;
-        bool vacuouslytrue = false;
-        std::vector<bool> needtodeletevseti {};
-        int contextidxA = -1;
-        int contextidxB = -1;
-        needtodeletevseti.resize(fc.fcright->boundvariables.size());
-        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
-            if (fc.fcright->boundvariables[j]->superset) {
-                valms v = evalinternal(*fc.fcright->boundvariables[j]->superset, context);
-                if (v.t == mtdiscrete || v.t == mtcontinuous)
-                {
-                    if (v.t == mtcontinuous)
-                        v.v.iv = (int)v.v.dv;
-                    if (v.v.iv >= 0)
-                        v.seti = new setitrint(v.v.iv-1);
-                    else
-                        v.seti = new setitrint(-1);
-                    v.t = mtset;
-                    needtodeletevseti[j] = true;
-                } else {
-                    if (v.t == mtbool)
-                        std::cout << "Cannot use mtbool for quantifier superset\n";
-                    needtodeletevseti[j] = false;
-                }
 
-                supersetpos.push_back(v.seti->getitrpos());
-                ss.push_back(nullptr);
-                context.push_back({fc.fcright->boundvariables[j]->name,fc.fcright->boundvariables[j]->qs});
-                if (contextidxB < 0)
-                    contextidxB = context.size()-1;
-                else
-                    contextidxA = context.size()-1;
-                i.push_back( context.size()-1 );
-                supersetpos[supersetpos.size()-1]->reset();
-                if (supersetpos[supersetpos.size()-1]->ended()) {
-                    vacuouslytrue = true;
-                } else
-                    context[i[i.size()-1]].second = supersetpos[supersetpos.size()-1]->getnext();
-                vv.push_back(v);
-            }
-        }
-        std::vector<std::pair<int,int>> a {};
-        for (int j = 0; j < fc.fcright->boundvariables.size(); ++j)
-        {
-            if (fc.fcright->boundvariables[j]->alias) {
-                valms v = evalinternal(*fc.fcright->boundvariables[j]->alias, context);
-                context.push_back({fc.fcright->boundvariables[j]->name,v});
-                a.push_back({context.size()-1,j});
-            }
-        }
+
+        quantifiermanager qm(this,fc,context);
+
+        qm.prepwork();
 
 
         if (!fc.threaded)
-            if (!criterion) // RELATIONAL: case of not threaded, no criterion
+            if (!qm.criterion) // RELATIONAL: case of not threaded, no criterion
             {
                 switch (fc.fo)
                 {
@@ -3366,30 +3326,30 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             // std::cout << "PARTITION relational quantifier requires exactly two variables\n";
                             // exit(1);
                         // }
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                             while (true)
                             {
                                 bool found = false;
                                 int i;
                                 for (i = 0; i < tot.size() && !found; i++)
                                 {
-                                    context[contextidxA].second = tot[i][0];
+                                    context[qm.contextidxA].second = tot[i][0];
                                     found = evalinternal(*fc.fcright, context).v.bv;
                                 }
                                 if (found)
-                                    tot[i-1].push_back(context[contextidxB].second);
+                                    tot[i-1].push_back(context[qm.contextidxB].second);
                                 else
                                 {
                                     tot.resize(tot.size()+1);
                                     tot[tot.size()-1].clear();
-                                    tot[tot.size()-1].push_back(context[contextidxB].second);
+                                    tot[tot.size()-1].push_back(context[qm.contextidxB].second);
                                 }
-                                if (supersetpos[supersetpos.size()-2]->ended())
+                                if (qm.supersetpos[qm.supersetpos.size()-2]->ended())
                                     break;
-                                context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
-                                for (int j = 0; j < a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                    context[a[j].first].second = v;
+                                context[qm.contextidxB].second = qm.supersetpos[qm.supersetpos.size()-2]->getnext();
+                                for (int j = 0; j < qm.a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    context[qm.a[j].first].second = v;
                                 }
                             }
                         std::vector<valms> c {};
@@ -3413,16 +3373,16 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         std::vector<valms> v {};
                         std::vector<int> arr;
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                             while (true)
                             {
-                                v.push_back(context[contextidxA].second);
-                                if (supersetpos[supersetpos.size()-1]->ended())
+                                v.push_back(context[qm.contextidxA].second);
+                                if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
-                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                                for (int j = 0; j < a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                    context[a[j].first].second = v;
+                                context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < qm.a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    context[qm.a[j].first].second = v;
                                 }
                             }
                         arr.resize(v.size());
@@ -3458,35 +3418,35 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             // std::cout << "PARTITION relational quantifier requires exactly two variables\n";
                             // exit(1);
                         // }
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                             while (true)
                             {
                                 bool found = false;
                                 int i;
-                                auto c = evalinternal(*criterion, context);
+                                auto c = evalinternal(*qm.criterion, context);
                                 if (c.v.bv)
                                 {
                                     for (i = 0; i < tot.size() && !found; i++)
                                     {
-                                        context[contextidxA].second = tot[i][0];
+                                        context[qm.contextidxA].second = tot[i][0];
                                         found = evalinternal(*fc.fcright, context).v.bv;
                                     }
                                     if (found)
-                                        tot[i-1].push_back(context[contextidxB].second);
+                                        tot[i-1].push_back(context[qm.contextidxB].second);
                                     else
                                     {
                                         tot.resize(tot.size()+1);
                                         tot[tot.size()-1].clear();
-                                        tot[tot.size()-1].push_back(context[contextidxB].second);
+                                        tot[tot.size()-1].push_back(context[qm.contextidxB].second);
                                     }
                                 }
-                                if (supersetpos[supersetpos.size()-2]->ended())
+                                if (qm.supersetpos[qm.supersetpos.size()-2]->ended())
                                     break;
-                                context[contextidxB].second = supersetpos[supersetpos.size()-2]->getnext();
-                                context[contextidxA].second = context[contextidxB].second;
-                                for (int j = 0; j < a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                    context[a[j].first].second = v;
+                                context[qm.contextidxB].second = qm.supersetpos[qm.supersetpos.size()-2]->getnext();
+                                context[qm.contextidxA].second = context[qm.contextidxB].second;
+                                for (int j = 0; j < qm.a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    context[qm.a[j].first].second = v;
                                 }
                             }
                         std::vector<valms> c {};
@@ -3512,23 +3472,23 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             exit(1);
                         }
                         std::vector<valms> v {};
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
+                        qm.contextidxB = context.size()-2;
+                        qm.contextidxA = context.size()-1;
                         std::vector<int> arr;
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                             while (true)
                             {
-                                auto c = evalinternal(*criterion, context);
+                                auto c = evalinternal(*qm.criterion, context);
                                 if (c.v.bv)
                                 {
-                                    v.push_back(context[contextidxA].second);
+                                    v.push_back(context[qm.contextidxA].second);
                                 }
-                                if (supersetpos[supersetpos.size()-1]->ended())
+                                if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
-                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                                for (int j = 0; j < a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                    context[a[j].first].second = v;
+                                context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < qm.a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    context[qm.a[j].first].second = v;
                                 }
 
                             }
@@ -3552,7 +3512,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 }
             }
         else {
-            if (!criterion) // RELATIONAL: case of threaded, no criterion
+            if (!qm.criterion) // RELATIONAL: case of threaded, no criterion
             {
                 switch (fc.fo)
                 {
@@ -3567,17 +3527,17 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             // exit(1);
                         // } not true if using AS
                         std::vector<std::vector<std::vector<valms>>> v {};
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                         {
                             std::vector<namedparams> contexts;
                             contexts.resize(thread_count);
                             for (int m = 0; m < thread_count; ++m)
                                 contexts[m] = context;
 
-                            v.push_back({{context[contextidxA].second}});
-                            const int j = supersetpos.size()-1;
-                            while (!supersetpos[j]->ended())
-                                v.push_back({{supersetpos[j]->getnext()}});
+                            v.push_back({{context[qm.contextidxA].second}});
+                            const int j = qm.supersetpos.size()-1;
+                            while (!qm.supersetpos[j]->ended())
+                                v.push_back({{qm.supersetpos[j]->getnext()}});
                             int sz = v.size();
                             while (sz > 1)
                             {
@@ -3587,7 +3547,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 for (int m = 0; m < pos; ++m) {
                                     const int i = m; // (sz - 2*pos) + m;
                                     const int j = pos + m; // + pos; //(sz - pos) + m;
-                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA,contextidxB,&v[i],&v[j],&a);
+                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],qm.contextidxA,qm.contextidxB,&v[i],&v[j],&qm.a);
                                 }
                                 for (int m = 0; m < pos; ++m)
                                     t[m].get();
@@ -3620,19 +3580,19 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             exit(1);
                         }
                         std::vector<valms> v {};
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
+                        qm.contextidxB = context.size()-2;
+                        qm.contextidxA = context.size()-1;
                         std::vector<int> arr;
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                             while (true)
                             {
-                                v.push_back(context[contextidxA].second);
-                                if (supersetpos[supersetpos.size()-1]->ended())
+                                v.push_back(context[qm.contextidxA].second);
+                                if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
-                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                                for (int j = 0; j < a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                    context[a[j].first].second = v;
+                                context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < qm.a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    context[qm.a[j].first].second = v;
                                 }
                             }
                         arr.resize(v.size());
@@ -3667,35 +3627,35 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             // exit(1);
                         // } // not true if using AS in addition to IN
                         std::vector<std::vector<std::vector<valms>>> v {};
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                         {
                             std::vector<namedparams> contexts;
                             contexts.resize(thread_count);
                             for (int m = 0; m < thread_count; ++m)
                                 contexts[m] = context;
 
-                            v.push_back({{context[contextidxA].second}});
+                            v.push_back({{context[qm.contextidxA].second}});
                             const int i = v.size()-1;
-                            context[contextidxB].second = v[i][0][0];
-                            context[contextidxA].second = v[i][0][0];
-                            for (int l = 0; l < a.size(); ++l) {
-                                valms v = evalinternal(*fc.boundvariables[a[l].second]->alias, context);
-                                context[a[l].first].second = v;
+                            context[qm.contextidxB].second = v[i][0][0];
+                            context[qm.contextidxA].second = v[i][0][0];
+                            for (int l = 0; l < qm.a.size(); ++l) {
+                                valms v = evalinternal(*fc.boundvariables[qm.a[l].second]->alias, context);
+                                context[qm.a[l].first].second = v;
                             }
-                            if (!evalinternal(*criterion,context).v.bv)
+                            if (!evalinternal(*qm.criterion,context).v.bv)
                                 v.resize(i);
-                            const int j = supersetpos.size()-1;
-                            while (!supersetpos[supersetpos.size()-1]->ended())
+                            const int j = qm.supersetpos.size()-1;
+                            while (!qm.supersetpos[qm.supersetpos.size()-1]->ended())
                             {
-                                v.push_back({{supersetpos[j]->getnext()}});
+                                v.push_back({{qm.supersetpos[j]->getnext()}});
                                 const int i = v.size()-1;
-                                context[contextidxB].second = v[i][0][0];
-                                context[contextidxA].second = v[i][0][0];
-                                for (int l = 0; l < a.size(); ++l) {
-                                    valms v = evalinternal(*fc.boundvariables[a[l].second]->alias, context);
-                                    context[a[l].first].second = v;
+                                context[qm.contextidxB].second = v[i][0][0];
+                                context[qm.contextidxA].second = v[i][0][0];
+                                for (int l = 0; l < qm.a.size(); ++l) {
+                                    valms v = evalinternal(*fc.boundvariables[qm.a[l].second]->alias, context);
+                                    context[qm.a[l].first].second = v;
                                 }
-                                if (!evalinternal(*criterion,context).v.bv)
+                                if (!evalinternal(*qm.criterion,context).v.bv)
                                     v.resize(i);
                             }
 
@@ -3708,7 +3668,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 for (int m = 0; m < pos; ++m) {
                                     const int i = m; // (sz - 2*pos) + m;
                                     const int j = pos + m; // + pos; //(sz - pos) + m;
-                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],contextidxA,contextidxB,&v[i],&v[j],&a);
+                                    t[m] = std::async(&evalmformula::partitionmerge,this,fc.fcright,&contexts[m],qm.contextidxA,qm.contextidxB,&v[i],&v[j],&qm.a);
                                 }
                                 for (int m = 0; m < pos; ++m)
                                     t[m].get();
@@ -3740,23 +3700,23 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             exit(1);
                         }
                         std::vector<valms> v {};
-                        int contextidxB = context.size()-2;
-                        int contextidxA = context.size()-1;
+                        qm.contextidxB = context.size()-2;
+                        qm.contextidxA = context.size()-1;
                         std::vector<int> arr;
-                        if (!vacuouslytrue)
+                        if (!qm.vacuouslytrue)
                             while (true)
                             {
-                                auto c = evalinternal(*criterion, context);
+                                auto c = evalinternal(*qm.criterion, context);
                                 if (c.v.bv)
                                 {
-                                    v.push_back(context[contextidxA].second);
+                                    v.push_back(context[qm.contextidxA].second);
                                 }
-                                if (supersetpos[supersetpos.size()-1]->ended())
+                                if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
-                                context[contextidxA].second = supersetpos[supersetpos.size()-1]->getnext();
-                                for (int j = 0; j < a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
-                                    context[a[j].first].second = v;
+                                context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
+                                for (int j = 0; j < qm.a.size(); ++j) {
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    context[qm.a[j].first].second = v;
                                 }
 
                             }
@@ -3783,14 +3743,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
         }
 
-        for (int k = 0; k < ss.size(); ++k) {
-            delete ss[k];
-            if (needtodeletevseti[k])
-                delete vv[k].seti;
-        }
-        for (int i = 0; i < supersetpos.size(); ++i)
-            delete supersetpos[i];
-        context.resize(originalcontextsize);
+        qm.cleanup();
         return res;
     }
 
