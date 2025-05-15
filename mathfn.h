@@ -10,6 +10,8 @@
 
 inline int nchoosek( const int n, const int k);
 
+inline int bellNumber(int n);
+
 inline double isinffn( std::vector<double>& din );
 
 inline double floorfn( std::vector<double>& din );
@@ -40,6 +42,8 @@ inline double bellfn(std::vector<double>& din);
 
 inline double sqrtfn( std::vector<double>& din);
 
+inline double phifn( std::vector<double>& din);
+
 inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> global_fnptrs
     {{"log", {&logfn,1}},
      {"sin", {&sinfn,1}},
@@ -55,6 +59,7 @@ inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> glo
      {"mod",{&modfn,2}},
      {"stirling",{&stirlingfn,2}},
      {"bell",{&bellfn,1}},
-     {"sqrt",{&sqrtfn,1}}};
+     {"sqrt",{&sqrtfn,1}},
+     {"phi",{&phifn,1}}};
 
 #endif //MATHFN_H
