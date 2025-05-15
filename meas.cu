@@ -2888,7 +2888,7 @@ public:
         {
             valms v;
             v.t = mtset;
-            v.seti = new setitrint(g->dim+1,elt);
+            v.seti = new setitrint(g->dim-1,elt);
             res.push_back(v);
         }
         return new setitrmodeone(res);
