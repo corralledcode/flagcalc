@@ -1657,6 +1657,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     if (fc.fo == formulaoperator::foliteral) {
         if (fc.v.lit.ps.empty())
         {
+            /*
             switch (literals[fc.v.lit.l].t)
             {
             case mtset:
@@ -1675,9 +1676,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     // res.t = mttuple;
                     break;
                 }
-            default:
+            default:*/
                 res = literals[fc.v.lit.l];
-            }
+            // }
 
         } else {
             std::vector<valms> ps {};

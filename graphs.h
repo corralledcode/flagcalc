@@ -232,7 +232,11 @@ std::vector<std::vector<int>> getpermutations( const int i );
 
 void verticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns  );
 
+void verticesconnectedlist( const graphtype* g, const neighborstype* ns, vertextype* partitions, int* pindices  );
+
 void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns );
+
+void connectedpartition(graphtype *g, neighborstype *ns, std::vector<bool*>& outv);
 
 
 #endif //GRAPHS_H

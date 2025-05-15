@@ -1818,6 +1818,7 @@ public:
         auto (Nsst) = tallyfactory<Nsstally>;
         auto (cyclest) = tallyfactory<cyclestally>;
         auto (toIntt) = tallyfactory<toInttally>;
+        auto (connt) = tallyfactory<conntally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(indnt);
@@ -1838,6 +1839,7 @@ public:
         tysfactory.push_back(Nsst);
         tysfactory.push_back(cyclest);
         tysfactory.push_back(toIntt);
+        tysfactory.push_back(connt);
 
         // ...
 
@@ -1864,6 +1866,7 @@ public:
         auto (Componentss) = setfactory<Componentsset>;
         auto (Edgess) = setfactory<Edgesset>;
         auto (Automs) = setfactory<Automset>;
+        auto (Conncs) = setfactory<Connc>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1884,6 +1887,7 @@ public:
         stsfactory.push_back(Componentss);
         stsfactory.push_back(Edgess);
         stsfactory.push_back(Automs);
+        stsfactory.push_back(Conncs);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -1898,6 +1902,7 @@ public:
         auto (nwalksbetweenp) = tuplefactory<nwalksbetweentuple>;
         auto (Connvp) = tuplefactory<Connvtuple>;
         auto (CUDAConnvp) = tuplefactory<CUDAConnvtuple>;
+        auto (Connmatrixp) = tuplefactory<Connmatrix>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
@@ -1906,6 +1911,7 @@ public:
         ossfactory.push_back(nwalksbetweenp);
         ossfactory.push_back(Connvp);
         ossfactory.push_back(CUDAConnvp);
+        ossfactory.push_back(Connmatrixp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));
@@ -2781,6 +2787,18 @@ public:
     std::vector<std::string> sentences {};
     std::vector<std::string> formulae {};
 
+    void clear()
+    {
+        iter.clear();
+        litnumps.clear();
+        littypes.clear();
+        litnames.clear();
+        storedprocedures.clear();
+        sentences.clear();
+        formulae.clear();
+    }
+
+
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
@@ -2852,6 +2870,7 @@ public:
     {
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
+        // clear();
 
         bool takeallgraphitems = false;
         int numofitemstotake = 1;

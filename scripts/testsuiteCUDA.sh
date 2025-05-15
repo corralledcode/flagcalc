@@ -95,4 +95,4 @@ $PTH/flagcalc -d f="-abcd -efghi -ijkl -mnop -qrst -uvwx yz" -a p="GPU TUPLE (v1
 
 # 0:46 5/14/2025
 
-$PTH/flagcalc -d f="-abc -defgd ah" -a p="TUPLE (v1 IN V, TUPLE( v2 IN V, connvc(v1,v2)))" -a p="Connvp" -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="-abc -defgd ah" -a p="TUPLE (v1 IN V, TUPLE( v2 IN V, connvc(v1,v2)))" -a p="Connv" -v set allsets i=minimal3.cfg

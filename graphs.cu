@@ -2702,11 +2702,11 @@ int cyclescount( graphtype* g, neighborstype* ns )
     return res;
 }
 
-void verticesconnectedlist( const graphtype* g, vertextype* partitions, int* pindices  )
+void verticesconnectedlist( const graphtype* g, const neighborstype* ns, vertextype* partitions, int* pindices  )
 {
     int lead = 0;
     const int d = g->dim;
-    const int pfactor = d*d;
+    const int pfactor = d;
     if (d == 0)
         return;
     const bool* am = g->adjacencymatrix;
@@ -2720,7 +2720,7 @@ void verticesconnectedlist( const graphtype* g, vertextype* partitions, int* pin
     {
         ++lead;
         changed = false;
-        if (lead >= g->dim)
+        if (lead >= d)
             lead = 1;
         // for (int i = 0; i < d; ++i)
         // {
@@ -2740,11 +2740,28 @@ void verticesconnectedlist( const graphtype* g, vertextype* partitions, int* pin
                     auto v2 = partitions[i*pfactor + k];
                     if (am[v1*d + v2])
                     {
-                        for (auto l = 0; l < pindices[lead]; ++l)
-                            partitions[i*pfactor + pindices[i] + l] = partitions[lead*pfactor + l];
-                        pindices[i] += pindices[lead];
-                        // if (pindices[i] >= pfactor)
-                            // std::cout << "bug\n";
+                        if (pindices[i] + pindices[lead] > pfactor)
+                        {
+                            auto elts = new bool[d];
+                            memset(elts,false,sizeof(bool)*d);
+                            for (auto l = 0; l < pindices[i]; ++l)
+                                elts[partitions[i*pfactor+l]] = true;
+                            for (auto l = 0; l < pindices[lead]; ++l)
+                                elts[partitions[lead*pfactor+l]] = true;
+                            pindices[i] = 0;;
+                            for (auto l = 0; l < d; ++l)
+                                if (elts[l])
+                                {
+                                    partitions[i*pfactor + pindices[i]] = l;
+                                    pindices[i]++;
+                                }
+                            delete elts;
+                        } else
+                        {
+                            for (auto l = 0; l < pindices[lead]; ++l)
+                                partitions[i*pfactor + pindices[i] + l] = partitions[lead*pfactor + l];
+                            pindices[i] += pindices[lead];
+                        }
                         pindices[lead] = 0;
                         changed = true;
                         lead = i;
@@ -2756,16 +2773,20 @@ void verticesconnectedlist( const graphtype* g, vertextype* partitions, int* pin
 
 void verticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns )
 {
-
     const int dim = g->dim;
-    const int pfactor = dim*dim;
+    const int pfactor = dim;
     auto partitions = (vertextype*)malloc(dim*pfactor*sizeof(vertextype));
-    for (int i = 0; i < dim; ++i)
-        memcpy(&partitions[i*dim*dim],&ns->neighborslist[i*dim],dim*sizeof(vertextype));
-    // memcpy(partitions,ns->neighborslist,dim*dim*sizeof(vertextype));
+    if (!partitions)
+    {
+        std::cout << "Error allocating enough memory in call to verticesconnectedmatrix\n";
+        exit(1);
+    }
+    // for (int i = 0; i < dim; ++i)
+        // memcpy(&partitions[i*pfactor],&ns->neighborslist[i*dim],dim*sizeof(vertextype));
+    memcpy(partitions,ns->neighborslist,dim*pfactor*sizeof(vertextype));
     auto pindices = (int*)malloc(dim*sizeof(int));
     memcpy(pindices,ns->degrees,dim*sizeof(int));
-    verticesconnectedlist( g, partitions, pindices );
+    verticesconnectedlist( g, ns, partitions, pindices );
 
     memset(out,0,dim*dim*sizeof(bool));
     for (int i = 0; i < dim; ++i)
@@ -2790,4 +2811,74 @@ void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const neighbors
     for (int i = 0; i < dim; ++i)
         out[i*dim + i] = true;
     CUDAverticesconnectedmatrixwrapper(g,ns,out);
+}
+
+void connectedpartition(graphtype *g, neighborstype *ns, std::vector<bool*>& outv) {
+    int dim = g->dim;
+    outv.clear();
+    if (dim <= 0)
+        return;
+
+    int* visited = (int*)malloc(dim*sizeof(int));
+    bool* catalogued = (bool*)malloc(dim*sizeof(bool));
+
+    memset(catalogued,false,dim*sizeof(bool));
+    for (int i = 0; i < dim; ++i)
+    {
+        visited[i] = -1;
+    }
+
+    visited[0] = 0;
+    int res = 1;
+    bool allvisited = false;
+    while (!allvisited)
+    {
+        bool changed = false;
+        for ( int i = 0; i < dim; ++i)
+        {
+            if (visited[i] >= 0)
+            {
+                for (int j = 0; j < ns->degrees[i]; ++j)
+                {
+                    vertextype nextv = ns->neighborslist[i*dim+j];
+                    // loop = if a neighbor of vertex i is found in visited
+                    // and that neighbor is not the origin of vertex i
+
+                    if (visited[nextv] < 0)
+                    {
+                        visited[nextv] = i;
+                        changed = true;
+                    }
+                }
+            }
+        }
+        if (!changed) {
+            allvisited = true;
+            int firstunvisited = 0;
+            auto elts = new bool[dim];
+            memset(elts,false,dim*sizeof(bool));
+            for (int k = 0; k < dim; ++k)
+            {
+                if (visited[k] >= 0)
+                {
+                    elts[k] = !catalogued[k];
+                    catalogued[k] = true;
+                }
+            }
+            outv.push_back(elts);
+            while( allvisited && (firstunvisited < dim))
+            {
+                allvisited = allvisited && (visited[firstunvisited] != -1);
+                ++firstunvisited;
+            }
+            if (allvisited)
+            {
+                free (visited);
+                return;
+            }
+            res++;
+            visited[firstunvisited-1] = firstunvisited-1;
+            changed = true;
+        }
+    }
 }
