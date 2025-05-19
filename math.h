@@ -25,6 +25,7 @@ class evalformula;
 bool is_number(const std::string& s);
 bool is_real(const std::string& s);
 
+class quantifiermanager;
 
 enum class logicalconnective {lcand, lcor};
 
@@ -405,8 +406,8 @@ class setitrmodeone : public setitr
     {
         if (!computed)
         {
-            compute();
             computed = true;
+            compute();
         }
         return totality.size();
     }
@@ -418,8 +419,8 @@ class setitrmodeone : public setitr
     {
         if (!computed)
         {
-            compute();
             computed = true;
+            compute();
             pos = -1;
         }
         if (!ended())
@@ -848,13 +849,16 @@ public:
 
     void compute() override
     {
-        totality.resize(length);
-        for (int i = 0; i < length; ++i) {
-            totality[i] = assignvalms(elts[i]);
-            // maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
-        }
-        computed = true;
-        reset();
+        // if (!computed)
+        // {
+            computed = true;
+            totality.resize(length);
+            for (int i = 0; i < length; ++i) {
+                totality[i] = assignvalms(elts[i]);
+                // maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
+            }
+            reset();
+        // }
     }
     void setlength( const int lengthin )
     {

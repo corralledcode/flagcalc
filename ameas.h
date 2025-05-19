@@ -528,6 +528,14 @@ public:
     void partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int contextidxB,
         std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
     void childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, uint& sz);
+    void threadrelationalcomputevectorportion(formulaclass* fc, namedparams* context, namedparams* vector,
+    bool* boolvector, bool* computedvector, const int sz, const int idx, const int startidx, const int stopidx,
+    quantifiermanager* qm);
+    void threadrelationalcomputevector(formulaclass* fc, namedparams* context, namedparams* vector, bool* boolvector,
+        bool* computedvector, const int sz, const int idx, bool* changed, quantifiermanager* qm);
+    // void threadrelationalsymmetryclosure(bool* outmatrix, bool* computedmatrix, bool* changed, const int offset, const int start, const int sz  );
+    void threadrelationaltransitiveclosure(bool* outmatrix, bool* computedrows, bool* computedmatrix,
+        const int startidx, const int stopidx, const int pointer, int offset, const int sz  );
 
 
 
