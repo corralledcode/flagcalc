@@ -2562,9 +2562,9 @@ inline void mtconvertdiscreteto( const int vin, valms& vout )
         break;
     case mtcontinuous: vout.v.dv = vin != 0 ? 1 : 0;
         break;
-    case mtset: vout.seti = new setitrint(vin);
+    case mtset: vout.seti = new setitrint(vin-1);
         break;
-    case mttuple: vout.seti = new setitrint(vin);
+    case mttuple: vout.seti = new setitrint(vin-1);
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
@@ -2582,9 +2582,9 @@ inline void mtconvertcontinuousto( const double vin, valms& vout )
         break;
     case mtcontinuous: vout.v.dv = vin;
         break;
-    case mtset: vout.seti = new setitrint((int)vin);
+    case mtset: vout.seti = new setitrint((int)vin - 1);
         break;
-    case mttuple: vout.seti = new setitrint((int)vin);
+    case mttuple: vout.seti = new setitrint((int)vin - 1);
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
@@ -2760,10 +2760,10 @@ inline void mtconverttoset( const valms& vin, setitr*& vout )
 {
     switch (vin.t)
     {
-    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
-    case mtdiscrete: {vout = new setitrint(vin.v.iv); break; // verify works with any negative not just -1
+    case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
+    case mtdiscrete: {vout = new setitrint(vin.v.iv-1); break; // verify works with any negative not just -1
             }
-    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
     case mtset:
     case mttuple: vout = vin.seti; break;
     case mtstring:
@@ -2790,9 +2790,9 @@ inline void mtconverttotuple( const valms& vin, setitr*& vout )
 {
     switch (vin.t)
     {
-    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
-    case mtdiscrete: {vout = new setitrint(vin.v.iv); break;} // verify works with any negative not just -1
-    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
+    case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
+    case mtdiscrete: {vout = new setitrint(vin.v.iv-1); break;} // verify works with any negative not just -1
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
     case mtset:
     case mttuple: {vout = vin.seti; break;}
     case mtstring:
