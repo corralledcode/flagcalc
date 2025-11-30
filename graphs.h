@@ -54,8 +54,39 @@ public:
     int* degrees;
     int maxdegree;
     int* nonneighborslist;
-    bool computeneighborslist();
-    bool CPUcomputeneighborslist();
+    bool computeneighborslist() {
+        maxdegree = -1;
+        int* nondegrees = new int[dim];
+        for (int n = 0; n < dim; ++n) {
+            degrees[n] = 0;
+            for (int i = 0; i < dim; ++i) {
+                if (g->adjacencymatrix[n*dim + i]) {
+                    neighborslist[n * dim + degrees[n]] = i;
+                    degrees[n]++;
+                }
+            }
+            maxdegree = (degrees[n] > maxdegree ? degrees[n] : maxdegree );
+        }
+        for (int n = 0; n < dim; ++n) {
+            nondegrees[n] = 0;
+            for (int i = 0; i < dim; ++i) {
+                if (!g->adjacencymatrix[n*dim + i] && (n != i)) {
+                    nonneighborslist[n*dim + nondegrees[n]] = i;
+                    nondegrees[n]++;
+                }
+            }
+        }
+        for (int n = 0; n < dim; ++n) {
+            if (degrees[n] + nondegrees[n] != dim-1) {
+                std::cout << "BUG in computeneighborslist\n";
+                osadjacencymatrix( std::cout, g);
+                return false;
+            }
+        }
+        delete nondegrees;
+
+        return true;
+    }
     neighbors(graphtype* gin) : dim{ gin->dim } {
         g = gin;
         if (g == nullptr) {
@@ -66,29 +97,11 @@ public:
         }
         //dim = g->dim;
         maxdegree = 0;
-        neighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
-        nonneighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
+        neighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
+        nonneighborslist = (vertextype*)malloc(dim * (dim) * sizeof(int));
         degrees = (int*)malloc(dim * sizeof(int) );
         computeneighborslist();
     }
-    neighbors(graphtype* gin, bool compute ) : dim{ gin->dim }
-    {
-        g = gin;
-        if (g == nullptr) {
-            std::cout << "Can't create a neighbor object with a null graph\n";
-            //dim = 0;
-            maxdegree=0;
-            return;
-        }
-        //dim = g->dim;
-        maxdegree = 0;
-        neighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
-        nonneighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
-        degrees = (int*)malloc(dim * sizeof(int) );
-        if (compute)
-            computeneighborslist();
-    }
-
     ~neighbors() {
         free(neighborslist);
         free(nonneighborslist);
@@ -229,14 +242,6 @@ int cyclescount( graphtype* g, neighborstype* ns );
 void copygraph( graphtype* g1, graphtype* g2 );
 
 std::vector<std::vector<int>> getpermutations( const int i );
-
-void verticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns  );
-
-void verticesconnectedlist( const graphtype* g, const neighborstype* ns, vertextype* partitions, int* pindices  );
-
-void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns );
-
-void connectedpartition(graphtype *g, neighborstype *ns, std::vector<bool*>& outv);
 
 
 #endif //GRAPHS_H

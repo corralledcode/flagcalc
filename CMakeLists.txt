@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.31)
-project(flagcalc CUDA)
+project(FlagCalcCUDA CUDA)
 
 set(CMAKE_CUDA_STANDARD 20)
 
-add_executable(flagcalc main.cu
+add_executable(FlagCalcCUDA main.cu
         graphs.cu
         graphs.h
         db.cu
@@ -40,10 +40,8 @@ add_executable(flagcalc main.cu
         cudafn.cu
         cudaengine.cu
         cudaengine.cuh
-        cudagraph.cu
-        cudagraph.cuh
 )
 
 
-set_target_properties(flagcalc PROPERTIES
+set_target_properties(FlagCalcCUDA PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)

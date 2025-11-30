@@ -25,7 +25,6 @@ class evalformula;
 bool is_number(const std::string& s);
 bool is_real(const std::string& s);
 
-class quantifiermanager;
 
 enum class logicalconnective {lcand, lcor};
 
@@ -406,8 +405,8 @@ class setitrmodeone : public setitr
     {
         if (!computed)
         {
-            computed = true;
             compute();
+            computed = true;
         }
         return totality.size();
     }
@@ -419,8 +418,8 @@ class setitrmodeone : public setitr
     {
         if (!computed)
         {
-            computed = true;
             compute();
+            computed = true;
             pos = -1;
         }
         if (!ended())
@@ -839,7 +838,7 @@ class setitrtuple : public setitrmodeone
 public:
     T* elts = nullptr;
     int length;
-    // int maxelt = -1;
+    int maxelt = -1;
 
     virtual valms assignvalms( T elt )
     {
@@ -849,16 +848,13 @@ public:
 
     void compute() override
     {
-        // if (!computed)
-        // {
-            computed = true;
-            totality.resize(length);
-            for (int i = 0; i < length; ++i) {
-                totality[i] = assignvalms(elts[i]);
-                // maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
-            }
-            reset();
-        // }
+        totality.resize(length);
+        for (int i = 0; i < length; ++i) {
+            totality[i] = assignvalms(elts[i]);
+            maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
+        }
+        computed = true;
+        reset();
     }
     void setlength( const int lengthin )
     {
@@ -902,13 +898,7 @@ inline valms setitrtuple<uint>::assignvalms( uint elt ) {
     v.v.iv = elt;
     return v;
 }
-template<>
-inline valms setitrtuple<long int>::assignvalms( long int elt ) {
-    valms v;
-    v.t = mtdiscrete;
-    v.v.iv = elt;
-    return v;
-}
+
 template<>
 inline valms setitrtuple<int>::assignvalms( int elt ) {
     valms v;
@@ -931,16 +921,6 @@ inline valms setitrtuple<bool>::assignvalms( bool elt ) {
     return v;
 }
 
-template<typename T>
-class setitrtuple2d : public setitrtuple<setitrtuple<T>*>
-{
-public:
-    valms assignvalms( setitrtuple<T>* elt )
-    {
-        valms v; v.t = mttuple; v.seti = elt; return v;
-    }
-    setitrtuple2d(std::vector<setitrtuple<T>*>& vecin) : setitrtuple<setitrtuple<T>*>(vecin) {}
-};
 
 class setitrintpair : public setitrmodeone
 {
@@ -2458,80 +2438,6 @@ public:
 
 inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> bound = {});
 
-inline valms to_mtbool( const valms v )
-{
-    valms res;
-    res.t = mtbool;
-    switch (v.t)
-    {
-    case mtbool:
-        {
-            res.v.bv = v.v.bv;
-            break;
-        }
-    case mtdiscrete:
-        {
-            res.v.bv = (bool)v.v.iv;
-            break;
-        }
-    case mtcontinuous:
-        {
-            res.v.bv = (bool)v.v.dv;
-            break;
-        }
-    default:
-        std::cout << "Not yet implemented to_mtbool type\n";
-        res.v.bv = false;
-        break;
-    }
-    return res;
-}
-
-inline valms to_mtdiscrete( const valms v )
-{
-    valms res;
-    res.t = mtdiscrete;
-    switch (v.t)
-    {
-    case mtbool:
-        res.v.iv = v.v.bv ? 1 : 0;
-        break;
-    case mtdiscrete:
-        res.v.iv = v.v.iv;
-        break;
-    case mtcontinuous:
-        res.v.iv = v.v.dv;
-        break;
-    default:
-        std::cout << "Not yet implemented to_mtdiscrete type\n";
-        break;
-    }
-    return res;
-}
-
-inline valms to_mtcontinuous( const valms v )
-{
-    valms res;
-    res.t = mtcontinuous;
-    switch (v.t)
-    {
-    case mtbool:
-        res.v.dv = v.v.bv;
-        break;
-    case mtdiscrete:
-        res.v.dv = v.v.iv;
-        break;
-    case mtcontinuous:
-        res.v.dv = v.v.dv;
-        break;
-    default:
-        std::cout << "Not yet implemented to_mtcontinuous type\n";
-        break;
-    }
-    return res;
-}
-
-
 inline void mtconvertboolto( const bool vin, valms& vout )
 {
     switch (vout.t)
@@ -2562,9 +2468,9 @@ inline void mtconvertdiscreteto( const int vin, valms& vout )
         break;
     case mtcontinuous: vout.v.dv = vin != 0 ? 1 : 0;
         break;
-    case mtset: vout.seti = new setitrint(vin-1);
+    case mtset: vout.seti = new setitrint(vin);
         break;
-    case mttuple: vout.seti = new setitrint(vin-1);
+    case mttuple: vout.seti = new setitrint(vin);
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
@@ -2582,9 +2488,9 @@ inline void mtconvertcontinuousto( const double vin, valms& vout )
         break;
     case mtcontinuous: vout.v.dv = vin;
         break;
-    case mtset: vout.seti = new setitrint((int)vin - 1);
+    case mtset: vout.seti = new setitrint((int)vin);
         break;
-    case mttuple: vout.seti = new setitrint((int)vin - 1);
+    case mttuple: vout.seti = new setitrint((int)vin);
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
@@ -2760,10 +2666,10 @@ inline void mtconverttoset( const valms& vin, setitr*& vout )
 {
     switch (vin.t)
     {
-    case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
-    case mtdiscrete: {vout = new setitrint(vin.v.iv-1); break; // verify works with any negative not just -1
+    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
+    case mtdiscrete: {vout = new setitrint(vin.v.iv); break; // verify works with any negative not just -1
             }
-    case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
     case mtset:
     case mttuple: vout = vin.seti; break;
     case mtstring:
@@ -2790,9 +2696,9 @@ inline void mtconverttotuple( const valms& vin, setitr*& vout )
 {
     switch (vin.t)
     {
-    case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
-    case mtdiscrete: {vout = new setitrint(vin.v.iv-1); break;} // verify works with any negative not just -1
-    case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
+    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
+    case mtdiscrete: {vout = new setitrint(vin.v.iv); break;} // verify works with any negative not just -1
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
     case mtset:
     case mttuple: {vout = vin.seti; break;}
     case mtstring:

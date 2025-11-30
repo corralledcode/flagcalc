@@ -4,32 +4,13 @@
 
 #ifndef CUDA_CUH
 #define CUDA_CUH
-
 #include "math.h"
 
 // #define CUDADEBUG
-// #define CUDADEBUG2
+#define CUDADEBUG2
 #define GPUQUANTFASTDIM 3
-// #define CUDAFORCOMPUTENEIGHBORSLIST
-// #define CUDAFORCOMPUTENEIGHBORSLISTENMASSE
-
 
 struct CUDAvalms;
-
-struct CUDAgraph {
-    int dim;
-    bool* adjacencymatrix;
-};
-
-
-struct CUDAneighbors
-{
-    CUDAgraph* g;
-    int* neighborslist;
-    int* degrees;
-    int maxdegree;
-    int* nonneighborslist;
-};
 
 
 using CUDAvalmsptr = int;
@@ -147,11 +128,11 @@ struct CUDAextendedcontext;
 
 union CUDAfunction
 {
-    bool (*fnbool)(const CUDAextendedcontext&, const CUDAvalms*);
-    long int (*fndiscrete)(const CUDAextendedcontext&, const CUDAvalms*);
-    double (*fncontinuous)(const CUDAextendedcontext&, const CUDAvalms*);
-    CUDAseti (*fnset)(const CUDAextendedcontext&, const CUDAvalms*);
-    CUDAseti (*fntuple)(const CUDAextendedcontext&, const CUDAvalms*);
+    bool (*fnbool)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
+    long int (*fndiscrete)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
+    double (*fncontinuous)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
+    CUDAseti (*fnset)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
+    CUDAseti (*fntuple)(const CUDAextendedcontext&, const CUDAnamedvariableptr&);
 };
 
 struct CUDAliteral
@@ -204,9 +185,6 @@ struct CUDAextendedcontext
 
     CUDAvdimn fastn;
     uint numfastn;
-
-    CUDAgraph g;
-    CUDAneighbors ns;
 };
 
 
@@ -221,16 +199,12 @@ struct CUDAdataspace
 class CUDAdataspaces
 {
 public:
-    std::vector<std::pair<std::string,CUDAnamedvariableptr>> Cnames {};
     std::vector<CUDAdataspace> Csv {};
     std::vector<CUDAnamedvariable> Cnvv {};
     std::vector<CUDAfc> Cfcv {};
     CUDAfcptr fctop;
     std::vector<CUDAliteral> Clv {};
     std::vector<CUDAnamedvariable> Ccv {}; // CUDAcontext
-
-    graphtype* g;
-    neighborstype* ns;
 
     uint totalsz = 0;
 
@@ -271,7 +245,6 @@ public:
             Cdstarget.Clv.insert( Cdstarget.Clv.begin(), Cl );
         for (auto Cc : Ccv)
             Cdstarget.Ccv.insert( Cdstarget.Ccv.begin(), Cc );
-        Cdstarget.g = g;
     }
 
     void copyCUDAdataspaces( CUDAdataspaces& Cdstarget )
@@ -289,8 +262,6 @@ public:
             Cdstarget.Clv.push_back( Cl );
         for (auto Cc : Ccv)
             Cdstarget.Ccv.push_back( Cc );
-        Cdstarget.g = g;
-        Cdstarget.ns = ns;
     }
 
     void populateCUDAecvolatileonly( CUDAextendedcontext& Cec )
@@ -369,12 +340,7 @@ public:
 
         //
 
-        Cec.g.adjacencymatrix = g->adjacencymatrix;
-        Cec.g.dim = g->dim;
-        Cec.ns.maxdegree = ns->maxdegree;
-        Cec.ns.neighborslist = ns->neighborslist;
-        Cec.ns.nonneighborslist = ns->nonneighborslist;
-        Cec.ns.degrees = ns->degrees;
+
     }
 };
 
@@ -412,13 +378,10 @@ inline CUDAvalms to_mtbool( const CUDAvalms v )
         }
     default:
         std::cout << "Not yet implemented to_mtbool type\n";
-        res.v.bv = false;
         break;
     }
     return res;
 }
-
-
 
 inline CUDAvalms to_mtdiscrete( const CUDAvalms v )
 {
@@ -441,8 +404,6 @@ inline CUDAvalms to_mtdiscrete( const CUDAvalms v )
     }
     return res;
 }
-
-
 
 inline CUDAvalms to_mtcontinuous( const CUDAvalms v )
 {
@@ -710,17 +671,51 @@ __device__ inline CUDAvalms CUDAvalmsto_specified( const CUDAextendedcontext& Ce
 __device__ inline CUDAvalms CUDAlookupnamedvariable(const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr, uint count, const measuretype& mt)
 {
     CUDAvalms res;
+    res.t = mt;
     CUDAnamedvariableptr ptr = Cnvptr;
     while (count > 0)
     {
         count--;
         ptr = Cec.namedvararray[ptr].next;
     }
-    res.t = mt;
     res = CUDAvalmsto_specified(Cec,Cec.namedvararray[ptr].ufc.v,mt);
     return res;
 }
 
+
+__global__ inline void CUDAneighborcount( int* out, bool* adjmatrix, int dim )
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < dim)
+    {
+        out[index] = 0;
+        for (int j = index+1; j < dim; ++j)
+            out[index] += adjmatrix[index * dim + j];
+    }
+}
+
+
+
+__global__ inline void CUDAsquarematrixmultiply( int* out, int* in1, int* in2, const int dim )
+{
+    // int row = blockIdx.y * blockDim.y + threadIdx.y;
+    // int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    int row = index / dim;
+    int col = index % dim;
+
+    int sum = 0;
+
+    if (row < dim && col < dim)
+    {
+        for (int i = 0; i < dim; ++i)
+            sum += in1[row * dim + i] * in2[i * dim + col];
+        out[row * dim + col] = sum;
+    }
+}
 
 inline void squarematrixmultiply( int* out, int* in1, int* in2, const int dim )
 {
@@ -735,6 +730,68 @@ inline void squarematrixmultiply( int* out, int* in1, int* in2, const int dim )
         }
 }
 
+inline void CUDAcountpathsbetweenwrapper(int* out, int walklength, const bool* adjmatrix, const int dim )
+{
+    int* d_out;
+    int* d_in1;
+    int* d_in2;
+
+    int in1[dim * dim];
+    int in2[dim * dim];
+
+    memset(in1,0,sizeof(int) * dim * dim);
+    for (int i = 0; i < dim; ++i)
+        in1[i*dim+i] = 1;
+    for (int i = 0; i < dim*dim; ++i)
+        in2[i] = adjmatrix[i];
+
+    auto starttime = std::chrono::high_resolution_clock::now();
+
+
+    cudaMalloc(&d_out,dim*dim*sizeof(int));
+    cudaMalloc(&d_in1,dim*dim*sizeof(int));
+    cudaMalloc(&d_in2,dim*dim*sizeof(int));
+    cudaMemcpy(d_in1,in1,dim*dim*sizeof(int),cudaMemcpyHostToDevice);
+    cudaMemcpy(d_in2,in2,dim*dim*sizeof(int),cudaMemcpyHostToDevice);
+
+    // Define the grid and block dimensions
+    int blockSize = dim;
+    int numBlocks = dim; // (blockSize + dim + 1)/blockSize;
+
+    // dim3 blockSize = (dim,dim);
+    // dim3 numBlocks  = ((dim+blockSize.x - 1)/blockSize.x, (dim+blockSize.y - 1)/blockSize.y);
+
+    auto starttime2 = std::chrono::high_resolution_clock::now();
+
+    // Launch the kernel
+    for (int i = 0; i < walklength; ++i)
+    {
+        CUDAsquarematrixmultiply<<<numBlocks, blockSize>>>(d_out, d_in1, d_in2, dim);
+        cudaMemcpy(d_in1,d_out,dim*dim*sizeof(int),cudaMemcpyDeviceToDevice);
+    }
+
+    cudaDeviceSynchronize();
+
+    auto stoptime2 = std::chrono::high_resolution_clock::now();
+    auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(stoptime2 - starttime2);
+
+    std::cout << "CUDA runtime excluding cudaMalloc and cudaMemcpy: " << duration2.count() << " microseconds" << std::endl;
+
+
+    // Copy the result back to the host
+    cudaMemcpy(out, d_out, dim * dim * sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_out);
+    cudaFree(d_in1);
+    cudaFree(d_in2);
+
+    auto stoptime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stoptime - starttime);
+
+    std::cout << "CUDA runtime including cudaMalloc and cudaMemcpy: " << duration.count() << " microseconds" << std::endl;
+
+
+};
 
 
 #endif // CUDA_CUH
