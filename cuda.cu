@@ -321,6 +321,19 @@ CUDAfcptr addCfc( const formulaclass* fc, CUDAdataspaces& Cdss )
     CUDAfc Cfc;
     Cfc.fo = fc->fo;
 
+    for (int i = 0; i < fc->boundvariables.size(); i++)
+    {
+        if (fc->boundvariables[i]->CUDAfastidx >= 0)
+        {
+            CUDAnamedvariable Cnv;
+            Cnv.t = CUDAnamedvariabletype::cnvcudafast;
+            Cnv.ufc.CUDAfast = fc->boundvariables[i]->CUDAfastidx;
+            Cnv.next = -1;
+            Cdss.Cnames.push_back( {fc->boundvariables[i]->name,Cdss.Cnvv.size()});
+            Cdss.Cnvv.push_back(Cnv);
+        }
+    }
+
     Cfc.criterion = addCfc(fc->criterion,Cdss);
     Cfc.fcleft = addCfc(fc->fcleft,Cdss);
     Cfc.fcright = addCfc(fc->fcright,Cdss);
@@ -357,11 +370,22 @@ CUDAfcptr addCfc( const formulaclass* fc, CUDAdataspaces& Cdss )
             Cnv.l = fc->v.vs.l;
             Cnv.bound = true;
         }
-        if (fc->v.vs.l >= Cdss.Ccv.size()) // hokey way to say that the variable is a cudafast variable
-        {
-            Cnv.t = CUDAnamedvariabletype::cnvcudafast;
-            Cnv.ufc.CUDAfast = fc->v.vs.l - Cdss.Ccv.size();
-        } else
+        bool found = false;
+        for (int i = 0; i < Cdss.Cnames.size() && !found; i++)
+            if (fc->v.vs.name == Cdss.Cnames[i].first)
+                if (Cdss.Cnvv[Cdss.Cnames[i].second].t == CUDAnamedvariabletype::cnvcudafast)
+                {
+                    Cnv.t = CUDAnamedvariabletype::cnvcudafast;
+                    Cnv.ufc.CUDAfast = Cdss.Cnvv[i].ufc.CUDAfast;
+                    found = true;
+                } else
+                {
+                    Cnv.t = Cdss.Cnvv[Cdss.Cnames[i].second].t;
+                    Cnv.l = Cdss.Cnvv[Cdss.Cnames[i].second].l;
+                    Cnv.ufc.v = Cfc.v.v;
+                    found = true;
+                }
+        if (!found) // hokey way to say that the variable is a cudafast variable
         {
             Cnv.t = CUDAnamedvariabletype::cnvvalue;
             Cnv.ufc.v = Cfc.v.v;
@@ -372,7 +396,7 @@ CUDAfcptr addCfc( const formulaclass* fc, CUDAdataspaces& Cdss )
     } else
     {
         CUDAnamedvariableptr oldptr = -1;
-        Cfc.namedvar = oldptr;
+        Cfc.namedvar = oldptr;/*
         for (int i = 0; i < fc->boundvariables.size(); i++)
         {
             CUDAnamedvariable Cnv;
@@ -385,7 +409,7 @@ CUDAfcptr addCfc( const formulaclass* fc, CUDAdataspaces& Cdss )
                 Cdss.Cnvv.push_back(Cnv);
             }
             // Cnv.nm = fc->boundvariables[i]->name;
-            /* if (fc->boundvariables[i]->superset)
+            if (fc->boundvariables[i]->superset)
             {
                 Cnv.ufc.superset = addCfc(CUDAfcv,fc->boundvariables[i]->superset, Cnvv, Cdss, Clv);
                 Cnv.t = CUDAnamedvariabletype::cnvsuperset;
@@ -406,8 +430,8 @@ CUDAfcptr addCfc( const formulaclass* fc, CUDAdataspaces& Cdss )
                 Cfc.namedvar = ptr;
             else
                 Cdss.Cnvv[oldptr].next = ptr;
-            oldptr = ptr;*/
-        }
+            oldptr = ptr;
+        }*/
     }
     if (fc->fo == formulaoperator::fofunction || fc->fo == formulaoperator::foliteral)
     {
@@ -548,43 +572,76 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
             CUDAvalms res;
             CUDAnamedvariableptr j = Cec.CUDAliteralarray[Cfc.literal].inputvariabletypesptr;
             CUDAnamedvariableptr k = Cfc.namedvar;
-            uint argcnt = 0;
-            while (j >= 0 && k >= 0)
+            uint argcnt = j >= 0;
+            measuretype t0, t1;
+            CUDAvalms v[2]; // the plan is use two "registers" as a best guess as to how many args are needed
+            if (argcnt > 0)
             {
-                measuretype t = Cec.namedvararray[j].ufc.v.t;
-                auto v = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t);
-                Cec.namedvararray[k].ufc.v = v;
-                argcnt++;
+                t0 = Cec.namedvararray[j].ufc.v.t;
+                v[0] = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t0);
                 j = Cec.namedvararray[j].next;
                 k = Cec.namedvararray[k].next;
+                if (k >= 0)
+                {
+                    t1 = Cec.namedvararray[j].ufc.v.t;
+                    v[1] = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t1);
+                    argcnt = 2;
+                    j = Cec.namedvararray[j].next;
+                    k = Cec.namedvararray[k].next;
+                }
             }
+            while (j >= 0)
+            {
+                argcnt++;
+                j = Cec.namedvararray[j].next;
+            }
+            CUDAvalms* args;
+            bool needtodelete = false;
+            if (argcnt > 2)
+            {
+                args = new CUDAvalms[argcnt];
+                needtodelete = true;
+                int l = 2;
+                while (j >= 0 && k >= 0)
+                {
+                    measuretype t = Cec.namedvararray[j].ufc.v.t;
+                    auto v = CUDAvalmsto_specified(Cec,CUDAevalinternal(Cec, Cec.namedvararray[k].ufc.fcv),t);
+                    args[l++] = v;
+                    j = Cec.namedvararray[j].next;
+                    k = Cec.namedvararray[k].next;
+                }
+            }
+            else
+                args = v;
             res.t = Cec.CUDAliteralarray[Cfc.literal].t;
             switch (res.t)
             {
             case measuretype::mtcontinuous:
                 {
-                    res.v.dv = Cec.CUDAliteralarray[Cfc.literal].function.fncontinuous(Cec,Cfc.namedvar);
+                    res.v.dv = Cec.CUDAliteralarray[Cfc.literal].function.fncontinuous(Cec,args);
                     break;
                 }
             case measuretype::mtdiscrete:
                 {
-                    res.v.iv = (Cec.CUDAliteralarray[Cfc.literal].function.fndiscrete)(Cec,Cfc.namedvar);
+                    res.v.iv = (Cec.CUDAliteralarray[Cfc.literal].function.fndiscrete)(Cec,args);
                     break;
                 }
             case measuretype::mtbool:
                 {
-                    res.v.bv = Cec.CUDAliteralarray[Cfc.literal].function.fnbool(Cec,Cfc.namedvar);
+                    res.v.bv = Cec.CUDAliteralarray[Cfc.literal].function.fnbool(Cec,args);
                     break;
                 }
             case measuretype::mtset:
                 {
-                    res.v.seti = Cec.CUDAliteralarray[Cfc.literal].function.fnset(Cec,Cfc.namedvar);
+                    res.v.seti = Cec.CUDAliteralarray[Cfc.literal].function.fnset(Cec,args);
                     break;
                 }
             }
-
+            if (needtodelete)
+                delete args;
             return res;
         }
+    case formulaoperator::fone:
     case formulaoperator::foe:
         {
             auto v1 = CUDAevalinternal(Cec,Cfc.fcleft);
@@ -619,6 +676,8 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
                 }
             } else
                 res.v.bv = false;
+            if (Cfc.fo == formulaoperator::fone)
+                res.v.bv = !res.v.bv;
             return res; // add all remaining cases
         }
     case formulaoperator::folt:

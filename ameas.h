@@ -528,6 +528,14 @@ public:
     void partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int contextidxB,
         std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
     void childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, uint& sz);
+    void threadrelationalcomputevectorportion(formulaclass* fc, namedparams* context, namedparams* vector,
+    bool* boolvector, bool* computedvector, const int sz, const int idx, const int startidx, const int stopidx,
+    quantifiermanager* qm);
+    void threadrelationalcomputevector(formulaclass* fc, namedparams* context, namedparams* vector, bool* boolvector,
+        bool* computedvector, const int sz, const int idx, bool* changed, quantifiermanager* qm);
+    // void threadrelationalsymmetryclosure(bool* outmatrix, bool* computedmatrix, bool* changed, const int offset, const int start, const int sz  );
+    void threadrelationaltransitiveclosure(bool* outmatrix, bool* computedrows, bool* computedmatrix,
+        const int startidx, const int stopidx, const int pointer, int offset, const int sz  );
 
 
 
@@ -2867,12 +2875,15 @@ class TupletoSet : public set
             setitr* res;
             if (!s->computed)
                 s->compute();
-            if (s->maxelt >= 0) {
-                bool* elts = new bool[s->maxelt+1];
-                memset(elts,false,(s->maxelt+1)*sizeof(bool));
+            int maxelt = -1;
+            for (int i = 0; i < s->length; ++i)
+                maxelt = maxelt < s->elts[i] ? s->elts[i] : maxelt;
+            if (maxelt >= 0) {
+                bool* elts = new bool[maxelt+1];
+                memset(elts,false,(maxelt+1)*sizeof(bool));
                 for (auto i = 0; i < s->length; ++i)
                     elts[s->elts[i]] = true;
-                res = new setitrint(s->maxelt,elts);
+                res = new setitrint(maxelt,elts);
             } else {
                 std::cout << "Expected maxelt not found in setitrtuple class item\n";
                 res = new setitrmodeone(s->totality);

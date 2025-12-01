@@ -6,6 +6,9 @@
 #include "graphs.h"
 #include <unordered_set>
 
+#include "cudagraph.cuh"
+#include "cudaengine.cuh"
+
 
 class kncrit : public crit
 {
@@ -2784,4 +2787,154 @@ public:
 };
 
 
+class Connvtuple : public set
+{
+public:
+    Connvtuple( mrecords* recin ) : set( recin, "Connv", "Matrix of connectedness") {}
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+        bool* out = new bool[dim*dim];
+        verticesconnectedmatrix( out, g, ns );
+        std::vector<setitrtuple<bool>*> tuples {};
+        tuples.resize(dim);
+        for (int i = 0; i < dim; ++i)
+            tuples[i] = new setitrtuple<bool>(dim,&out[i*dim]);
+        auto res = new setitrtuple2d<bool>(tuples);
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
 
+class CUDAConnvtuple : public set
+{
+public:
+    CUDAConnvtuple( mrecords* recin ) :
+        set( recin, "CUDAConnv", "CUDA boolean matrix of connected vertices") {};
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+        bool* out = new bool[dim*dim];
+        CUDAverticesconnectedmatrix( out, g, ns );
+        std::vector<setitrtuple<bool>*> tuples {};
+        tuples.resize(dim);
+        for (int i = 0; i < dim; ++i)
+            tuples[i] = new setitrtuple<bool>(dim,&out[i*dim]);
+        auto res = new setitrtuple2d<bool>(tuples);
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class conntally : public tally
+{ // to deprecate: too slow
+public:
+    conntally(mrecords* recin) : tally(recin, "connt", "Connected components tally") {}
+    int takemeas( neighborstype* ns, const params& ps ) override {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+        const int pfactor = dim;
+        auto partitions = (vertextype*)malloc(dim*pfactor*sizeof(vertextype));
+        if (!partitions)
+        {
+            std::cout << "Error allocating enough memory in call to verticesconnectedmatrix\n";
+            exit(1);
+        }
+        // for (int i = 0; i < dim; ++i)
+        // memcpy(&partitions[i*pfactor],&ns->neighborslist[i*dim],dim*sizeof(vertextype));
+        memcpy(partitions,ns->neighborslist,dim*pfactor*sizeof(vertextype));
+        auto pindices = (int*)malloc(dim*sizeof(int));
+        memcpy(pindices,ns->degrees,dim*sizeof(int));
+        verticesconnectedlist( g, ns, partitions, pindices );
+        int res = 0;
+        for (int i = 0; i < dim; ++i)
+            res += pindices[i] > 0;
+        delete pindices;
+        delete partitions;
+        return res;
+    }
+    int takemeas( const int idx, const params& ps ) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class Connc : public set
+{
+public:
+    Connc( mrecords* recin ) :
+        set( recin, "Connc", "Set of connected components") {};
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+
+        std::vector<bool*> outv;
+
+        connectedpartition(g,ns,outv);
+
+        std::vector<valms> res {};
+        for (auto elt : outv)
+        {
+            valms v;
+            v.t = mtset;
+            v.seti = new setitrint(g->dim-1,elt);
+            res.push_back(v);
+        }
+        return new setitrmodeone(res);
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class Connmatrix : public set
+{
+public:
+    Connmatrix( mrecords* recin ) :
+        set( recin, "Connmatrix", "Matrix of vertex connectedness") {};
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+
+        std::vector<bool*> outv;
+        connectedpartition(g,ns,outv);
+
+        std::vector<setitrtuple<bool>*> tuples;
+        std::vector<bool*> matrix;
+        matrix.resize(dim);
+        for (int i = 0; i < dim; ++i)
+        {
+            matrix[i] = new bool[dim];
+            memset(matrix[i],false,dim*sizeof(bool));
+        }
+        for (int i = 0; i < outv.size(); ++i)
+            for (int j = 0; j < dim; ++j)
+                for (int k = 0; k < dim; ++k)
+                    matrix[j][k] += outv[i][j] && outv[i][k];
+        tuples.resize(dim);
+        for (int i = 0; i < dim; ++i)
+            tuples[i] = new setitrtuple<bool>(dim,matrix[i]);
+        auto res = new setitrtuple2d<bool>(tuples);
+
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};

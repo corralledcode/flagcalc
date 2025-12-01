@@ -50,6 +50,7 @@
 #include <vector>
 #include <string>
 
+#include "cudaengine.cuh"
 #include "mathfn.cu"
 #ifdef THREADPOOL
 #include "thread_pool.cpp"
@@ -59,6 +60,51 @@
 #endif
 
 #define MAXFACTORIAL 0
+
+inline bool neighbors::computeneighborslist()
+{
+#ifdef CUDAFORCOMPUTENEIGHBORSLIST
+    CUDAcomputeneighborslistwrapper(g, this);
+#else
+    CPUcomputeneighborslist();
+#endif
+    return true;
+}
+inline bool neighbors::CPUcomputeneighborslist() {
+    maxdegree = -1;
+    int* nondegrees = new int[dim];
+    for (int n = 0; n < dim; ++n) {
+        degrees[n] = 0;
+        for (int i = 0; i < dim; ++i) {
+            if (g->adjacencymatrix[n*dim + i]) {
+                neighborslist[n * dim + degrees[n]] = i;
+                degrees[n]++;
+            }
+        }
+        maxdegree = (degrees[n] > maxdegree ? degrees[n] : maxdegree );
+    }
+    for (int n = 0; n < dim; ++n) {
+        nondegrees[n] = 0;
+        for (int i = 0; i < dim; ++i) {
+            if (!g->adjacencymatrix[n*dim + i] && (n != i)) {
+                nonneighborslist[n*dim + nondegrees[n]] = i;
+                nondegrees[n]++;
+            }
+        }
+    }
+    for (int n = 0; n < dim; ++n) {
+        if (degrees[n] + nondegrees[n] != dim-1) {
+            std::cout << "BUG in computeneighborslist\n";
+            osadjacencymatrix( std::cout, g);
+            return false;
+        }
+    }
+    delete nondegrees;
+
+    return true;
+}
+
+
 
 int cmpwalk( neighbors ns, FP w1, FP w2 ) { // return -1 if w1 > w2; 0 if w1 == w2; 1 if w1 < w2
     int res = -1;
@@ -392,6 +438,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
                                 ++tmpn;
                             }
                         }
+                        // std::cout << fps[vidx].ns->v << std::endl;
                         takefingerprint( ns, fps[vidx].ns, tmpn );
                     } else {
                         if ((deg > 0) && invert) {
@@ -400,17 +447,24 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
                             //std::cout << "degree " << ns->degrees[fps[vidx].v] << "\n";
                             fps[vidx].ns = (FP*)malloc(deg * sizeof(FP));
                             for (int n = 0; n < (dim - ns->degrees[fps[vidx].v] - 1); ++n) {
+                                // std::cout << "Hark also: " << n << ", " << fps[vidx].v << std::endl;
+                                // osneighbors(std::cout, ns);
                                 vertextype nv = ns->nonneighborslist[dim*fps[vidx].v + n];
+                                // for (auto k = 0; k < dim; ++k)
+                                    // std::cout << "nnl " << k << ": " << ns->nonneighborslist[dim*fps[vidx].v + k] << ".. ";
+                                // std::cout << std::endl;
                                 //std::cout << "nv = " << nv << "\n";
                                 if (nv != parentv) {
                                     fps[vidx].ns[tmpn].parent = &(fps[vidx]);
                                     fps[vidx].ns[tmpn].v = nv;
+                                    // std::cout << "hark: " << nv << std::endl;
                                     fps[vidx].ns[tmpn].ns = nullptr;
                                     fps[vidx].ns[tmpn].nscnt = 0;
                                     fps[vidx].ns[tmpn].invert = ns->degrees[fps[vidx].v] >= halfdegree;
                                     ++tmpn;  // tmp keeps a separate count from n in order to account for the omitted parentv
                                 }
                             }
+                            // std::cout << fps[vidx].ns->v << std::endl;
                             takefingerprint( ns, fps[vidx].ns, tmpn  );
                         } else {
                             fps[vidx].ns = nullptr;
@@ -2646,4 +2700,185 @@ int cyclescount( graphtype* g, neighborstype* ns )
     }
     delete g2;
     return res;
+}
+
+void verticesconnectedlist( const graphtype* g, const neighborstype* ns, vertextype* partitions, int* pindices  )
+{
+    int lead = 0;
+    const int d = g->dim;
+    const int pfactor = d;
+    if (d == 0)
+        return;
+    const bool* am = g->adjacencymatrix;
+    for (int i = 0; i < d; ++i)
+    {
+        partitions[i*pfactor + pindices[i]] = i;
+        ++pindices[i];
+    }
+    bool changed;
+    while (changed || lead+1 < d)
+    {
+        ++lead;
+        changed = false;
+        if (lead >= d)
+            lead = 1;
+        // for (int i = 0; i < d; ++i)
+        // {
+            // std::cout << i << ": ";
+            // for (int j = 0; j < pindices[i]; ++j)
+                // std::cout << partitions[i*pfactor + j] << " ";
+            // std::cout << std::endl;
+        // }
+        // std::cout << std::endl;
+
+        for (int j = 0; j < pindices[lead]; ++j)
+            for (int i = 0; (i < lead) && !changed; ++i)
+            {
+                for (int k = 0; k < pindices[i] && !changed; ++k)
+                {
+                    auto v1 = partitions[lead*pfactor + j];
+                    auto v2 = partitions[i*pfactor + k];
+                    if (am[v1*d + v2])
+                    {
+                        if (pindices[i] + pindices[lead] > pfactor)
+                        {
+                            auto elts = new bool[d];
+                            memset(elts,false,sizeof(bool)*d);
+                            for (auto l = 0; l < pindices[i]; ++l)
+                                elts[partitions[i*pfactor+l]] = true;
+                            for (auto l = 0; l < pindices[lead]; ++l)
+                                elts[partitions[lead*pfactor+l]] = true;
+                            pindices[i] = 0;;
+                            for (auto l = 0; l < d; ++l)
+                                if (elts[l])
+                                {
+                                    partitions[i*pfactor + pindices[i]] = l;
+                                    pindices[i]++;
+                                }
+                            delete elts;
+                        } else
+                        {
+                            for (auto l = 0; l < pindices[lead]; ++l)
+                                partitions[i*pfactor + pindices[i] + l] = partitions[lead*pfactor + l];
+                            pindices[i] += pindices[lead];
+                        }
+                        pindices[lead] = 0;
+                        changed = true;
+                        lead = i;
+                    }
+                }
+            }
+    }
+}
+
+void verticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns )
+{
+    const int dim = g->dim;
+    const int pfactor = dim;
+    auto partitions = (vertextype*)malloc(dim*pfactor*sizeof(vertextype));
+    if (!partitions)
+    {
+        std::cout << "Error allocating enough memory in call to verticesconnectedmatrix\n";
+        exit(1);
+    }
+    // for (int i = 0; i < dim; ++i)
+        // memcpy(&partitions[i*pfactor],&ns->neighborslist[i*dim],dim*sizeof(vertextype));
+    memcpy(partitions,ns->neighborslist,dim*pfactor*sizeof(vertextype));
+    auto pindices = (int*)malloc(dim*sizeof(int));
+    memcpy(pindices,ns->degrees,dim*sizeof(int));
+    verticesconnectedlist( g, ns, partitions, pindices );
+
+    memset(out,0,dim*dim*sizeof(bool));
+    for (int i = 0; i < dim; ++i)
+        for (int j = 0; j < pindices[i]; ++j)
+            for (int k = j; k < pindices[i]; ++k)
+            {
+                auto v1 = partitions[i*pfactor + j];
+                auto v2 = partitions[i*pfactor + k];
+                out[v1*dim + v2] = true;
+                out[v2*dim + v1] = true;
+            }
+    delete pindices;
+    delete partitions;
+}
+
+void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const neighborstype* ns )
+{
+
+    const int dim = g->dim;
+    // auto out = (bool*)malloc(dim*dim*sizeof(bool));
+    memcpy(out,g->adjacencymatrix,dim*dim*sizeof(bool));
+    for (int i = 0; i < dim; ++i)
+        out[i*dim + i] = true;
+    CUDAverticesconnectedmatrixwrapper(g,ns,out);
+}
+
+void connectedpartition(graphtype *g, neighborstype *ns, std::vector<bool*>& outv) {
+    int dim = g->dim;
+    outv.clear();
+    if (dim <= 0)
+        return;
+
+    int* visited = (int*)malloc(dim*sizeof(int));
+    bool* catalogued = (bool*)malloc(dim*sizeof(bool));
+
+    memset(catalogued,false,dim*sizeof(bool));
+    for (int i = 0; i < dim; ++i)
+    {
+        visited[i] = -1;
+    }
+
+    visited[0] = 0;
+    int res = 1;
+    bool allvisited = false;
+    while (!allvisited)
+    {
+        bool changed = false;
+        for ( int i = 0; i < dim; ++i)
+        {
+            if (visited[i] >= 0)
+            {
+                for (int j = 0; j < ns->degrees[i]; ++j)
+                {
+                    vertextype nextv = ns->neighborslist[i*dim+j];
+                    // loop = if a neighbor of vertex i is found in visited
+                    // and that neighbor is not the origin of vertex i
+
+                    if (visited[nextv] < 0)
+                    {
+                        visited[nextv] = i;
+                        changed = true;
+                    }
+                }
+            }
+        }
+        if (!changed) {
+            allvisited = true;
+            int firstunvisited = 0;
+            auto elts = new bool[dim];
+            memset(elts,false,dim*sizeof(bool));
+            for (int k = 0; k < dim; ++k)
+            {
+                if (visited[k] >= 0)
+                {
+                    elts[k] = !catalogued[k];
+                    catalogued[k] = true;
+                }
+            }
+            outv.push_back(elts);
+            while( allvisited && (firstunvisited < dim))
+            {
+                allvisited = allvisited && (visited[firstunvisited] != -1);
+                ++firstunvisited;
+            }
+            if (allvisited)
+            {
+                free (visited);
+                return;
+            }
+            res++;
+            visited[firstunvisited-1] = firstunvisited-1;
+            changed = true;
+        }
+    }
 }

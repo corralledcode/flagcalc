@@ -13,11 +13,12 @@
 
 #include <cstring>;
 
+#include "cudagraph.cuh"
 
 
-__device__ inline int CUDAtotient( int n)
+__device__ inline int CUDAtotient( long int n)
 {
-    int phi = n > 1 ? n : 1;
+    long int phi = n > 1 ? n : 1;
     int max = (int)(sqrt( (double)n )) + 1;
     for (int p = 2; p <= max; p++)
     {
@@ -66,44 +67,44 @@ __device__ inline int CUDAbellNumberinternal(int n) {
 __device__ inline long int CUDAnchoosekinternal( const long int n, const long int k )
 {if (k == 0) return 1;
     return (n* CUDAnchoosekinternal(n-1,k-1))/k; }
-__device__ inline long int CUDAmod( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{long int a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtdiscrete).v.iv;
-    long int b = CUDAlookupnamedvariable(Cec,Cnvptr,1,mtdiscrete).v.iv;
+__device__ inline long int CUDAmod( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{long int a = CUDAto_mtdiscrete(args[0]);
+    long int b = CUDAto_mtdiscrete(args[1]);
     return a % b;}
-__device__ inline double CUDAlog( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return log(a);}
-__device__ inline double CUDAsin( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return sin(a);}
-__device__ inline double CUDAcos( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return cos(a);}
-__device__ inline double CUDAtan( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return tan(a);}
-__device__ inline long int CUDAfloor( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return floorf(a);}
-__device__ inline long int CUDAceil( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return ceilf(a);}
-__device__ inline double CUDAgamma( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return tgamma(a);}
-__device__ inline long int CUDAnchoosek( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{long int a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtdiscrete).v.iv;
-    long int b = CUDAlookupnamedvariable(Cec,Cnvptr,1,mtdiscrete).v.iv;
+__device__ inline double CUDAlog( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return log(a);}
+__device__ inline double CUDAsin( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return sin(a);}
+__device__ inline double CUDAcos( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return cos(a);}
+__device__ inline double CUDAtan( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return tan(a);}
+__device__ inline long int CUDAfloor( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return floorf(a);}
+__device__ inline long int CUDAceil( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return ceilf(a);}
+__device__ inline double CUDAgamma( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return tgamma(a);}
+__device__ inline long int CUDAnchoosek( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{long int a = CUDAto_mtdiscrete(args[0]);
+    long int b = CUDAto_mtdiscrete(args[1]);
     return CUDAnchoosekinternal(a,b);}
-__device__ inline double CUDAexp( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv;return exp(a);}
-__device__ inline bool CUDAisinf( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return isinf(a);}
-__device__ inline double CUDAabs( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return abs(a);}
-__device__ inline long int CUDAstirling( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{long int a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtdiscrete).v.iv;
-    long int b = CUDAlookupnamedvariable(Cec,Cnvptr,1,mtdiscrete).v.iv;
+__device__ inline double CUDAexp( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return exp(a);}
+__device__ inline bool CUDAisinf( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return isinf(a);}
+__device__ inline double CUDAabs( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return abs(a);}
+__device__ inline long int CUDAstirling( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{long int a = CUDAto_mtdiscrete(args[0]);
+    long int b = CUDAto_mtdiscrete(args[1]);
     return CUDAstirlinginternal(a,b);}
-__device__ inline double CUDAbell( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return CUDAbellNumberinternal(a);}
-__device__ inline double CUDAsqrt( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{double a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return sqrt(a);}
-__device__ inline long int CUDAphi( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr)
-{long int a = CUDAlookupnamedvariable(Cec,Cnvptr,0,mtcontinuous).v.dv; return CUDAtotient(a);}
+__device__ inline double CUDAbell( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return CUDAbellNumberinternal(a);}
+__device__ inline double CUDAsqrt( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return sqrt(a);}
+__device__ inline long int CUDAphi( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{long int a = CUDAto_mtcontinuous(args[0]); return CUDAtotient(a);}
 
 inline CUDAliteral CUDAlogfn = { false, 0, mtcontinuous,-1,{ .fncontinuous = &CUDAlog} };
 inline CUDAliteral CUDAsinfn = {  false, 1, mtcontinuous,-1,{ .fncontinuous = &CUDAsin}};
@@ -122,13 +123,28 @@ inline CUDAliteral CUDAbellfn = { false, 13, mtcontinuous, -1,{ .fncontinuous = 
 inline CUDAliteral CUDAsqrtfn = {  false, 14, mtcontinuous, -1,{ .fncontinuous = &CUDAsqrt}};
 inline CUDAliteral CUDAphifn = {  false, 15, mtdiscrete, -1,{ .fndiscrete = &CUDAphi}};
 
-__device__ inline long int CUDAsizetally( const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr )
-{long int cnt = 0; CUDAvalms v = CUDAlookupnamedvariable(Cec, Cnvptr, 0, mtset);
+__device__ inline long int CUDAsizetally( const CUDAextendedcontext& Cec, const CUDAvalms* args )
+{long int cnt = 0; CUDAvalms v = args[0];
     for (int i = 0; i < v.v.seti.sz; ++i)
         cnt += (*(bool**)&Cec.CUDAvalsarray)[v.v.seti.ptr + i * sizeof(bool)] ? 1 : 0;
     return cnt;}
 
-inline CUDAliteral CUDAsizetallyfn = {false,14, mtdiscrete, -1, { .fndiscrete = &CUDAsizetally}};
+__device__ inline bool CUDAac( const CUDAextendedcontext& Cec, const CUDAvalms* args )
+{ // vertices adjacent
+    long int a = CUDAto_mtdiscrete(args[0]);
+    long int b = CUDAto_mtdiscrete(args[1]);
+    return Cec.g.adjacencymatrix[a*Cec.g.dim + b];}
+
+__device__ inline bool CUDAconnvc( const CUDAextendedcontext& Cec, const CUDAvalms* args )
+{ // vertices are connected
+    long int a = CUDAto_mtdiscrete(args[0]);
+    long int b = CUDAto_mtdiscrete(args[1]);
+    return CUDApathsbetweenmin( &Cec.g, &Cec.ns, a, b, 1 ) > 0;
+}
+
+inline CUDAliteral CUDAsizetallyfn = {false,16, mtdiscrete, -1, { .fndiscrete = &CUDAsizetally}};
+inline CUDAliteral CUDAacfn = {false,17, mtbool, -1, { .fnbool = &CUDAac}};
+inline CUDAliteral CUDAconnvcfn = {false,18, mtbool, -1, { .fnbool = &CUDAconnvc}};
 
 inline std::map<std::string,std::pair<CUDAliteral,std::vector<CUDAvalms>>> global_CUDAfnptrs
     {{"log", {CUDAlogfn,{{.t = mtcontinuous}}}},
@@ -147,9 +163,11 @@ inline std::map<std::string,std::pair<CUDAliteral,std::vector<CUDAvalms>>> globa
      {"bell",{CUDAbellfn,{{.t = mtdiscrete}}}},
      {"sqrt",{CUDAsqrtfn,{{.t = mtcontinuous}}}},
      {"phi",{CUDAphifn,{{.t = mtdiscrete}}}},
-     {"st",{CUDAsizetallyfn,{{.t = mtset}}}}};
+     {"st",{CUDAsizetallyfn,{{.t = mtset}}}},
+     {"ac",{CUDAacfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}},
+     {"connvc",{CUDAconnvcfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}}};
 
-__device__ inline void populateCUDAfnarraysingle( CUDAliteral* lits, const int litssize ) // absolutely bizarre, the second argument must be int not uint
+__device__ inline void populateCUDAfnarraydevice( CUDAliteral* lits, const uint litssize ) // absolutely bizarre, the second argument must be int not uint
 {
     for (int i = 0; i < litssize; ++i)
     {
@@ -173,6 +191,8 @@ __device__ inline void populateCUDAfnarraysingle( CUDAliteral* lits, const int l
         case 14: lit.function.fncontinuous = CUDAsqrt; break;
         case 15: lit.function.fndiscrete = CUDAphi; break;
         case 16: lit.function.fndiscrete = CUDAsizetally; break;
+        case 17: lit.function.fnbool = CUDAac; break;
+        case 18: lit.function.fnbool = CUDAconnvc; break;
         default: lit.function.fndiscrete = CUDAfloor; break;
         }
         lits[i] = lit;
@@ -183,10 +203,17 @@ __global__ inline void populateCUDAfnarray( CUDAextendedcontext* Cecs, const uin
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (index >= sz)
+    if (index >= sz || sz == 0)
         return;
-    if (sz == 1)
-        populateCUDAfnarraysingle(Cecs->CUDAliteralarray,Cecs->CUDAliteralarraysize);
-    else
-        populateCUDAfnarraysingle(Cecs[index].CUDAliteralarray,Cecs[index].CUDAliteralarraysize);
+    for (int i = 0; i < Cecs[0].CUDAliteralarraysize; ++i)
+    {
+        populateCUDAfnarraydevice( Cecs[index].CUDAliteralarray, Cecs[index].CUDAliteralarraysize );
+    }
+
+    // populateCUDAfnarraydevice(Cecs[index].CUDAliteralarray,Cecs[index].CUDAliteralarraysize);
+}
+
+__global__ inline void populateCUDAfnarraysingle( CUDAextendedcontext* Cec )
+{
+    populateCUDAfnarraydevice(Cec->CUDAliteralarray,Cec->CUDAliteralarraysize);
 }
