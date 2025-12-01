@@ -442,7 +442,7 @@ class setitrmodeone : public setitr
     setitrmodeone( std::vector<valms> totalityin )
     {
         totality = totalityin;
-        t = mtset;
+        // t = mtset;
         computed = true;
     }
 
@@ -816,14 +816,14 @@ class setitrint : public setitrmodeone
     setitrint(const int maxintin) : elts{nullptr}
     {
         setmaxint(maxintin);
-        t = mtset;
+        t = mtdiscrete;
         reset();
     }
     setitrint(const int maxintin, bool* eltsin)
     {
         maxint = maxintin;
         elts = eltsin;
-        t = mtset;
+        t = mtdiscrete;
         computed = false;
         reset();
     }
