@@ -2046,9 +2046,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     if (fc.fo == formulaoperator::fonaming)
     {
         for (int i = 0; i < fc.fcright->boundvariables.size(); ++i) {
-            int oldcontextsize = context.size();
+            // int oldcontextsize = context.size();
             valms v = evalinternal(*fc.fcright->boundvariables[i]->alias, context);
-            context.resize(oldcontextsize);
+            //context.resize(oldcontextsize);
             context.push_back({fc.fcright->boundvariables[i]->name,v});
         }
         res = evalinternal(*fc.fcright, context);
@@ -3490,6 +3490,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             c.push_back(r);
                         }
                         res.seti = new setitrmodeone(c);
+                        qm.cleanup();
                         break;
                     }
                 case formulaoperator::forsort:
