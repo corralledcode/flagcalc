@@ -2046,7 +2046,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     if (fc.fo == formulaoperator::fonaming)
     {
         for (int i = 0; i < fc.fcright->boundvariables.size(); ++i) {
+            int oldcontextsize = context.size();
             valms v = evalinternal(*fc.fcright->boundvariables[i]->alias, context);
+            context.resize(oldcontextsize);
             context.push_back({fc.fcright->boundvariables[i]->name,v});
         }
         res = evalinternal(*fc.fcright, context);
