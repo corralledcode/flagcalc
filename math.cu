@@ -3531,6 +3531,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         idealizeset(tot,res);
 
                         // res.seti = new setitrmodeone(tot);
+                        qm.cleanup();
                         break;
                     }
                 }
@@ -3589,6 +3590,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             c.push_back(r);
                         }
                         res.seti = new setitrmodeone(c);
+                        qm.cleanup();
                         break;
                     }
                 case formulaoperator::forsort:
@@ -3635,6 +3637,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         idealizeset(tot,res);
                         // res.seti = new setitrmodeone(tot);
+                        qm.cleanup();
                         break;
                     }
                 }
