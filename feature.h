@@ -2863,8 +2863,8 @@ public:
             *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
         }
         *_os << "\t" << "p=<tuple>:\t which tuple to use, standard options are:\n";
-        for (int n = 0; n < sts.size(); ++n) {
-            *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
+        for (int n = 0; n < oss.size(); ++n) {
+            *_os << "\t\t\"" << oss[n]->shortname << "\": " << oss[n]->name << "\n";
         }
     }
 
