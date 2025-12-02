@@ -1867,6 +1867,7 @@ public:
         auto (Edgess) = setfactory<Edgesset>;
         auto (Automs) = setfactory<Automset>;
         auto (Conncs) = setfactory<Connc>;
+        auto (Ns) = setfactory<Nset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1888,6 +1889,7 @@ public:
         stsfactory.push_back(Edgess);
         stsfactory.push_back(Automs);
         stsfactory.push_back(Conncs);
+        stsfactory.push_back(Ns);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
