@@ -1721,6 +1721,7 @@ public:
         auto (indnpc) = critfactory<indnpcrit>;
         auto (nwisec) = critfactory<nwisecrit>;
         auto (toBoolc) = critfactory<toBoolcrit>;
+        auto (embedsc) = critfactory<embedscrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1746,6 +1747,7 @@ public:
         crsfactory.push_back(indnpc);
         crsfactory.push_back(nwisec);
         crsfactory.push_back(toBoolc);
+        crsfactory.push_back(embedsc);
 
         // ...
 
@@ -1868,6 +1870,7 @@ public:
         auto (Automs) = setfactory<Automset>;
         auto (Conncs) = setfactory<Connc>;
         auto (Ns) = setfactory<Nset>;
+        auto (Choices) = setfactory<Choiceset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1890,6 +1893,7 @@ public:
         stsfactory.push_back(Automs);
         stsfactory.push_back(Conncs);
         stsfactory.push_back(Ns);
+        stsfactory.push_back(Choices);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -3265,7 +3269,7 @@ public:
 
                 ams a;
                 a.t = mtbool;
-                a.a.cs = new embedscrit(&rec,gi->ns,fp);
+                a.a.cs = new legacyembedscrit(&rec,gi->ns,fp);
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
@@ -3454,7 +3458,7 @@ public:
                 {
                     ams a;
                     a.t = mtbool;
-                    a.a.cs = new embedscrit(&rec,nss[i],fps[i]);
+                    a.a.cs = new legacyembedscrit(&rec,nss[i],fps[i]);
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);

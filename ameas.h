@@ -1756,6 +1756,95 @@ public:
     }
 };
 
+class setitrchoicefunctions : public setitr
+{
+protected:
+    int numberoftuples;
+    long long int sz;
+    long long int howmanycomputed = 0;
+    setitr* currentset;
+    std::vector<valms> currentchoice {};
+    std::vector<int> respectivesizes {};
+public:
+    setitr* supersetitr;
+
+    void reset() override
+    {
+        pos = -1;
+    }
+    int getsize() override
+    {
+        return sz;
+    }
+    bool ended()
+    {
+        return pos+1 >= sz;
+    }
+    valms getnext() override
+    {
+        if (++pos < howmanycomputed)
+            return totality[pos];
+
+        valms res;
+
+        if (pos >= sz)
+        {
+            std::cout << "Indexing beyond size in setitrchoicefunction\n";
+            valms w;
+            w.t = mtbool;
+            w.v.bv = false;
+            res = w;
+            return res;
+        }
+
+        currentset = new setitrmodeone(currentchoice);
+        res.seti = currentset;
+        res.t = mttuple;
+        totality.resize(pos+1);
+        totality[pos] = res;
+        int index = 0;
+
+        if (++(currentchoice[index].v.iv) >= respectivesizes[index])
+        {
+            currentchoice[index].v.iv = respectivesizes[index] > 0 ? 0 : -1;
+            while (++index < numberoftuples && ++(currentchoice[index].v.iv) >= respectivesizes[index])
+            {
+               currentchoice[index].v.iv = respectivesizes[index] > 0 ? 0 : -1;
+            }
+        }
+        howmanycomputed = pos+1;
+        return res;
+    }
+
+    setitrchoicefunctions(setitr* setin) : supersetitr{setin}
+    {
+        t = mttuple;
+        numberoftuples = supersetitr->getsize();
+        currentchoice.resize(numberoftuples);
+        respectivesizes.resize(numberoftuples);
+        itrpos* itr = supersetitr->getitrpos();
+        int i = 0;
+        sz = 1;
+        while (!itr->ended())
+        {
+            auto v = itr->getnext();
+            respectivesizes[i] = v.seti->getsize();
+            sz *= respectivesizes[i] > 0 ? respectivesizes[i] : 1;
+            currentchoice[i].t = mtdiscrete;
+            if (respectivesizes[i] <= 0)
+                currentchoice[i++].v.iv = -1;
+            else
+                currentchoice[i++].v.iv = 0;
+        }
+        delete itr;
+        // totality.resize(sz);
+        // while (!ended())
+            // getnext();
+    }
+    ~setitrchoicefunctions() {}
+
+};
+
 class setitrsizedsubset : public setitr
 {
 public:

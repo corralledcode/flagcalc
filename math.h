@@ -2609,7 +2609,58 @@ inline void mtconvertsetto( setitr* vin, valms& vout )
         break;
     case mtstring: vout.v.rv = new std::string("{ SET of size " + std::to_string(vin->getsize()) + "}");
         break;
-    case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin->getsize()));
+    case mtgraph:
+        /* First count how many vertices */
+
+        auto pos = vin->getitrpos();
+        pos->reset();
+
+        std::vector<valms> tempvertices {};
+        std::vector<int> tempedges {};
+        while (!pos->ended())
+        {
+            auto edge = pos->getnext();
+            edge.seti->reset();
+            auto v1 = edge.seti->getnext();
+            auto v2 = edge.seti->getnext();
+            tempvertices.push_back(v1);
+            tempvertices.push_back(v2);
+            tempedges.push_back(tempvertices.size()-1);
+            tempedges.push_back(tempvertices.size()-2);
+        }
+        std::vector<valms> vertices {};
+        std::vector<int> vertexindices {};
+        vertexindices.resize(tempvertices.size());
+        for (int i = 0; i < tempvertices.size(); ++i)
+        {
+            bool found = false;
+            int j;
+            for (j = 0; !found && j < vertices.size(); ++j)
+                found = mtareequal(tempvertices[i], vertices[j]);
+            if (!found)
+            {
+                vertices.push_back(tempvertices[i]);
+                vertexindices[i] = vertices.size()-1;
+            } else
+            {
+                vertexindices[i] = j-1;
+            }
+        }
+
+        delete pos;
+
+        int dim = vertices.size();
+        auto g = new graphtype(dim);
+        memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
+        for (int i = 0; i < vertexindices.size(); ++i)
+            for (int j = i+1; j < vertexindices.size(); ++j) {
+                if (tempedges[i] == j || tempedges[j] == i)
+                {
+                    g->adjacencymatrix[vertexindices[i]*dim + vertexindices[j]] = true;
+                    g->adjacencymatrix[vertexindices[j]*dim + vertexindices[i]] = true;
+                }
+            }
+        vout.v.nsv = new neighbors(g);
         break;
     }
 }
@@ -2665,7 +2716,6 @@ inline void mtconvertstringto( std::string* vin, valms& vout )
         }
     case mtgraph:
         {
-            vout.v.nsv = new neighborstype(new graphtype(vin->size()));
             std::vector<std::string> temp {};
             temp.push_back(*vin);
             auto g = igraphstyle(temp);
@@ -2898,7 +2948,6 @@ inline void mtconverttograph( const valms& vin, neighborstype*& vout )
         }
     case mtstring:
         {
-            vout = new neighborstype(new graphtype(vin.v.rv->size()));
             std::vector<std::string> temp {};
             temp.push_back(*vin.v.rv);
             auto g = igraphstyle(temp);

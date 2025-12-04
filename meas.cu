@@ -318,7 +318,8 @@ public:
         auto ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
     }
-    indntally( mrecords* recin ) : tally( recin, "indnt", "ind_n embeddings tally" )
+    indntally( mrecords* recin ) : tally( recin, "indnt", "alpha, the tally of independent_n embeddings, " )
+
     {
         valms p1 {};
         p1.t = mtdiscrete;
@@ -329,12 +330,12 @@ public:
 };
 
 
-class embedscrit : public crit {
+class legacyembedscrit : public crit {
 public:
     graphtype* flagg;
     neighbors* flagns;
     FP* fp;
-    embedscrit( mrecords* recin , neighbors* flagnsin,FP* fpin)
+    legacyembedscrit( mrecords* recin , neighbors* flagnsin,FP* fpin)
         : crit(recin , "embedsc","embeds type criterion"),
         flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     bool takemeas( neighborstype* ns, const params& ps ) override {
@@ -343,7 +344,7 @@ public:
     bool takemeas( const int idx ) override {
         return negated != (embedsquick(flagns, fp, (*this->rec->nsptrs)[idx], 1));
     }
-    ~embedscrit()
+    ~legacyembedscrit()
     {
         freefps(fp,flagg->dim);
         delete fp;
@@ -352,6 +353,52 @@ public:
         flagg = nullptr;
         flagns = nullptr;
         fp = nullptr;
+    }
+};
+
+class embedscrit : public crit {
+public:
+    graphtype* flagg;
+    neighbors* flagns;
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        flagns = ps[0].v.nsv;
+        flagg = flagns->g;
+
+        int dim = flagns->g->dim;
+        FP* fp = (FP*)malloc(dim*sizeof(FP));
+        for (int j = 0; j < dim; ++j) {
+            fp[j].v=j;
+            fp[j].ns = nullptr;
+            fp[j].nscnt = dim;
+            fp[j].parent = nullptr;
+            fp[j].invert = flagns->degrees[j] >= int((dim+1)/2);
+        }
+
+        takefingerprint(flagns,fp,flagns->g->dim);
+        auto r = negated != (embedsquick(flagns, fp, ns, 1));
+        freefps(fp,dim);
+        return r;
+    }
+    bool takemeas( const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    embedscrit( mrecords* recin ) : crit( recin, "embedsc", "embeds the given graph, " )
+
+    {
+        valms p1 {};
+        p1.t = mtgraph;
+        nps.push_back(std::pair{"H",p1});
+        bindnamedparams();
+    }
+
+
+    ~embedscrit()
+    {
+        delete flagg;
+        delete flagns;
+        flagg = nullptr;
+        flagns = nullptr;
     }
 };
 
@@ -2936,5 +2983,33 @@ public:
     {
         neighborstype* ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
+    }
+};
+
+
+class Choiceset : public set
+{
+public:
+    Choiceset( mrecords* recin ) : set( recin, "Choices", "All choice-functions (maps: n -> BIGCUP P, each a map into a tuple of n tuples")
+    {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"tuple of tuples",v});
+        bindnamedparams();
+    }
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        //        if (ps.size() != 0)
+        //        {
+        //            std::cout << "Wrong number of parameters to Chip\n";
+        //        }
+
+        auto itr = new setitrchoicefunctions(ps[0].seti);
+        return itr;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        auto itr = new setitrchoicefunctions(ps[0].seti);
+        return itr;
     }
 };
