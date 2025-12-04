@@ -1,0 +1,53 @@
+/* Some graphs to test for planarity */
+
+/* #name=butterflygraph */
+
+abc cde END END
+
+/* #name=K_4 */
+
+abcd END END
+
+/* #name=Utilitygraph */
+
+abc=def END END
+
+
+/* #name=K_5 */
+
+abcde END END
+
+/* #name=Examplegraph1 */
+
+ae af ag
+bc bf
+ce cg
+de df dg END END
+
+/* #name=Petersengraph */
+
+-abcdea
+-fhjgif
+af bg ch di ej END END
+
+/* #name=Dodecahedron */
+
+-abcdea
+-afghb -bhijc -cjkld -dlmne -enofa
+-pqrstp
+op gq ir ks mt
+END END
+
+/* #name=Goldner-Harary */
+abcd -gkj -hki befc
+-dkf -bkc -gdi -hej
+-gbh -icj
+END END
+
+/* #name=Goldner-Harary again */
+
+ahe ahg hec hdg hcf hdf cef 
+dfg feh fhj gfi fij
+ehj gij ejk gjk eg
+
+END END

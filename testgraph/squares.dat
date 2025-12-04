@@ -1,0 +1,4 @@
+ab bc cd da END END
+ac=bd END END
+abcd !ab !cd END END
+-abcda END END
