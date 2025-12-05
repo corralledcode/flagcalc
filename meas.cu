@@ -1689,6 +1689,31 @@ public:
     }
 };
 
+class aset : public set {
+public:
+    aset( mrecords* recin ) : set( recin, "as", "set of vertices adjacent to given vertex")
+    {
+        valms p1 {};
+        p1.t = mtdiscrete;
+        nps.push_back(std::pair{"v",p1});
+        bindnamedparams();
+    }
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        vertextype v;
+        v = ps[0].v.iv;
+        auto res = new setitrint(g->dim-1, &g->adjacencymatrix[v*g->dim]); // recall need to refactor setitrint using < max instead of <= max
+        return res;
+    }
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+
 class eadjcrit : public crit {
 public:
     eadjcrit( mrecords* recin ) : crit( recin, "eadjc", "edges adjacent")
@@ -1726,8 +1751,120 @@ public:
     {
         return takemeas(nullptr,ps);
     }
-
 };
+
+class eadjset : public set {
+public:
+    eadjset( mrecords* recin ) : set( recin, "eadjs", "set of edges adjacent to given vertex")
+    {
+        valms p1 {};
+        p1.t = mtdiscrete;
+        nps.push_back(std::pair{"v",p1});
+        bindnamedparams();
+    }
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        vertextype v;
+        v = ps[0].v.iv;
+
+        std::vector<valms> res {};
+        for (int i = 0; i < v; i++)
+            if (g->adjacencymatrix[v*g->dim + i])
+            {
+                valms r;
+                r.t = mtset;
+                r.seti = new setitrintpair( i, v);
+                res.push_back(r);
+            }
+        for (int i = v+1; i < g->dim; i++)
+            if (g->adjacencymatrix[v*g->dim + i])
+            {
+                valms r;
+                r.t = mtset;
+                r.seti = new setitrintpair( v, i);
+                res.push_back(r);
+            }
+
+        return new setitrmodeone(res);
+    }
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class e2eadjset : public set {
+public:
+    e2eadjset( mrecords* recin ) : set( recin, "e2eadjs", "set of edges adjacent to given edge")
+    {
+        valms p1 {};
+        p1.t = mtset;
+        nps.push_back(std::pair{"e",p1});
+        bindnamedparams();
+    }
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        itrpos* e;
+        e = ps[0].seti->getitrpos();
+        auto e1 = e->getnext();
+        auto e2 = e->getnext();
+        auto v1 = e1.v.iv;
+        auto v2 = e2.v.iv;
+
+        std::vector<valms> res {};
+
+        int v = -1;
+        int u;
+        while (true)
+        {
+            if (v == -1)
+            {
+                v = v1;
+                u = v2;
+            }
+            else if (v == v1)
+            {
+                v = v2;
+                u = v1;
+            } else break;
+            for (int i = 0; i < v; i++)
+            {
+                if (i == u)
+                    continue;
+                if (g->adjacencymatrix[v*g->dim + i])
+                {
+                    valms r;
+                    r.t = mtset;
+                    r.seti = new setitrintpair( i, v);
+                    res.push_back(r);
+                }
+            }
+            for (int i = v+1; i < g->dim; i++)
+            {
+                if (i == u)
+                    continue;
+                if (g->adjacencymatrix[v*g->dim + i])
+                {
+                    valms r;
+                    r.t = mtset;
+                    r.seti = new setitrintpair( v, i);
+                    res.push_back(r);
+                }
+            }
+        }
+
+        return new setitrmodeone(res);
+    }
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
 
 class sizetally : public tally {
 public:
@@ -2717,6 +2854,40 @@ public:
     }
 };
 
+
+class connvusingsetcrit : public crit
+{
+public:
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+        itrpos* vsitr = ps[2].seti->getitrpos();
+        std::vector<vertextype> vs {};
+        vs.push_back(ps[0].v.iv);
+        vs.push_back(ps[1].v.iv);
+        while (!vsitr->ended())
+            vs.push_back(vsitr->getnext().v.iv);
+        auto subns = new neighborstype(findedgesgivenvertexset(ns->g,vs));
+        return pathsbetweenmin( subns->g, subns, ps[0].v.iv, ps[1].v.iv, 1);
+    }
+    bool takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    connvusingsetcrit( mrecords* recin ) : crit( recin, "connvusingsetc", "exists at least one path from a to b entirely contained in set of vertices")
+    {
+        valms v;
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        v.t = mtset;
+        nps.push_back(std::pair{"vertices",v});
+        bindnamedparams();
+    }
+};
+
+
+
 class connvscrit : public crit
 {
 public:
@@ -2986,11 +3157,10 @@ public:
     }
 };
 
-
 class Choiceset : public set
 {
 public:
-    Choiceset( mrecords* recin ) : set( recin, "Choices", "All choice-functions (maps: n -> BIGCUP P, each a map into a tuple of n tuples")
+    Choiceset( mrecords* recin ) : set( recin, "Choices", "All choice-functions, and empty if any tuple is empty")
     {
         valms v;
         v.t = mtset;
@@ -2999,17 +3169,35 @@ public:
     }
     setitr* takemeas( neighborstype* ns, const params& ps) override
     {
-        //        if (ps.size() != 0)
-        //        {
-        //            std::cout << "Wrong number of parameters to Chip\n";
-        //        }
-
         auto itr = new setitrchoicefunctions(ps[0].seti);
         return itr;
     }
     setitr* takemeas( const int idx, const params& ps) override
     {
         auto itr = new setitrchoicefunctions(ps[0].seti);
+        return itr;
+    }
+};
+
+
+class Choice2set : public set
+{
+public:
+    Choice2set( mrecords* recin ) : set( recin, "Choice2s", "All choice-functions, using -1 for empty sets")
+    {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"tuple of tuples",v});
+        bindnamedparams();
+    }
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        auto itr = new setitrchoicefunctions2(ps[0].seti);
+        return itr;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        auto itr = new setitrchoicefunctions2(ps[0].seti);
         return itr;
     }
 };

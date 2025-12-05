@@ -1296,25 +1296,10 @@ public:
         std::vector<std::vector<vertextype>> out {};
         pathsbetweentuples(g,ns,v1,v2,out);
 
-        // for (int i = 0; i < out.size(); ++i)
-        // {
-            // std::cout << "{";
-            // for (int j = 0; j < out[i].size(); ++j)
-                // std::cout << out[i][j] << ", ";
-            // std::cout << "}" << std::endl;
-        // }
-
         totality.resize(out.size());
         int j = 0;
         for (auto path : out)
         {
-      //      std::vector<valms> pathvalms;
-      //      pathvalms.resize(path.size());
-      //      for (int i = 0; i < path.size(); ++i)
-      //      {
-      //          pathvalms[i].t = mtdiscrete;
-      //          pathvalms[i].v.iv = path[i];
-      //      }
             totality[j].t = mttuple;
             totality[j++].seti = new setitrtuple<int>(path);
         }
@@ -1447,13 +1432,24 @@ public:
     virtual int lookupidx( const int idxin ) {return idxin;}
     virtual int getmaxint() {std::cout << "using abstract virtual method: error\n"; return 0;}
 };
-class abstractmakeinitialsegment {
+class abstractmakesubsegment
+{
 public:
-    virtual setitr* makeinitialsegment(const int length ) {
+    virtual setitr* makesubsegment(const int start, const int end ) {
         std::cout << "using abstract virtual method: error\n"; return nullptr;};
     virtual int getlength() {std::cout << "using abstract virtual method: error\n"; return 0;}
 };
 
+/*
+class abstractmakeinitialsegment : public abstractmakesubsegment {
+public:
+    setitr* makesubsegment(const int length ) override
+    {
+        return this->makesubsegment(0,length);
+    }
+    virtual int getlength() {std::cout << "using abstract virtual method: error\n"; return 0;}
+};
+*/
 
 class fastmakesubset : public abstractmakesubset {
 public:
@@ -1522,6 +1518,8 @@ public:
     }
     slowmakesubset( setitr* supersetin ) : superset{supersetin} {}
 };
+
+/*
 template<typename T>
 class fastmakeinitialsegment : public abstractmakeinitialsegment {
 public:
@@ -1602,6 +1600,103 @@ public:
     }
     slowmakeinitialsegment( setitr* supertuplein ) : supertuple{supertuplein} {}
 };
+*/
+
+
+
+template<typename T>
+class fastmakesubsegment : public abstractmakesubsegment {
+public:
+    setitrtuple<T>* supertuple;
+    setitr* makesubsegment( const int start, const int stop ) override {
+        int length = stop - start;
+        if (length <= 0)
+            return new setitrtuple<T>(0);
+        T* newelts = new T[length];
+//        if (length > supertuple->length)
+//            std::cout << "Length error in tuple initial segment\n";
+        memcpy(newelts,&supertuple->elts[start],sizeof(T)*length);
+        auto out = new setitrtuple<T>( length, newelts);
+        return out;
+    }
+    int getlength() override
+    {
+        return supertuple->length;
+    }
+    fastmakesubsegment( setitrtuple<T>* supertuplein ) : supertuple{supertuplein} {
+        supertuple->compute();
+    }
+};
+class setitrsubsegment : public setitr
+{
+public:
+    itrpos* superset {};
+    int start, stop;
+    // int cutoff;
+    void setsuperset( itrpos* supersetposin )
+    {
+        superset = supersetposin;
+        reset();
+    }
+    int getsize() override
+    {
+        return stop - start;
+        // return cutoff >= 0 ? cutoff : 0;
+    }
+    valms getnext() override
+    {
+        valms res;
+        if (++pos < totality.size())
+            return totality[pos];
+        res = superset->getnext();
+        totality.resize(pos + 1);
+        if (pos >= 0)
+            totality[pos] = res;
+        return res;
+    }
+    void reset() override
+    {
+        superset->reset();
+        pos = -1;
+        for (int i = 0; i < start; ++i)
+            superset->getnext();
+    }
+    bool ended() override
+    {
+        return pos + 1 >= stop - start;
+        // return pos + 1 >= cutoff;
+    }
+    setitrsubsegment(itrpos* supersetin, const int startin, const int stopin) : superset{supersetin},
+    start{startin}, stop{stopin}
+    {
+        t = superset->parent->t;
+        pos = -1;
+        reset();
+    };
+    setitrsubsegment() : superset{}
+    {
+        t = mtdiscrete;
+        pos = -1;
+    };
+};
+class slowmakesubsegment : public abstractmakesubsegment {
+public:
+    setitr* supertuple;
+    setitr* makesubsegment(const int start, const int stop ) {
+        auto out = new setitrsubsegment( supertuple->getitrpos(), start, stop );
+        return out;
+    }
+    int getlength() override
+    {
+        return supertuple->getsize();
+    }
+    slowmakesubsegment( setitr* supertuplein ) : supertuple{supertuplein} {}
+};
+
+
+
+
+
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
     if (setitrint* cast = dynamic_cast<setitrint*>(superset))
         return new fastmakesubset( cast );
@@ -1611,6 +1706,18 @@ inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
         return new fastmakesssubset( castss );
     return new slowmakesubset( superset );
 }
+
+inline abstractmakesubsegment* getsubsegmentmaker( setitr* superset ) {
+    if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
+        return new fastmakesubsegment<int>( cast );
+    if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
+        return new fastmakesubsegment<bool>( cast );
+    if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
+        return new fastmakesubsegment<double>( cast );
+    return new slowmakesubsegment( superset );
+}
+
+/*
 inline abstractmakeinitialsegment* getinitialsegmentmaker( setitr* superset ) {
     if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
         return new fastmakeinitialsegment<int>( cast );
@@ -1620,6 +1727,7 @@ inline abstractmakeinitialsegment* getinitialsegmentmaker( setitr* superset ) {
         return new fastmakeinitialsegment<double>( cast );
     return new slowmakeinitialsegment( superset );
 }
+*/
 
 class setitrpowerset : public setitr
 {
@@ -1806,6 +1914,94 @@ public:
 
         if (++(currentchoice[index].v.iv) >= respectivesizes[index])
         {
+            currentchoice[index].v.iv = 0;
+            while (++index < numberoftuples && ++(currentchoice[index].v.iv) >= respectivesizes[index])
+            {
+               currentchoice[index].v.iv = 0;
+            }
+        }
+        howmanycomputed = pos+1;
+        return res;
+    }
+
+    setitrchoicefunctions(setitr* setin) : supersetitr{setin}
+    {
+        t = mttuple;
+        numberoftuples = supersetitr->getsize();
+        currentchoice.resize(numberoftuples);
+        respectivesizes.resize(numberoftuples);
+        itrpos* itr = supersetitr->getitrpos();
+        int i = 0;
+        sz = itr->ended() ? 0 : 1;
+        while (!itr->ended() && sz > 0)
+        {
+            auto v = itr->getnext();
+            respectivesizes[i] = v.seti->getsize();
+            sz *= respectivesizes[i];
+            currentchoice[i].t = mtdiscrete;
+            currentchoice[i++].v.iv = 0;
+        }
+        delete itr;
+        reset();
+        // totality.resize(sz);
+        // while (!ended())
+            // getnext();
+    }
+    ~setitrchoicefunctions() {}
+
+};
+
+
+class setitrchoicefunctions2 : public setitr
+{
+protected:
+    int numberoftuples;
+    long long int sz;
+    long long int howmanycomputed = 0;
+    setitr* currentset;
+    std::vector<valms> currentchoice {};
+    std::vector<int> respectivesizes {};
+public:
+    setitr* supersetitr;
+
+    void reset() override
+    {
+        pos = -1;
+    }
+    int getsize() override
+    {
+        return sz;
+    }
+    bool ended()
+    {
+        return pos+1 >= sz;
+    }
+    valms getnext() override
+    {
+        if (++pos < howmanycomputed)
+            return totality[pos];
+
+        valms res;
+
+        if (pos >= sz)
+        {
+            std::cout << "Indexing beyond size in setitrchoicefunction\n";
+            valms w;
+            w.t = mtbool;
+            w.v.bv = false;
+            res = w;
+            return res;
+        }
+
+        currentset = new setitrmodeone(currentchoice);
+        res.seti = currentset;
+        res.t = mttuple;
+        totality.resize(pos+1);
+        totality[pos] = res;
+        int index = 0;
+
+        if (++(currentchoice[index].v.iv) >= respectivesizes[index])
+        {
             currentchoice[index].v.iv = respectivesizes[index] > 0 ? 0 : -1;
             while (++index < numberoftuples && ++(currentchoice[index].v.iv) >= respectivesizes[index])
             {
@@ -1816,7 +2012,7 @@ public:
         return res;
     }
 
-    setitrchoicefunctions(setitr* setin) : supersetitr{setin}
+    setitrchoicefunctions2(setitr* setin) : supersetitr{setin}
     {
         t = mttuple;
         numberoftuples = supersetitr->getsize();
@@ -1837,11 +2033,12 @@ public:
                 currentchoice[i++].v.iv = 0;
         }
         delete itr;
+        reset();
         // totality.resize(sz);
         // while (!ended())
             // getnext();
     }
-    ~setitrchoicefunctions() {}
+    ~setitrchoicefunctions2() {}
 
 };
 
@@ -2316,8 +2513,8 @@ class Stuple : public set
 public:
     setitr* takemeas(const int idx, const params& ps) override
     {
-        auto initialsegmentmaker = getinitialsegmentmaker(ps[0].seti);
-        auto res = initialsegmentmaker->makeinitialsegment(ps[1].v.iv);
+        auto initialsegmentmaker = getsubsegmentmaker(ps[0].seti);
+        auto res = initialsegmentmaker->makesubsegment(0,ps[1].v.iv);
         delete initialsegmentmaker;
         return res;
     }
@@ -2326,6 +2523,33 @@ public:
         valms v;
         v.t = mttuple;
         nps.push_back(std::pair{"tuple",v});
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"n",v});
+        bindnamedparams();
+    }
+
+};
+
+class Subtuple : public set
+{
+public:
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        auto s = ps[0].seti;
+        auto start = ps[1].v.iv;
+        auto stop = ps[2].v.iv;
+        auto subsegmentmaker = getsubsegmentmaker(s);
+        auto res = subsegmentmaker->makesubsegment(start, stop);
+        delete subsegmentmaker;
+        return res;
+    }
+    Subtuple( mrecords* recin ) : set(recin,"Subp", "Tuple subsequence")
+    {
+        valms v;
+        v.t = mttuple;
+        nps.push_back(std::pair{"tuple",v});
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"m",v});
         v.t = mtdiscrete;
         nps.push_back(std::pair{"n",v});
         bindnamedparams();
@@ -3021,17 +3245,6 @@ public:
 
     setitr* takemeas(neighborstype* ns, const params& ps) override
     {
-/*        if (ps.size() != 2)
-        {
-            std::cout << "Incorrect number of parameters to Pathsset\n";
-            exit(1);
-        }
-        if (ps[0].t != mtdiscrete || ps[1].t != mtdiscrete)
-        {
-            std::cout << "Incorrect parameter types passed to Pathsset\n";
-            exit(1);
-        }
-*/
         auto g = ns->g;
         auto res = new setitrpaths(g,ns,ps[0].v.iv,ps[1].v.iv);
         return res;
@@ -3040,17 +3253,6 @@ public:
 
     setitr* takemeas(const int idx, const params& ps) override
     {
-/*        if (ps.size() != 2)
-        {
-            std::cout << "Incorrect number of parameters to Pathsset\n";
-            exit(1);
-        }
-        if (ps[0].t != mtdiscrete || ps[1].t != mtdiscrete)
-        {
-            std::cout << "Incorrect parameter types passed to Pathsset\n";
-            exit(1);
-        }
-*/
         neighborstype* ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
     }
@@ -3063,8 +3265,95 @@ public:
         nps.push_back(std::pair{"v2",v});
         bindnamedparams();
     }
-
 };
+
+class Pathsusingvsetset : public set
+{
+public:
+
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        itrpos* vsitr = ps[2].seti->getitrpos();
+        std::vector<vertextype> vs {};
+        vs.push_back(ps[0].v.iv);
+        vs.push_back(ps[1].v.iv);
+        while (!vsitr->ended())
+            vs.push_back(vsitr->getnext().v.iv);
+        auto subns = new neighborstype(findedgesgivenvertexset(ns->g,vs));
+
+        auto res = new setitrpaths(subns->g,subns,ps[0].v.iv,ps[1].v.iv);
+        return res;
+    }
+
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Pathsusingvsetset( mrecords* recin ) : set(recin,"Pathsusingvsets", "Paths between two vertices using only vertices in set")
+    {
+        valms v {};
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        v.t = mtset;
+        nps.push_back(std::pair{"vs",v});
+        bindnamedparams();
+    }
+};
+
+
+class Epathsset : public set
+{
+public:
+
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        auto g = ns->g;
+        std::vector<std::vector<vertextype>> vpath {};
+        pathsbetweentuples(g,ns,ps[0].v.iv,ps[1].v.iv, vpath);
+        std::vector<valms> res {};
+        for (auto path : vpath)
+        {
+            std::vector<valms> epath {};
+            for (int i = 0; i < path.size()-1; ++i)
+            {
+                valms v;
+                v.t = mtset;
+                if (path[i] <path[i+1])
+                    v.seti = new setitrintpair( path[i], path[i+1]);
+                else
+                    v.seti = new setitrintpair( path[i+1], path[i]);
+                epath.push_back(v);
+            }
+            valms u;
+            u.t = mtset;
+            u.seti = new setitrmodeone(epath);
+            res.push_back(u);
+        }
+
+        return new setitrmodeone(res);
+    }
+
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Epathsset( mrecords* recin ) : set(recin,"Epathss", "Edge paths between two vertices")
+    {
+        valms v {};
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        bindnamedparams();
+    }
+};
+
 
 class Cyclesvset : public set
 {

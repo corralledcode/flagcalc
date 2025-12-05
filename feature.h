@@ -1722,6 +1722,7 @@ public:
         auto (nwisec) = critfactory<nwisecrit>;
         auto (toBoolc) = critfactory<toBoolcrit>;
         auto (embedsc) = critfactory<embedscrit>;
+        auto (connvusingsetc) = critfactory<connvusingsetcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1748,6 +1749,7 @@ public:
         crsfactory.push_back(nwisec);
         crsfactory.push_back(toBoolc);
         crsfactory.push_back(embedsc);
+        crsfactory.push_back(connvusingsetc);
 
         // ...
 
@@ -1858,6 +1860,7 @@ public:
         auto (idxs) = setfactory<idxset>;
         auto (TtoS) = setfactory<TupletoSet>;
         auto (Paths) = setfactory<Pathsset>;
+        auto (Pathsusingvsets) = setfactory<Pathsusingvsetset>;
         auto (Cyclesvs) = setfactory<Cyclesvset>;
         auto (Setpartitions) = setfactory<Setpartition>;
         auto (nEs) = setfactory<nEset>;
@@ -1871,6 +1874,12 @@ public:
         auto (Conncs) = setfactory<Connc>;
         auto (Ns) = setfactory<Nset>;
         auto (Choices) = setfactory<Choiceset>;
+        auto (Choice2s) = setfactory<Choice2set>;
+        auto (as) = setfactory<aset>;
+        auto (eadjs) = setfactory<eadjset>;
+        auto (e2eadjs) = setfactory<e2eadjset>;
+        auto (Epathss) = setfactory<Epathsset>;
+
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1894,6 +1903,12 @@ public:
         stsfactory.push_back(Conncs);
         stsfactory.push_back(Ns);
         stsfactory.push_back(Choices);
+        stsfactory.push_back(Choice2s);
+        stsfactory.push_back(as);
+        stsfactory.push_back(eadjs);
+        stsfactory.push_back(e2eadjs);
+        stsfactory.push_back(Epathss);
+        stsfactory.push_back(Pathsusingvsets);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -1909,6 +1924,7 @@ public:
         auto (Connvp) = tuplefactory<Connvtuple>;
         auto (CUDAConnvp) = tuplefactory<CUDAConnvtuple>;
         auto (Connmatrixp) = tuplefactory<Connmatrix>;
+        auto (Subp) = tuplefactory<Subtuple>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
@@ -1918,6 +1934,7 @@ public:
         ossfactory.push_back(Connvp);
         ossfactory.push_back(CUDAConnvp);
         ossfactory.push_back(Connmatrixp);
+        ossfactory.push_back(Subp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));

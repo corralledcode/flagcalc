@@ -2373,6 +2373,21 @@ void copygraph( graphtype* g1, graphtype* g2 ) {
         g2->adjacencymatrix[i] = g1->adjacencymatrix[i];
 }
 
+graphtype* findedgesgivenvertexset( graphtype* g, std::vector<vertextype> vs)
+{
+    auto subg = new graphtype(g->dim);
+    memset(subg->adjacencymatrix,false,subg->dim*subg->dim*sizeof(bool));
+    for (int i = 0; i < vs.size(); i++ )
+        for (int j = i+1; j < vs.size(); ++j)
+        {
+            auto b = g->adjacencymatrix[vs[i]*subg->dim+vs[j]];
+            subg->adjacencymatrix[vs[i]*subg->dim+vs[j]] = b;
+            subg->adjacencymatrix[vs[j]*subg->dim+vs[i]] = b;
+        }
+    return subg;
+}
+
+
 int pathsbetweencount( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
     if (v1 == v2)
         return 1;
