@@ -22,20 +22,19 @@ PTH='../cmake-build-debug'
 
 
 
-# working K_3,3, fast
+# working K_3,3
 
 $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft), NAMING (lcupr AS (vleft CUPD vright), NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathss(v1,v2), st(p CAP lcupr) == 2,p)), \
 EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0))))))) " \
 all -v crit allcrit i=minimal3.cfg
 
-# working K_5, fast
+# working K_5
 
 $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,5), NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathss(v1,v2), st(p CAP v) == 2, p)), EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], \
 NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0)))) " \
 all -v crit allcrit i=minimal3.cfg
 
-
-# together working, fast
+# ...together working
 
 $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft), NAMING (lcupr AS (vleft CUPD vright), NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathss(v1,v2), st(p CAP lcupr) == 2,p)), \
 EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0))))))) \
@@ -44,7 +43,7 @@ FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]
 all -v crit allcrit i=minimal3.cfg
 
 
-# rewrite of "working, fast" using new Subp measure (tuple subsegment) and using nwisec: 50% speedup ballpark
+# rewrite of "working" using new Subp measure (tuple subsegment) and using nwisec: 50% speedup ballpark
 
 $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,5), NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathss(v1,v2), internal AS Subp(p,1,st(p)-1), NOT internal MEET v, internal)), \
 EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), (paths[i])[ch[i]]), \"DISJOINT\", 2, 1))))" \
@@ -54,7 +53,6 @@ $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,6), EXISTS
 NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathss(v1,v2), internal AS Subp(p,1,st(p)-1), NOT internal MEET v, internal)), \
 EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), (paths[i])[ch[i]]), \"DISJOINT\", 2, 1))))))" \
 all -v crit allcrit i=minimal3.cfg
-
 
 # ... using Pathsusingvertexsets
 
@@ -71,7 +69,7 @@ all -v crit allcrit i=minimal3.cfg
 
 # the above two now combined
 
-$PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,5), \
+$PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a s="EXISTS (v IN Sizedsubset(V,5), \
 NAMING (Vminusv AS V SETMINUS v, NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathsusingvsets(v1,v2, Vminusv), Subp(p,1,st(p)-1))), \
 EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), (paths[i])[ch[i]]), \"DISJOINT\", 2, 1))))) \
 OR EXISTS (v IN Sizedsubset(V,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft), \
@@ -79,6 +77,4 @@ NAMING (Vminusv AS V SETMINUS v, \
 NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathsusingvsets(v1,v2, Vminusv), Subp(p,1,st(p)-1))), \
 EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), (paths[i])[ch[i]]), \"DISJOINT\", 2, 1)))))))" \
 all -v crit allcrit i=minimal3.cfg
-
-
 
