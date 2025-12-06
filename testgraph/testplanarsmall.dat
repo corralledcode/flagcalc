@@ -39,20 +39,24 @@ abcdef !abc !de END END
 
 abcdef !dc !be END END
 
+/* #name=6graph132 */
 
-/* More non-planar... */
+acdef db END END
 
-/* #name=16cell */
+/* #name=51lollipopgraph */
 
-a+bcefgh 
-b+defgh
-c+defgh
-d+efgh
--efghe  END END
+abcde ef END END
 
-/* #name=Franklingraph */
+/* #name=6graph138 */
 
--abcdefghijkla
-ad bg cj eh fk il END END
+acdef ebf END END
+
+/* #name=6graph148 */
+
+acdef def END END
+
+/* #name=6graph149 */
+
+acef adf bce bd END END
 
 

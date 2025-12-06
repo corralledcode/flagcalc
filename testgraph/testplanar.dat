@@ -51,3 +51,20 @@ dfg feh fhj gfi fij
 ehj gij ejk gjk eg
 
 END END
+
+/* More non-planar... */
+
+/* #name=16cell */
+
+a+bcefgh 
+b+defgh
+c+defgh
+d+efgh
+-efghe  END END
+
+/* #name=Franklingraph */
+
+-abcdefghijkla
+ad bg cj eh fk il END END
+
+
