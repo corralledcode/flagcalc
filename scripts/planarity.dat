@@ -47,7 +47,7 @@ END
 
 mtbool vsetcriticalnonplanar( mtset vs )
 
-FORALL (v IN vs, vsetplanar (SETD (u IN vs, u != v, u))) AND NOT vsetplanar ( vs )
+FORALL (v IN vs, vsetplanar (vs SETMINUS {v})) AND NOT vsetplanar ( vs )
 
 END
 
@@ -61,7 +61,7 @@ END
 
 mtbool vsetapexgraph( mtset vs )
 
-EXISTS (v IN vs, vsetplanar(SETD (u IN vs, u != v, u))) AND NOT vsetplanar( vs )
+EXISTS (v IN vs, vsetplanar(vs SETMINUS {v})) AND NOT vsetplanar( vs )
 
 END
 

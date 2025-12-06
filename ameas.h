@@ -1462,6 +1462,7 @@ public:
         return superset->totality[idxin].v.iv;
     }
     int getmaxint() override {
+        // return superset->getsize() - 1;
         return superset->maxint;
     }
     fastmakesubset( setitrint* supersetin ) : superset{supersetin} {
@@ -1480,6 +1481,7 @@ public:
         return superset->itrint->totality[idxin].v.iv;
     }
     int getmaxint() override {
+        // return superset->getsize() - 1;
         return superset->itrint->maxint;
     }
     fastmake2dsubset( setitrint2d* supersetin ) : superset{supersetin} {
@@ -1492,13 +1494,14 @@ public:
     setitrsubset* superset;
     setitr* makesubset( const int maxint, bool* elts ) {
         auto itrint = new setitrint( maxint, elts);
-        auto out = new setitrsubset( superset->getitrpos(), itrint );
+        auto out = new setitrsubset( superset->superset->parent->getitrpos(), itrint );
         return out;
     }
     int lookupidx( const int idxin )  override {
         return superset->itrint->totality[idxin].v.iv;
     }
     int getmaxint() override {
+        // return superset->getsize() - 1;
         return superset->itrint->maxint;
     }
     fastmakesssubset( setitrsubset* supersetin ) : superset{supersetin} {
@@ -1692,10 +1695,6 @@ public:
     }
     slowmakesubsegment( setitr* supertuplein ) : supertuple{supertuplein} {}
 };
-
-
-
-
 
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
     if (setitrint* cast = dynamic_cast<setitrint*>(superset))
@@ -2147,6 +2146,9 @@ public:
 //            subset->itrint->elts[posAprimes[i]] = true;
         // r.setsize = size;
         r.seti = subsetmaker->makesubset(maxint, elts);
+
+        // if (maxint+1 > setA->getsize())
+            // std::cout << "ALERT maxint discrepancy, setA->getsize() == " << setA->getsize() << "\n";
         totality.resize(pos+1);
         totality[pos] = r;
         // std::cout << "pos " << pos << ": ";
@@ -2160,6 +2162,8 @@ public:
     {
         if (Ain)
             maxint = subsetmaker->getmaxint();
+        // if (maxint+1 > setA->getsize())
+            // std::cout << "ALERT2 maxint discrepancy, setA->getsize() == " << setA->getsize() << "\n";
         t = mtset;
         if (Ain == this)
             std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";

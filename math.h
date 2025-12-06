@@ -655,21 +655,6 @@ class setitrsetminus : public setitrmodeone
             while (!found && !Bitr->ended()) {
                 valms omitv = Bitr->getnext();
                 found = found || mtareequal(v,omitv);
-                /*
-                if (v.t == omitv.t)
-                    switch (v.t) {
-                        case mtbool:
-                        case mtdiscrete:
-                        case mtcontinuous:
-                        found = found || v == omitv;
-                        break;
-                        case mtset: {
-                        case mttuple:
-                            found = mtareequal(v, omitv);
-                            break;}
-                        default:
-                            std::cout << "Unsupported type " << v.t << " in setitrunion\n";
-                    }*/
             }
             if (!found)
                 temp.push_back(v);
@@ -803,7 +788,10 @@ class setitrint : public setitrmodeone
             elts = (bool*)malloc((maxint+1)*sizeof(bool));
             memset(elts, true, (maxint+1)*sizeof(bool));
         } else
+        {
             elts = nullptr;
+            maxint = -1;
+        }
         computed = false;
         // totality.clear();
         reset();
@@ -1143,15 +1131,18 @@ public:
     {
         t = superset->parent->t;
         pos = -1;
+        reset();
     };
     setitrsubset(itrpos* supersetin, setitrint* itrintin) : superset{supersetin}, itrint{itrintin} {
         t = superset->parent->t;
         pos = -1;
+        reset();
     }
     setitrsubset() : superset{}, itrint{new setitrint(-1)}
     {
         t = mtdiscrete;
         pos = -1;
+        reset();
     };
     ~setitrsubset() {
         delete itrint;

@@ -7,3 +7,28 @@ BIGCUPD (v IN Ps(vs), BIGCUPD (vleft IN Ps(v), V SETMINUS vleft))
 
 END
 
+mtset bug1r2
+
+BIGCUPD (v IN Sizedsubset(V CUPD {3},1), BIGCUPD (vleft IN Sizedsubset(v,1), V SETMINUS vleft))
+
+END
+
+mtset testbug1fix
+
+BIGCUP (s IN Ps(V), BIGCUP (t IN Ps(V SETMINUS s), t))
+
+END
+
+mtset test2bug1fix
+
+SETD (s IN Ps(V), SETD (t IN Ps(s), t))
+
+END
+
+
+mtdiscrete bug2
+
+BIGCUPD (es IN Ps(E), es)
+
+END
+

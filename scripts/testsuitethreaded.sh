@@ -15,8 +15,9 @@ $PTH/flagcalc -d f="ab cde" -a e="NAMING (p AS THREADED PARTITION (u, v IN V, co
 $PTH/flagcalc -d f="ab -cde" -a gm="NAMING (p AS THREADED PARTITION (u, v IN V, connvc(u,v)), BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})))" all -v measg i=minimal3.cfg
 
 # two out of three:
-$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS THREADED PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
+
+$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS THREADED PARTITION (u, v IN V, connvc(u,v)), NAMING (c AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN c, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (c AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN c, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" -a s="NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS THREADED BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
 
 # two out of four:
@@ -27,8 +28,8 @@ $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="abcd=efghi" -a isp
 
 # four out of four
 # 7 seconds versus 1.5 seconds based on placement of THREADED
-$PTH/flagcalc -d f="ab cde" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
-$PTH/flagcalc  -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="defg=hijk" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (b AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN b, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="ab cde" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (c AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN c, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="defg=hijk" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (c AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN c, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
 
 
 $PTH/flagcalc -d f="abcd efg hi" -a s="THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN E, {r[g[0]],r[g[1]]})  == E)" all -v i=minimal3.cfg
