@@ -149,3 +149,4 @@ COUNT (d IN NN(n+1), d > 0, ntrelprime( n,d ))
 END
 
 #include "../scripts/recursion.dat"
+#include "../scripts/planarity.dat"

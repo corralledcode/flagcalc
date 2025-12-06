@@ -1,0 +1,9 @@
+
+/* bug when invoked as in: -d f="a b c d e f g" -a isp="../scripts/bugs.dat" e="bug1(V SETMINUS {7})" all -v crt allcrit allsets i=minimal3.cfg */
+
+mtset bug1( mtset vs )
+
+BIGCUPD (v IN Ps(vs), BIGCUPD (vleft IN Ps(v), V SETMINUS vleft))
+
+END
+
