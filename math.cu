@@ -2787,6 +2787,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         auto abstractpluralsetops = getsetitrpluralops(composite);
                         res.seti = abstractpluralsetops->setops(fc.fo);
+
                         if (!res.seti)
                             res.seti = new setitrint(-1);
                         break;
@@ -5140,6 +5141,7 @@ inline formulaclass* parseformulainternal(
             fv.ss.elts.resize(argcount);
             for (int i = 0; i < argcount; ++i)
                 fv.ss.elts[argcount - i - 1] = parseformulainternal(q,pos,litnumps,littypes,litnames, ps,  fnptrs);
+
 
             return fccombine(fv,nullptr,nullptr,formulaoperator::foconstant);
 

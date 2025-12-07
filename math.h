@@ -1066,12 +1066,14 @@ class setitrsubset : public setitr {
 public:
     setitrint* itrint;
     itrpos* superset {};
-    void setsuperset( itrpos* supersetposin )
+
+    /* void setsuperset( itrpos* supersetposin )
     {
         superset = supersetposin;
         itrint->setmaxint(superset->getsize() - 1);
         reset();
-    }
+    } */
+
 
     int getsize() override
     {
@@ -1306,7 +1308,7 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
             maxintout = maxintA <= maxintB ? maxintA : maxintB;
             break;
         case formulaoperator::fosetminus:
-            maxintout = maxintB <= maxintA ? maxintB : maxintA;
+            maxintout = maxintA; // maxintB <= maxintA ? maxintB : maxintA;
             break;
         default:
             std::cout << "Cannot call fastsetops with non-set operator\n";
@@ -1512,12 +1514,14 @@ public:
 class setitrfastop : public setitrabstractops
 {
 public:
+    setitr* superset;
     setitrint* cast;
     virtual bool iselt( valms v )
     {
         return v.t == mtdiscrete && cast->elts[v.v.iv];
     }
-    setitrfastop( setitrint* castin ) : cast(castin) {};
+    setitrfastop( setitrint* castin, setitr* supersetin ) : cast(castin), superset(supersetin) {};
+    setitrfastop( setitrint* castin ) : cast(castin), superset(nullptr) {};
 };
 class setitrfast2dsymmetricop : public setitrabstractops
 {
@@ -1560,6 +1564,7 @@ public:
 class setitrfastpluralops : public setitrabstractops {
 public:
     std::vector<setitrint*> casts;
+    setitr* superset;
 
     setitr* setops( const formulaoperator fo )  override {
         int maxint = -1;
@@ -1606,14 +1611,19 @@ public:
         if (casts.size() < 1) {
             // std::cout << "Less than one set passed to plural ops\n";
         }
-        return out;
+        setitr* res;
+        if (superset != nullptr)
+            res = new setitrsubset(superset->getitrpos(),out);
+        else
+            res = out;
+        return res;
     }
     int setopunioncount( const int cutoff, const formulaoperator fo ) override {
         if (fo != formulaoperator::founion) {
             std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (iv)\n";
             return 0;
         }
-        int maxsz;
+        int maxsz = 0;
         if (casts.size() > 0)
             maxsz = casts[0]->maxint +1;
         for (int i = 1; i < casts.size(); ++i)
@@ -1623,7 +1633,7 @@ public:
         memset( elts, false, sizeof(bool) * maxsz );
         for (int j = 0; j < casts.size(); ++j) {
             for (int i = 0; i <= casts[j]->maxint; ++i) {
-                elts[i] = elts[i] || (casts[j]->elts[i]);
+                elts[i] = elts[i] || casts[j]->elts[i];
             }
         }
         int cnt = 0;
@@ -1678,12 +1688,14 @@ public:
         else
             return setopintersectioncount(1, formulaoperator::fointersection ) < 1 ? true : false;
     }
-    setitrfastpluralops( std::vector<setitrint*> castsin ) : casts{castsin} {}
+    setitrfastpluralops( std::vector<setitrint*> castsin, setitr* supersetin ) : casts{castsin}, superset{supersetin} {}
+    setitrfastpluralops( std::vector<setitrint*> castsin ) : casts{castsin}, superset{nullptr} {}
 };
 class setitrfastpluralssops : public setitrabstractops {
 public:
     std::vector<setitrsubset*> castsss;
     setitrfastpluralops* fastpluralops {};
+    setitr* superset;
 
     bool boolsetops( const formulaoperator fo )  override {
         return fastpluralops->boolsetops( fo );
@@ -1698,11 +1710,14 @@ public:
         return fastpluralops->setops( fo );
     }
 
-    setitrfastpluralssops( std::vector<setitrsubset*>& castsss ) : castsss{castsss} {
+    setitrfastpluralssops( std::vector<setitrsubset*>& castsssin, setitr* supersetin ) : castsss{castsssin}, superset{supersetin} {
         std::vector<setitrint*> casts {};
         for (auto s : castsss)
             casts.push_back(s->itrint);
-        fastpluralops = new setitrfastpluralops(casts);
+        fastpluralops = new setitrfastpluralops(casts,supersetin);
+    }
+    setitrfastpluralssops( std::vector<setitrsubset*>& castsssin ) : castsss{castsssin}, superset{nullptr} {
+        setitrfastpluralssops(castsss,superset);
     }
     ~setitrfastpluralssops() {
         delete fastpluralops;
@@ -2088,6 +2103,8 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
         return new setitrfastpluralops( casts );
     all = true;
     i = 0;
+
+    /*
     std::vector<setitrsubset*> castsss {};
     while (all && i < sets.size()) {
         if (setitrsubset* castss = dynamic_cast<setitrsubset*>(sets[i]))
@@ -2100,13 +2117,15 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
         bool sameparent = true;
         for (int i = 0; i+1 < castsss.size() && sameparent; ++i)
             sameparent = sameparent && (castsss[i]->superset->parent == castsss[i+1]->superset->parent);
-        if (sameparent)
+        if (sameparent && castsss.size() > 0)
+            return new setitrfastpluralssops( castsss, castsss[0]->superset->parent );
+        else
             return new setitrfastpluralssops( castsss );
-    }
+    }*/
     return new setitrslowpluralops( sets );
 }
 inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
-
+/*
     if (setitrtuple<int>* castA = dynamic_cast<setitrtuple<int>*>(setA))
         if (setitrtuple<int>* castB = dynamic_cast<setitrtuple<int>*>(setB))
             return new setitrtuplefastops<int>( castA, castB );
@@ -2116,7 +2135,7 @@ inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
     if (setitrtuple<double>* castA = dynamic_cast<setitrtuple<double>*>(setA))
         if (setitrtuple<double>* castB = dynamic_cast<setitrtuple<double>*>(setB))
             return new setitrtuplefastops<double>( castA, castB );
-
+*/
     /* if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
             return new setitrtuplefastops( castA, castB );
@@ -2803,7 +2822,8 @@ inline void mtconverttoset( const valms& vin, setitr*& vout )
     switch (vin.t)
     {
     case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
-    case mtdiscrete: {vout = new setitrint(vin.v.iv-1); break; // verify works with any negative not just -1
+    case mtdiscrete: {
+            vout = new setitrint(vin.v.iv-1); break; // verify works with any negative not just -1
             }
     case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
     case mtset:

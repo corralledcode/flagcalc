@@ -26,9 +26,28 @@ SETD (s IN Ps(V), SETD (t IN Ps(s), t))
 END
 
 
-mtdiscrete bug2
+mtset bug2
 
-BIGCUPD (es IN Ps(E), es)
+BIGCUP (es IN Ps({0,2,3,5,9,7}), SET (e IN Ps(es), e))
+
+END
+
+
+mtset bug2r2
+
+BIGCUPD (es IN Ps({7,3}), es)
+
+END
+
+mtset bug2r3
+
+BIGCUPD (es IN Ps({7,3,1}), BIGCUPD (e IN Ps(es), e))
+
+END
+
+mtset bug2r4
+
+BIGCUPD (es IN Ps(E), BIGCUPD (e IN Ps(es), e))
 
 END
 

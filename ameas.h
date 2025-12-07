@@ -1455,7 +1455,9 @@ class fastmakesubset : public abstractmakesubset {
 public:
     setitrint* superset;
     setitr* makesubset( const int maxint, bool* elts ) {
-        auto out = new setitrint( maxint, elts);
+        // auto out = new setitrint( maxint, elts);
+        auto itrint = new setitrint( maxint, elts);
+        auto out = new setitrsubset( superset->getitrpos(), itrint );
         return out;
     }
     int lookupidx( const int idxin )  override {
@@ -1495,6 +1497,7 @@ public:
     setitr* makesubset( const int maxint, bool* elts ) {
         auto itrint = new setitrint( maxint, elts);
         auto out = new setitrsubset( superset->superset->parent->getitrpos(), itrint );
+        // return itrint;
         return out;
     }
     int lookupidx( const int idxin )  override {
@@ -1697,22 +1700,22 @@ public:
 };
 
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
-    if (setitrint* cast = dynamic_cast<setitrint*>(superset))
-        return new fastmakesubset( cast );
-    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
-        return new fastmake2dsubset( cast2d );
-    if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
-        return new fastmakesssubset( castss );
+    // if (setitrint* cast = dynamic_cast<setitrint*>(superset))
+        // return new fastmakesubset( cast );
+    // if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
+        // return new fastmake2dsubset( cast2d );
+    // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
+        // return new fastmakesssubset( castss );
     return new slowmakesubset( superset );
 }
 
 inline abstractmakesubsegment* getsubsegmentmaker( setitr* superset ) {
-    if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
-        return new fastmakesubsegment<int>( cast );
-    if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
-        return new fastmakesubsegment<bool>( cast );
-    if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
-        return new fastmakesubsegment<double>( cast );
+    // if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
+        // return new fastmakesubsegment<int>( cast );
+    // if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
+        // return new fastmakesubsegment<bool>( cast );
+    // if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
+        // return new fastmakesubsegment<double>( cast );
     return new slowmakesubsegment( superset );
 }
 
