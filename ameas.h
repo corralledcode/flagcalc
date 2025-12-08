@@ -1525,91 +1525,6 @@ public:
     slowmakesubset( setitr* supersetin ) : superset{supersetin} {}
 };
 
-/*
-template<typename T>
-class fastmakeinitialsegment : public abstractmakeinitialsegment {
-public:
-    setitrtuple<T>* supertuple;
-    setitr* makeinitialsegment( const int length ) override {
-        if (length <= 0)
-            return new setitrtuple<T>(0);
-        T* newelts = new T[length];
-//        if (length > supertuple->length)
-//            std::cout << "Length error in tuple initial segment\n";
-        memcpy(newelts,supertuple->elts,sizeof(T)*length);
-        auto out = new setitrtuple<T>( length, newelts);
-        return out;
-    }
-    int getlength() override
-    {
-        return supertuple->length;
-    }
-    fastmakeinitialsegment( setitrtuple<T>* supertuplein ) : supertuple{supertuplein} {
-        supertuple->compute();
-    }
-};
-class setitrInitialsegment : public setitr
-{
-public:
-    itrpos* superset {};
-    int cutoff;
-    void setsuperset( itrpos* supersetposin )
-    {
-        superset = supersetposin;
-        reset();
-    }
-    int getsize() override
-    {
-        return cutoff >= 0 ? cutoff : 0;
-    }
-    valms getnext() override
-    {
-        valms res;
-        if (++pos < totality.size())
-            return totality[pos];
-        res = superset->getnext();
-        totality.resize(pos + 1);
-        if (pos >= 0)
-            totality[pos] = res;
-        return res;
-    }
-    void reset() override
-    {
-        superset->reset();
-        pos = -1;
-    }
-    bool ended() override
-    {
-        return pos + 1 >= cutoff;
-    }
-    setitrInitialsegment(itrpos* supersetin, const int cutoffin) : superset{supersetin}, cutoff{cutoffin}
-    {
-        t = superset->parent->t;
-        pos = -1;
-    };
-    setitrInitialsegment() : superset{}
-    {
-        t = mtdiscrete;
-        pos = -1;
-    };
-};
-class slowmakeinitialsegment : public abstractmakeinitialsegment {
-public:
-    setitr* supertuple;
-    setitr* makeinitialsegment(const int length ) {
-        auto out = new setitrInitialsegment( supertuple->getitrpos(), length );
-        return out;
-    }
-    int getlength() override
-    {
-        return supertuple->getsize();
-    }
-    slowmakeinitialsegment( setitr* supertuplein ) : supertuple{supertuplein} {}
-};
-*/
-
-
-
 template<typename T>
 class fastmakesubsegment : public abstractmakesubsegment {
 public:
@@ -1700,36 +1615,25 @@ public:
 };
 
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
-    // if (setitrint* cast = dynamic_cast<setitrint*>(superset))
-        // return new fastmakesubset( cast );
-    // if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
-        // return new fastmake2dsubset( cast2d );
-    // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
-        // return new fastmakesssubset( castss );
+/*
+    if (setitrint* cast = dynamic_cast<setitrint*>(superset))
+        return new fastmakesubset( cast );
+    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
+        return new fastmake2dsubset( cast2d );
+    if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
+        return new fastmakesssubset( castss ); */
     return new slowmakesubset( superset );
 }
 
 inline abstractmakesubsegment* getsubsegmentmaker( setitr* superset ) {
-    // if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
-        // return new fastmakesubsegment<int>( cast );
-    // if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
-        // return new fastmakesubsegment<bool>( cast );
-    // if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
-        // return new fastmakesubsegment<double>( cast );
+    if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
+        return new fastmakesubsegment<int>( cast );
+    if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
+        return new fastmakesubsegment<bool>( cast );
+    if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
+        return new fastmakesubsegment<double>( cast );
     return new slowmakesubsegment( superset );
 }
-
-/*
-inline abstractmakeinitialsegment* getinitialsegmentmaker( setitr* superset ) {
-    if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
-        return new fastmakeinitialsegment<int>( cast );
-    if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
-        return new fastmakeinitialsegment<bool>( cast );
-    if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
-        return new fastmakeinitialsegment<double>( cast );
-    return new slowmakeinitialsegment( superset );
-}
-*/
 
 class setitrpowerset : public setitr
 {

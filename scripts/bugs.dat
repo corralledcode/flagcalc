@@ -9,7 +9,7 @@ END
 
 mtset bug1r2
 
-BIGCUPD (v IN Sizedsubset(V CUPD {3},1), BIGCUPD (vleft IN Sizedsubset(v,1), V SETMINUS vleft))
+BIGCUPD (v IN Sizedsubset(V CUP {3},1), BIGCUPD (vleft IN Sizedsubset(v,1), vleft))
 
 END
 
@@ -48,6 +48,48 @@ END
 mtset bug2r4
 
 BIGCUPD (es IN Ps(E), BIGCUPD (e IN Ps(es), e))
+
+END
+
+mtset bug1r3
+
+SETD (v IN Sizedsubset(V CUP {4},1), V SETMINUS v)
+
+END
+
+mtset nonbug
+
+SETD (v IN Sizedsubset(V CUP {5},1), BIGCUPD (u IN v, u))
+
+END
+
+mtset nonbug2
+
+SETD (v IN Sizedsubset(V CUP {5},1), BIGCUPD (u IN v, {u}))
+
+END
+
+mtset nonbug3
+
+SETD (v IN Sizedsubset(V CUP {4},1), MAX (u IN v, u))
+
+END
+
+mtset nonbug4
+
+SETD (v IN Sizedsubset(V CUP {4},1), MAX (u IN v, {u}))
+
+END
+
+mtset bug1r4
+
+SETD (v IN Sizedsubset(V,1), BIGCUPD (u IN v, {u}))
+
+END
+
+mtset bug1r5
+
+SETD (v IN Sizedsubset(V,2), SETD (u IN Sizedsubset(v,1), u))
 
 END
 
