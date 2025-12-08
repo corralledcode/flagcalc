@@ -1,23 +1,23 @@
-/* Tetrahedron */
+/* #name=Tetrahedron */
 
 abcd
 END END
 
 
-/* Octahedron */
+/* #name=Octahedron */
 
 abc def abd bce caf
 END END
 
 
-/* Cube */
+/* #name=Cube */
 
 -abcda -efghe
 ae bf cg dh
 END END
 
 
-/* Dodecahedron */
+/* #name=Dodecahedron */
 
 -abcdea
 -afghb -bhijc -cjkld -dlmne -enofa
@@ -25,7 +25,7 @@ END END
 op gq ir ks mt
 END END
 
-/* Icosahedron */
+/* #name=Icosahedron */
 
 abc
 abd bcf cah

@@ -111,5 +111,42 @@ THREADED EXISTS (s IN Setpartition(V), FORALL (t IN s, u IN V, v IN V, u != v, (
 
 END
 
+mtbool massivecomputation( mtset x, mtset y )
+
+(((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
+((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP y) == (x CAP y)
+
+END
+
+mtdiscrete ntgcd( mtdiscrete m, mtdiscrete n )
+
+MAX (d IN NN(m > n ? n : m), d > 0, mod(m,d) == 0 AND mod(n,d) == 0)
+
+END
+
+mtbool ntrelprime( mtdiscrete m, mtdiscrete n )
+
+FORALL (d IN NN(m > n ? n+1 : m+1), d > 1, mod(m,d) != 0 OR mod(n,d) != 0)
+
+END
+
+mtdiscrete ntphi( mtdiscrete n )
+
+COUNT (d IN NN(n+1), d > 0, ntrelprime( n,d ))
+
+END
 
 #include "../scripts/recursion.dat"
+#include "../scripts/planarity.dat"

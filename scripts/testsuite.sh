@@ -39,7 +39,7 @@ $PTH/flagcalc -r 8 4 100 -a s="EXISTS (y IN Sizedsubset(V,4), EXISTS (v IN V, EX
 $PTH/flagcalc -r 8 10 10 -a s="FORALL (s IN Ps(V), FORALL (t IN Ps(V), (s CUP t) == V IMPLIES FORALL (x IN V, x ELT (s CUP t))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 10 5 -a s="FORALL (s IN Ps(V), FORALL (t IN Ps(V), (s CUP t) != V IMPLIES EXISTS (x IN V, NOT (x ELT (s CUP t)))))" all -v i=minimal3.cfg
 
-
+# runtime 19 seconds on 5/12/2025 on an i9
 
 
 

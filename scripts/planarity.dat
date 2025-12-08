@@ -1,0 +1,75 @@
+mtbool vsetembedsK33subdivision( mtset vs )
+
+EXISTS (v IN Sizedsubset(vs,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft),
+NAMING (Vminusv AS vs SETMINUS v,
+NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathsusingvsets(v1,v2, Vminusv), Subp(p,1,st(p)-1))),
+EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), (paths[i])[ch[i]]), "DISJOINT", 2, 1)))))))
+
+END
+
+
+mtbool vsetembedsK5subdivision( mtset vs )
+
+EXISTS (v IN Sizedsubset(vs,5),
+NAMING (Vminusv AS vs SETMINUS v, NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathsusingvsets(v1,v2, Vminusv), Subp(p,1,st(p)-1))),
+EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), (paths[i])[ch[i]]), "DISJOINT", 2, 1)))))
+
+END
+
+
+mtbool embedsK33subdivision
+
+vsetembedsK33subdivision( V )
+
+END
+
+
+mtbool embedsK5subdivision
+
+vsetembedsK5subdivision( V )
+
+END
+
+
+mtbool vsetplanar( mtset vs )
+
+NOT vsetembedsK33subdivision( vs ) AND NOT vsetembedsK5subdivision( vs )
+
+END
+
+
+mtbool planar
+
+vsetplanar ( V )
+
+END
+
+
+mtbool vsetcriticalnonplanar( mtset vs )
+
+FORALL (v IN vs, vsetplanar (vs SETMINUS {v})) AND NOT vsetplanar ( vs )
+
+END
+
+
+mtbool criticalnonplanar
+
+vsetcriticalnonplanar( V )
+
+END
+
+
+mtbool vsetapexgraph( mtset vs )
+
+EXISTS (v IN vs, vsetplanar(vs SETMINUS {v})) AND NOT vsetplanar( vs )
+
+END
+
+
+mtbool apexgraph
+
+vsetapexgraph( V )
+
+END
+
+

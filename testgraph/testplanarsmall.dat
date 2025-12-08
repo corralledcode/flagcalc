@@ -1,0 +1,62 @@
+/* Some graphs from Wolfram */
+
+
+/* First, some "critical non-planar"
+ * (removing any edge results in a planar graph)
+ */
+
+/* #name=pentatope */
+
+abcde END END
+
+/* #name=6graph114 */
+
+-abcfeda be -bcf dc af END END
+
+
+/* #name=6graph149 */
+
+-aefa -acdebfa bc ad df END END
+
+/* #name=6graph150 */
+
+-abcdefa -aebf -adf END END
+
+
+/* #name=biggestlittlehexagon */
+
+abcde !de -dfe ad END END
+
+/* #name=33conegraph */
+
+abcdef !def END END
+
+/* #name=33fangraph */
+
+abcdef !abc !de END END
+
+/* #name=23queenstourgraph */
+
+abcdef !dc !be END END
+
+/* #name=6graph132 */
+
+acdef db END END
+
+/* #name=51lollipopgraph */
+
+abcde ef END END
+
+/* #name=6graph138 */
+
+acdef ebf END END
+
+/* #name=6graph148 */
+
+acdef def END END
+
+/* #name=6graph149 */
+
+acef adf bce bd END END
+
+
