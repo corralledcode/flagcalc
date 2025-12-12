@@ -9,13 +9,14 @@
 #include <string>
 #include "mathfn.h"
 #include <cmath>
+#include <sstream>
 #include <cstring>
 #include <functional>
 #include <regex>
 
 #include "graphio.h"
 
-#include "graphs.h"
+// #include "graphs.h" already included by graphio.h
 
 #define ABSCUTOFF 0.000001
 
@@ -884,13 +885,6 @@ public:
     }
 };
 
-template<>
-inline valms setitrtuple<uint>::assignvalms( uint elt ) {
-    valms v;
-    v.t = mtdiscrete;
-    v.v.iv = elt;
-    return v;
-}
 template<>
 inline valms setitrtuple<long int>::assignvalms( long int elt ) {
     valms v;

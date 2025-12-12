@@ -699,10 +699,10 @@ public:
 
     ~mrecords()
     {
-        for (int i = 0; i < sz; ++i)
-            delete efv[i];
-        for (int i = 0; i < msz; ++i)
-            delete literals[i];
+        // for (int i = 0; i < sz; ++i)
+            // delete efv[i];
+        // for (int i = 0; i < msz; ++i)
+            // delete literals[i];
     }
 };
 

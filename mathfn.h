@@ -27,7 +27,6 @@ inline double cosfn( std::vector<double>& din);
 inline double tanfn( std::vector<double>& din);
 
 inline double gammafn( std::vector<double>& din);
-
 inline double nchoosekfn( std::vector<double>& din );
 
 inline double expfn(std::vector<double>& din);

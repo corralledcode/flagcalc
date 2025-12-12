@@ -1791,7 +1791,7 @@ void idealizetuple( std::vector<valms>& tot, valms& res)
 
 
 
-valms evalformula::eval( formulaclass& fc, namedparams& context) {}
+valms evalformula::eval( formulaclass& fc, namedparams& context) {return {};}
 
 
 valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )

@@ -2967,10 +2967,13 @@ public:
     setitr* takemeas( neighborstype* ns, const params& ps) override
     {
         int dim = ns->g->dim;
-        int in1[dim*dim];
-        int in2[dim*dim];
-        int* out;
-        out = new int[dim*dim];
+        // int in1[dim*dim];
+        // int in2[dim*dim];
+        // out = new int[dim*dim];
+        int* in1 = (int*)malloc(dim*dim*sizeof(int));
+        int* in2 = (int*)malloc(dim*dim*sizeof(int));
+        int* out = (int*)malloc(dim*dim*sizeof(int));
+
         memset(in1,0,sizeof(int) * dim * dim);
         for (int i = 0; i < dim; ++i)
             in1[i*dim+i] = 1;
