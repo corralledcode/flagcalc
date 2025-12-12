@@ -23,8 +23,6 @@
 
 #include "graphs.h"
 #include "prob.h"
-//#include "measure.cpp"
-//#include "workspace.h"
 #include "math.h"
 
 class girthmeasure;

@@ -1079,14 +1079,17 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                         int j;
                         for (j = context.size()-2; j >= 0 && !found; j--)
                             found = context[j].first == fc->v.vs.name;
-                        if (!found)
+                        if (!found) {
                             std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
+                            exit(1);
+                        }
                         else
                             fc->v.vs.l = j+1;
                     }
                 else
                 {
                     std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables (2))\n";
+                    exit(1);
                 }
             }
         } else if (quantifierops(fc->fo) || fc->fo == formulaoperator::fonaming || relationalops(fc->fo))
@@ -2001,11 +2004,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     break;}
             default:
                     std::cout << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
+                        exit(1);
                     res.seti = nullptr;
                     break;
                 }
             else {
                 std::cout << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
+                exit(1);
                 res.seti = nullptr;
             }
             /*            if ((set1.t == mtset || set1.t == mttuple) && (set2.t == mtset || set2.t == mttuple))
@@ -4556,9 +4561,11 @@ inline bool is_threaded(std::string tok)
 
 inline bool is_gpu(std::string tok)
 {
+#ifdef FLAGCALC_CUDA
     for (auto q : operatorsmap)
         if (tok == q.first)
             return q.second == formulaoperator::fogpu;
+#endif
     return false;
 }
 
@@ -5475,6 +5482,7 @@ inline formulaclass* parseformulainternal(
                         } else
                         {
                             std::cout << "Unknown function " << tok << " in parseformula internal\n";
+                            exit(1);
                         }
                     } else
                     {

@@ -21,13 +21,13 @@ add_executable(flagcalc main.cu
         graphio.h
         prob.cu
         prob.h
-        verboseio.cpp
+        verboseio.cu
         verboseio.h
         asymp.cu
         asymp.h
         feature.cu
         feature.h
-        workspace.cpp
+        workspace.cu
         workspace.h
         thread_pool.cpp
         thread_safe_queue.cpp

@@ -14,7 +14,6 @@
 #include "asymp.h"
 #include "graphio.h"
 #include "graphs.h"
-//#include "measure.cpp"
 #include "ameas.h"
 
 #define VERBOSE_CMPFINGERPRINTLEVEL "cmp"

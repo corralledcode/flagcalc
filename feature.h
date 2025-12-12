@@ -18,7 +18,6 @@
 #include <wchar.h>
 
 #include "asymp.h"
-// #include "measure.cpp"
 #include "graphio.h"
 #include "graphoutcome.h"
 #include "graphs.h"
