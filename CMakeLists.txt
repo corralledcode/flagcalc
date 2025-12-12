@@ -1,43 +1,51 @@
-cmake_minimum_required(VERSION 3.28)
-project(flagcalc)
+cmake_minimum_required(VERSION 3.31)
+project(flagcalc CUDA)
 
-set(CMAKE_CXX_STANDARD 23)
-include_directories(~/mysql-connector-cpp/include
-        ~/mysql-connector-cpp/include/mysqlx)
+set(CMAKE_CUDA_STANDARD 20)
 
-
-
-add_executable(flagcalc main.cpp
-        graphs.cpp
+add_executable(flagcalc main.cu
+        graphs.cu
         graphs.h
-        db.cpp
+        db.cu
         db.h
-        graphio.cpp
+        graphio.cu
         graphio.h
-        prob.cpp
+        prob.cu
         prob.h
         verboseio.cpp
         verboseio.h
-        asymp.cpp
+        asymp.cu
         asymp.h
-        feature.cpp
+        feature.cu
         feature.h
         workspace.cpp
         workspace.h
         thread_pool.cpp
         thread_safe_queue.cpp
-        graphoutcome.cpp
+        graphoutcome.cu
         graphoutcome.h
         mantel.h
-        math.cpp
-        mathfn.cpp
-        absmeas.h
-        ameas.cpp
+        math.cu
         mathfn.h
+        mathfn.cu
+        absmeas.h
+        ameas.cu
         math.h
         ameas.h
-        meas.cpp
-        probsub.cpp
+        meas.cu
+        probsub.cu
         probsub.h
-        mathfn.cpp
+        cuda.cu
+        cuda.cuh
+        cudafn.cu
+        cudaengine.cu
+        cudaengine.cuh
+        cudagraph.cu
+        cudagraph.cuh
+        config.h
+        cudameas.cu
 )
+
+
+set_target_properties(flagcalc PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON)

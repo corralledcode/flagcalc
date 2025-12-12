@@ -25,6 +25,7 @@ class evalformula;
 bool is_number(const std::string& s);
 bool is_real(const std::string& s);
 
+class quantifiermanager;
 
 enum class logicalconnective {lcand, lcor};
 
@@ -43,15 +44,15 @@ logicalsentence lscombine( const logicalsentence ls1, const logicalsentence ls2,
 enum class formulaoperator
 {foliteral,fofunction, foconstant, foderef,
     foqforall, foqexists,
-    foplus, fominus, fotimes, fodivide, foexponent, fomodulus,
-    folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt,
-    foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable, fovariablederef,
+    foplus, fominus, fotimes, fodivide, foexponent, fomodulus, // 11
+    folte, folt, foe, fone, fogte, fogt, founion, fodupeunion, fointersection, foelt, // 21
+    foand,foor,foxor,fonot,foimplies,foiff,foif,fotrue,fofalse,fovariable, fovariablederef, //32
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqtuple, foqunion, foqdupeunion, foqintersection,
     foqmedian, foqmode,
     foswitch, focases, foin, fonaming, foas,
     fosetminus, fosetxor, fomeet, fodisjoint,
-    fothreaded,
+    fothreaded, fogpu,
     forpartition, forsort};
 
 inline const std::map<std::string,formulaoperator> operatorsmap
@@ -109,6 +110,7 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"MEET", formulaoperator::fomeet},
         {"DISJOINT", formulaoperator::fodisjoint},
         {"THREADED", formulaoperator::fothreaded},
+        {"GPU", formulaoperator::fogpu},
         {"PARTITION", formulaoperator::forpartition},
         {"SORT", formulaoperator::forsort}};
 
@@ -124,6 +126,7 @@ class formulaclass;
 struct fnstruct {
     double (*fn)(std::vector<double>&);
     std::vector<formulaclass*> ps;
+    std::string nm {};
 };
 
 struct litstruct
@@ -439,6 +442,7 @@ class setitrmodeone : public setitr
     setitrmodeone( std::vector<valms> totalityin )
     {
         totality = totalityin;
+        // t = mtset;
         computed = true;
     }
 
@@ -651,21 +655,6 @@ class setitrsetminus : public setitrmodeone
             while (!found && !Bitr->ended()) {
                 valms omitv = Bitr->getnext();
                 found = found || mtareequal(v,omitv);
-                /*
-                if (v.t == omitv.t)
-                    switch (v.t) {
-                        case mtbool:
-                        case mtdiscrete:
-                        case mtcontinuous:
-                        found = found || v == omitv;
-                        break;
-                        case mtset: {
-                        case mttuple:
-                            found = mtareequal(v, omitv);
-                            break;}
-                        default:
-                            std::cout << "Unsupported type " << v.t << " in setitrunion\n";
-                    }*/
             }
             if (!found)
                 temp.push_back(v);
@@ -799,7 +788,10 @@ class setitrint : public setitrmodeone
             elts = (bool*)malloc((maxint+1)*sizeof(bool));
             memset(elts, true, (maxint+1)*sizeof(bool));
         } else
+        {
             elts = nullptr;
+            maxint = -1;
+        }
         computed = false;
         // totality.clear();
         reset();
@@ -836,7 +828,7 @@ class setitrtuple : public setitrmodeone
 public:
     T* elts = nullptr;
     int length;
-    int maxelt = -1;
+    // int maxelt = -1;
 
     virtual valms assignvalms( T elt )
     {
@@ -846,13 +838,16 @@ public:
 
     void compute() override
     {
-        totality.resize(length);
-        for (int i = 0; i < length; ++i) {
-            totality[i] = assignvalms(elts[i]);
-            maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
-        }
-        computed = true;
-        reset();
+        // if (!computed)
+        // {
+            computed = true;
+            totality.resize(length);
+            for (int i = 0; i < length; ++i) {
+                totality[i] = assignvalms(elts[i]);
+                // maxelt = (i == 0 || elts[i] > maxelt) ? elts[i] : maxelt;
+            }
+            reset();
+        // }
     }
     void setlength( const int lengthin )
     {
@@ -890,6 +885,20 @@ public:
 };
 
 template<>
+inline valms setitrtuple<uint>::assignvalms( uint elt ) {
+    valms v;
+    v.t = mtdiscrete;
+    v.v.iv = elt;
+    return v;
+}
+template<>
+inline valms setitrtuple<long int>::assignvalms( long int elt ) {
+    valms v;
+    v.t = mtdiscrete;
+    v.v.iv = elt;
+    return v;
+}
+template<>
 inline valms setitrtuple<int>::assignvalms( int elt ) {
     valms v;
     v.t = mtdiscrete;
@@ -911,6 +920,17 @@ inline valms setitrtuple<bool>::assignvalms( bool elt ) {
     return v;
 }
 
+template<typename T>
+class setitrtuple2d : public setitrtuple<setitrtuple<T>*>
+{
+public:
+    valms assignvalms( setitrtuple<T>* elt )
+    {
+        valms v; v.t = mttuple; v.seti = elt; return v;
+    }
+    setitrtuple2d(std::vector<setitrtuple<T>*>& vecin) : setitrtuple<setitrtuple<T>*>(vecin) {}
+};
+
 class setitrintpair : public setitrmodeone
 {
 protected:
@@ -929,6 +949,31 @@ protected:
     public:
     setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin} {}
 };
+
+/*
+class setitrintpair : public setitrint
+{
+protected:
+    int inta;
+    int intb;
+public:
+    void compute() override
+    {
+        memset(elts,false,sizeof(bool)*(maxint+1));
+        elts[inta] = true;
+        elts[intb] = true;
+        // totality.resize(2);
+        // totality[0].t = mtdiscrete;
+        // totality[1].t = mtdiscrete;
+        // totality[0].v.iv = inta;
+        // totality[1].v.iv = intb;
+        // computed = true;
+        setitrint::compute();
+    }
+public:
+    setitrintpair(int intain, int intbin) : inta{intain}, intb{intbin}, setitrint(intain > intbin ? intain : intbin) {}
+};*/
+
 
 class setitrint2d : public setitrmodeone {
 public:
@@ -1021,12 +1066,14 @@ class setitrsubset : public setitr {
 public:
     setitrint* itrint;
     itrpos* superset {};
-    void setsuperset( itrpos* supersetposin )
+
+    /* void setsuperset( itrpos* supersetposin )
     {
         superset = supersetposin;
         itrint->setmaxint(superset->getsize() - 1);
         reset();
-    }
+    } */
+
 
     int getsize() override
     {
@@ -1086,15 +1133,18 @@ public:
     {
         t = superset->parent->t;
         pos = -1;
+        reset();
     };
     setitrsubset(itrpos* supersetin, setitrint* itrintin) : superset{supersetin}, itrint{itrintin} {
         t = superset->parent->t;
         pos = -1;
+        reset();
     }
     setitrsubset() : superset{}, itrint{new setitrint(-1)}
     {
         t = mtdiscrete;
         pos = -1;
+        reset();
     };
     ~setitrsubset() {
         delete itrint;
@@ -1258,7 +1308,7 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
             maxintout = maxintA <= maxintB ? maxintA : maxintB;
             break;
         case formulaoperator::fosetminus:
-            maxintout = maxintB <= maxintA ? maxintB : maxintA;
+            maxintout = maxintA;
             break;
         default:
             std::cout << "Cannot call fastsetops with non-set operator\n";
@@ -1456,20 +1506,22 @@ inline setitrtuple<T>* fasttupleops( setitrtuple<T>* tupleA, setitrtuple<T>* tup
 }
 class setitrabstractops : public setitrmodeone {
 public:
-    virtual int setopunioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
-    virtual int setopintersectioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n";}
+    virtual int setopunioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n"; return -1;}
+    virtual int setopintersectioncount( const int cutoff, const formulaoperator fo ) {std::cout << "Error: abstract empty method called\n"; return -1;}
     virtual setitr* setops( const formulaoperator fo ) {auto out = new setitrint(-1); return out;};
     virtual bool boolsetops( const formulaoperator fo ) {return false;};
 };
 class setitrfastop : public setitrabstractops
 {
 public:
+    setitr* superset;
     setitrint* cast;
     virtual bool iselt( valms v )
     {
         return v.t == mtdiscrete && cast->elts[v.v.iv];
     }
-    setitrfastop( setitrint* castin ) : cast(castin) {};
+    setitrfastop( setitrint* castin, setitr* supersetin ) : cast(castin), superset(supersetin) {};
+    setitrfastop( setitrint* castin ) : cast(castin), superset(nullptr) {};
 };
 class setitrfast2dsymmetricop : public setitrabstractops
 {
@@ -1512,6 +1564,7 @@ public:
 class setitrfastpluralops : public setitrabstractops {
 public:
     std::vector<setitrint*> casts;
+    setitr* superset;
 
     setitr* setops( const formulaoperator fo )  override {
         int maxint = -1;
@@ -1558,14 +1611,16 @@ public:
         if (casts.size() < 1) {
             // std::cout << "Less than one set passed to plural ops\n";
         }
-        return out;
+        setitr* res;
+        res = new setitrsubset(superset->getitrpos(),out);
+        return res;
     }
     int setopunioncount( const int cutoff, const formulaoperator fo ) override {
         if (fo != formulaoperator::founion) {
             std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (iv)\n";
             return 0;
         }
-        int maxsz;
+        int maxsz = 0;
         if (casts.size() > 0)
             maxsz = casts[0]->maxint +1;
         for (int i = 1; i < casts.size(); ++i)
@@ -1575,7 +1630,7 @@ public:
         memset( elts, false, sizeof(bool) * maxsz );
         for (int j = 0; j < casts.size(); ++j) {
             for (int i = 0; i <= casts[j]->maxint; ++i) {
-                elts[i] = elts[i] || (casts[j]->elts[i]);
+                elts[i] = elts[i] || casts[j]->elts[i];
             }
         }
         int cnt = 0;
@@ -1630,12 +1685,13 @@ public:
         else
             return setopintersectioncount(1, formulaoperator::fointersection ) < 1 ? true : false;
     }
-    setitrfastpluralops( std::vector<setitrint*> castsin ) : casts{castsin} {}
+    setitrfastpluralops( std::vector<setitrint*> castsin, setitr* supersetin ) : casts{castsin}, superset{supersetin} {}
 };
 class setitrfastpluralssops : public setitrabstractops {
 public:
     std::vector<setitrsubset*> castsss;
     setitrfastpluralops* fastpluralops {};
+    setitr* superset;
 
     bool boolsetops( const formulaoperator fo )  override {
         return fastpluralops->boolsetops( fo );
@@ -1650,11 +1706,11 @@ public:
         return fastpluralops->setops( fo );
     }
 
-    setitrfastpluralssops( std::vector<setitrsubset*>& castsss ) : castsss{castsss} {
+    setitrfastpluralssops( std::vector<setitrsubset*>& castsssin, setitr* supersetin ) : castsss{castsssin}, superset{supersetin} {
         std::vector<setitrint*> casts {};
         for (auto s : castsss)
             casts.push_back(s->itrint);
-        fastpluralops = new setitrfastpluralops(casts);
+        fastpluralops = new setitrfastpluralops(casts,supersetin);
     }
     ~setitrfastpluralssops() {
         delete fastpluralops;
@@ -1675,6 +1731,7 @@ public:
     }
     setitrfastssops( setitrsubset* castAssin, setitrsubset* castBssin ) : castAss{castAssin}, castBss{castBssin} {}
 };
+/*
 class setitrfastplural2dops : public setitrabstractops {
 public:
     std::vector<setitrint2d*> casts2d;
@@ -1718,7 +1775,7 @@ public:
         return fastboolsetops( castA2d->itrint, castB2d->itrint, fo );
     }
     setitrfast2dops( setitrint2d* castA2din, setitrint2d* castB2din ) : castA2d{castA2din}, castB2d{castB2din} {}
-};
+};*/
 class setitrslowop : public setitrabstractops
 {
 public:
@@ -1985,32 +2042,34 @@ public:
 };
 
 inline setitrabstractops* getsetitrop( setitr* set ) {
-    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(set))
+/*    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(set))
         return new setitrfast2dsymmetricop( cast2d );
     if (setitrint* cast = dynamic_cast<setitrint*>(set))
-        return new setitrfastop( cast );
+        return new setitrfastop( cast ); */
     // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(set))
         // return new setitrfastssop( castss );
     return new setitrslowop( set );
 }
 
 inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
+/*
     if (setitrint2dsymmetric* castA2d = dynamic_cast<setitrint2dsymmetric*>(setA))
         if (setitrint2dsymmetric* castB2d = dynamic_cast<setitrint2dsymmetric*>(setB))
             if (castA2d->dim1 == castB2d->dim1 && castA2d->dim2 == castB2d->dim2)
-                return new setitrfast2dops( castA2d, castB2d );
-    if (setitrint* castA = dynamic_cast<setitrint*>(setA))
+                return new setitrfast2dops( castA2d, castB2d );*/
+/*    if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
             return new setitrfastops( castA, castB );
     if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
         if (setitrsubset* castBss = dynamic_cast<setitrsubset*>(setB))
             if (castAss->superset->parent == castBss->superset->parent)
-                return new setitrfastssops( castAss, castBss );
+                return new setitrfastssops( castAss, castBss ); */
     return new setitrslowops( setA, setB );
 }
 inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
     bool all = true;
     int i = 0;
+    /*
     std::vector<setitrint2d*> casts2d {};
     while (all && i < sets.size()) {
         if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(sets[i]))
@@ -2039,7 +2098,8 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
     if (all)
         return new setitrfastpluralops( casts );
     all = true;
-    i = 0;
+    i = 0;*/
+/*
     std::vector<setitrsubset*> castsss {};
     while (all && i < sets.size()) {
         if (setitrsubset* castss = dynamic_cast<setitrsubset*>(sets[i]))
@@ -2052,14 +2112,14 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
         bool sameparent = true;
         for (int i = 0; i+1 < castsss.size() && sameparent; ++i)
             sameparent = sameparent && (castsss[i]->superset->parent == castsss[i+1]->superset->parent);
-        if (sameparent)
-            return new setitrfastpluralssops( castsss );
-    }
+        if (sameparent && castsss.size() > 0)
+            return new setitrfastpluralssops( castsss, castsss[0]->superset->parent );
+    }*/
     return new setitrslowpluralops( sets );
 }
 inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
 
-    if (setitrtuple<int>* castA = dynamic_cast<setitrtuple<int>*>(setA))
+/*    if (setitrtuple<int>* castA = dynamic_cast<setitrtuple<int>*>(setA))
         if (setitrtuple<int>* castB = dynamic_cast<setitrtuple<int>*>(setB))
             return new setitrtuplefastops<int>( castA, castB );
     if (setitrtuple<bool>* castA = dynamic_cast<setitrtuple<bool>*>(setA))
@@ -2068,7 +2128,7 @@ inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
     if (setitrtuple<double>* castA = dynamic_cast<setitrtuple<double>*>(setA))
         if (setitrtuple<double>* castB = dynamic_cast<setitrtuple<double>*>(setB))
             return new setitrtuplefastops<double>( castA, castB );
-
+*/
     /* if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
             return new setitrtuplefastops( castA, castB );
@@ -2104,6 +2164,7 @@ public:
     formulaclass* superset {};
     formulaclass* alias {};
     formulaclass* value {};
+    int CUDAfastidx = -1;
     bool secondorder = false;
     void eval( const std::vector<std::string>& q, int& pos)
     {
@@ -2253,37 +2314,6 @@ public:
 */
 
 
-// Function to compute Stirling numbers of
-// the second kind S(n, k) with memoization
-inline int stirling(int n, int k) {
-
-    // Base cases
-    if (n == 0 && k == 0) return 1;
-    if (k == 0 || n == 0) return 0;
-    if (n == k) return 1;
-    if (k == 1) return 1;
-
-
-    // Recursive formula
-    return k * stirling(n - 1, k) + stirling(n - 1, k - 1);
-}
-
-// Function to calculate the total number of
-// ways to partition a set of `n` elements
-inline int bellNumber(int n) {
-
-    int result = 0;
-
-    // Sum up Stirling numbers S(n, k) for all
-    // k from 1 to n
-    for (int k = 1; k <= n; ++k) {
-        result += stirling(n, k);
-    }
-    return result;
-}
-
-
-
 inline int lookup_variable( const std::string& tok, const namedparams& context) {
     bool found = false;
     int i = context.size() - 1;
@@ -2314,6 +2344,7 @@ public:
     formulaclass* fcright;
     formulaoperator fo;
     bool threaded = false;
+    bool gpu = false;
     formulaclass(formulavalue vin, formulaclass* fcleftin, formulaclass* fcrightin, formulaoperator foin)
         : v{vin}, fcleft(fcleftin), fcright(fcrightin), fo(foin) {}
     ~formulaclass() {
@@ -2425,11 +2456,85 @@ public:
 
 };
 
-// outdated by map in math.cpp
+// outdated by map in math.cu
 // inline bool quantifierops( const formulaoperator fo );
 
 
 inline bool searchfcforvariable( formulaclass* fc, std::vector<std::string> bound = {});
+
+inline valms to_mtbool( const valms v )
+{
+    valms res;
+    res.t = mtbool;
+    switch (v.t)
+    {
+    case mtbool:
+        {
+            res.v.bv = v.v.bv;
+            break;
+        }
+    case mtdiscrete:
+        {
+            res.v.bv = (bool)v.v.iv;
+            break;
+        }
+    case mtcontinuous:
+        {
+            res.v.bv = (bool)v.v.dv;
+            break;
+        }
+    default:
+        std::cout << "Not yet implemented to_mtbool type\n";
+        res.v.bv = false;
+        break;
+    }
+    return res;
+}
+
+inline valms to_mtdiscrete( const valms v )
+{
+    valms res;
+    res.t = mtdiscrete;
+    switch (v.t)
+    {
+    case mtbool:
+        res.v.iv = v.v.bv ? 1 : 0;
+        break;
+    case mtdiscrete:
+        res.v.iv = v.v.iv;
+        break;
+    case mtcontinuous:
+        res.v.iv = v.v.dv;
+        break;
+    default:
+        std::cout << "Not yet implemented to_mtdiscrete type\n";
+        break;
+    }
+    return res;
+}
+
+inline valms to_mtcontinuous( const valms v )
+{
+    valms res;
+    res.t = mtcontinuous;
+    switch (v.t)
+    {
+    case mtbool:
+        res.v.dv = v.v.bv;
+        break;
+    case mtdiscrete:
+        res.v.dv = v.v.iv;
+        break;
+    case mtcontinuous:
+        res.v.dv = v.v.dv;
+        break;
+    default:
+        std::cout << "Not yet implemented to_mtcontinuous type\n";
+        break;
+    }
+    return res;
+}
+
 
 inline void mtconvertboolto( const bool vin, valms& vout )
 {
@@ -2461,9 +2566,9 @@ inline void mtconvertdiscreteto( const int vin, valms& vout )
         break;
     case mtcontinuous: vout.v.dv = vin != 0 ? 1 : 0;
         break;
-    case mtset: vout.seti = new setitrint(vin);
+    case mtset: vout.seti = new setitrint(vin-1);
         break;
-    case mttuple: vout.seti = new setitrint(vin);
+    case mttuple: vout.seti = new setitrint(vin-1);
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
@@ -2481,9 +2586,9 @@ inline void mtconvertcontinuousto( const double vin, valms& vout )
         break;
     case mtcontinuous: vout.v.dv = vin;
         break;
-    case mtset: vout.seti = new setitrint((int)vin);
+    case mtset: vout.seti = new setitrint((int)vin - 1);
         break;
-    case mttuple: vout.seti = new setitrint((int)vin);
+    case mttuple: vout.seti = new setitrint((int)vin - 1);
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
@@ -2507,7 +2612,58 @@ inline void mtconvertsetto( setitr* vin, valms& vout )
         break;
     case mtstring: vout.v.rv = new std::string("{ SET of size " + std::to_string(vin->getsize()) + "}");
         break;
-    case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin->getsize()));
+    case mtgraph:
+        /* First count how many vertices */
+
+        auto pos = vin->getitrpos();
+        pos->reset();
+
+        std::vector<valms> tempvertices {};
+        std::vector<int> tempedges {};
+        while (!pos->ended())
+        {
+            auto edge = pos->getnext();
+            edge.seti->reset();
+            auto v1 = edge.seti->getnext();
+            auto v2 = edge.seti->getnext();
+            tempvertices.push_back(v1);
+            tempvertices.push_back(v2);
+            tempedges.push_back(tempvertices.size()-1);
+            tempedges.push_back(tempvertices.size()-2);
+        }
+        std::vector<valms> vertices {};
+        std::vector<int> vertexindices {};
+        vertexindices.resize(tempvertices.size());
+        for (int i = 0; i < tempvertices.size(); ++i)
+        {
+            bool found = false;
+            int j;
+            for (j = 0; !found && j < vertices.size(); ++j)
+                found = mtareequal(tempvertices[i], vertices[j]);
+            if (!found)
+            {
+                vertices.push_back(tempvertices[i]);
+                vertexindices[i] = vertices.size()-1;
+            } else
+            {
+                vertexindices[i] = j-1;
+            }
+        }
+
+        delete pos;
+
+        int dim = vertices.size();
+        auto g = new graphtype(dim);
+        memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
+        for (int i = 0; i < vertexindices.size(); ++i)
+            for (int j = i+1; j < vertexindices.size(); ++j) {
+                if (tempedges[i] == j || tempedges[j] == i)
+                {
+                    g->adjacencymatrix[vertexindices[i]*dim + vertexindices[j]] = true;
+                    g->adjacencymatrix[vertexindices[j]*dim + vertexindices[i]] = true;
+                }
+            }
+        vout.v.nsv = new neighbors(g);
         break;
     }
 }
@@ -2563,7 +2719,6 @@ inline void mtconvertstringto( std::string* vin, valms& vout )
         }
     case mtgraph:
         {
-            vout.v.nsv = new neighborstype(new graphtype(vin->size()));
             std::vector<std::string> temp {};
             temp.push_back(*vin);
             auto g = igraphstyle(temp);
@@ -2659,10 +2814,11 @@ inline void mtconverttoset( const valms& vin, setitr*& vout )
 {
     switch (vin.t)
     {
-    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
-    case mtdiscrete: {vout = new setitrint(vin.v.iv); break; // verify works with any negative not just -1
+    case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
+    case mtdiscrete: {
+            vout = new setitrint(vin.v.iv-1); break; // verify works with any negative not just -1
             }
-    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
     case mtset:
     case mttuple: vout = vin.seti; break;
     case mtstring:
@@ -2689,9 +2845,9 @@ inline void mtconverttotuple( const valms& vin, setitr*& vout )
 {
     switch (vin.t)
     {
-    case mtbool: {vout = vin.v.bv ? new setitrint(1) : new setitrint(0); break;}
-    case mtdiscrete: {vout = new setitrint(vin.v.iv); break;} // verify works with any negative not just -1
-    case mtcontinuous: {vout = new setitrint((int)vin.v.dv); break;}
+    case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
+    case mtdiscrete: {vout = new setitrint(vin.v.iv-1); break;} // verify works with any negative not just -1
+    case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
     case mtset:
     case mttuple: {vout = vin.seti; break;}
     case mtstring:
@@ -2796,7 +2952,6 @@ inline void mtconverttograph( const valms& vin, neighborstype*& vout )
         }
     case mtstring:
         {
-            vout = new neighborstype(new graphtype(vin.v.rv->size()));
             std::vector<std::string> temp {};
             temp.push_back(*vin.v.rv);
             auto g = igraphstyle(temp);
@@ -2851,8 +3006,9 @@ inline bool mtareequal( const valms& v, const valms& w ) { // initially overload
     switch (v.t) {
         case mtbool:
         case mtdiscrete:
-        case mtcontinuous:
             return v == w;
+        case mtcontinuous:
+            return abs(v.v.dv - w.v.dv) < ABSCUTOFF;
         case mtset: {
             auto abstractsetops = getsetitrops( v.seti, w.seti );
             bool res = abstractsetops->boolsetops( formulaoperator::foe );

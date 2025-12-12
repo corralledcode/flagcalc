@@ -4,6 +4,13 @@
 
 #ifndef FEATURE_H
 #define FEATURE_H
+
+#include "config.h"
+
+#ifdef FLAGCALC_CUDA
+#include "cudameas.cu"
+#endif
+
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -20,8 +27,11 @@
 #include "mantel.h"
 #include "thread_pool.cpp"
 #include "ameas.h"
-#include "meas.cpp"
-#include "probsub.cpp"
+#include "cudaengine.cuh"
+#include "meas.cu"
+
+
+#include "probsub.cu"
 #include "math.h"
 
 //default is to enumisomorphisms
@@ -390,7 +400,7 @@ public:
 
 
         unsigned const thread_count = std::thread::hardware_concurrency();
-        //unsigned const thread_count = 1;
+        // unsigned const thread_count = 1;
 
         int cnt = 0;
         const double section = double(outof) / double(thread_count);
@@ -595,11 +605,24 @@ public:
             }
         }
 
+#ifdef CUDAFORCOMPUTENEIGHBORSLISTENMASSE
+
+        std::vector<neighborstype*> nsv;
+        nsv.resize(cnt);
+        CUDAcomputeneighborslistenmassewrapper(gv,nsv);
+
+        for (int i = 0; i < cnt; ++i)
+        {
+            auto wi = new graphitem;
+            wi->ns = nsv[i];
+            wi->g = gv[i];
+            wi->name = _ws->getuniquename(wi->classname);
+            gv[i]->vertexlabels = vertexlabels;
+            _ws->items.push_back( wi );
+        }
+
+#else
         for (int i = 0; i < cnt; ++i) {
-
-            //starray.push_back(std::chrono::high_resolution_clock::now());
-
-
             auto wi = new graphitem;
             wi->ns = new neighbors(gv[i]);
             wi->g = gv[i];
@@ -607,6 +630,7 @@ public:
             gv[i]->vertexlabels = vertexlabels;
             _ws->items.push_back( wi );
         }
+#endif
 /*        for (int i = 0; i < cnt; ++i) {
             _ws->items[s+i]->name = _ws->getuniquename(_ws->items[s+i]->classname);
         }*/
@@ -730,7 +754,7 @@ public:
         }
 
         auto stoptime = std::chrono::high_resolution_clock::now();
-        auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stoptime - starttime);
 
         if (verbositycmdlineincludes(verbositylevel,VERBOSE_VERBOSITYRUNTIME))
         {
@@ -1227,7 +1251,7 @@ public:
 
 
         unsigned const thread_count = std::thread::hardware_concurrency();
-        //unsigned const thread_count = 1;
+        // unsigned const thread_count = 1;
 
         std::vector<std::future<void>> t {};
         t.resize(items.size());
@@ -1705,6 +1729,9 @@ public:
         auto (connvsc) = critfactory<connvscrit>;
         auto (indnpc) = critfactory<indnpcrit>;
         auto (nwisec) = critfactory<nwisecrit>;
+        auto (toBoolc) = critfactory<toBoolcrit>;
+        auto (embedsc) = critfactory<embedscrit>;
+        auto (connvusingsetc) = critfactory<connvusingsetcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1729,6 +1756,9 @@ public:
         crsfactory.push_back(connvsc);
         crsfactory.push_back(indnpc);
         crsfactory.push_back(nwisec);
+        crsfactory.push_back(toBoolc);
+        crsfactory.push_back(embedsc);
+        crsfactory.push_back(connvusingsetc);
 
         // ...
 
@@ -1755,6 +1785,7 @@ public:
         auto (lcircm) = measfactory<legacycircumferencemeas>;
         auto (diamm) = measfactory<diametermeas>;
         auto (gm) = measfactory<girthmeas>;
+        auto (toRealm) = measfactory<toRealmeas>;
 
         mssfactory.push_back(ms1);
         mssfactory.push_back(ms2);
@@ -1770,6 +1801,7 @@ public:
         mssfactory.push_back(lcircm);
         mssfactory.push_back(diamm);
         mssfactory.push_back(gm);
+        mssfactory.push_back(toRealm);
 
         // ,,,
 
@@ -1798,6 +1830,8 @@ public:
         auto (Chiprimegreedyt) = tallyfactory<Chiprimegreedytally>;
         auto (Nsst) = tallyfactory<Nsstally>;
         auto (cyclest) = tallyfactory<cyclestally>;
+        auto (toIntt) = tallyfactory<toInttally>;
+        auto (connt) = tallyfactory<conntally>;
 
         tysfactory.push_back(Knt);
         tysfactory.push_back(indnt);
@@ -1817,6 +1851,8 @@ public:
         tysfactory.push_back(Chiprimegreedyt);
         tysfactory.push_back(Nsst);
         tysfactory.push_back(cyclest);
+        tysfactory.push_back(toIntt);
+        tysfactory.push_back(connt);
 
         // ...
 
@@ -1833,6 +1869,7 @@ public:
         auto (idxs) = setfactory<idxset>;
         auto (TtoS) = setfactory<TupletoSet>;
         auto (Paths) = setfactory<Pathsset>;
+        auto (Pathsusingvsets) = setfactory<Pathsusingvsetset>;
         auto (Cyclesvs) = setfactory<Cyclesvset>;
         auto (Setpartitions) = setfactory<Setpartition>;
         auto (nEs) = setfactory<nEset>;
@@ -1843,6 +1880,15 @@ public:
         auto (Componentss) = setfactory<Componentsset>;
         auto (Edgess) = setfactory<Edgesset>;
         auto (Automs) = setfactory<Automset>;
+        auto (Conncs) = setfactory<Connc>;
+        auto (Ns) = setfactory<Nset>;
+        auto (Choices) = setfactory<Choiceset>;
+        auto (Choice2s) = setfactory<Choice2set>;
+        auto (as) = setfactory<aset>;
+        auto (eadjs) = setfactory<eadjset>;
+        auto (e2eadjs) = setfactory<e2eadjset>;
+        auto (Epathss) = setfactory<Epathsset>;
+
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1863,6 +1909,15 @@ public:
         stsfactory.push_back(Componentss);
         stsfactory.push_back(Edgess);
         stsfactory.push_back(Automs);
+        stsfactory.push_back(Conncs);
+        stsfactory.push_back(Ns);
+        stsfactory.push_back(Choices);
+        stsfactory.push_back(Choice2s);
+        stsfactory.push_back(as);
+        stsfactory.push_back(eadjs);
+        stsfactory.push_back(e2eadjs);
+        stsfactory.push_back(Epathss);
+        stsfactory.push_back(Pathsusingvsets);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -1873,10 +1928,26 @@ public:
         auto (Chip) = tuplefactory<Chituple>;
         auto (Chigreedyp) = tuplefactory<Chigreedytuple>;
         auto (Sp) = tuplefactory<Stuple>;
+        auto (nwalksbetweenp) = tuplefactory<nwalksbetweentuple>;
+        auto (Connvp) = tuplefactory<Connvtuple>;
+        auto (Connmatrixp) = tuplefactory<Connmatrix>;
+        auto (Subp) = tuplefactory<Subtuple>;
+#ifdef FLAGCALC_CUDA
+        auto (CUDAnwalksbetweenp) = tuplefactory<CUDAnwalksbetweentuple>;
+        auto (CUDAConnvp) = tuplefactory<CUDAConnvtuple>;
+#endif
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
         ossfactory.push_back(Sp);
+        ossfactory.push_back(nwalksbetweenp);
+        ossfactory.push_back(Connvp);
+        ossfactory.push_back(Connmatrixp);
+        ossfactory.push_back(Subp);
+#ifdef FLAGCALC_CUDA
+        ossfactory.push_back(CUDAnwalksbetweenp);
+        ossfactory.push_back(CUDAConnvp);
+#endif
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));
@@ -2752,6 +2823,18 @@ public:
     std::vector<std::string> sentences {};
     std::vector<std::string> formulae {};
 
+    void clear()
+    {
+        iter.clear();
+        litnumps.clear();
+        littypes.clear();
+        litnames.clear();
+        storedprocedures.clear();
+        sentences.clear();
+        formulae.clear();
+    }
+
+
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
@@ -2814,8 +2897,8 @@ public:
             *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
         }
         *_os << "\t" << "p=<tuple>:\t which tuple to use, standard options are:\n";
-        for (int n = 0; n < sts.size(); ++n) {
-            *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
+        for (int n = 0; n < oss.size(); ++n) {
+            *_os << "\t\t\"" << oss[n]->shortname << "\": " << oss[n]->name << "\n";
         }
     }
 
@@ -2823,6 +2906,7 @@ public:
     {
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
+        // clear();
 
         bool takeallgraphitems = false;
         int numofitemstotake = 1;
@@ -3215,7 +3299,7 @@ public:
 
                 ams a;
                 a.t = mtbool;
-                a.a.cs = new embedscrit(&rec,gi->ns,fp);
+                a.a.cs = new legacyembedscrit(&rec,gi->ns,fp);
                 a.a.cs->negated = ccl.n;
                 auto it = newiteration(mtbool,ccl.i,a);
                 iter.push_back(it);
@@ -3404,7 +3488,7 @@ public:
                 {
                     ams a;
                     a.t = mtbool;
-                    a.a.cs = new embedscrit(&rec,nss[i],fps[i]);
+                    a.a.cs = new legacyembedscrit(&rec,nss[i],fps[i]);
                     a.a.cs->negated = ccl.n;
                     auto it = newiteration(mtbool,ccl.i,a);
                     iter.push_back(it);
