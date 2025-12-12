@@ -1,8 +1,14 @@
+
+#include "config.h"
 #include <chrono>
 #include <iostream>
 
 #include "graphs.h"
 #include <fstream>
+
+#ifdef FLAGCALC_CUDA
+#include <cuda_runtime.h>
+#endif
 
 #include "asymp.h"
 #include "prob.h"
@@ -117,7 +123,7 @@ int main(int argc, char* argv[]) {
         featureslist[f]->execute(args[i]);
 
         auto stoptime = std::chrono::high_resolution_clock::now();
-        auto duration = duration_cast<std::chrono::microseconds>(stoptime - starttime);
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stoptime - starttime);
 
         timedrunitem* tr = new timedrunitem();
         tr->duration = duration.count();
@@ -143,3 +149,6 @@ int main(int argc, char* argv[]) {
     return 0;
 
 }
+
+
+

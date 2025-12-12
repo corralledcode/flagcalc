@@ -6,8 +6,9 @@
 #include "graphs.h"
 #include <fstream>
 
+#ifdef FLAGCALC_CUDA
 #include <cuda_runtime.h>
-
+#endif
 
 #include "asymp.h"
 #include "prob.h"

@@ -9,6 +9,8 @@
 // otherwise comment it out to run on non-GPU machines
 // by default "#define FLAGCALC_CUDA" is commented out
 
-// #define FLAGCALC_CUDA
+#ifdef FLAGCALC_CMAKE_CUDA
+#define FLAGCALC_CUDA
+#endif
 
 #endif //FLAGCALC_CONFIG_H

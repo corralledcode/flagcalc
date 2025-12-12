@@ -1,7 +1,16 @@
 cmake_minimum_required(VERSION 3.31)
-project(flagcalc CUDA)
 
-set(CMAKE_CUDA_STANDARD 20)
+# Choose to set OFF for non-CUDA compiled code (though nvcc is still required to compile this code)
+set (INTERNALFLAGCALC_CUDA OFF)
+
+if (INTERNALFLAGCALC_CUDA)
+    project(flagcalc CUDA)
+    set(CMAKE_CUDA_STANDARD 20)
+else()
+    project(flagcalc CUDA)
+    set(CMAKE_CXX_STANDARD 20)
+endif ()
+
 
 add_executable(flagcalc main.cu
         graphs.cu
@@ -47,5 +56,9 @@ add_executable(flagcalc main.cu
 )
 
 
-set_target_properties(flagcalc PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON)
+
+if (INTERNALFLAGCALC_CUDA)
+    set_target_properties(flagcalc PROPERTIES
+            CUDA_SEPARABLE_COMPILATION ON)
+    target_compile_definitions(flagcalc PRIVATE FLAGCALC_CMAKE_CUDA)
+endif ()
