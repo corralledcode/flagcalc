@@ -1,95 +1,9 @@
+/* A list of bugs and non-bugs */
 
-/* bug when invoked as in: -d f="a b c d e f g" -a isp="../scripts/bugs.dat" e="bug1(V SETMINUS {7})" all -v crt allcrit allsets i=minimal3.cfg */
+/* Bug from testsuitethreaded.sh, line 39 */
 
-mtset bug1( mtset vs )
+mtbool bug1
 
-BIGCUPD (v IN Ps(vs), BIGCUPD (vleft IN Ps(v), V SETMINUS vleft))
-
-END
-
-mtset bug1r2
-
-BIGCUPD (v IN Sizedsubset(V CUP {3},1), BIGCUPD (vleft IN Sizedsubset(v,1), vleft))
+THREADED FORALL (r IN Ps(V), st(r) == 2 IMPLIES r ELT E)
 
 END
-
-mtset testbug1fix
-
-BIGCUP (s IN Ps(V), BIGCUP (t IN Ps(V SETMINUS s), t))
-
-END
-
-mtset test2bug1fix
-
-SETD (s IN Ps(V), SETD (t IN Ps(s), t))
-
-END
-
-
-mtset bug2
-
-BIGCUP (es IN Ps({0,2,3,5,9,7}), SET (e IN Ps(es), e))
-
-END
-
-
-mtset bug2r2
-
-BIGCUPD (es IN Ps({7,3}), es)
-
-END
-
-mtset bug2r3
-
-BIGCUPD (es IN Ps({7,3,1}), BIGCUPD (e IN Ps(es), e))
-
-END
-
-mtset bug2r4
-
-BIGCUPD (es IN Ps(E), BIGCUPD (e IN Ps(es), e))
-
-END
-
-mtset bug1r3
-
-SETD (v IN Sizedsubset(V CUP {4},1), V SETMINUS v)
-
-END
-
-mtset nonbug
-
-SETD (v IN Sizedsubset(V CUP {5},1), BIGCUPD (u IN v, u))
-
-END
-
-mtset nonbug2
-
-SETD (v IN Sizedsubset(V CUP {5},1), BIGCUPD (u IN v, {u}))
-
-END
-
-mtset nonbug3
-
-SETD (v IN Sizedsubset(V CUP {4},1), MAX (u IN v, u))
-
-END
-
-mtset nonbug4
-
-SETD (v IN Sizedsubset(V CUP {4},1), MAX (u IN v, {u}))
-
-END
-
-mtset bug1r4
-
-SETD (v IN Sizedsubset(V,1), BIGCUPD (u IN v, {u}))
-
-END
-
-mtset bug1r5
-
-SETD (v IN Sizedsubset(V,2), SETD (u IN Sizedsubset(v,1), u))
-
-END
-
