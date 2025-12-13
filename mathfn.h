@@ -19,6 +19,9 @@ inline double floorfn( std::vector<double>& din );
 inline double ceilfn( std::vector<double>& din );
 
 inline double logfn( std::vector<double>& din );
+inline double log10fn( std::vector<double>& din );
+inline double log2fn( std::vector<double>& din );
+inline double logbfn( std::vector<double>& din );
 
 inline double sinfn( std::vector<double>& din);
 
@@ -43,8 +46,17 @@ inline double sqrtfn( std::vector<double>& din);
 
 inline double phifn( std::vector<double>& din);
 
+inline double asinfn( std::vector<double>& din);
+inline double acosfn( std::vector<double>& din);
+inline double atanfn( std::vector<double>& din);
+inline double atan2fn( std::vector<double>& din);
+inline double pifn( std::vector<double>& din);
+
 inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> global_fnptrs
     {{"log", {&logfn,1}},
+     {"log10",{&log10fn,1}},
+     {"log2",{&log2fn,1}},
+     {"logb",{&logbfn,2}},
      {"sin", {&sinfn,1}},
      {"cos", {&cosfn,1}},
      {"tan", {&tanfn,1}},
@@ -59,6 +71,11 @@ inline std::map<std::string,std::pair<double (*)(std::vector<double>&),int>> glo
      {"stirling",{&stirlingfn,2}},
      {"bell",{&bellfn,1}},
      {"sqrt",{&sqrtfn,1}},
-     {"phi",{&phifn,1}}};
+     {"phi",{&phifn,1}},
+     {"asin",{&asinfn,1}},
+     {"acos",{&acosfn,1}},
+     {"atan",{&atanfn,1}},
+     {"atan2",{&atan2fn,2}},
+     {"pi",{&pifn,0}}};
 
 #endif //MATHFN_H
