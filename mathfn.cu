@@ -71,7 +71,7 @@ inline double ceilfn( std::vector<double>& din ) {return ceil(din[0]);}
 inline double logfn( std::vector<double>& din ) {return log(din[0]);}
 inline double log10fn( std::vector<double>& din ) {return log10(din[0]);}
 inline double log2fn( std::vector<double>& din ) {return log2(din[0]);}
-inline double logbfn( std::vector<double>& din ) {return log(din[1])/log(din[0]);}
+inline double logbfn( std::vector<double>& din ) {return log(din[0])/log(din[1]);}
 inline double sinfn( std::vector<double>& din) {return sin(din[0]);}
 inline double cosfn( std::vector<double>& din) {return cos(din[0]);}
 inline double tanfn( std::vector<double>& din) {return tan(din[0]);}
