@@ -1081,7 +1081,7 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                             found = context[j].first == fc->v.vs.name;
                         if (!found) {
                             std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
-                            exit(1);
+                            fc->v.vs.l = 0;
                         }
                         else
                             fc->v.vs.l = j+1;
@@ -1089,7 +1089,7 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                 else
                 {
                     std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables (2))\n";
-                    exit(1);
+                    exit(-1);
                 }
             }
         } else if (quantifierops(fc->fo) || fc->fo == formulaoperator::fonaming || relationalops(fc->fo))

@@ -2179,8 +2179,10 @@ public:
         // if (q[pos] == "INP") {
         // qs.t = mtpair;
         // }
-                        else
+                        else {
                             std::cout << "unknown quantifier variable";
+                            exit(-1);
+                        }
     }
 };
 

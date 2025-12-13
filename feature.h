@@ -2878,7 +2878,10 @@ public:
         *_os << "\t" << "\"e=<expression>\": uses mathematical expression to serve as a set\n";
         *_os << "\t" << "\"p=<expression>\": uses mathematical expression to serve as a tuple\n";
         *_os << "\t" << "\"ia=<filename>\": uses the mathematical expression(s) in <filename> embedding\n";
-
+        *_os << "\t" << "<expression>: using these built-in mtcontinuous-type mathematical functions:\n";
+        for (const auto& pair : global_fnptrs) {
+            *_os << "\t\t\"" << pair.first << "\": takes " << pair.second.second << " input(s)\n";
+        }
         *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
         for (int n = 0; n < crs.size(); ++n) {
             *_os << "\t\t\"" << crs[n]->shortname << "\": " << crs[n]->name << "\n";

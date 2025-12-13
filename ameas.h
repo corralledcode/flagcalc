@@ -340,9 +340,11 @@ public:
         for (auto i = 0; i < pmsv->size(); ++i )
             if ((*pmsv)[i]->shortname == sin)
                 return i;
-        std::cout << "Unknown literal " << sin << std::endl;
-        exit(-1);
-        return -1;
+        if (pmsv->size() == 0) {
+            std::cout << "Unknown literal " << sin << std::endl;
+            exit(-1);
+        }
+        return 0;
     }
     virtual int findms( const pameas<T>* pamin)
     {
