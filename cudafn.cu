@@ -171,7 +171,7 @@ inline std::map<std::string,std::pair<CUDAliteral,std::vector<CUDAvalms>>> globa
      {"ac",{CUDAacfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}},
      {"connvc",{CUDAconnvcfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}}};
 
-__device__ inline void populateCUDAfnarraydevice( CUDAliteral* lits, const uint litssize ) // absolutely bizarre, the second argument must be int not uint
+__device__ inline void populateCUDAfnarraydevice( CUDAliteral* lits, const unsigned int litssize ) // absolutely bizarre, the second argument must be int not unsigned int
 {
     for (int i = 0; i < litssize; ++i)
     {
@@ -203,7 +203,7 @@ __device__ inline void populateCUDAfnarraydevice( CUDAliteral* lits, const uint 
     }
 }
 
-__global__ inline void populateCUDAfnarray( CUDAextendedcontext* Cecs, const uint sz )
+__global__ inline void populateCUDAfnarray( CUDAextendedcontext* Cecs, const unsigned int sz )
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 

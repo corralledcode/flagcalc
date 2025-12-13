@@ -44,7 +44,7 @@ struct CUDAseti
 {
     measuretype st;
     CUDAvalsptr ptr;
-    uint sz;
+    unsigned int sz;
 };
 
 union CUDAvals
@@ -139,7 +139,7 @@ struct CUDAnamedvariable
     // stringptr nm = -1;
 
     bool bound = false;
-    uint l = 0;
+    unsigned int l = 0;
 
     CUDAnamedvariabletype t = CUDAnamedvariabletype::cnvvalue;
     CUDAnamedvariables ufc {};
@@ -162,7 +162,7 @@ struct CUDAliteral
 {
     // stringptr nm = -1;
     bool bound = false;
-    uint l = 0;
+    unsigned int l = 0;
 
     measuretype t = measuretype::mtcontinuous;
     CUDAnamedvariableptr inputvariabletypesptr = -1;
@@ -190,24 +190,24 @@ struct CUDAextendedcontext
 {
 
     CUDAfc* CUDAfcarray;
-    uint CUDAfcarraysize;
+    unsigned int CUDAfcarraysize;
     CUDAfcptr fctop;
 
     CUDAnamedvariable* namedvararray;
-    uint namedvararraysize;
+    unsigned int namedvararraysize;
 
     void* CUDAvalsarray;
-    uint CUDAvalsarraysize;
+    unsigned int CUDAvalsarraysize;
 
     CUDAnamedvariable* CUDAcontext;
-    uint CUDAcontextsize;
+    unsigned int CUDAcontextsize;
     CUDAnamedvariableptr contextoffset;
 
     CUDAliteral* CUDAliteralarray;
-    uint CUDAliteralarraysize;
+    unsigned int CUDAliteralarraysize;
 
     CUDAvdimn fastn;
-    uint numfastn;
+    unsigned int numfastn;
 
     CUDAgraph g;
     CUDAneighbors ns;
@@ -218,8 +218,8 @@ struct CUDAdataspace
 {
     void* data;
     bool needsdelete = false;
-    uint sz;
-    uint szfactor = sizeof(bool);
+    unsigned int sz;
+    unsigned int szfactor = sizeof(bool);
 };
 
 class CUDAdataspaces
@@ -236,7 +236,7 @@ public:
     graphtype* g;
     neighborstype* ns;
 
-    uint totalsz = 0;
+    unsigned int totalsz = 0;
 
     void clear()
     {
@@ -255,7 +255,7 @@ public:
 
     bool checktotalsz()
     {
-        uint temptotalsz = 0;
+        unsigned int temptotalsz = 0;
         for (auto Cds : Csv)
             temptotalsz += Cds.sz * Cds.szfactor;
         return temptotalsz == totalsz;
@@ -312,7 +312,8 @@ public:
         CUDAvalsptr i = oldsz;
         for (auto v : Csv)
         {
-            void* ptr = Cec.CUDAvalsarray + i;
+            void* ptr = static_cast<void*>(static_cast<char*>(Cec.CUDAvalsarray) + i);
+            // void* ptr = Cec.CUDAvalsarray + i;
             if (v.data)
                 memcpy(ptr,v.data,v.sz*v.szfactor);
             i += v.sz * v.szfactor;
@@ -383,9 +384,9 @@ public:
 };
 
 
-void flattencontextforCUDA( const namedparams& context, const uint offset, CUDAdataspaces* Cdss, CUDAdataspaces& CdssNEW );
+void flattencontextforCUDA( const namedparams& context, const unsigned int offset, CUDAdataspaces* Cdss, CUDAdataspaces& CdssNEW );
 
-uint CUDAprognosticatespaceneeded( CUDAdataspaces& Cdss, CUDAfcptr& fctop );
+unsigned int CUDAprognosticatespaceneeded( CUDAdataspaces& Cdss, CUDAfcptr& fctop );
 
 void flattenformulaclassforCUDA( const formulaclass* fc, CUDAdataspaces& Cdss );
 
@@ -654,7 +655,7 @@ __device__ inline double CUDAto_mtcontinuous( const CUDAvalms v )
     }
 }
 
-__device__ inline CUDAseti newset( const CUDAextendedcontext& Cec, const CUDAvalsptr& Cvptr, const measuretype& mt, const uint& sz, void* data )
+__device__ inline CUDAseti newset( const CUDAextendedcontext& Cec, const CUDAvalsptr& Cvptr, const measuretype& mt, const unsigned int& sz, void* data )
 {
     memcpy(((void**)&Cec.CUDAvalsarray)[Cvptr],data,sz);
     CUDAseti res;
@@ -665,7 +666,7 @@ __device__ inline CUDAseti newset( const CUDAextendedcontext& Cec, const CUDAval
     return res;
 }
 
-__device__ inline CUDAseti CUDAto_mtset( const CUDAextendedcontext& Cec, const CUDAvalsptr& Cvptr, const measuretype& mt, const uint& sz, const CUDAvalms& v )
+__device__ inline CUDAseti CUDAto_mtset( const CUDAextendedcontext& Cec, const CUDAvalsptr& Cvptr, const measuretype& mt, const unsigned int& sz, const CUDAvalms& v )
 {
     switch (v.t)
     {
@@ -711,7 +712,7 @@ __device__ inline CUDAvalms CUDAvalmsto_specified( const CUDAextendedcontext& Ce
     return res;
 }
 
-__device__ inline CUDAvalms CUDAlookupnamedvariable(const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr, uint count, const measuretype& mt)
+__device__ inline CUDAvalms CUDAlookupnamedvariable(const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr, unsigned int count, const measuretype& mt)
 {
     CUDAvalms res;
     CUDAnamedvariableptr ptr = Cnvptr;

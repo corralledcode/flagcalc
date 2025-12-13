@@ -1415,7 +1415,7 @@ public:
     }
 
 #ifdef FLAGCALC_CUDA
-    bool checkGPUquantforfast(formulaclass& fc, uint& num, uint& sz)
+    bool checkGPUquantforfast(formulaclass& fc, unsigned int& num, unsigned int& sz)
     {
         const int dimm = this->emf->ns->g->dim;
         std::vector<std::pair<std::string,valms>> c;
@@ -1465,7 +1465,7 @@ public:
 };
 
 #ifdef FLAGCALC_CUDA
-void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, uint& sz)
+void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, unsigned int& sz)
 {
 
 #ifdef CUDADEBUG2
@@ -2074,7 +2074,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     {
 
         CUDAvalms* out;
-        uint sz;
+        unsigned int sz;
         bool* crit;
         childCUDAspawnwithcriterion(fc,context, crit,out,sz);
         switch (fc.fo)

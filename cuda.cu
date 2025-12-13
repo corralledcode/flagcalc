@@ -57,7 +57,7 @@ inline bool CUDAfindfunction( std::vector<CUDAnamedvariable>& Cnvv,
 
 void mttranslatetoCUDAset( setitr* seti, CUDAvalms& nv, CUDAdataspaces& Cdss )
 {
-    uint typesize;
+    unsigned int typesize;
     if (setitrint* cast = dynamic_cast<setitrint*>(seti))
     {
         typesize = sizeof(bool);
@@ -132,7 +132,7 @@ void mttranslatetoCUDAset( setitr* seti, CUDAvalms& nv, CUDAdataspaces& Cdss )
 }
 
 
-uint CUDAprognosticatespaceneeded( CUDAdataspaces& Cdss, CUDAfcptr& fctop)
+unsigned int CUDAprognosticatespaceneeded( CUDAdataspaces& Cdss, CUDAfcptr& fctop)
 {
     if (fctop < 0)
     {
@@ -204,7 +204,7 @@ uint CUDAprognosticatespaceneeded( CUDAdataspaces& Cdss, CUDAfcptr& fctop)
 }
 
 
-void flattencontextforCUDA( const namedparams& context, const uint offset, CUDAdataspaces* Cdss, CUDAdataspaces& CdssNEW )
+void flattencontextforCUDA( const namedparams& context, const unsigned int offset, CUDAdataspaces* Cdss, CUDAdataspaces& CdssNEW )
 {
     if (Cdss)
     {
@@ -213,7 +213,7 @@ void flattencontextforCUDA( const namedparams& context, const uint offset, CUDAd
     else CdssNEW.Ccv.clear();
         // Cdss->copyCUDAdataspaces(CdssNEW);
 
-    const uint startidx = offset;
+    const unsigned int startidx = offset;
     int idx = 0;
     CdssNEW.Ccv.resize(context.size());
     while (idx+startidx < context.size())
@@ -576,7 +576,7 @@ __device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr
             CUDAvalms res;
             CUDAnamedvariableptr j = Cec.CUDAliteralarray[Cfc.literal].inputvariabletypesptr;
             CUDAnamedvariableptr k = Cfc.namedvar;
-            uint argcnt = j >= 0;
+            unsigned int argcnt = j >= 0;
             measuretype t0, t1;
             CUDAvalms v[2]; // the plan is use two "registers" as a best guess as to how many args are needed
             if (argcnt > 0)

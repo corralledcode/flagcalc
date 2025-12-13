@@ -8,12 +8,13 @@
 
 #include "cudaengine.cuh"
 #include "cudafn.cu"
+#include <chrono>
 // #include "cudagraph.cuh"
 
 #include <cuda_runtime.h>
 
 
-__global__ void wrapCUDAeval( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const CUDAfcptr start, const uint sz )
+__global__ void wrapCUDAeval( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const CUDAfcptr start, const unsigned int sz )
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < sz)
@@ -23,7 +24,7 @@ __global__ void wrapCUDAeval( bool* crit, CUDAvalms* out, CUDAextendedcontext* C
     }
 }
 
-__global__ void wrapCUDAevalcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const CUDAfcptr start, const uint sz )
+__global__ void wrapCUDAevalcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const CUDAfcptr start, const unsigned int sz )
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < sz)
@@ -35,7 +36,7 @@ __global__ void wrapCUDAevalcriterion( bool* crit, CUDAvalms* out, CUDAextendedc
 }
 
 __global__ void wrapCUDAevalfast( bool* crit, CUDAvalms* out, CUDAextendedcontext& Cec,
-    const CUDAfcptr start, const uint dimm, const uint sz )
+    const CUDAfcptr start, const unsigned int dimm, const unsigned int sz )
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     CUDAvdimn v;
@@ -58,7 +59,7 @@ __global__ void wrapCUDAevalfast( bool* crit, CUDAvalms* out, CUDAextendedcontex
 }
 
 __global__ void wrapCUDAevalcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext& Cec,
-    const CUDAfcptr start, const uint dimm, const uint sz )
+    const CUDAfcptr start, const unsigned int dimm, const unsigned int sz )
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     CUDAvdimn v;
@@ -95,7 +96,7 @@ __global__ void CUDAcomputeneighborslistenmasse( const CUDAgraph* gs, CUDAneighb
 
 
 void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext& Cec, const CUDAfcptr start,
-    const uint dimm, const uint sz )
+    const unsigned int dimm, const unsigned int sz )
 {
 #ifdef CUDADEBUG2
     auto starttime = std::chrono::high_resolution_clock::now();
@@ -206,7 +207,7 @@ void CUDAevalwithcriterionfast( bool* crit, CUDAvalms* out, CUDAextendedcontext&
 }
 
 
-void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const CUDAfcptr start, const uint sz )
+void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const CUDAfcptr start, const unsigned int sz )
 {
     auto starttime = std::chrono::high_resolution_clock::now();
 
@@ -343,7 +344,7 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
 #endif
 }
 
-void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const uint sz )
+void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const unsigned int sz )
 {
     CUDAevalwithcriterion(crit, out, Cecs, Cecs[0].fctop, sz);
 }
@@ -354,8 +355,12 @@ void CUDAcountpathsbetweenwrapper(int* out, int walklength, const bool* adjmatri
     int* d_in1;
     int* d_in2;
 
-    int in1[dim * dim];
-    int in2[dim * dim];
+    int* in1;
+    int* in2;
+    // int in1[dim * dim];
+    // int in2[dim * dim];
+    in1 = (int*)malloc(dim*dim*sizeof(int));
+    in2 = (int*)malloc(dim*dim*sizeof(int));
 
     memset(in1,0,sizeof(int) * dim * dim);
     for (int i = 0; i < dim; ++i)

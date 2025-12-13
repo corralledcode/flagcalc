@@ -5,8 +5,6 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
 # Choose to set OFF for non-CUDA compiled code (though nvcc is still required to compile this code)
 set (INTERNALFLAGCALC_CUDA OFF)
 
-set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -allow-unsupported-compiler")
-
 if (INTERNALFLAGCALC_CUDA)
     project(flagcalc CUDA)
     set(CMAKE_CUDA_STANDARD 20)

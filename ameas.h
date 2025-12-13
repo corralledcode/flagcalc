@@ -529,7 +529,7 @@ public:
     void partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int contextidxB,
         std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
 #ifdef FLAGCALC_CUDA
-    void childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, uint& sz);
+    void childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, unsigned int& sz);
 #endif
     void threadrelationalcomputevectorportion(formulaclass* fc, namedparams* context, namedparams* vector,
     bool* boolvector, bool* computedvector, const int sz, const int idx, const int startidx, const int stopidx,
