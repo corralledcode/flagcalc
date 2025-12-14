@@ -1,4 +1,4 @@
-PTH='../cmake-build-debug'
+PTH=${PTH:-'../bin'}
 
 $PTH/flagcalc -d f="abcde" -a s="FORALL (u IN Ps(V), v IN Ps(V), GPU EXISTS (x IN V, 1, x ELT (u CAP v) IFF (x ELT u AND x ELT v)))"
 

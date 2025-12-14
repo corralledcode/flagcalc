@@ -1,4 +1,5 @@
-PTH='../cmake-build-debug'
+PTH=${PTH:-'../bin'}
+
 $PTH/flagcalc -r 9 2 50 -a s="EXISTS (t IN Ps(V), EXISTS (s IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/2) AND st(t) == floor(dimm/2)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 10 1 -a s="FORALL (n IN NN(dimm), EXISTS (s IN Ps(V), EXISTS (t IN Ps(V), (s CUP t) == V AND st(s) == ceil(dimm/(n+1)) AND st(t) == floor(n*dimm/(n+1)))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 9 10 100 -a s="FORALL (e IN E, EXISTS (a IN V, EXISTS (b IN V, a ELT e AND b ELT e AND a != b)))" all -v i=minimal3.cfg

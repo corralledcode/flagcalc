@@ -1,5 +1,6 @@
 # The aim is Kuratowski's theorem, e.g. to code ``embeds subdivision of of K_5"
-PTH='../cmake-build-debug'
+PTH=${PTH:-'../bin'}
+
 
 # Embeds K_5 partition?
 

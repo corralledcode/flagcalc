@@ -1,4 +1,5 @@
-PTH='../cmake-build-debug'
+PTH=${PTH:-'../bin'}
+
 $PTH/flagcalc -r 10 10 1 -a e="V CUP E" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 10 10 1 -a e="V CAP {2,3}" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 10 10 1 -a e="V SETMINUS {2,4,8}" all -v set allsets i=minimal3.cfg

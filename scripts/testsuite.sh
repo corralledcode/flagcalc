@@ -1,4 +1,4 @@
-PTH='../cmake-build-debug'
+PTH=${PTH:-'../bin'}
 $PTH/flagcalc -L 10 18 1000
 $PTH/flagcalc -d testbip12.dat -f all -i sorted
 $PTH/flagcalc -d testgraph23.dat -i all
