@@ -1887,6 +1887,7 @@ public:
         auto (eadjs) = setfactory<eadjset>;
         auto (e2eadjs) = setfactory<e2eadjset>;
         auto (Epathss) = setfactory<Epathsset>;
+        auto (Mapss) = setfactory<Mapsset>;
 
 
         stsfactory.push_back(Vs);
@@ -1917,6 +1918,7 @@ public:
         stsfactory.push_back(e2eadjs);
         stsfactory.push_back(Epathss);
         stsfactory.push_back(Pathsusingvsets);
+        stsfactory.push_back(Mapss);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));

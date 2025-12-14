@@ -3166,3 +3166,28 @@ public:
         return itr;
     }
 };
+
+class Mapsset : public set
+{
+public:
+    Mapsset( mrecords* recin ) : set( recin, "Maps", "All maps from setsize in to setsize out")
+    {
+        valms v1;
+        valms v2;
+        v1.t = mtdiscrete;
+        nps.push_back(std::pair{"From set size",v1});
+        v2.t = mtdiscrete;
+        nps.push_back(std::pair{"To set size",v2});
+        bindnamedparams();
+    }
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        auto itr = new setitrmaps(ps[0].v.iv, ps[1].v.iv);
+        return itr;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        auto itr = new setitrmaps(ps[0].v.iv, ps[1].v.iv);
+        return itr;
+    }
+};

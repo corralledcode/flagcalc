@@ -1953,6 +1953,84 @@ public:
 
 };
 
+class setitrmaps : public setitr
+{
+protected:
+    unsigned int tosize;
+    unsigned int fromsize;
+    long long int sz;
+    long long int howmanycomputed = 0;
+    setitr* currentset;
+    std::vector<valms> currentchoice {};
+public:
+    setitr* supersetitr;
+
+    void reset() override
+    {
+        pos = -1;
+    }
+    int getsize() override
+    {
+        return sz;
+    }
+    bool ended()
+    {
+        return pos+1 >= sz;
+    }
+    valms getnext() override
+    {
+        if (++pos < howmanycomputed)
+            return totality[pos];
+
+        valms res;
+
+        if (pos >= sz)
+        {
+            std::cout << "Indexing beyond size in setitrmaps\n";
+            valms w;
+            w.t = mtbool;
+            w.v.bv = false;
+            res = w;
+            return res;
+        }
+
+        currentset = new setitrmodeone(currentchoice);
+        res.seti = currentset;
+        res.t = mttuple;
+        totality.resize(pos+1);
+        totality[pos] = res;
+        int index = 0;
+
+        if (++(currentchoice[index].v.iv) >= tosize)
+        {
+            currentchoice[index].v.iv = 0;
+            while (++index < fromsize && ++(currentchoice[index].v.iv) >= tosize)
+            {
+               currentchoice[index].v.iv = 0;
+            }
+        }
+        howmanycomputed = pos+1;
+        return res;
+    }
+
+    setitrmaps(int fromsizein, int tosizein) : fromsize(fromsizein), tosize(tosizein)
+    {
+        t = mttuple;
+        currentchoice.resize(fromsize);
+        int i = 0;
+        sz = pow(tosize,fromsize);
+        for (int i = 0; i < fromsize; ++i)
+        {
+            currentchoice[i].t = mtdiscrete;
+            currentchoice[i].v.iv = 0;
+        }
+        reset();
+    }
+    ~setitrmaps() {}
+
+};
+
+
 class setitrsizedsubset : public setitr
 {
 public:
