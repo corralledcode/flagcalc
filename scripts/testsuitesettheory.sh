@@ -1,6 +1,6 @@
 # This is a comprehensive script running in the ones or tens of minutes depending on the hardware
 # It predates THREADDED, PARTITION, SORT, and GPU stuff
-# It covers some very pertinent theorems from graph theory, and leands heavily on set-theoretic notions and FOL
+# It covers some very pertinent theorems from graph theory, and leans heavily on set-theoretic notions and FOL
 
 PTH=${PTH:-'../bin'}
 
@@ -143,7 +143,7 @@ $PTH/flagcalc -d f="abcd" -a s="EXISTS (c IN Cyclesvs(0), EXISTS (d IN Cyclesvs(
 $PTH/flagcalc -d f="abc" -a s="EXISTS (c IN Cyclesvs(0), EXISTS (d IN Cyclesvs(0), c != d AND TupletoSet(c) == TupletoSet(d)))" all
 
 # This is just seeing a first application of quantifier "TALLY", like in the earlier demonstration of this handshake lemma
-# Please note that three of the following four queries returns all True (well, all four if supernaturally lucky)
+# Please note that three of the following four queries returns all True (well, all four if extremely lucky)
 $PTH/flagcalc -r 20 95 100 -a s="TALLY (v IN V, vdt(v))/2 == edgecm" all -v i=minimal3.cfg
 $PTH/flagcalc -r 20 95 100 -a s="TALLY (v IN V, vdt(v)/2) == edgecm" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 33 1000 -a s="SUM (v IN V, vdt(v))/2 == edgecm" all -v i=minimal3.cfg

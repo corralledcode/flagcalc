@@ -13,4 +13,8 @@
 #define FLAGCALC_CUDA
 #endif
 
+#ifdef FLAGCALC_CMAKE_PYTHON
+#define FLAGCALCWITHPYTHON
+#endif
+
 #endif //FLAGCALC_CONFIG_H

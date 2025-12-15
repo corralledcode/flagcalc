@@ -29,6 +29,11 @@
 #include "cudaengine.cuh"
 #include "meas.cu"
 
+#ifdef FLAGCALCWITHPYTHON
+#include <pybind11/embed.h>
+#include <pybind11/stl.h>
+namespace py = pybind11;
+#endif
 
 #include "probsub.cu"
 #include "math.h"
@@ -2343,6 +2348,16 @@ struct storedprocstruct
     int iidx;
 };
 
+#ifdef FLAGCALCWITHPYTHON
+struct pythonmethodstruct {
+    std::string name;
+    namedparams nps;
+    py::module_ m;
+    int iidx;
+};
+
+#endif
+
 
 class checkcriterionfeature : public abstractcheckcriterionfeature {
 protected:
@@ -2353,6 +2368,9 @@ protected:
     std::vector<std::string> litnames {};
     std::vector<storedprocstruct> storedprocedures {};
 
+#ifdef FLAGCALCWITHPYTHON
+    std::vector<pythonmethodstruct> pythonmethods {};
+#endif
 
     itn* newiteration( measuretype mtin, int roundin, const ams ain, const bool hiddenin = false )
     {
@@ -2593,6 +2611,7 @@ protected:
             std::cout << "Empty stored procedure" << std::endl;
         }
     }
+
 
     int lookupiter( const std::string sin )
     {
@@ -3101,6 +3120,66 @@ public:
 
                 continue;
             }
+
+#ifdef FLAGCALCWITHPYTHON
+            if (ccl.t == "ipy") // Python methods from a file
+            {
+                std::string filename = parsedargs[i].second;
+
+                py::scoped_interpreter guard{};
+                py::module_ sys = py::module_::import("sys");
+                sys.attr("path").attr("append")("../python");
+
+                try {
+
+                    py::object pymodule = py::module::import(filename.c_str());
+
+                    py::list method_list = py::cast<py::list>(py::eval("dir()", pymodule.attr("__dict__")));
+
+                    std::vector<std::string> methods = py::cast<std::vector<std::string>>(method_list);
+
+                    for (const std::string& m : methods) {
+                        std::cout << m << std::endl;
+                    }
+
+                    for (auto d : method_list) {
+
+
+                        py::module_ inspect = py::module_::import("inspect");
+                        py::object signature = inspect.attr("signature")(d);
+                        py::object parameters = signature.attr("parameters");
+                        int num_args = py::len(parameters);
+
+                        std::cout << " - " << std::string(py::str(d)) << std::endl;
+
+                        std::cout << "The method has " << num_args << " arguments.";
+
+
+
+                        /*
+                        py::object signature = d.attr("signature")(d);
+                        py::object parameters = signature.attr("parameters");
+
+                        std::string name = py::str(d);
+                        std::cout << "name: " << name << ", length: " << py::len(parameters) << std::endl;
+*/
+                        pythonmethodstruct pys;
+
+                        pys.name = py::str(d);
+                        pys.m = pymodule;
+
+                        pythonmethods.push_back(pys);
+
+                    }
+
+                } catch (const py::error_already_set& e) {
+                    std::cout << "Error with Python 'ipy' feature:" << e.what() << std::endl;
+                    exit(1);
+                }
+
+            }
+
+#endif
 
 
 
