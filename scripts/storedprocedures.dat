@@ -148,5 +148,15 @@ COUNT (d IN NN(n+1), d > 0, ntrelprime( n,d ))
 
 END
 
+
+
+mtset nWalkss( mtdiscrete u, mtdiscrete v, mtdiscrete length )
+
+SET (m IN Maps(length+1, dimm),
+     FORALL (n IN st(m) - 1, ac(m[n],m[n+1])) AND m[0] == u AND m[st(m)-1] == v, m )
+
+END
+
+
 #include "../scripts/recursion.dat"
 #include "../scripts/planarity.dat"
