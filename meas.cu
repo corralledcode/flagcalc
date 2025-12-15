@@ -2979,6 +2979,7 @@ public:
             in1[i*dim+i] = 1;
         for (int i = 0; i < dim*dim; i++)
             in2[i] = ns->g->adjacencymatrix[i];
+        memcpy (out,in1,dim*dim*sizeof(int));
         for (int i = 0; i < ps[0].v.iv; i++)
         {
             squarematrixmultiply(out,in1,in2,dim);

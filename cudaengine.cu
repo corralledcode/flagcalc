@@ -365,6 +365,7 @@ void CUDAcountpathsbetweenwrapper(int* out, int walklength, const bool* adjmatri
     memset(in1,0,sizeof(int) * dim * dim);
     for (int i = 0; i < dim; ++i)
         in1[i*dim+i] = 1;
+    memcpy(out,in1,dim*dim*sizeof(int));
     for (int i = 0; i < dim*dim; ++i)
         in2[i] = adjmatrix[i];
 
