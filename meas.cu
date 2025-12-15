@@ -2957,7 +2957,56 @@ class nwalksbetweentuple : public set
 {
 public:
     nwalksbetweentuple( mrecords* recin ) :
-        set( recin, "nwalksbetweenp", "Array of walk counts of given length between each vertex pair")
+        set( recin, "nwalksbetweenp", "Matrix of walk counts of given length between each vertex pair")
+    {
+        valms v;
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"walk length",v});
+        bindnamedparams();
+    };
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        int dim = ns->g->dim;
+        // int in1[dim*dim];
+        // int in2[dim*dim];
+        // out = new int[dim*dim];
+        int* in1 = (int*)malloc(dim*dim*sizeof(int));
+        int* in2 = (int*)malloc(dim*dim*sizeof(int));
+        int* out = (int*)malloc(dim*dim*sizeof(int));
+
+        memset(in1,0,sizeof(int) * dim * dim);
+        for (int i = 0; i < dim; ++i)
+            in1[i*dim+i] = 1;
+        for (int i = 0; i < dim*dim; i++)
+            in2[i] = ns->g->adjacencymatrix[i];
+        memcpy (out,in1,dim*dim*sizeof(int));
+        for (int i = 0; i < ps[0].v.iv; i++)
+        {
+            squarematrixmultiply(out,in1,in2,dim);
+            memcpy(in1,out,dim * dim * sizeof(int));
+        }
+
+        std::vector<setitrtuple<int>*> tuples {};
+        tuples.resize(dim);
+        for (int i = 0; i < dim; ++i)
+            tuples[i] = new setitrtuple<int>(dim,&out[i*dim]);
+        auto res = new setitrtuple2d<int>(tuples);
+
+        return res;
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
+class nwalksbetweenfasttuple : public set
+{
+public:
+    nwalksbetweenfasttuple( mrecords* recin ) :
+        set( recin, "nwalksbetweenfastp", "Fast (1D) Array of walk counts of given length between each vertex pair")
+    // this was added 12/15/2025 to preserve the fast ability but also to code by default a tuple of tuples response
     {
         valms v;
         v.t = mtdiscrete;

@@ -40,7 +40,14 @@ public:
         int* out;
         out = new int[dim*dim];
         CUDAcountpathsbetweenwrapper(out,ps[0].v.iv,ns->g->adjacencymatrix,dim);
-        return new setitrtuple<int>(dim*dim,out);
+
+        std::vector<setitrtuple<int>*> tuples {};
+        tuples.resize(dim);
+        for (int i = 0; i < dim; ++i)
+            tuples[i] = new setitrtuple<int>(dim,&out[i*dim]);
+        auto res = new setitrtuple2d<int>(tuples);
+
+        return res;
     }
     setitr* takemeas( const int idx, const params& ps) override
     {
