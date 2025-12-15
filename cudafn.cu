@@ -7,16 +7,12 @@
 #ifdef FLAGCALC_CUDA
 
 #include <iostream>
+#include <numbers>
 #include <vector>
-
 #include <cuda_runtime.h>
-
 #include "cuda.cuh"
-
 #include "ameas.h"
-
 #include <cstring>;
-
 #include "cudagraph.cuh"
 
 
@@ -110,6 +106,24 @@ __device__ inline double CUDAsqrt( const CUDAextendedcontext& Cec, const CUDAval
 __device__ inline long int CUDAphi( const CUDAextendedcontext& Cec, const CUDAvalms* args)
 {long int a = CUDAto_mtcontinuous(args[0]); return CUDAtotient(a);}
 
+__device__ inline double CUDAasin( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return asin(a);}
+__device__ inline double CUDAacos( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return acos(a);}
+__device__ inline double CUDAatan( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return atan(a);}
+__device__ inline double CUDAatan2( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); double b = CUDAto_mtcontinuous(args[1]); return atan2(a,b);}
+__device__ inline double CUDApi( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{return std::numbers::pi;}
+__device__ inline double CUDAlog2( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return log2(a);}
+__device__ inline double CUDAlog10( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); return log10(a);}
+__device__ inline double CUDAlogb( const CUDAextendedcontext& Cec, const CUDAvalms* args)
+{double a = CUDAto_mtcontinuous(args[0]); double b = CUDAto_mtcontinuous(args[1]); return log(a)/log(b);}
+
+
 inline CUDAliteral CUDAlogfn = { false, 0, mtcontinuous,-1,{ .fncontinuous = &CUDAlog} };
 inline CUDAliteral CUDAsinfn = {  false, 1, mtcontinuous,-1,{ .fncontinuous = &CUDAsin}};
 inline CUDAliteral CUDAcosfn = {  false, 2, mtcontinuous, -1, { .fncontinuous = &CUDAcos}};
@@ -126,6 +140,16 @@ inline CUDAliteral CUDAstirlingfn = {   false, 12, mtdiscrete, -1,{ .fndiscrete 
 inline CUDAliteral CUDAbellfn = { false, 13, mtcontinuous, -1,{ .fncontinuous = &CUDAbell}};
 inline CUDAliteral CUDAsqrtfn = {  false, 14, mtcontinuous, -1,{ .fncontinuous = &CUDAsqrt}};
 inline CUDAliteral CUDAphifn = {  false, 15, mtdiscrete, -1,{ .fndiscrete = &CUDAphi}};
+
+inline CUDAliteral CUDAasinfn = { false, 16, mtcontinuous, -1,{ .fncontinuous = &CUDAasin}};
+inline CUDAliteral CUDAacosfn = { false, 17, mtcontinuous, -1,{ .fncontinuous = &CUDAacos}};
+inline CUDAliteral CUDAatanfn = { false, 18, mtcontinuous, -1,{ .fncontinuous = &CUDAatan}};
+inline CUDAliteral CUDAatan2fn = { false, 19, mtcontinuous, -1,{ .fncontinuous = &CUDAatan2}};
+inline CUDAliteral CUDApifn = { false, 20, mtcontinuous, -1,{ .fncontinuous = &CUDApi}};
+inline CUDAliteral CUDAlog2fn = { false, 21, mtcontinuous, -1,{ .fncontinuous = &CUDAlog2}};
+inline CUDAliteral CUDAlog10fn = { false, 22, mtcontinuous, -1,{ .fncontinuous = &CUDAlog10}};
+inline CUDAliteral CUDAlogbfn = { false, 23, mtcontinuous, -1,{ .fncontinuous = &CUDAlogb}};
+
 
 __device__ inline long int CUDAsizetally( const CUDAextendedcontext& Cec, const CUDAvalms* args )
 {long int cnt = 0; CUDAvalms v = args[0];
@@ -167,6 +191,16 @@ inline std::map<std::string,std::pair<CUDAliteral,std::vector<CUDAvalms>>> globa
      {"bell",{CUDAbellfn,{{.t = mtdiscrete}}}},
      {"sqrt",{CUDAsqrtfn,{{.t = mtcontinuous}}}},
      {"phi",{CUDAphifn,{{.t = mtdiscrete}}}},
+
+    {"asin",{CUDAasinfn,{{.t = mtcontinuous}}}},
+    {"acos",{CUDAacosfn,{{.t = mtcontinuous}}}},
+    {"atan",{CUDAatanfn,{{.t = mtcontinuous}}}},
+    {"atan2",{CUDAatan2fn,{{.t = mtcontinuous}, {.t = mtcontinuous}}}},
+    {"pi",{CUDApifn,{{}}}},
+    {"log2",{CUDAlog2fn,{{.t = mtcontinuous}}}},
+    {"log10",{CUDAlog10fn,{{.t = mtcontinuous}}}},
+    {"logb",{CUDAlogbfn,{{.t = mtcontinuous},{.t = mtcontinuous}}}},
+
      {"st",{CUDAsizetallyfn,{{.t = mtset}}}},
      {"ac",{CUDAacfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}},
      {"connvc",{CUDAconnvcfn,{{.t = mtdiscrete}, {.t = mtdiscrete}}}}};
@@ -194,9 +228,17 @@ __device__ inline void populateCUDAfnarraydevice( CUDAliteral* lits, const unsig
         case 13: lit.function.fncontinuous = CUDAbell; break;
         case 14: lit.function.fncontinuous = CUDAsqrt; break;
         case 15: lit.function.fndiscrete = CUDAphi; break;
-        case 16: lit.function.fndiscrete = CUDAsizetally; break;
-        case 17: lit.function.fnbool = CUDAac; break;
-        case 18: lit.function.fnbool = CUDAconnvc; break;
+        case 16: lit.function.fncontinuous = CUDAasin; break;
+        case 17: lit.function.fncontinuous = CUDAacos; break;
+        case 18: lit.function.fncontinuous = CUDAatan; break;
+        case 19: lit.function.fncontinuous = CUDAatan2; break;
+        case 20: lit.function.fncontinuous = CUDApi; break;
+        case 21: lit.function.fncontinuous = CUDAlog2; break;
+        case 22: lit.function.fncontinuous = CUDAlog10; break;
+        case 23: lit.function.fncontinuous = CUDAlogb; break;
+        case 24: lit.function.fndiscrete = CUDAsizetally; break;
+        case 25: lit.function.fnbool = CUDAac; break;
+        case 26: lit.function.fnbool = CUDAconnvc; break;
         default: lit.function.fndiscrete = CUDAfloor; break;
         }
         lits[i] = lit;

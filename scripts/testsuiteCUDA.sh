@@ -1,5 +1,8 @@
+# CUDA-enabled flagcalc starts with two tracks: GPU <quantifier> or natively CUDA-coded measures
+
 PTH=${PTH:-'../bin'}
 
+# First some basic set theory: this should return True
 $PTH/flagcalc -d f="abcde" -a s="FORALL (u IN Ps(V), v IN Ps(V), GPU EXISTS (x IN V, 1, x ELT (u CAP v) IFF (x ELT u AND x ELT v)))"
 
 $PTH/flagcalc -d f="abcde" -a s="FORALL (v IN V, GPU EXISTS (s IN Ps(V), t IN Ps(V), 1, v ELT (s CAP t)))"

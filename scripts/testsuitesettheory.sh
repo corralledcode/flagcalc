@@ -66,102 +66,171 @@ $PTH/flagcalc -d testbip12.dat -a s="EXISTS (n IN NN(dimm+1), EXISTS (l IN Sized
 
 $PTH/flagcalc -r 4 3 10 -a s="FORALL (n IN NN(2^dimm+1), EXISTS (s IN Sizedsubset(Ps(V),n), EXISTS (t IN Sizedsubset(Ps(V),2^dimm - n), ((s CUP t) == Ps(V)) AND ((s CAP t) == Nulls))))" all -v i=minimal3.cfg
 
+# This is an obsolete way to index into a set; now we use square brackets as in e[0], and e[2]
 $PTH/flagcalc -r 10 20 100 -a s="FORALL (e IN E, ac(idxt(e,0),idxt(e,1)))" all -v i=minimal3.cfg
 
 $PTH/flagcalc -r 10 20 100 -a s="FORALL (n IN NN(st(E)), ac(idxt(idxs(E,n),0),idxt(idxs(E,n),1)))" all -v i=minimal3.cfg
 
+# here st(Pathss(a,b)) counts the size of that set, and checks it's equal to the measure pct
 $PTH/flagcalc -r 7 12 10 -a s="FORALL (b IN V, FORALL (a IN V, st(Pathss(a,b)) == pct(a,b)))" all -v i=minimal3.cfg
 
+# this again uses obsolete dereferencing to check that adjacent vertices in a path are edge-connected
 $PTH/flagcalc -r 6 10 10 -a s="FORALL (b IN V, FORALL (a IN V, FORALL (p IN Pathss(a,b), FORALL (m IN NN(st(p)-1), ac(idxt(p,m),idxt(p,m+1))))))" all -v i=minimal3.cfg
 
+# this uses a standard complete bipartite graph to check all cycles are even in length; also note there is mod built-in as the percent symbol (%), not shown here
 $PTH/flagcalc -d testbip8.dat -a s="FORALL (v IN V, FORALL (c IN Cyclesvs(v), mod(st(c),2) == 0))" all
 
+# this checks a graph is triangle free if and only if every cycle starting at every vertex is at least 4 in length
 $PTH/flagcalc -r 8 10 1000 -a s="cr1 IFF FORALL (v IN V, FORALL (c IN Cyclesvs(v), st(c) > 3))" all -v i=minimal3.cfg
 
+# a graph is a tree if and only if every two vertices have exactly one path between them
+# (note it is correct that a vertex has exactly one path, of length zero, with itself (see defn in Diestel p. 6)
 $PTH/flagcalc -r 9 8 100 -a s="treec IFF FORALL (a IN V, FORALL (b IN V, st(Pathss(a,b)) == 1))" all -v i=minimal3.cfg
 
+# Again, now the forestc is whether all pairs have at most one path between them
 $PTH/flagcalc -r 9 12 100 -a s="forestc IFF FORALL (a IN V, FORALL (b IN V, st(Pathss(a,b)) <= 1))" all -v i=minimal3.cfg
 
+# A variant: now the test is that a graph is a forest if the cycles containing any given vertex a are zero in number
 $PTH/flagcalc -r 9 12 100 -a s="forestc IFF FORALL (a IN V, st(Cyclesvs(a)) == 0)" all -v i=minimal3.cfg
 
+# this is repeated, just showing how we feel out good numbers for the randomizer, to produce a few actual forests
 $PTH/flagcalc -r 9 6 100 -a s="forestc IFF FORALL (a IN V, st(Cyclesvs(a)) == 0)" all -v i=minimal3.cfg
 
+# Here we first encounter Pathss(a,b) being the empty set: a graph that isn't 1-connected (defn Diestel p. 11)
 $PTH/flagcalc -r 10 15 50 -a s="conn1c IFF FORALL (a IN V, FORALL (b IN V, Pathss(a,b) != Nulls))" all -v i=minimal3.cfg
 
+# This checks that for any given cycle c, and for any vertex w in that cycle, the cycles containing w contain some permutation of c
+# (achieved not by using a quantifier over Permss (the set of permutations), but simply by "forgetting" and treating the tuple as an (unordered) set
 $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN V, FORALL (c IN Cyclesvs(v), FORALL (w IN c, TupletoSet(c) ELT Cyclesvs(w))))" all -v i=minimal3.cfg
 
+# Here we are just testing a bit more the previous query
 $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN V, FORALL (c IN Cyclesvs(v), FORALL (w IN c, TupletoSet(c) ELT (SET (d IN Cyclesvs(w), TupletoSet(d))))))" all -v i=minimal3.cfg
 
+# Testing the built-in criteria bipc, more antiquated but still functional: it takes as input two purported bipartite sets comprising V
+# (i.e. not directly using the later-added "Setpartition(V)" with st(...) == 2).
+# Note also per received definition, that complete bipartite is a stronger statement than bipartite (see defn Diestel p 17)
 $PTH/flagcalc -d testbip10.dat -a s="EXISTS (r IN Ps(V), EXISTS (l IN Ps(V), (l CUP r) == V AND bipc(l,r)))" all
 
+# This is again using the criteria of no odd cycles for bipartite
 $PTH/flagcalc -r 9 10 100 -a s="(EXISTS (r IN Ps(V), EXISTS (l IN Ps(V), (l CUP r) == V AND bipc(l,r)))) IFF FORALL (v IN V, FORALL (c IN Cyclesvs(v), mod(st(c),2) == 0))" all -v i=minimal3.cfg
 
+# This is for fun, again, using some arithmetic: the number of cycles of a given length n is equal to the double sum
+# over first vertices, then over each cycle around that vertex, finally taking the summand to be 1/"the size of the cycle".
 $PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), cyclet(n)) == SUM (v IN V, SUM (c IN Cyclesvs(v), 1/st(c)))" all -v i=minimal3.cfg
 
+# This is the handshake lemma
 $PTH/flagcalc -r 12 33 1000 -a s="SUM (v IN V, vdt(v))/2 == edgecm" all -v i=minimal3.cfg
 
+# This is a way to express the quantifier "COUNT" using "SUM", and introduces again edgecm (these early measures
+# were incorrectly given suffix of "m" even though they are discrete (should end in "t")
 $PTH/flagcalc -r 7 10 100 -a s="SUM (e IN E, 1) == edgecm" all -v i=minimal3.cfg
 
+# This is literally just the definition of the new measure cyclesvt; worth checking, however, the speed of the two
+# ways of expressing the quantity in this query (not done here, but a simple exercise)
 $PTH/flagcalc -r 8 10 100 -a s="FORALL (v IN V, st(Cyclesvs(v)) == cyclesvt(v))" all -v i=minimal3.cfg
 
+# Again here using an antiquated tally, "lt" (tuple length tally) (just use st). But the arithmetic is fun
+# (note: "ac" is the widely-used adjacency criterion)
 $PTH/flagcalc -r 7 10 1000 -a s="FORALL (v IN V, FORALL (c IN Cyclesvs(v), SUM (a IN c, SUM (b IN c, ac(b,a)))/2 >= lt(c)))" all -v i=minimal3.cfg
 
+#  This is a repeat of an earlier query in this file, but showing we can directly use equality now between sets
 $PTH/flagcalc -r 7 10.5 50 -a s="FORALL (v IN V, FORALL (c IN Cyclesvs(v), FORALL (w IN c, EXISTS (d IN Cyclesvs(w), TupletoSet(d) == TupletoSet(c)))))" all -v i=minimal3.cfg
 
+# Here relatively meaningless, except to verify that a complete K_4 graph has at least two cycles around the first vertex
 $PTH/flagcalc -d f="abcd" -a s="EXISTS (c IN Cyclesvs(0), EXISTS (d IN Cyclesvs(0), c != d AND TupletoSet(c) == TupletoSet(d)))" all
 
+# Now we see the reasoning: this way, it is no longer true (in reference to the previous query)
 $PTH/flagcalc -d f="abc" -a s="EXISTS (c IN Cyclesvs(0), EXISTS (d IN Cyclesvs(0), c != d AND TupletoSet(c) == TupletoSet(d)))" all
 
+# This is just seeing a first application of quantifier "TALLY", like in the earlier demonstration of this handshake lemma
+# Please note that three of the following four queries returns all True (well, all four if supernaturally lucky)
 $PTH/flagcalc -r 20 95 100 -a s="TALLY (v IN V, vdt(v))/2 == edgecm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 20 95 100 -a s="TALLY (v IN V, vdt(v)/2) == edgecm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 33 1000 -a s="SUM (v IN V, vdt(v))/2 == edgecm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 33 1000 -a s="SUM (v IN V, vdt(v)/2) == edgecm" all -v i=minimal3.cfg
 
+# Here the number of vertices having odd degree has to be even
+# (Diestel prop 1.2.1)
 $PTH/flagcalc -r 15 52.5 10000 -a s="COUNT (v IN V, vdt(v) % 2 == 1) % 2 == 0" all -v i=minimal3.cfg
 
-$PTH/flagcalc -r 15 52.5 10000 -a i="COUNT (v IN V, vdt(v) % 2 == 1)" all -v i=minimal3.cfg
+# Here is the same query, but with the results categorized with the (necessarily even) number between zero and 15
+# of how many out of the ten-thousand have this sum of their respective vertices' degrees
+# (please note earlier versions of this script obtained the same result replacing documented
+# feature "z" with undocumented "i")
+$PTH/flagcalc -r 15 52.5 10000 -a z="COUNT (v IN V, vdt(v) % 2 == 1)" all -v i=minimal3.cfg
 
+# This just is a first foray into using "e=" under "-a": ensemble aka set valued measure
+# It should return a set of tuples, not repeating the reverse of each one (per definition)
 $PTH/flagcalc -r 6 7.5 1 -a e="Cyclesvs(0)" all -v set allsets i=minimal3.cfg
 
+# This shows again the antiquated method of dereferencing a set
 $PTH/flagcalc -d f="abcd" -a p="idxs(Pathss(0,1),0)" all -v set allsets i=minimal3.cfg
 
+# ibid
 $PTH/flagcalc -d f="abcdef" -a p="idxs(Pathss(0,5),0)" all -v set allsets i=minimal3.cfg
 
+# This just shows the dynamic nature of the set theory in flagcalc (the set-theoretic union of V and E), on ten random graphs
 $PTH/flagcalc -r 10 22.5 1 -a e="V CUP E" all -v set allsets i=minimal3.cfg
 
+# this again just shows some effective set theoretic operation
 $PTH/flagcalc -d f="abcd" -a e="Pathss(0,2) CUP Pathss(0,3)" all -v set allsets i=minimal3.cfg
 
+# more random ideas
 $PTH/flagcalc -d f="abcde" -a e="V CUP E" all -v set allsets i=minimal3.cfg
 
+# again, non-overlapping sets, but still can talk about their union
 $PTH/flagcalc -d f="abc" -a e="Pathss(0,1) CUP Pathss(0,2)" all -v set allsets i=minimal3.cfg
 
+# here we use the "D" as in BIGCUPD to save the effort of checking the set-theoretic Union for duplicates
 $PTH/flagcalc -d f="abcd" -a e="BIGCUPD (v IN V, Cyclesvs(v))" all -v set allsets i=minimal3.cfg
 
+# Why not check that the BIGCUPD above returns the same as BIGCUP (should return True)
+$PTH/flagcalc -d f="abcd" -a s="BIGCUPD (v IN V, Cyclesvs(v)) == BIGCUP (v IN V, Cyclesvs(v))" all -v set allsets i=minimal3.cfg
+
+# Here we populate out.dat with 100 random graphs
 $PTH/flagcalc -r 8 14 100 -g o=out.dat all overwrite -v i=minimal3.cfg
 
+# Now for the next three queries we use that same set of 100 (useful if you want honest numbers, not due to random
+# differences of which graphs were chosen, especially with say 10 instead of 100)
 $PTH/flagcalc -d out.dat -a e="BIGCUPD (v IN V, Cyclesvs(v))" all -v set i=minimal3.cfg
 
+# Wildly slower, but the same output
 $PTH/flagcalc -d out.dat -a e="BIGCUP (v IN V, Cyclesvs(v))" all -v set i=minimal3.cfg
 
+# This is a bit different, and quite verbose (due to "allsets")
 $PTH/flagcalc -d out.dat -a e="BIGCUP (v IN V, BIGCUP (c IN Cyclesvs(v), TupletoSet(c)))" all -v set allsets i=minimal3.cfg
 
+# This repackages every vertices' set of cycles around it, into sets rather than tuples, and omitting the "D" it has the effect
+# of forgetting the order of the vertices in the cycle. So in a K_4, for example, -abdca is equal to -adbca
 $PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN V, SET (c IN Cyclesvs(v), TupletoSet(c)))" all -v set allsets i=minimal3.cfg
 
+# This should contain all vertices with non-zero degree (namely, the first three)
 $PTH/flagcalc -d f="abc d" -a e="SET (x IN V, st(SET (e IN E, x ELT e, e)) > 0, x)" all -v set allsets i=minimal3.cfg
 
+# More with bipartite graphs and odd cycles
 $PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN V, SET (c IN Cyclesvs(v), st(c) % 2 == 1, TupletoSet(c)))" all -v set allsets i=minimal3.cfg
-
 $PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUPD (v IN V, SET (c IN Cyclesvs(v), st(c) % 2 == 0, TupletoSet(c)))" all -v set i=minimal3.cfg
-
 $PTH/flagcalc -d f="abcd=efgh" -a e="BIGCUP (v IN V, SET (c IN Cyclesvs(v), st(c) % 2 == 0, TupletoSet(c)))" all -v set i=minimal3.cfg
 
+# Here using SUM rather than COUNT, but to the same end (should output zero)
 $PTH/flagcalc -d f="abcd=efgh" -a a="SUM (v IN V, vdt(v) > dimm/2, 1)" all -v i=minimal3.cfg
 
+# To wit: here just checking (new) feature "COUNT" is the same as the appropriate "SUM"
 $PTH/flagcalc -r 16 60 100 -a s="SUM (v IN V, vdt(v) > dimm/4, 1) == COUNT (v IN V, vdt(v) > dimm/4)" all -v i=minimal3.cfg
 
+# More plain ideas about vertex degree tally ("vdt") and adjacency criterion ("ac")
 $PTH/flagcalc -r 16 60 1000 -a s="FORALL (v IN V, vdt(v) > 0, EXISTS (u IN V, ac(u,v)))" all -v i=minimal3.cfg
 
+# Exercise: write out this three-level-deep nested set of sets of sets
+# Answer: it should be just {{{0,1,2}}}
 $PTH/flagcalc -d f="abc" -a e="SET (v IN V, SET (u IN V, SET (t IN V, t)))" all -v set allsets i=minimal3.cfg
 
+# Now the same thing with fast "D" ("SETD") option
+# Answer: it should be three sets of three sets of {0,1,2} (that is, not technically a "set" to a purist, since a set
+# can't repeat items, and here it is being repeated at two levels in fact)
 $PTH/flagcalc -d f="abc" -a e="SETD (v IN V, SETD (u IN V, SETD (t IN V, t)))" all -v set allsets i=minimal3.cfg
 
+# Something to puzzle through
 $PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (a IN c, EXISTS (b IN c, a ELT e AND b ELT e AND a != b)), e)))" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d f="abcd" -a e="BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), idxt(c,n) ELT e AND idxt(c,(n + 1) % st(c)) ELT e), e)))" all -v set allsets i=minimal3.cfg
@@ -208,12 +277,17 @@ $PTH/flagcalc -d f="abcdef" -a a="MAX (n IN NN(st(Cyclesvs(0)[0])), (Cyclesvs(0)
 
 $PTH/flagcalc -d f="abc=def=ghi" -a a="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v[0])))>>[1]" all -v set allsets i=minimal3.cfg
 
+# Experiementing with tuple constants or literals; one can also add tuples pointwise with "+" or append them with CUPD or CUP (either works)
 $PTH/flagcalc -d f="abc=def=ghi" -a a="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v[0])))>>[2]" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d f="abc=def=ghi" -a e="SETD (n IN st(V), SETD (i IN n, {i}))" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d f="abcd" -a e="SET (s IN Setpartition(V), s)" all -v set allsets i=minimal3.cfg
 
+# This one says: amongst the (first iteration) 1-connected sets, then amongst those the ones (second iteration) that embed a complete graph of dimension dimm,
+# there is a partition of V into \Delta (graph's max degree) partitions, such that each partition within itself is disconnected.
+# This isn't annotated because the second iteration's criteria implies the first iteration's criteria, so it is some test
+# perhaps nonetheless inspired by a meaningful proposition
 $PTH/flagcalc -r 7 20 100 -a s="conn1c" s2="Knc(dimm,1)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
 
 # Diestel 5.2.4 (Brooks 1941)
