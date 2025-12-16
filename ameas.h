@@ -12,7 +12,13 @@
 #include <cstring>
 #include <functional>
 #include <stdexcept>
-
+#ifdef FLAGCALCWITHPYTHON
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/embed.h>
+#include <pybind11/numpy.h>
+namespace py = pybind11;
+#endif
 #include "cuda.cuh"
 #include "graphio.h"
 #include "math.h"
@@ -979,48 +985,6 @@ public:
         return out;
     }
 
-
-/*
-    double takemeas( neighborstype* ns, namedparams& context ) override {
-        evalmformula* ef = new evalmformula(rec,ns);
-        const valms r = ef->eval(*fc, context);
-        delete ef;
-        double out;
-        mtconverttocontinuous(r,out);
-        return out;
-    }
-    double takemeas(const int idx, namedparams& context) override
-    {
-        evalmformula* ef = new evalmformula(rec,idx);
-        // namedparams npslocal = npsin;
-        // for (auto n : nps)
-        //    npslocal.insert(npslocal.begin(),n);
-
-        valms r = ef->eval(*fc, context);
-        delete ef;
-        double out;
-        mtconverttocontinuous(r,out);
-        return out;
-    }
-
-    double takemeas(const int idx, namedparams& context, const params& ps) override {
-         int i = 0;
-         for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(idx,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-    double takemeas(neighborstype* ns, namedparams& context, const params& ps) override {
-        int i = 0;
-        for (auto n : ps)
-            context.push_back({nps[i++].first,n});
-        auto res = takemeas(ns,context);
-        context.resize(context.size()-ps.size());
-        return res;
-    }
-*/
-
     formmeas( mrecords* recin , const std::vector<int>& litnumpsin, const std::vector<measuretype>& littypesin,
         const std::vector<std::string>& litnamesin,
         const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "" )
@@ -1285,6 +1249,171 @@ public:
     }
 };
 
+#ifdef FLAGCALCWITHPYTHON
+
+class pythonmeas : public meas {
+    public:
+
+    const std::string methodname;
+
+    py::object m;
+
+    double takemeas( neighborstype* ns, const params& ps ) override {
+        valms r;
+        r.t = mtcontinuous;
+        auto dim = ns->dim;
+
+        py::gil_scoped_release release;
+
+        // random internet code that helped diag a bug:
+        // std::cout << "The GIL state is " << PyGILState_Check() <<std::endl;
+        // PyGILState_Ensure(); // this line prevents crashing
+        // py::gil_scoped_acquire thisCrashes; // this crashes when calling PyEval_GetBuiltins
+
+        // Acquire the GIL before interacting with the Python object (func)
+        py::gil_scoped_acquire acquire;
+        try {
+            py::array_t<bool> array(dim*dim);
+            py::buffer_info buf = array.request();
+            bool* ptr = static_cast<bool*>(buf.ptr);
+            memcpy(ptr,ns->g->adjacencymatrix,dim*dim);
+            py::object result;
+
+            // Obviously this should instead respect whatever type the parameters identify as, but it isn't clear
+            // how to code that in C++: the numbers of cases is very high; for now, I've coded only cases 1 and 2 this way
+            switch (ps.size()) {
+                case 0: {
+                    result = m.attr(methodname.c_str())(array,dim);// This call requires the GIL
+                    break;
+                }
+                case 1: {
+                    if (ps[0].t == mtdiscrete)
+                        result = m.attr(methodname.c_str())(array,dim,
+                            ps[0].v.iv);// This call requires the GIL
+                    else
+                        result = m.attr(methodname.c_str())(array,dim,
+                            to_mtcontinuous(ps[0]).v.dv);// This call requires the GIL
+                    break;
+                }
+                case 2: {
+                    if (ps[0].t == mtdiscrete && ps[1].t == mtdiscrete)
+                        result = m.attr(methodname.c_str())(array,dim,
+                            ps[0].v.iv,
+                            ps[1].v.iv);// This call requires the GIL
+                    else
+                        result = m.attr(methodname.c_str())(array,dim,
+                            to_mtcontinuous(ps[0]).v.dv,
+                            to_mtcontinuous(ps[1]).v.dv);
+                    break;
+                }
+                case 3: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                        to_mtcontinuous(ps[0]).v.dv,
+                        to_mtcontinuous(ps[1]).v.dv,
+                        to_mtcontinuous(ps[2]).v.dv);// This call requires the GIL
+                    break;
+                }
+                case 4: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                        to_mtcontinuous(ps[0]).v.dv,
+                        to_mtcontinuous(ps[1]).v.dv,
+                        to_mtcontinuous(ps[2]).v.dv,
+                        to_mtcontinuous(ps[3]).v.dv);// This call requires the GIL
+                    break;
+                }
+                case 5: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                        to_mtcontinuous(ps[0]).v.dv,
+                        to_mtcontinuous(ps[1]).v.dv,
+                        to_mtcontinuous(ps[2]).v.dv,
+                        to_mtcontinuous(ps[4]).v.dv);
+                    break;
+                }
+                case 6: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                        to_mtcontinuous(ps[0]).v.dv,
+                        to_mtcontinuous(ps[1]).v.dv,
+                        to_mtcontinuous(ps[2]).v.dv,
+                        to_mtcontinuous(ps[4]).v.dv,
+                        to_mtcontinuous(ps[5]).v.dv);// This call requires the GIL
+                    break;
+                }
+                case 7: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                        to_mtcontinuous(ps[0]).v.dv,
+                        to_mtcontinuous(ps[1]).v.dv,
+                        to_mtcontinuous(ps[2]).v.dv,
+                        to_mtcontinuous(ps[4]).v.dv,
+                        to_mtcontinuous(ps[5]).v.dv,
+                        to_mtcontinuous(ps[6]).v.dv);
+                    break;
+                }
+                case 8: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                        to_mtcontinuous(ps[0]).v.dv,
+                        to_mtcontinuous(ps[1]).v.dv,
+                        to_mtcontinuous(ps[2]).v.dv,
+                        to_mtcontinuous(ps[4]).v.dv,
+                        to_mtcontinuous(ps[5]).v.dv,
+                        to_mtcontinuous(ps[6]).v.dv,
+                        to_mtcontinuous(ps[7]).v.dv);// This call requires the GIL
+                    break;
+                }
+                case 9: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                        to_mtcontinuous(ps[0]).v.dv,
+                        to_mtcontinuous(ps[1]).v.dv,
+                        to_mtcontinuous(ps[2]).v.dv,
+                        to_mtcontinuous(ps[4]).v.dv,
+                        to_mtcontinuous(ps[5]).v.dv,
+                        to_mtcontinuous(ps[6]).v.dv,
+                        to_mtcontinuous(ps[7]).v.dv,
+                        to_mtcontinuous(ps[8]).v.dv);// This call requires the GIL
+                    break;
+                }
+                case 10: {
+                    result = m.attr(methodname.c_str())(array,dim,
+                    to_mtcontinuous(ps[0]).v.dv,
+                    to_mtcontinuous(ps[1]).v.dv,
+                    to_mtcontinuous(ps[2]).v.dv,
+                    to_mtcontinuous(ps[4]).v.dv,
+                    to_mtcontinuous(ps[5]).v.dv,
+                    to_mtcontinuous(ps[6]).v.dv,
+                    to_mtcontinuous(ps[7]).v.dv,
+                    to_mtcontinuous(ps[8]).v.dv,
+                    to_mtcontinuous(ps[9]).v.dv);// This call requires the GIL
+                    break;
+                } default: {
+                    std::cout << "Python support: no support for more than ten arguments passed to a python method\n";
+                }
+            }
+            r.v.dv = result.cast<double>();
+        } catch (const py::error_already_set& e) {
+            // Handle exceptions
+            std::cout << "Error in Python trying to run with GIL\n";
+        }
+        // GIL is released when 'acquire' goes out of scope
+
+        double out;
+        mtconverttocontinuous(r,out);
+        return out;
+    }
+
+    double takemeas( const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    pythonmeas( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
+        : meas( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
+        m{m_in}, methodname{methodnamein}
+    {}
+    ~pythonmeas() {}
+
+
+};
+
+#endif
 
 class setitrpaths : public setitrmodeone
 {

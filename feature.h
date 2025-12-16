@@ -32,6 +32,7 @@
 #ifdef FLAGCALCWITHPYTHON
 #include <pybind11/embed.h>
 #include <pybind11/stl.h>
+#include <pybind11/pybind11.h>
 namespace py = pybind11;
 #endif
 
@@ -61,6 +62,7 @@ namespace py = pybind11;
 #define COMMENTENTIRELINEDELIMITER "////"
 // please don't use entire line delimiter for comments until rewriting readfromfile to include newlines;
 // as it stands, using the entirelinedelimiter comments until the END line is reached
+
 
 
 class feature {
@@ -2183,8 +2185,9 @@ inline compactcmdline parsecompactcmdline( std::string& s )
 
 
 
-unsigned const thread_count = std::thread::hardware_concurrency();
 // unsigned const thread_count = 1;
+
+inline unsigned thread_count = std::thread::hardware_concurrency();
 
 
 template<typename T>
@@ -2351,9 +2354,11 @@ struct storedprocstruct
 #ifdef FLAGCALCWITHPYTHON
 struct pythonmethodstruct {
     std::string name;
+    py::object m;
     namedparams nps;
-    py::module_ m;
+    ams a;
     int iidx;
+    std::string filename;
 };
 
 #endif
@@ -2522,6 +2527,98 @@ protected:
         }
         return -1;
     }
+
+#ifdef FLAGCALCWITHPYTHON
+    int lookuppythonmethod( const std::string sin, const int roundin )
+    {
+        for (auto i = 0; i < pythonmethods.size(); ++i)
+        {
+            auto pym = pythonmethods[i];
+            if (sin == pym.name) {
+                if (pym.iidx < 0)
+                {
+                    ams a = pym.a;
+                    namedparams nps = pym.nps;
+
+                    std::string s {};
+
+                    switch (a.t)
+                    {
+                    case mtbool:
+                        {
+                            sentofcrit* cs = new sentofcrit(&rec,litnumps,littypes,litnames, nps  , s, pym.name);
+                            a.a.cs = cs;
+                            a.a.cs->negated = false;
+                            crs.push_back(a.a.cs);
+                            break;
+                        }
+                            /* the advent of pythonmeas means these, duplicated from lookupstoredproc, are not yet
+                             * coded: puzzle of how to determine the type of a python method
+                    case mtdiscrete:
+                        {
+                            formtally* ts = new formtally(&rec,litnumps,littypes,litnames, nps, s, pym.name);
+                            a.a.ts = ts;
+                            tys.push_back(a.a.ts);
+                            break;
+                        } */
+                    case mtcontinuous:
+                        {
+                            pythonmeas* pm = new pythonmeas(&rec,pym.m,pym.nps,pym.name);
+                            a.a.ms = pm;
+                            mss.push_back(a.a.ms);
+                            break;
+                        }
+                            /*
+                    case mtset:
+                        {
+                            formset* ss = new formset(&rec,litnumps,littypes,litnames, nps, s, pym.name);
+                            a.a.ss = ss;
+                            sts.push_back(a.a.ss);
+                            break;
+                        }
+                    case mttuple:
+                        {
+                            formtuple* os = new formtuple(&rec,litnumps,littypes,litnames,nps, s, pym.name);
+                            a.a.os = os;
+                            oss.push_back(a.a.os);
+                            break;
+                        }
+                    case mtstring:
+                        {
+                            formstring* rs = new formstring(&rec,litnumps,littypes,litnames,nps, s, pym.name);
+                            a.a.rs = rs;
+                            rms.push_back(a.a.rs);
+                            break;
+                        }
+                    case mtgraph:
+                        {
+                            formgraph* gs = new formgraph(&rec,litnumps,littypes,litnames,nps, s, pym.name);
+                            a.a.gs = gs;
+                            gms.push_back(a.a.gs);
+                            break;
+                        } */
+                    }
+
+                    auto it = newiteration(a.t,roundin,a,true);
+
+                    it->nps = nps;
+                    iter.push_back(it);
+
+                    int j = iter.size()-1;
+                    litnumps.push_back(nps.size());
+                    littypes.push_back(a.t);
+                    litnames.push_back(pym.name);
+                    pym.iidx = j;
+                    pythonmethods[i] = pym;
+                    return pym.iidx;
+                } else
+                    return pym.iidx;
+            }
+        }
+        return -1;
+    }
+
+#endif
 
     void addstoredproc( const std::string sin )
     {
@@ -2823,7 +2920,18 @@ protected:
             {
                 idx = lookupstoredprocedure(out2[i], roundin);
                 if (idx < 0)
+                {
+#ifdef FLAGCALCWITHPYTHON
+                    idx = lookuppythonmethod(out2[i], roundin);
+                    if (idx < 0) {
+                        idx = addmeas( out2[i],mtin, roundin );
+                    }
+#else
                     idx = addmeas( out2[i],mtin, roundin );
+#endif
+                    // if (idx < 0)
+                    // std::cout << " presumed variable " << out2[i] << std::endl;
+                }
                 // if (idx < 0)
                     // std::cout << " presumed variable " << out2[i] << std::endl;
             }
@@ -2850,6 +2958,9 @@ public:
         littypes.clear();
         litnames.clear();
         storedprocedures.clear();
+#ifdef FLAGCALCWITHPYTHON
+        pythonmethods.clear();
+#endif
         sentences.clear();
         formulae.clear();
     }
@@ -2857,34 +2968,19 @@ public:
 
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
-    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {}
+    checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
+    }
 
     ~checkcriterionfeature() {
-        /*
-        for (int i = 0; i < cs.size(); ++i) {
-           bool found = false;
-           for (int j = 0; !found && j < crs.size(); ++j) {
-               found = found || crs[j] == cs[i];
-           }
-           if (!found)
-                delete cs[i];
-        }
-
-        for (int i = 0; i < ms.size(); ++i) {
-            bool found = false;
-            for (int j = 0; !found && j < mss.size(); ++j) {
-                found = found || mss[j] == ms[i];
-            }
-            if (!found)
-                delete ms[i];
-        }
-*/
+        // py::finalize_interpreter();
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
         *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks criteria for ALL graphs found on the workspace\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks criteria for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
+        *_os << "\t" << "\"j=n\": uses n threads (set to 1 for any Python integration)\n";
+        *_os << "\t" << "\"ipy=<filename>\": uses Python script ../python/<filename>.py\n";
         *_os << "\t" << "\"not=<n>\": \t\t applies the logical NOT to the criteria numbered n, prior to AND or OR\n";
         *_os << "\t" << "\"l=AND\": \t\t applies the logical AND to the criteria (\"m=\" is optional)\n";
         *_os << "\t" << "\"l=OR\": \t\t applies the logical OR to the criteria (\"m=\" is optional)\n";
@@ -2983,6 +3079,13 @@ public:
             } else
             {
                 ccl = parsecompactcmdline(parsedargs[i].first);
+            }
+
+            if (ccl.t == "j") // j is a letter borrowed from cmake
+            {
+                int n = stoi(parsedargs[i].second);
+                thread_count = n < std::thread::hardware_concurrency() ? n : std::thread::hardware_concurrency();
+                std::cout << "Thread count: " << thread_count << "\n";
             }
             if (ccl.t == "s")
             {
@@ -3126,51 +3229,75 @@ public:
             {
                 std::string filename = parsedargs[i].second;
 
-                py::scoped_interpreter guard{};
-                py::module_ sys = py::module_::import("sys");
-                sys.attr("path").attr("append")("../python");
+                // py::scoped_interpreter guard{}; // won't outlast the scope
+
 
                 try {
 
-                    py::object pymodule = py::module::import(filename.c_str());
+                    py::initialize_interpreter();
+                    py::module_ sys = py::module_::import("sys");
+                    sys.attr("path").attr("append")("../python");
+
+
+                    auto pymodule = py::module_::import(filename.c_str());
+
+                    std::cout << "Opening Python file " << filename << "...\n";
 
                     py::list method_list = py::cast<py::list>(py::eval("dir()", pymodule.attr("__dict__")));
 
                     std::vector<std::string> methods = py::cast<std::vector<std::string>>(method_list);
 
-                    for (const std::string& m : methods) {
-                        std::cout << m << std::endl;
-                    }
-
                     for (auto d : method_list) {
 
+                        std::regex pattern(R"(__\w+__)");
+                        std::smatch matches;
 
-                        py::module_ inspect = py::module_::import("inspect");
-                        py::object signature = inspect.attr("signature")(d);
-                        py::object parameters = signature.attr("parameters");
-                        int num_args = py::len(parameters);
+                        std::string s = py::str(d);
+                        std::regex_search(s, matches, pattern);
+                        if (matches.size() > 0)
+                            continue;
+                        if (py::isinstance<py::module_>(d))
+                            continue; // not working...
+                        std::cout << " - " << std::string(py::str(d)) << "; ";
 
-                        std::cout << " - " << std::string(py::str(d)) << std::endl;
+                        try {
+                            py::function callback_ = pymodule.attr(py::str(d));
+                            py::module_ inspect_module = py::module::import("inspect");
+                            py::object signature_obj = inspect_module.attr("signature")(callback_);
+                            py::object parameters_dict = signature_obj.attr("parameters");
+                            // Get the length of the parameters dictionary
+                            auto num_params = py::len(parameters_dict); // num_params is a Py_ssize_t/long
 
-                        std::cout << "The method has " << num_args << " arguments.";
+                            std::cout << "The Python function has " << num_params << " arguments." << std::endl;
 
+                            pythonmethodstruct pym;
 
+                            pym.name = py::str(d);
+                            pym.m = pymodule;
+                            pym.filename = filename;
+                            pym.a.t = mtcontinuous;
+                            namedparams nps {};
 
-                        /*
-                        py::object signature = d.attr("signature")(d);
-                        py::object parameters = signature.attr("parameters");
+                            int actual_num_params = num_params - 2;
 
-                        std::string name = py::str(d);
-                        std::cout << "name: " << name << ", length: " << py::len(parameters) << std::endl;
-*/
-                        pythonmethodstruct pys;
+                            for (int i = 0; i < actual_num_params; i++) {
+                                valms v;
+                                std::string vname = "v" + std::to_string(i);
+                                nps.push_back({vname,v});
+                            }
+                            pym.nps = nps;
+                            pym.iidx = -1;
+                            pythonmethods.push_back(pym);
 
-                        pys.name = py::str(d);
-                        pys.m = pymodule;
-
-                        pythonmethods.push_back(pys);
-
+                        } catch (std::exception& e) {
+                            std::cout << "Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
+                        }
                     }
+                    // py::object out = pymodule.attr("pytest")(3);
+                    // double res = out.cast<double>();
+                    // std::cout << " Hi : " << res << std::endl;
+
+                    py::gil_scoped_release release;
 
                 } catch (const py::error_already_set& e) {
                     std::cout << "Error with Python 'ipy' feature:" << e.what() << std::endl;
@@ -4213,9 +4340,7 @@ protected:
     }
 
     ~pairwisedisjointrandomfeature()
-    {
-
-    }
+    {}
 
 
     std::vector<std::vector<graphtype*>> threadrandomgraphs( pairwisedisjointrandomgraph* r,

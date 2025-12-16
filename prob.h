@@ -13,8 +13,8 @@
 #include "asymp.h"
 #include "graphs.h"
 
-#define RANDOMRANGE 10000000
-#define RANDOMRANGEdouble 10000000.0
+#define RANDOMRANGE 1000000000
+#define RANDOMRANGEdouble 1000000000.0
 
 using weightstype = std::vector<double>;
 
