@@ -5406,7 +5406,7 @@ inline formulaclass* parseformulainternal(
                         fv.lit.ps.push_back(subps);
                         return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                     } else {
-                        std::cout << "Literal expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
+                        std::cout << "Literal " << litnames[fv.lit.l] << " expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
                         return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                     }
                 }
@@ -5426,7 +5426,7 @@ inline formulaclass* parseformulainternal(
                         {
                             fv.subgraph = true;
                         } else {
-                            std::cout << "Literal expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
+                            std::cout << "Literal \"" << litnames[fv.lit.l] << "\" expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
                             return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                         }
                     };

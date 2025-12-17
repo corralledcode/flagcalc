@@ -3217,7 +3217,7 @@ public:
                             continue;
                         if (py::isinstance<py::module_>(d))
                             continue; // not working...
-                        std::cout << " - " << std::string(py::str(d)) << "; ";
+                        std::cout << " - " << std::string(py::str(d)) << "(";
 
                         try {
                             py::function callback_ = pymodule.attr(py::str(d));
@@ -3226,8 +3226,6 @@ public:
                             py::object parameters_dict = signature_obj.attr("parameters");
                             // Get the length of the parameters dictionary
                             auto num_params = py::len(parameters_dict); // num_params is a Py_ssize_t/long
-
-                            std::cout << "The Python function has " << num_params << " arguments." << std::endl;
 
                             pythonmethodstruct pym;
 
@@ -3238,19 +3236,25 @@ public:
                             pym.a.t = mtuncast;
                             namedparams nps {};
 
-                            int actual_num_params = num_params - 2;
-
-                            for (int i = 0; i < actual_num_params; i++) {
-                                valms v;
-                                std::string vname = "v" + std::to_string(i);
-                                nps.push_back({vname,v});
+                            // std::cout << "The Python function has " << num_params << " arguments: ";
+                            int i = 0;
+                            valms u;
+                            u.t = mtuncast;
+                            for (auto v : parameters_dict) {
+                                std::string s = py::str(v);
+                                std::cout << s << ",";
+                                if (i >= 2)
+                                    nps.push_back({s,u});
+                                i++;
                             }
+                            std::cout << "\b)\n";
+
                             pym.nps = nps;
                             pym.iidx = -1;
                             pythonmethods.push_back(pym);
 
                         } catch (std::exception& e) {
-                            std::cout << "Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
+                            std::cout << "\b: Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
                         }
                     }
                     // py::object out = pymodule.attr("pytest")(3);

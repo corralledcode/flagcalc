@@ -2551,6 +2551,14 @@ inline void mtconvertboolto( const bool vin, valms& vout )
             break;
         case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin ? 1 : 0));
             break;
+        case mtuncast: {
+            valms v;
+            v.t = mtbool;
+            v.v.bv = vin;
+            vout.t = mtbool;
+            mtconverttobool(v,vout.v.bv);
+            break;
+        }
     }
 }
 inline void mtconvertdiscreteto( const int vin, valms& vout )
@@ -2571,6 +2579,14 @@ inline void mtconvertdiscreteto( const int vin, valms& vout )
         break;
     case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin));
         break;
+    case mtuncast: {
+        valms v;
+        v.t = mtdiscrete;
+        v.v.iv = vin;
+        vout.t = mtdiscrete;
+        mtconverttodiscrete(v,vout.v.iv);
+        break;
+    }
     }
 }
 inline void mtconvertcontinuousto( const double vin, valms& vout )
@@ -2591,77 +2607,93 @@ inline void mtconvertcontinuousto( const double vin, valms& vout )
         break;
     case mtgraph: vout.v.nsv = new neighborstype(new graphtype((int)vin));
         break;
+    case mtuncast: {
+        valms v;
+        v.t = mtcontinuous;
+        v.v.dv = vin;
+        vout.t = mtcontinuous;
+        mtconverttocontinuous(v,vout.v.dv);
+        break;
+    }
     }
 }
 inline void mtconvertsetto( setitr* vin, valms& vout )
 {
-    switch (vout.t)
-    {
-    case mtbool: vout.v.bv = vin->getsize() > 0 ? true : false;
-        break;
-    case mtdiscrete: vout.v.iv = vin->getsize();
-        break;
-    case mtcontinuous: vout.v.dv = vin->getsize();
-        break;
-    case mtset: vout.seti = vin;
-        break;
-    case mttuple: vout.seti = vin;
-        break;
-    case mtstring: vout.v.rv = new std::string("{ SET of size " + std::to_string(vin->getsize()) + "}");
-        break;
-    case mtgraph:
-        /* First count how many vertices */
+    switch (vout.t) {
+        case mtbool: vout.v.bv = vin->getsize() > 0 ? true : false;
+            break;
+        case mtdiscrete: vout.v.iv = vin->getsize();
+            break;
+        case mtcontinuous: vout.v.dv = vin->getsize();
+            break;
+        case mtset: vout.seti = vin;
+            break;
+        case mttuple: vout.seti = vin;
+            break;
+        case mtstring: vout.v.rv = new std::string("{ SET of size " + std::to_string(vin->getsize()) + "}");
+            break;
+        case mtgraph: {
+            /* First count how many vertices */
 
-        auto pos = vin->getitrpos();
-        pos->reset();
+            auto pos = vin->getitrpos();
+            pos->reset();
 
-        std::vector<valms> tempvertices {};
-        std::vector<int> tempedges {};
-        while (!pos->ended())
-        {
-            auto edge = pos->getnext();
-            edge.seti->reset();
-            auto v1 = edge.seti->getnext();
-            auto v2 = edge.seti->getnext();
-            tempvertices.push_back(v1);
-            tempvertices.push_back(v2);
-            tempedges.push_back(tempvertices.size()-1);
-            tempedges.push_back(tempvertices.size()-2);
-        }
-        std::vector<valms> vertices {};
-        std::vector<int> vertexindices {};
-        vertexindices.resize(tempvertices.size());
-        for (int i = 0; i < tempvertices.size(); ++i)
-        {
-            bool found = false;
-            int j;
-            for (j = 0; !found && j < vertices.size(); ++j)
-                found = mtareequal(tempvertices[i], vertices[j]);
-            if (!found)
+            std::vector<valms> tempvertices {};
+            std::vector<int> tempedges {};
+            while (!pos->ended())
             {
-                vertices.push_back(tempvertices[i]);
-                vertexindices[i] = vertices.size()-1;
-            } else
-            {
-                vertexindices[i] = j-1;
+                auto edge = pos->getnext();
+                edge.seti->reset();
+                auto v1 = edge.seti->getnext();
+                auto v2 = edge.seti->getnext();
+                tempvertices.push_back(v1);
+                tempvertices.push_back(v2);
+                tempedges.push_back(tempvertices.size()-1);
+                tempedges.push_back(tempvertices.size()-2);
             }
-        }
-
-        delete pos;
-
-        int dim = vertices.size();
-        auto g = new graphtype(dim);
-        memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
-        for (int i = 0; i < vertexindices.size(); ++i)
-            for (int j = i+1; j < vertexindices.size(); ++j) {
-                if (tempedges[i] == j || tempedges[j] == i)
+            std::vector<valms> vertices {};
+            std::vector<int> vertexindices {};
+            vertexindices.resize(tempvertices.size());
+            for (int i = 0; i < tempvertices.size(); ++i)
+            {
+                bool found = false;
+                int j;
+                for (j = 0; !found && j < vertices.size(); ++j)
+                    found = mtareequal(tempvertices[i], vertices[j]);
+                if (!found)
                 {
-                    g->adjacencymatrix[vertexindices[i]*dim + vertexindices[j]] = true;
-                    g->adjacencymatrix[vertexindices[j]*dim + vertexindices[i]] = true;
+                    vertices.push_back(tempvertices[i]);
+                    vertexindices[i] = vertices.size()-1;
+                } else
+                {
+                    vertexindices[i] = j-1;
                 }
             }
-        vout.v.nsv = new neighbors(g);
-        break;
+
+            delete pos;
+
+            int dim = vertices.size();
+            auto g = new graphtype(dim);
+            memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
+            for (int i = 0; i < vertexindices.size(); ++i)
+                for (int j = i+1; j < vertexindices.size(); ++j) {
+                    if (tempedges[i] == j || tempedges[j] == i)
+                    {
+                        g->adjacencymatrix[vertexindices[i]*dim + vertexindices[j]] = true;
+                        g->adjacencymatrix[vertexindices[j]*dim + vertexindices[i]] = true;
+                    }
+                }
+            vout.v.nsv = new neighbors(g);
+            break;
+        }
+        case mtuncast: {
+            valms v;
+            v.t = mtset;
+            v.seti = vin;
+            vout.t = mtset;
+            mtconverttoset(v,vout.seti);
+            break;
+        }
     }
 }
 inline void mtconverttupleto( setitr* vin, valms& vout )
@@ -2682,6 +2714,14 @@ inline void mtconverttupleto( setitr* vin, valms& vout )
         break;
     case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin->getsize()));
         break;
+    case mtuncast: {
+        valms v;
+        v.t = mttuple;
+        v.seti = vin;
+        vout.t = mttuple;
+        mtconverttotuple(v,vout.seti);
+        break;
+    }
     }
 }
 inline void mtconvertstringto( std::string* vin, valms& vout )

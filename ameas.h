@@ -12,6 +12,7 @@
 #include <cstring>
 #include <functional>
 #include <stdexcept>
+
 #ifdef FLAGCALCWITHPYTHON
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -1287,7 +1288,7 @@ public:
 #ifdef FLAGCALCWITHPYTHON
 
 
-inline py::object callpythonmethod( neighborstype* ns, const params& ps, py::object m, const std::string& methodname ) {
+inline py::object callpythonmethod( neighborstype* ns, const params& ps, const py::object& m, namedparams nps, const std::string& methodname ) {
     py::gil_scoped_release release;
 
     auto dim = ns->dim;
@@ -1305,8 +1306,42 @@ inline py::object callpythonmethod( neighborstype* ns, const params& ps, py::obj
         bool* ptr = static_cast<bool*>(buf.ptr);
         memcpy(ptr,ns->g->adjacencymatrix,dim*dim);
 
+        py::dict kwargs {};
+        int i = 0;
+        kwargs["adjmatrix"] = array;
+        kwargs["dim"] = dim;
+        for (auto a : ps) {
+            const char* s = nps[i].first.c_str();
+            while (a.t == mtuncast)
+                a = *a.uv;
+            switch (a.t) {
+                case mtbool: {
+                    kwargs[s] = a.v.bv;
+                    break;
+                }
+                case mtdiscrete: {
+                    kwargs[s] = a.v.iv;
+                    break;
+                }
+                case mtcontinuous: {
+                    kwargs[s] = a.v.dv;
+                    break;
+                }
+                case mtset:
+                case mttuple: {
+                    std::cout << "Passing of sets and tuples to Python methods is not yet implemented.\n";
+                    break;
+                }
+            }
+            i++;
+        }
+        // for (auto a : kwargs)
+            // std::cout << a.first << " : " << a.second << std::endl;
+        result = m.attr(methodname.c_str())(**kwargs);
+
         // Obviously this should instead respect whatever type the parameters identify as, but it isn't clear
         // how to code that in C++: the numbers of cases is very high; for now, I've coded only cases 1 and 2 this way
+        /*
         switch (ps.size()) {
             case 0: {
                 result = m.attr(methodname.c_str())(array,dim);// This call requires the GIL
@@ -1412,7 +1447,7 @@ inline py::object callpythonmethod( neighborstype* ns, const params& ps, py::obj
             } default: {
                 std::cout << "Python support: no support for more than ten arguments passed to a python method\n";
             }
-        }
+        }*/
     } catch (const py::error_already_set& e) {
         // Handle exceptions
         std::cout << "Error in Python trying to run with GIL\n";
@@ -1426,7 +1461,7 @@ class pythonmeas : public meas {
     const std::string methodname;
     py::object m;
     double takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,methodname);
+        auto result = callpythonmethod(ns,ps,m,nps,methodname);
         valms r;
         r.t = mtcontinuous;
         r.v.dv = result.cast<double>();
@@ -1440,7 +1475,9 @@ class pythonmeas : public meas {
     }
     pythonmeas( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
         : meas( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-        m{m_in}, methodname{methodnamein} {}
+    m{m_in}, methodname{methodnamein}  {
+        nps = npsin;
+    }
     ~pythonmeas() {}
 };
 
@@ -1449,7 +1486,7 @@ public:
     const std::string methodname;
     py::object m;
     bool takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,methodname);
+        auto result = callpythonmethod(ns,ps,m,nps,methodname);
         valms r;
         r.t = mtbool;
         r.v.bv = result.cast<bool>();
@@ -1463,7 +1500,9 @@ public:
     }
     pythoncrit( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
         : crit( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-        m{m_in}, methodname{methodnamein} {}
+    m{m_in}, methodname{methodnamein}  {
+        nps = npsin;
+    }
     ~pythoncrit() {}
 };
 
@@ -1472,7 +1511,7 @@ public:
     const std::string methodname;
     py::object m;
     int takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,methodname);
+        auto result = callpythonmethod(ns,ps,m,nps,methodname);
         valms r;
         r.t = mtdiscrete;
         r.v.iv = result.cast<int>();
@@ -1486,23 +1525,25 @@ public:
     }
     pythontally( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
         : tally( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-        m{m_in}, methodname{methodnamein} {}
+    m{m_in}, methodname{methodnamein}  {
+        nps = npsin;
+    }
     ~pythontally() {}
 };
 
 
-inline valms pyrestonewvalmsptr(py::handle a);
+inline valms pyrestovalms(py::handle a);
 inline setitr* pyarraytosetitr(py::array r) {
     std::vector<valms> res {};
     for (auto a : r) {
         valms v;
-        v = pyrestonewvalmsptr(a);
+        v = pyrestovalms(a);
         res.push_back(v);
     }
     return new setitrmodeone(res);
 
 }
-inline valms pyrestonewvalmsptr(py::handle a) {
+inline valms pyrestovalms(py::handle a) {
     valms v;
     py::type obj_type = py::type::of(a);
     // std::cout << "returned set component type: " << static_cast<std::string>(py::str(obj_type.attr("__name__")));
@@ -1533,7 +1574,7 @@ public:
     const std::string methodname;
     py::object m;
     setitr* takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,methodname);
+        auto result = callpythonmethod(ns,ps,m,nps,methodname);
         py::array res = result.cast<py::array>();
         return pyarraytosetitr(res);
     }
@@ -1543,7 +1584,9 @@ public:
     }
     pythonset( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
         : set( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-        m{m_in}, methodname{methodnamein} {}
+    m{m_in}, methodname{methodnamein} {
+        nps = npsin;
+    }
     ~pythonset() {}
 };
 
@@ -1552,9 +1595,9 @@ public:
     const std::string methodname;
     py::object m;
     valms takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,methodname);
+        auto result = callpythonmethod(ns,ps,m,nps,methodname);
         valms v;
-        v = pyrestonewvalmsptr(result);
+        v = pyrestovalms(result);
         return v;
     }
     valms takemeas( const int idx, const params& ps ) override {
@@ -1563,7 +1606,9 @@ public:
     }
     pythonuncastmeas( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
         : uncastmeas( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-        m{m_in}, methodname{methodnamein} {}
+        m{m_in}, methodname{methodnamein} {
+        nps = npsin;
+    }
     ~pythonuncastmeas() {}
 };
 

@@ -20,17 +20,11 @@ from operator import truediv
 import numpy as np
 
 def pyac( adjmatrix, dim, u, v ):
-    # print ("Hi " + str(u) + ", " + str(v))
-    # print("Python: received data:" + str(adjmatrix[u * dim + v]))
-    # return 1
 #    ui = int(u)
 #    vi = int(v) This is no longer needed since the C++ flagcalc code
     # now checkes types of parameters before passing them
     # (but only up to two parameters, and only if both are integers;
     # otherwise it casts them as double precision floats)
-#    return adjmatrix[ui*dim + vi]
-    # u = int(u)
-    # v = int(v)
     return adjmatrix[u,v]
 
 def pytest( adjmatrix, dim ):
