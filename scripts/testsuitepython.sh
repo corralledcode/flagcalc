@@ -20,3 +20,5 @@ $PTH/flagcalc -r 25 150 100 -g o=out.dat overwrite -v i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a j=1 z="Deltam" all -v i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a j=1 ipy="pymeas" z="pyDeltat" all -v i=minimal3.cfg
 
+$PTH/flagcalc -d f="abc defg" -a ipy="pymeas" p="pyTestreturnset(7,7)" all -v i=minimal3.cfg allsets
+$PTH/flagcalc -r 25 150 100 -a j=1 ipy="pymeas" s="pyTestreturnset(dimm,dimm) == TUPLE (u IN V, TUPLE (v IN V, ac(u,v)))" all -v i=minimal3.cfg allsets

@@ -600,37 +600,39 @@ public:
     trianglefreecrit(mrecords* recin ) : crit(recin ,"cr1","Triangle-free crit") {}
 };
 
-class boolmeas : public meas {
+/* antiquated: use truec
+class boolcrit : public crit {
 public:
-    double takemeas( const int idx, const params& ps ) override {
+    bool takemeas( const int idx, const params& ps ) override {
         return (double)true;
     }
-    boolmeas(mrecords* recin) : meas( recin, "truem", "Always True measure") {}
+    boolcrit(mrecords* recin) : crit( recin, "truem", "Always True measure") {}
 };
+*/
 
-class dimmeas : public meas {
+class dimtally : public tally {
 public:
-    double takemeas(neighborstype* ns, const params& ps) override
+    int takemeas(neighborstype* ns, const params& ps) override
     {
         return ns->dim;
     }
-    double takemeas( const int idx, const params& ps ) {
+    int takemeas( const int idx, const params& ps ) {
         return (*rec->gptrs)[idx]->dim;
     }
 
-    dimmeas(mrecords* recin) : meas( recin, "dimm", "Graph's dimension") {}
+    dimtally(mrecords* recin) : tally( recin, "dimm", "Graph's dimension") {}
 };
 
-class edgecntmeas : public meas {
+class edgecnttally : public tally {
 public:
 
-    double takemeas( neighborstype* ns, const params& ps ) {
+    int takemeas( neighborstype* ns, const params& ps ) {
         return edgecnt(ns->g);
     }
-    double takemeas( const int idx, const params& ps ) {
+    int takemeas( const int idx, const params& ps ) {
         return edgecnt((*rec->gptrs)[idx]);
     }
-    edgecntmeas(mrecords* recin) : meas( recin, "edgecm", "Graph's edge count") {}
+    edgecnttally(mrecords* recin) : tally( recin, "edgecm", "Graph's edge count") {}
 };
 
 class avgdegreemeas : public meas {
@@ -650,32 +652,32 @@ public:
     avgdegreemeas(mrecords* recin) : meas(recin, "dm", "Graph's average degree") {}
 };
 
-class mindegreemeas : public meas {
+class mindegreetally : public tally {
 public:
-    double takemeas( neighborstype* ns, const params& ps ) {
+    int takemeas( neighborstype* ns, const params& ps ) {
         int min = ns->maxdegree;
         for (auto n = 0; n < ns->dim; ++n) {
             min = ns->degrees[n] < min ? ns->degrees[n] : min;
         }
         return min;
     }
-    double takemeas( const int idx, const params& ps ) {
+    int takemeas( const int idx, const params& ps ) {
         neighborstype* ns = (*rec->nsptrs)[idx];
         return takemeas( ns, ps );
     }
-    mindegreemeas(mrecords* recin) : meas(recin, "deltam", "Graph's minimum degree") {}
+    mindegreetally(mrecords* recin) : tally(recin, "deltam", "Graph's minimum degree") {}
 };
 
-class maxdegreemeas : public meas {
+class maxdegreetally : public tally {
 public:
-    double takemeas( neighborstype* ns, const params& ps ) {
+    int takemeas( neighborstype* ns, const params& ps ) {
         return ns->maxdegree;
     }
-    double takemeas( const int idx, const params& ps ) {
+    int takemeas( const int idx, const params& ps ) {
         neighborstype* ns = (*rec->nsptrs)[idx];
         return ns->maxdegree;
     }
-    maxdegreemeas(mrecords* recin) : meas( recin, "Deltam", "Graph's maximum degree") {}
+    maxdegreetally(mrecords* recin) : tally( recin, "Deltam", "Graph's maximum degree") {}
 };
 
 class legacygirthmeas : public meas {

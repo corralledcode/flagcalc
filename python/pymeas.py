@@ -29,12 +29,15 @@ def pyac( adjmatrix, dim, u, v ):
     # (but only up to two parameters, and only if both are integers;
     # otherwise it casts them as double precision floats)
 #    return adjmatrix[ui*dim + vi]
-    return adjmatrix[u*dim + v]
+    # u = int(u)
+    # v = int(v)
+    return adjmatrix[u,v]
 
 def pytest( adjmatrix, dim ):
     for i in range(dim):
         for j in range(dim):
-            print ("Python: received data:" + str(adjmatrix[i*dim + j]))
+            print ("Python: received data:" + str(adjmatrix[i,j]))
+#            print ("Python: received data:" + str(adjmatrix[i*dim + j]))
     return 1
 
 def pyDeltat( adjmatrix, dim ):
@@ -42,9 +45,18 @@ def pyDeltat( adjmatrix, dim ):
     for i in range(dim):
         cnt = 0
         for j in range(dim):
-            if adjmatrix[i*dim + j]:
+            if adjmatrix[i,j]:
                 cnt += 1
         if cnt > max:
             max = cnt
     return max
 
+def pyTestreturnset( adjmatrix, dim, m, n ):
+    r = np.zeros((dim,dim), dtype=bool)
+    for i in range(m):
+        for j in range(n):
+            r[i][j] = adjmatrix[i][j]
+    return r
+
+
+pyTestreturnset( [[0,1,1],[1,0,1],[1,1,0]], 3, 3, 3)

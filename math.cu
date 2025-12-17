@@ -4290,6 +4290,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     if (equalityops(fc.fo))
     // if (equalityops.find(fc.fo)->second)
     {
+        while (resleft.t == mtuncast)
+            resleft = *resleft.uv;
+        while (resright.t == mtuncast)
+            resright = *resright.uv;
         res.t = mtbool;
         switch(resleft.t)
         {
@@ -5543,7 +5547,7 @@ inline formulaclass* parseformulainternal(
                 } else
                 {
                     if (q[pos] != "1")
-                        std::cout << "Less or more than one parameter used to index into a set or tuple\n";
+                        std::cout << "Less or more than one parameter used to index into a set or tuple (could indicate an unknown token or mistyped function call)\n";
                 }
             } else {
                 fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);

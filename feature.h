@@ -1703,6 +1703,8 @@ protected:
     std::vector<strmeas*(*)(mrecords*)> rmsfactory {};
     std::vector<gmeas*> gms {};
     std::vector<gmeas*(*)(mrecords*)> gmsfactory {};
+    std::vector<uncastmeas*> ucs {};
+    std::vector<uncastmeas*(*)(mrecords*)> ucsfactory {};
 
 public:
     virtual void listoptions() override {
@@ -1777,12 +1779,7 @@ public:
 
         // add any new measure types to the list here...
 
-        auto (ms1) = measfactory<boolmeas>;
-        auto (ms2) = measfactory<dimmeas>;
-        auto (ms3) = measfactory<edgecntmeas>;
         auto (ms4) = measfactory<avgdegreemeas>;
-        auto (ms5) = measfactory<mindegreemeas>;
-        auto (ms6) = measfactory<maxdegreemeas>;
         auto (ms7) = measfactory<legacygirthmeas>;
         auto (mc) = measfactory<maxcliquemeas>;
         auto (cnm) = measfactory<connectedmeas>;
@@ -1793,12 +1790,7 @@ public:
         auto (gm) = measfactory<girthmeas>;
         auto (toRealm) = measfactory<toRealmeas>;
 
-        mssfactory.push_back(ms1);
-        mssfactory.push_back(ms2);
-        mssfactory.push_back(ms3);
         mssfactory.push_back(ms4);
-        mssfactory.push_back(ms5);
-        mssfactory.push_back(ms6);
         mssfactory.push_back(ms7);
         mssfactory.push_back(mc);
         mssfactory.push_back(cnm);
@@ -1818,6 +1810,10 @@ public:
 
         // add any new tally types to the list here...
 
+        auto (ms2) = tallyfactory<dimtally>;
+        auto (ms3) = tallyfactory<edgecnttally>;
+        auto (ms5) = tallyfactory<mindegreetally>;
+        auto (ms6) = tallyfactory<maxdegreetally>;
         auto (Knt) = tallyfactory<Kntally>;
         auto (indnt) = tallyfactory<indntally>;
         auto (cyclet) = tallyfactory<cycletally>;
@@ -1839,6 +1835,10 @@ public:
         auto (toIntt) = tallyfactory<toInttally>;
         auto (connt) = tallyfactory<conntally>;
 
+        tysfactory.push_back(ms2);
+        tysfactory.push_back(ms3);
+        tysfactory.push_back(ms5);
+        tysfactory.push_back(ms6);
         tysfactory.push_back(Knt);
         tysfactory.push_back(indnt);
         tysfactory.push_back(cyclet);
@@ -2010,6 +2010,9 @@ public:
         }
         for (int i = 0; i < gms.size(); ++i) {
             delete gms[i];
+        }
+        for (int i = 0; i < ucs.size(); ++i) {
+            delete ucs[i];
         }
     }
 
@@ -2375,6 +2378,7 @@ protected:
 
 #ifdef FLAGCALCWITHPYTHON
     std::vector<pythonmethodstruct> pythonmethods {};
+    bool is_pyinterpreterstarted = false;
 #endif
 
     itn* newiteration( measuretype mtin, int roundin, const ams ain, const bool hiddenin = false )
@@ -2417,6 +2421,11 @@ protected:
             j = rec.graphrecs.pmsv->size();
             rec.graphrecs.pmsv->push_back(ain.a.gs);
             resi->nps = ain.a.gs->nps;
+            break;
+        case measuretype::mtuncast:
+            j = rec.uncastrecs.pmsv->size();
+            rec.uncastrecs.pmsv->push_back(ain.a.uc);
+            resi->nps = ain.a.uc->nps;
             break;
 
         }
@@ -2542,62 +2551,9 @@ protected:
 
                     std::string s {};
 
-                    switch (a.t)
-                    {
-                    case mtbool:
-                        {
-                            sentofcrit* cs = new sentofcrit(&rec,litnumps,littypes,litnames, nps  , s, pym.name);
-                            a.a.cs = cs;
-                            a.a.cs->negated = false;
-                            crs.push_back(a.a.cs);
-                            break;
-                        }
-                            /* the advent of pythonmeas means these, duplicated from lookupstoredproc, are not yet
-                             * coded: puzzle of how to determine the type of a python method
-                    case mtdiscrete:
-                        {
-                            formtally* ts = new formtally(&rec,litnumps,littypes,litnames, nps, s, pym.name);
-                            a.a.ts = ts;
-                            tys.push_back(a.a.ts);
-                            break;
-                        } */
-                    case mtcontinuous:
-                        {
-                            pythonmeas* pm = new pythonmeas(&rec,pym.m,pym.nps,pym.name);
-                            a.a.ms = pm;
-                            mss.push_back(a.a.ms);
-                            break;
-                        }
-                            /*
-                    case mtset:
-                        {
-                            formset* ss = new formset(&rec,litnumps,littypes,litnames, nps, s, pym.name);
-                            a.a.ss = ss;
-                            sts.push_back(a.a.ss);
-                            break;
-                        }
-                    case mttuple:
-                        {
-                            formtuple* os = new formtuple(&rec,litnumps,littypes,litnames,nps, s, pym.name);
-                            a.a.os = os;
-                            oss.push_back(a.a.os);
-                            break;
-                        }
-                    case mtstring:
-                        {
-                            formstring* rs = new formstring(&rec,litnumps,littypes,litnames,nps, s, pym.name);
-                            a.a.rs = rs;
-                            rms.push_back(a.a.rs);
-                            break;
-                        }
-                    case mtgraph:
-                        {
-                            formgraph* gs = new formgraph(&rec,litnumps,littypes,litnames,nps, s, pym.name);
-                            a.a.gs = gs;
-                            gms.push_back(a.a.gs);
-                            break;
-                        } */
-                    }
+                    pythonuncastmeas* pu = new pythonuncastmeas(&rec,pym.m,pym.nps,pym.name);
+                    a.a.uc = pu;
+
 
                     auto it = newiteration(a.t,roundin,a,true);
 
@@ -2972,7 +2928,8 @@ public:
     }
 
     ~checkcriterionfeature() {
-        // py::finalize_interpreter();
+        if (is_pyinterpreterstarted)
+            py::finalize_interpreter();
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
@@ -3234,7 +3191,9 @@ public:
 
                 try {
 
-                    py::initialize_interpreter();
+                    if (!is_pyinterpreterstarted)
+                        py::initialize_interpreter();
+                    is_pyinterpreterstarted = true;
                     py::module_ sys = py::module_::import("sys");
                     sys.attr("path").attr("append")("../python");
 
@@ -3275,7 +3234,8 @@ public:
                             pym.name = py::str(d);
                             pym.m = pymodule;
                             pym.filename = filename;
-                            pym.a.t = mtcontinuous;
+                            // pym.a.t = mtcontinuous;
+                            pym.a.t = mtuncast;
                             namedparams nps {};
 
                             int actual_num_params = num_params - 2;
@@ -3854,6 +3814,7 @@ public:
         std::vector<setitr*> threadtuple {};
         std::vector<std::string*> threadstring {};
         std::vector<neighborstype*> threadgraph {};
+        std::vector<valms> threaduncast {};
         threadbool.resize(eqclass.size());
         threadint.resize(eqclass.size());
         threaddouble.resize(eqclass.size());
@@ -3861,6 +3822,7 @@ public:
         threadtuple.resize(eqclass.size());
         threadstring.resize(eqclass.size());
         threadgraph.resize(eqclass.size());
+        threaduncast.resize(eqclass.size());
         for (int k = 0; k < iter.size(); ++k)
         {
             int ilookup = rec.intlookup(iter[k]->iidx);
@@ -3905,6 +3867,9 @@ public:
                     case mtgraph:
                     runthreads<neighborstype*>(ilookup,ps,rec.graphrecs);
                     break;
+                    case mtuncast:
+                    runthreads<valms>(ilookup,ps,rec.uncastrecs);
+                    break;
                 }
             } else
             {
@@ -3929,6 +3894,9 @@ public:
                     break;
                     case mtgraph:
                     runthreadspartial<neighborstype*>(ilookup,ps,rec.graphrecs,&todo);
+                    break;
+                    case mtuncast:
+                    runthreadspartial<valms>(ilookup,ps,rec.uncastrecs,&todo);
                     break;
                 }
             }
@@ -3998,6 +3966,15 @@ public:
                 for (int m = 0; m < eqclass.size(); ++m)
                     rec.addliteralvalueg( iter[k]->iidx, m, threadgraph[m]);
                 break;
+                case mtuncast:
+                    for (int m = 0; m < eqclass.size(); ++m)
+                    {
+                        if (alltodo || todo[m])
+                            threaduncast[m] = rec.uncastrecs.fetch(m,ilookup, ps);
+                    }
+                    for (int m = 0; m < eqclass.size(); ++m)
+                        rec.addliteralvalueu( iter[k]->iidx, m, threaduncast[m]);
+                    break;
             }
 
             if (iter[k]->hidden)

@@ -23,9 +23,9 @@ $PTH/flagcalc -d massivegraph.dat -a s="GPU FORALL (v IN V, 1, mod(v,2) == 0 OR 
 
 $PTH/flagcalc -d massivegraph.dat -a a="GPU SUM (v IN V, w IN V, 1, (log(v+1) + log(v + 1) + log(v+1) + log(v+1) + log(v+1) + log(v+1) + log(v+1) + log(v+1)) - log(exp(8*log(v+1))))"
 
-$PTH/flagcalc -d f="abc def ghi jkl mno pqr stu vwx yz" -a p="nwalksbetweenp(128)" all -a p="CUDAnwalksbetweenp(128)" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d massivegraph.dat -a p="nwalksbetweenp(128)" all -a p="CUDAnwalksbetweenp(128)" all -v i=minimal3.cfg
-$PTH/flagcalc -d massivegraph.dat -a p="nwalksbetweenp(128) == CUDAnwalksbetweenp(128)" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abc def ghi jkl mno pqr stu vwx yz" -a p="nwalksbetweenp(30)" all -a p="CUDAnwalksbetweenp(30)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d massivegraph.dat -a p="nwalksbetweenp(30)" all -a p="CUDAnwalksbetweenp(30)" all -v i=minimal3.cfg
+$PTH/flagcalc -d massivegraph.dat -a p="nwalksbetweenp(30) == CUDAnwalksbetweenp(30)" all -v i=minimal3.cfg
 
 $PTH/flagcalc -d f="a b c d e f g h i j" -a s="GPU EXISTS (u IN Ps(V), 1, 9 <= st(u))" all -v i=minimal3.cfg
 

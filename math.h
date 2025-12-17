@@ -156,7 +156,6 @@ struct intpair
 };
 
 struct valspair;
-
 union vals
 {
     bool bv;
@@ -166,7 +165,7 @@ union vals
     std::string* rv;
 };
 
-enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtset, mttuple, mtstring, mtgraph };
+enum measuretype { mtbool, mtdiscrete, mtcontinuous, mtset, mttuple, mtstring, mtgraph, mtuncast };
 
 inline std::map<measuretype,std::string> measuretypenames {
     {mtbool, "mtbool"},
@@ -175,7 +174,8 @@ inline std::map<measuretype,std::string> measuretypenames {
     {mtset, "mtset"},
     {mttuple, "mttuple"},
     {mtstring, "mtstring"},
-    {mtgraph, "mtgraph"}};
+    {mtgraph, "mtgraph"},
+    {mtuncast, "mtuncast"}};
 
 
 class setitr;
@@ -189,6 +189,7 @@ struct valms
     measuretype t = mtbool;
     vals v;
     setitr* seti;
+    valms* uv;
 //    valms() : valms(mtbool,{},nullptr) {};
 //    valms( measuretype tin, vals vin, setitr* setiin );
 };
@@ -2778,6 +2779,7 @@ inline void mtconverttobool( const valms& vin, bool& vout )
     case mttuple: vout = vin.seti->getsize() > 0 ? true : false; break;
     case mtstring: vout = stoi(*vin.v.rv) != 0 ? true : false; break;
     case mtgraph: vout = vin.v.nsv->g->dim > 0 ? true : false; break;
+    case mtuncast: mtconverttobool(*vin.uv,vout); break;
     }
 }
 inline void mtconverttodiscrete( const valms& vin, int& vout )
@@ -2791,6 +2793,7 @@ inline void mtconverttodiscrete( const valms& vin, int& vout )
     case mttuple: vout = vin.seti->getsize(); break;
     case mtstring: vout = stoi(*vin.v.rv); break;
     case mtgraph: vout = vin.v.nsv->g->dim; break;
+    case mtuncast: mtconverttodiscrete(*vin.uv,vout); break;
     }
 }
 inline void mtconverttocontinuous( const valms& vin, double& vout )
@@ -2804,20 +2807,20 @@ inline void mtconverttocontinuous( const valms& vin, double& vout )
     case mttuple: vout = vin.seti->getsize(); break;
     case mtstring: vout = stod(*vin.v.rv); break;
     case mtgraph: vout = vin.v.nsv->g->dim; break;
+    case mtuncast: mtconverttocontinuous(*vin.uv,vout); break;
     }
 }
 inline void mtconverttoset( const valms& vin, setitr*& vout )
 {
-    switch (vin.t)
-    {
-    case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
-    case mtdiscrete: {
+    switch (vin.t) {
+        case mtbool: {vout = vin.v.bv ? new setitrint(0) : new setitrint(-1); break;}
+        case mtdiscrete: {
             vout = new setitrint(vin.v.iv-1); break; // verify works with any negative not just -1
-            }
-    case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
-    case mtset:
-    case mttuple: vout = vin.seti; break;
-    case mtstring:
+        }
+        case mtcontinuous: {vout = new setitrint((int)vin.v.dv-1); break;}
+        case mtset:
+        case mttuple: vout = vin.seti; break;
+        case mtstring:
         {
             const std::regex r2 {"([[:alpha:]]\\w*)"};
             std::vector<valms> out2 {};
@@ -2831,9 +2834,15 @@ inline void mtconverttoset( const valms& vin, setitr*& vout )
             vout = new setitrmodeone(out2);
             break;
         }
-    case mtgraph:
+        case mtgraph:
         {
             vout = new setitrint(vin.v.nsv->g->dim); break;
+            break;
+        }
+        case mtuncast:
+        {
+            mtconverttoset(*vin.uv,vout);
+            break;
         }
     }
 }
@@ -2864,34 +2873,44 @@ inline void mtconverttotuple( const valms& vin, setitr*& vout )
         {
             vout = new setitrint(vin.v.nsv->g->dim); break;
         }
+    case mtuncast:
+        {
+            mtconverttotuple(*vin.uv,vout);
+            break;
+        }
     }
 }
 inline void mtconverttostring( const valms& vin, std::string*& vout )
 {
-    switch (vin.t)
-    {
-    case mtbool: *vout = vin.v.bv ? "true" : "false" ; break;
-    case mtdiscrete: *vout = std::to_string(vin.v.iv); break;
-    case mtcontinuous: *vout = std::to_string(vin.v.dv); break;
-    case mtset:
-    case mttuple: *vout = "{ SET of size " + std::to_string(vin.seti->getsize()) + "}";
-    case mtstring: *vout = "< TUPLE of size " + std::to_string(vin.seti->getsize()) + ">";
-    case mtgraph:
-        std::stringstream ss {};
-        osmachinereadablegraph(ss,vin.v.nsv->g);
-        *vout = ss.str();
-        break;
+    switch (vin.t) {
+        case mtbool: *vout = vin.v.bv ? "true" : "false" ; break;
+        case mtdiscrete: *vout = std::to_string(vin.v.iv); break;
+        case mtcontinuous: *vout = std::to_string(vin.v.dv); break;
+        case mtset:
+        case mttuple: *vout = "{ SET of size " + std::to_string(vin.seti->getsize()) + "}";
+        case mtstring: *vout = "< TUPLE of size " + std::to_string(vin.seti->getsize()) + ">";
+        case mtgraph: {
+            std::stringstream ss {};
+            osmachinereadablegraph(ss,vin.v.nsv->g);
+            *vout = ss.str();
+            break;
+        }
+        case mtuncast:
+        {
+            mtconverttostring(*vin.uv,vout);
+            break;
+        }
     }
+
 }
 inline void mtconverttograph( const valms& vin, neighborstype*& vout )
 {
-    switch (vin.t)
-    {
-    case mtbool: {vout = new neighborstype(new graphtype(vin.v.bv ? 1 : 0)); break;}
-    case mtdiscrete: {vout = new neighborstype(new graphtype(vin.v.iv)); break;}
-    case mtcontinuous: {vout = new neighborstype(new graphtype((int)vin.v.dv)); break;}
-    case mtset:
-    case mttuple:
+    switch (vin.t) {
+        case mtbool: {vout = new neighborstype(new graphtype(vin.v.bv ? 1 : 0)); break;}
+        case mtdiscrete: {vout = new neighborstype(new graphtype(vin.v.iv)); break;}
+        case mtcontinuous: {vout = new neighborstype(new graphtype((int)vin.v.dv)); break;}
+        case mtset:
+        case mttuple:
         {
             /* First count how many vertices */
 
@@ -2946,7 +2965,7 @@ inline void mtconverttograph( const valms& vin, neighborstype*& vout )
             vout = new neighbors(g);
             break;
         }
-    case mtstring:
+        case mtstring:
         {
             std::vector<std::string> temp {};
             temp.push_back(*vin.v.rv);
@@ -2954,9 +2973,15 @@ inline void mtconverttograph( const valms& vin, neighborstype*& vout )
             vout = new neighbors(g);
             break;
         }
-    case mtgraph: vout = vin.v.nsv;
-        break;
+        case mtgraph: vout = vin.v.nsv;
+            break;
+        case mtuncast:
+        {
+            mtconverttograph(*vin.uv,vout);
+            break;
+        }
     }
+
 }
 inline void mtconverttype1( const valms& vin, valms& vout )
 {
@@ -2969,6 +2994,7 @@ inline void mtconverttype1( const valms& vin, valms& vout )
         case measuretype::mttuple: mtconverttupleto(vin.seti,vout); break;
         case measuretype::mtstring: mtconvertstringto(vin.v.rv,vout); break;
         case measuretype::mtgraph: mtconvertgraphto(vin.v.nsv,vout); break;
+        case measuretype::mtuncast: mtconverttype1(*vin.uv,vout); break;
     }
 
 }
@@ -2983,6 +3009,7 @@ inline void mtconverttype2( const valms& vin, valms& vout )
     case measuretype::mttuple: mtconverttotuple(vin,vout.seti); break;
     case measuretype::mtstring: mtconverttostring(vin,vout.v.rv); break;
     case measuretype::mtgraph: mtconverttograph(vin,vout.v.nsv); break;
+    case measuretype::mtuncast: mtconverttype2(*vin.uv,vout); break;
     }
 }
 inline bool graphsequal( graphtype* g1, graphtype* g2 ) {
@@ -2997,6 +3024,16 @@ inline bool graphsequal( graphtype* g1, graphtype* g2 ) {
     return true;
 }
 inline bool mtareequal( const valms& v, const valms& w ) { // initially overloaded the == ops, but this seems more kosher
+    if (v.t == mtuncast || w.t == mtuncast) {
+        auto vbase = v;
+        auto wbase = w;
+        while (vbase.t == mtuncast)
+            vbase = *vbase.uv;
+        while (wbase.t == mtuncast)
+            wbase = *wbase.uv;
+        return mtareequal(vbase,wbase);
+    }
+
     if (v.t != w.t)
         return false;
     switch (v.t) {
@@ -3025,8 +3062,18 @@ inline bool mtareequal( const valms& v, const valms& w ) { // initially overload
 }
 
 inline bool mtareequalgenerous( const valms& v, const valms& w ) { // initially overloaded the == ops, but this seems more kosher
+    if (v.t == mtuncast || w.t == mtuncast) {
+        auto vbase = v;
+        auto wbase = w;
+        while (vbase.t == mtuncast)
+            vbase = *vbase.uv;
+        while (wbase.t == mtuncast)
+            wbase = *wbase.uv;
+        return mtareequalgenerous(vbase,wbase);
+    }
     // if (v.t != w.t)
     //    return false;
+
     switch (v.t) {
     case mtbool:
     case mtdiscrete:

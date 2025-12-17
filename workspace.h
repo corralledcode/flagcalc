@@ -795,6 +795,9 @@ inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t
             osadjacencymatrix(os, v.v.nsv->g);
             os << "\n";
             break;
+        case mtuncast:
+            os << "<uncast> \n";
+            break;
         }
     }
     if (!newline)
