@@ -83,6 +83,9 @@ def pyfindspanningtree( adjmatrix, dim, Es ):
                                 visited[n] = True
                                 found += 1
                                 Es.remove(e)
+                            else:
+                                if e[0] == n or e[1] == n:
+                                    more = True
                 if found == 0:
                     for v in range(dim):
                         if (visited[v]):
@@ -141,9 +144,9 @@ def pytestNeighborslistparameter( Neighborslist, Nonneighborslist, degrees ):
     print (degrees)
     return Neighborslist
 
-testgraph = [[0,1,1],[1,0,1],[1,1,0]]
-testgraphdim = 3
-pyfindspanningtree(testgraph,testgraphdim,[[0,1]])
+testgraph = [[0,1,1,1,1],[1,0,1,1,1],[1,1,0,1,1],[1,1,1,0,1],[1,1,1,1,0]]
+testgraphdim = 5
+# print(pyfindspanningtree(testgraph,testgraphdim,[[0,1],[2,3]]))
 
 pyTestreturnset( [[0,1,1],[1,0,1],[1,1,0]], 3, 3, 3)
 
