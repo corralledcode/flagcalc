@@ -27,11 +27,10 @@ $PTH/flagcalc -d f="abcd efg de ghij" -a ipy="pymeas" p="pyfindspanningtree({{0,
 $PTH/flagcalc -r 8 14 25 -a j=1 ipy="pymeas" s="FORALL (S IN Ps(E), st(pyfindspanningtree(S))>0) IFF treec"  all -v i=minimal3.cfg allsets
 $PTH/flagcalc -r 6 7.5 30 -a j=1 ipy="pymeas" s1="conn1c" s2="FORALL (S IN Ps(E), st(pyfindspanningtree(S))>0 IMPLIES FORALL (e1 IN S, e2 IN S, e3 IN S, e1 != e2 AND e1 != e3 AND e2 != e3, st(e1 CUP e2 CUP e3) > 3))"  all -v i=minimal3.cfg allsets
 
-$PTH/flagcalc -r 6 7.5 30 -a j=1 ipy="pymeas" s1="conn1c" s2="FORALL (S IN Ps(E), st(pyfindspanningtree(S))>0 IMPLIES FORALL (e1 IN S, e2 IN S, e3 IN S, e1 != e2 AND e1 != e3 AND e2 != e3, st(e1 CUP e2 CUP e3) > 3))"  all -v i=minimal3.cfg allsets
-
 $PTH/flagcalc -r 15 p=0.1 500 -a j=1 ipy="pymeas" s="pyedgesetcontainscycle(E) IFF NOT forestc"  all -v i=minimal3.cfg allsets
 
 $PTH/flagcalc -r 11 p=0.5 25 -a j=1 ipy="pymeas" s="pyedgesetcontainscycle(E) IFF NOT FORALL (v IN V, cyclesvt(v) == 0)"  all -v i=minimal3.cfg allsets
 
 $PTH/flagcalc -r 8 p=0.3 75 -a j=1 ipy="pymeas" s="FORALL (S IN Ps(E), pyedgesetcontainscycle(S) IMPLIES st(pyfindspanningtree(S)) == 0)"  all -v i=minimal3.cfg allsets
 
+$PTH/flagcalc -r 15 p=0.4 250 -a j=1 ipy="pymeas" s="edgecm > 0" s2="pyfindspanningtree(Nulls) == E IFF treec"  all -v i=minimal3.cfg allsets

@@ -63,34 +63,46 @@ def pyfindspanningtree( adjmatrix, dim, Es ):
     else:
         root = Es[0][0]
     visited[root] = True
-    for n in range(dim):
-        if not visited[n]:
-            found = 0
-            for e in Es:
-                if e[0] == n and visited[e[1]]:
-                    newEs.append(e)
-                    visited[n] = True
-                    found += 1
-                else:
-                    if e[1] == n and visited[e[0]]:
-                        newEs.append(e)
-                        visited[n] = True
-                        found += 1
-            if found == 0:
-                for v in range(dim):
-                    if (visited[v]):
-                        if (not found) and pyac( adjmatrix, dim, n, v):
+    more = True
+    while more:
+        more = False
+        for n in range(dim):
+            if not visited[n]:
+                found = 0
+                more = True
+                for e in Es:
+                    if found == 0:
+                        if e[0] == n and visited[e[1]]:
+                            newEs.append(e)
                             visited[n] = True
-                            newEs.append([v,n])
                             found += 1
-            else:
-                if found > 1:
-                    # print("pyfindspanningtree: cycle found")
-                    return []
-            if found == 0:
-                # print( "pyfindspanningtree: no path found" )
-                return []
-    return newEs
+                            Es.remove(e)
+                        else:
+                            if e[1] == n and visited[e[0]]:
+                                newEs.append(e)
+                                visited[n] = True
+                                found += 1
+                                Es.remove(e)
+                if found == 0:
+                    for v in range(dim):
+                        if (visited[v]):
+                            if (found == 0) and pyac( adjmatrix, dim, n, v):
+                                visited[n] = True
+                                newEs.append([v,n])
+                                found += 1
+                else:
+                    if found > 1:
+                        print("pyfindspanningtree: cycle found")
+                        return []
+        if found == 0:
+            return []
+    all = True
+    for n in range(dim):
+        all = all and visited[n]
+    if all and len(Es) == 0:
+        return newEs
+    else:
+        return []
 
 def pathdoescycle( E, visited ):
     for e in E:
@@ -132,6 +144,7 @@ def pytestNeighborslistparameter( Neighborslist, Nonneighborslist, degrees ):
 testgraph = [[0,1,1],[1,0,1],[1,1,0]]
 testgraphdim = 3
 pyfindspanningtree(testgraph,testgraphdim,[[0,1]])
+
 pyTestreturnset( [[0,1,1],[1,0,1],[1,1,0]], 3, 3, 3)
 
 # print (pyedgesetcontainscycle(6,[[0,1],[1,2],[3,4],[4,5]]))
