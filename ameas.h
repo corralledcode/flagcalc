@@ -260,6 +260,7 @@ public:
     std::vector<T*> res {};
     std::vector<bool*> computed{};
     std::vector<ameas<T>*>* msv {};
+    unsigned thread_count = std::thread::hardware_concurrency();
 
     virtual int findliteral( const std::string& sin )
     {

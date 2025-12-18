@@ -72,6 +72,9 @@ protected:
     workspace* _ws;
 public:
     unsigned thread_count = std::thread::hardware_concurrency();
+    virtual void setthread_count (const unsigned thread_countin) {
+        thread_count = thread_countin;
+    }
     virtual std::string cmdlineoption() {return "";};
     virtual std::string cmdlineoptionlong() { return "";};
     virtual void listoptions() {
@@ -327,9 +330,9 @@ public:
             }
         }
         for (auto f : featureslist)
-            f->thread_count = cnt;
+            f->setthread_count(cnt);
         global_thread_count = cnt;
-        // *_os << "Threads globally: " << cnt << "\n";
+        *_os << "Threads globally: " << cnt << "\n";
     }
     threadsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
 
@@ -503,8 +506,8 @@ public:
         *_os << "\t" << "<dim>: \t\t\t\t dimension of the graph\n";
         *_os << "\t" << "<edgecount>: \t\t edge count, where probability is <edgecount>/maxedges, maxedges = (dim-choose-2)\n";
         *_os << "\t" << "<count>: \t\t\t how many random graphs to output to the workspace\n";
-        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r1,...,r5:\n";
         *_os << "\t" << "p=<f>:\t percentage in place of <edgecount>, 0<=f<=1 (must be in position of <edgecount>: second of the three inputs\n";
+        *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r1,...,r5:\n";
         for (int n = 0; n < rgs.size(); ++n) {
             *_os << "\t\t\"" << rgs[n]->shortname() << "\": " << rgs[n]->name << "\n";
         }
@@ -1758,6 +1761,19 @@ protected:
     std::vector<uncastmeas*(*)(mrecords*)> ucsfactory {};
 
 public:
+    void setthread_count(const unsigned thread_countin) override {
+        feature::setthread_count(thread_countin);
+        rec.thread_count = thread_count;
+        rec.boolrecs.thread_count = thread_count;
+        rec.intrecs.thread_count = thread_count;
+        rec.doublerecs.thread_count = thread_count;
+        rec.setrecs.thread_count = thread_count;
+        rec.tuplerecs.thread_count = thread_count;
+        rec.uncastrecs.thread_count = thread_count;
+        rec.stringrecs.thread_count = thread_count;
+        rec.graphrecs.thread_count = thread_count;
+    }
+
     virtual void listoptions() override {
         feature::listoptions();
     }
@@ -2246,15 +2262,15 @@ inline compactcmdline parsecompactcmdline( std::string& s )
 template<typename T>
 void runthreads(const int iidx, const params& ps, thrrecords<T>& r )
 {
-    const double section = double(r.sz) / double(global_thread_count);
+    const double section = double(r.sz) / double(r.thread_count);
     std::vector<std::future<void>> t;
-    t.resize(global_thread_count);
-    for (int m = 0; m < global_thread_count; ++m) {
+    t.resize(r.thread_count);
+    for (int m = 0; m < r.thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
         t[m] = std::async(&thrrecords<T>::threadfetch,r,startidx,stopidx,iidx,ps);
     }
-    for (int m = 0; m < global_thread_count; ++m)
+    for (int m = 0; m < r.thread_count; ++m)
     {
         t[m].get();
     }
@@ -2263,15 +2279,15 @@ void runthreads(const int iidx, const params& ps, thrrecords<T>& r )
 template<typename T>
 void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r, std::vector<bool>* todo )
 {
-    const double section = double(r.sz) / double(global_thread_count);
+    const double section = double(r.sz) / double(r.thread_count);
     std::vector<std::future<void>> t;
-    t.resize(global_thread_count);
-    for (int m = 0; m < global_thread_count; ++m) {
+    t.resize(r.thread_count);
+    for (int m = 0; m < r.thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
         t[m] = std::async(&thrrecords<T>::threadfetchpartial,r,startidx,stopidx,iidx,ps,todo);
     }
-    for (int m = 0; m < global_thread_count; ++m)
+    for (int m = 0; m < r.thread_count; ++m)
     {
         t[m].get();
     }
@@ -3094,8 +3110,8 @@ public:
             if (ccl.t == "j") // j is a letter borrowed from cmake
             {
                 int n = stoi(parsedargs[i].second);
-                thread_count = n < std::thread::hardware_concurrency() ? n : std::thread::hardware_concurrency();
-                std::cout << "Thread count: " << thread_count << "\n";
+                setthread_count( n < std::thread::hardware_concurrency() ? n : std::thread::hardware_concurrency() );
+                std::cout << "Criterion thread count: " << thread_count << "\n";
             }
             if (ccl.t == "s")
             {
@@ -3270,7 +3286,8 @@ public:
                             continue;
                         if (py::isinstance<py::module_>(d))
                             continue; // not working...
-                        std::cout << " - " << std::string(py::str(d)) << "(";
+
+                        // std::cout << " - " << std::string(py::str(d)) << "(";
 
                         try {
                             py::function callback_ = pymodule.attr(py::str(d));
@@ -3297,7 +3314,7 @@ public:
                             u.t = mtuncast;
                             for (auto v : parameters_dict) {
                                 std::string s = py::str(v);
-                                std::cout << s << ",";
+                                // std::cout << s << ",";
                                 if (s == "adjmatrix" || s == "dim"
                                     || s == "Edges" || s == "Nonedges"
                                     || s == "Neighborslist" || s == "Nonneighborslist"
@@ -3318,7 +3335,7 @@ public:
                                     nps.push_back({s,u});
                                 i++;
                             }
-                            std::cout << "\b)\n";
+                            // std::cout << "\b)\n";
 
                             pym.nps = nps;
                             pym.ips = ips;
@@ -3327,7 +3344,7 @@ public:
 
                         } catch ( std::exception& e) { // need to figure out how simply to test for being a function or not
                             // also need to replace with the specific exception thrown
-                            std::cout << "\b: Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
+                            // std::cout << "\b: Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
                         }
                     }
                     // py::object out = pymodule.attr("pytest")(3);

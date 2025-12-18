@@ -92,6 +92,29 @@ def pyfindspanningtree( adjmatrix, dim, Es ):
                 return []
     return newEs
 
+def pathdoescycle( E, visited ):
+    for e in E:
+        if visited[e[0]] and visited[e[1]]:
+            return True
+        if visited[e[0]] or visited[e[1]]:
+            visited[e[0]] = True
+            visited[e[1]] = True
+            E.remove(e)
+            return pathdoescycle( E, visited )
+    if len(E) == 0:
+        return False
+    visited[E[0][0]] = True
+    return pathdoescycle( E, visited )
+
+def pyedgesetcontainscycle( dim, E ):
+    visited = np.zeros(dim, dtype=bool)
+    if len(E) == 0:
+        return False
+    visited[E[0][0]] = True
+    return pathdoescycle( E, visited )
+
+
+
 def pytestEdgesparameter( Edges, Nonedges ):
     print (Edges)
     print (Nonedges)
@@ -110,3 +133,7 @@ testgraph = [[0,1,1],[1,0,1],[1,1,0]]
 testgraphdim = 3
 pyfindspanningtree(testgraph,testgraphdim,[[0,1]])
 pyTestreturnset( [[0,1,1],[1,0,1],[1,1,0]], 3, 3, 3)
+
+# print (pyedgesetcontainscycle(6,[[0,1],[1,2],[3,4],[4,5]]))
+
+# print (pyedgesetcontainscycle(8,[[0, 2], [0, 4], [0, 5], [0, 6], [0, 7], [1, 2], [1, 3], [1, 7], [2, 5], [2, 7], [3, 4], [3, 7], [4, 6], [5, 6], [5, 7]]))
