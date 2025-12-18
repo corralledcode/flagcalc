@@ -49,7 +49,7 @@ struct CUDAseti
 
 union CUDAvals
 {
-    long int iv;
+    LONGINT iv;
     bool bv;
     double dv;
     CUDAseti seti;
@@ -152,7 +152,7 @@ struct CUDAextendedcontext;
 union CUDAfunction
 {
     bool (*fnbool)(const CUDAextendedcontext&, const CUDAvalms*);
-    long int (*fndiscrete)(const CUDAextendedcontext&, const CUDAvalms*);
+    LONGINT (*fndiscrete)(const CUDAextendedcontext&, const CUDAvalms*);
     double (*fncontinuous)(const CUDAextendedcontext&, const CUDAvalms*);
     CUDAseti (*fnset)(const CUDAextendedcontext&, const CUDAvalms*);
     CUDAseti (*fntuple)(const CUDAextendedcontext&, const CUDAvalms*);
@@ -184,7 +184,7 @@ struct CUDAfc
     CUDAliteralptr literal; // includes fns.fn
 };
 
-using CUDAvdimn = long int[GPUQUANTFASTDIM];
+using CUDAvdimn = LONGINT[GPUQUANTFASTDIM];
 
 struct CUDAextendedcontext
 {
@@ -623,7 +623,7 @@ __device__ inline bool CUDAto_mtbool( const CUDAvalms v )
     }
 }
 
-__device__ inline long int CUDAto_mtdiscrete( const CUDAvalms v )
+__device__ inline LONGINT CUDAto_mtdiscrete( const CUDAvalms v )
 {
     switch (v.t)
     {

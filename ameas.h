@@ -889,7 +889,7 @@ public:
     std::vector<formulaclass*> formulae;
     namedparams nps;
 
-    virtual int getsize() {return formulae.size();}
+    virtual LONGINT getsize() {return formulae.size();}
 
     virtual bool ended() {return pos+1 >= getsize();}
     virtual valms getnext()
@@ -1051,7 +1051,7 @@ public:
 
         const valms r = ef->eval(*fc, context);
         delete ef;
-        int out;
+        LONGINT out;
         mtconverttodiscrete(r,out);
         return out;
     }
@@ -1065,7 +1065,7 @@ public:
 
         const valms r = ef->eval(*fc, context);
         delete ef;
-        int out;
+        LONGINT out;
         mtconverttodiscrete(r,out);
         return out;
     }
@@ -1288,7 +1288,7 @@ public:
 #ifdef FLAGCALCWITHPYTHON
 
 
-using mtflatvarianttype = std::variant<bool,int,double>;
+using mtflatvarianttype = std::variant<bool,LONGINT,double>;
 
 inline mtflatvarianttype translatemttopython( const valms& v ) {
     mtflatvarianttype out;
@@ -1336,7 +1336,7 @@ inline py::list translatesetitrtopython( setitr* s ) {
     return out;
 }
 
-inline py::object callpythonmethod( neighborstype* ns, const params& ps, const py::object& m, namedparams nps, const std::string& methodname ) {
+inline py::object callpythonmethod( neighborstype* ns, const params& ps, const py::object& m, const namedparams& nps, const namedparams& ips, const std::string& methodname ) {
     py::gil_scoped_release release;
 
     auto dim = ns->dim;
@@ -1349,15 +1349,68 @@ inline py::object callpythonmethod( neighborstype* ns, const params& ps, const p
     py::object result;
     py::gil_scoped_acquire acquire;
     try {
-        py::array_t<bool> array({dim,dim});
-        py::buffer_info buf = array.request();
-        bool* ptr = static_cast<bool*>(buf.ptr);
-        memcpy(ptr,ns->g->adjacencymatrix,dim*dim);
+
+        // way to avoid the overhead of calculating this each time?
 
         py::dict kwargs {};
+        for (auto ip : ips) {
+            if (ip.first == "adjmatrix") {
+                py::array_t<bool> array({dim,dim});
+                py::buffer_info buf = array.request();
+                bool* ptr = static_cast<bool*>(buf.ptr);
+                memcpy(ptr,ns->g->adjacencymatrix,dim*dim*sizeof(bool));
+                kwargs["adjmatrix"] = array;
+            } else if (ip.first == "dim") {
+                kwargs["dim"] = dim;
+            } else if (ip.first == "Edges") {
+                auto edges = graphedges(ns->g);
+                int sz = edges.size();
+                py::array_t<vertextype> array({sz,2});
+                py::buffer_info buf = array.request();
+                vertextype* ptr = static_cast<vertextype*>(buf.ptr);
+                int j = 0;
+                for (auto e : edges) {
+                    ptr[2*j] = e.first;
+                    ptr[2*j++ + 1] = e.second;
+                }
+                kwargs["Edges"] = array;
+            } else if (ip.first == "Nonedges") {
+                auto nonedges = graphnonedges(ns->g);
+                int sz = nonedges.size();
+                py::array_t<vertextype> array({sz,2});
+                py::buffer_info buf = array.request();
+                vertextype* ptr = static_cast<vertextype*>(buf.ptr);
+                int j = 0;
+                for (auto e : nonedges) {
+                    ptr[2*j] = e.first;
+                    ptr[2*j++ + 1] = e.second;
+                }
+                kwargs["Nonedges"] = array;
+            } else if (ip.first == "Neighborslist") {
+                py::array_t<vertextype> array( {dim,dim});
+                py::buffer_info buf = array.request();
+                vertextype* ptr = static_cast<vertextype*>(buf.ptr);
+                memcpy(ptr,ns->neighborslist,dim*dim*sizeof(vertextype));
+                kwargs["Neighborslist"] = array;
+            } else if (ip.first == "Nonneighborslist") {
+                py::array_t<int> array({dim,dim});
+                py::buffer_info buf = array.request();
+                vertextype* ptr = static_cast<vertextype*>(buf.ptr);
+                memcpy(ptr,ns->nonneighborslist,dim*dim);
+                kwargs["Nonneighborslist"] = array;
+            } else if (ip.first == "degrees") {
+                py::array_t<int> array(dim);
+                py::buffer_info buf = array.request();
+                int* ptr = static_cast<int*>(buf.ptr);
+                memcpy(ptr,ns->degrees,dim*sizeof(int));
+                kwargs["degrees"] = array;
+            } else if (ip.first == "maxdegree") {
+                kwargs["maxdegree"] = ns->maxdegree;
+            }
+        }
+
         int i = 0;
-        kwargs["adjmatrix"] = array;
-        kwargs["dim"] = dim;
+
         for (auto a : ps) {
             const char* s = nps[i].first.c_str();
             while (a.t == mtuncast)
@@ -1371,116 +1424,6 @@ inline py::object callpythonmethod( neighborstype* ns, const params& ps, const p
         // for (auto a : kwargs)
             // std::cout << a.first << " : " << a.second << std::endl;
         result = m.attr(methodname.c_str())(**kwargs);
-
-        // Obviously this should instead respect whatever type the parameters identify as, but it isn't clear
-        // how to code that in C++: the numbers of cases is very high; for now, I've coded only cases 1 and 2 this way
-        /*
-        switch (ps.size()) {
-            case 0: {
-                result = m.attr(methodname.c_str())(array,dim);// This call requires the GIL
-                break;
-            }
-            case 1: {
-                if (ps[0].t == mtdiscrete)
-                    result = m.attr(methodname.c_str())(array,dim,
-                        ps[0].v.iv);// This call requires the GIL
-                else
-                    result = m.attr(methodname.c_str())(array,dim,
-                        to_mtcontinuous(ps[0]).v.dv);// This call requires the GIL
-                break;
-            }
-            case 2: {
-                if (ps[0].t == mtdiscrete && ps[1].t == mtdiscrete)
-                    result = m.attr(methodname.c_str())(array,dim,
-                        ps[0].v.iv,
-                        ps[1].v.iv);// This call requires the GIL
-                else
-                    result = m.attr(methodname.c_str())(array,dim,
-                        to_mtcontinuous(ps[0]).v.dv,
-                        to_mtcontinuous(ps[1]).v.dv);
-                break;
-            }
-            case 3: {
-                result = m.attr(methodname.c_str())(array,dim,
-                    to_mtcontinuous(ps[0]).v.dv,
-                    to_mtcontinuous(ps[1]).v.dv,
-                    to_mtcontinuous(ps[2]).v.dv);// This call requires the GIL
-                break;
-            }
-            case 4: {
-                result = m.attr(methodname.c_str())(array,dim,
-                    to_mtcontinuous(ps[0]).v.dv,
-                    to_mtcontinuous(ps[1]).v.dv,
-                    to_mtcontinuous(ps[2]).v.dv,
-                    to_mtcontinuous(ps[3]).v.dv);// This call requires the GIL
-                break;
-            }
-            case 5: {
-                result = m.attr(methodname.c_str())(array,dim,
-                    to_mtcontinuous(ps[0]).v.dv,
-                    to_mtcontinuous(ps[1]).v.dv,
-                    to_mtcontinuous(ps[2]).v.dv,
-                    to_mtcontinuous(ps[4]).v.dv);
-                break;
-            }
-            case 6: {
-                result = m.attr(methodname.c_str())(array,dim,
-                    to_mtcontinuous(ps[0]).v.dv,
-                    to_mtcontinuous(ps[1]).v.dv,
-                    to_mtcontinuous(ps[2]).v.dv,
-                    to_mtcontinuous(ps[4]).v.dv,
-                    to_mtcontinuous(ps[5]).v.dv);// This call requires the GIL
-                break;
-            }
-            case 7: {
-                result = m.attr(methodname.c_str())(array,dim,
-                    to_mtcontinuous(ps[0]).v.dv,
-                    to_mtcontinuous(ps[1]).v.dv,
-                    to_mtcontinuous(ps[2]).v.dv,
-                    to_mtcontinuous(ps[4]).v.dv,
-                    to_mtcontinuous(ps[5]).v.dv,
-                    to_mtcontinuous(ps[6]).v.dv);
-                break;
-            }
-            case 8: {
-                result = m.attr(methodname.c_str())(array,dim,
-                    to_mtcontinuous(ps[0]).v.dv,
-                    to_mtcontinuous(ps[1]).v.dv,
-                    to_mtcontinuous(ps[2]).v.dv,
-                    to_mtcontinuous(ps[4]).v.dv,
-                    to_mtcontinuous(ps[5]).v.dv,
-                    to_mtcontinuous(ps[6]).v.dv,
-                    to_mtcontinuous(ps[7]).v.dv);// This call requires the GIL
-                break;
-            }
-            case 9: {
-                result = m.attr(methodname.c_str())(array,dim,
-                    to_mtcontinuous(ps[0]).v.dv,
-                    to_mtcontinuous(ps[1]).v.dv,
-                    to_mtcontinuous(ps[2]).v.dv,
-                    to_mtcontinuous(ps[4]).v.dv,
-                    to_mtcontinuous(ps[5]).v.dv,
-                    to_mtcontinuous(ps[6]).v.dv,
-                    to_mtcontinuous(ps[7]).v.dv,
-                    to_mtcontinuous(ps[8]).v.dv);// This call requires the GIL
-                break;
-            }
-            case 10: {
-                result = m.attr(methodname.c_str())(array,dim,
-                to_mtcontinuous(ps[0]).v.dv,
-                to_mtcontinuous(ps[1]).v.dv,
-                to_mtcontinuous(ps[2]).v.dv,
-                to_mtcontinuous(ps[4]).v.dv,
-                to_mtcontinuous(ps[5]).v.dv,
-                to_mtcontinuous(ps[6]).v.dv,
-                to_mtcontinuous(ps[7]).v.dv,
-                to_mtcontinuous(ps[8]).v.dv,
-                to_mtcontinuous(ps[9]).v.dv);// This call requires the GIL
-                break;
-            } default: {
-                std::cout << "Python support: no support for more than ten arguments passed to a python method\n";
-            }
-        }*/
     } catch (const py::error_already_set& e) {
         // Handle exceptions
         std::cout << "Error in Python trying to run with GIL\n";
@@ -1488,81 +1431,6 @@ inline py::object callpythonmethod( neighborstype* ns, const params& ps, const p
     // GIL is released when 'acquire' goes out of scope
     return result;
 }
-
-class pythonmeas : public meas {
-    public:
-    const std::string methodname;
-    py::object m;
-    double takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,nps,methodname);
-        valms r;
-        r.t = mtcontinuous;
-        r.v.dv = result.cast<double>();
-        double out;
-        mtconverttocontinuous(r,out);
-        return out;
-    }
-    double takemeas( const int idx, const params& ps ) override {
-        auto ns = (*rec->nsptrs)[idx];
-        return takemeas(ns,ps);
-    }
-    pythonmeas( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
-        : meas( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-    m{m_in}, methodname{methodnamein}  {
-        nps = npsin;
-    }
-    ~pythonmeas() {}
-};
-
-class pythoncrit : public crit {
-public:
-    const std::string methodname;
-    py::object m;
-    bool takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,nps,methodname);
-        valms r;
-        r.t = mtbool;
-        r.v.bv = result.cast<bool>();
-        bool out;
-        mtconverttobool(r,out);
-        return out;
-    }
-    bool takemeas( const int idx, const params& ps ) override {
-        auto ns = (*rec->nsptrs)[idx];
-        return takemeas(ns,ps);
-    }
-    pythoncrit( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
-        : crit( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-    m{m_in}, methodname{methodnamein}  {
-        nps = npsin;
-    }
-    ~pythoncrit() {}
-};
-
-class pythontally : public tally {
-public:
-    const std::string methodname;
-    py::object m;
-    int takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,nps,methodname);
-        valms r;
-        r.t = mtdiscrete;
-        r.v.iv = result.cast<int>();
-        int out;
-        mtconverttodiscrete(r,out);
-        return out;
-    }
-    int takemeas( const int idx, const params& ps ) override {
-        auto ns = (*rec->nsptrs)[idx];
-        return takemeas(ns,ps);
-    }
-    pythontally( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
-        : tally( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-    m{m_in}, methodname{methodnamein}  {
-        nps = npsin;
-    }
-    ~pythontally() {}
-};
 
 
 inline valms pyrestovalms(py::handle a);
@@ -1581,7 +1449,7 @@ inline valms pyrestovalms(py::handle a) {
     py::type obj_type = py::type::of(a);
     // std::cout << "returned set component type: " << static_cast<std::string>(py::str(obj_type.attr("__name__")));
     auto types = static_cast<std::string>(py::str(obj_type.attr("__name__")));
-    if (types == "int64" || types == "int") {
+    if (types == "int64" || types == "int32" || types == "int") {
         v.t = mtdiscrete;
         v.v.iv = a.cast<int>();
     } else if (types == "float64" || types == "float") {
@@ -1602,33 +1470,14 @@ inline valms pyrestovalms(py::handle a) {
 }
 
 
-class pythonset : public set {
-public:
-    const std::string methodname;
-    py::object m;
-    setitr* takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,nps,methodname);
-        py::array res = result.cast<py::array>();
-        return pyarraytosetitr(res);
-    }
-    setitr* takemeas( const int idx, const params& ps ) override {
-        auto ns = (*rec->nsptrs)[idx];
-        return takemeas(ns,ps);
-    }
-    pythonset( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
-        : set( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-    m{m_in}, methodname{methodnamein} {
-        nps = npsin;
-    }
-    ~pythonset() {}
-};
 
 class pythonuncastmeas : public uncastmeas {
 public:
     const std::string methodname;
     py::object m;
+    namedparams ips;
     valms takemeas( neighborstype* ns, const params& ps ) override {
-        auto result = callpythonmethod(ns,ps,m,nps,methodname);
+        auto result = callpythonmethod(ns,ps,m,nps,ips,methodname);
         valms v;
         v = pyrestovalms(result);
         return v;
@@ -1637,9 +1486,9 @@ public:
         auto ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
     }
-    pythonuncastmeas( mrecords* recin, py::object m_in, const namedparams& npsin, const std::string& methodnamein, const std::string shortnamein = "" )
+    pythonuncastmeas( mrecords* recin, py::object m_in, const namedparams& npsin, const namedparams& ipsin, const std::string& methodnamein, const std::string shortnamein = "" )
         : uncastmeas( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
-        m{m_in}, methodname{methodnamein} {
+        m{m_in}, ips{ipsin}, methodname{methodnamein} {
         nps = npsin;
     }
     ~pythonuncastmeas() {}
@@ -1925,7 +1774,7 @@ public:
         superset = supersetposin;
         reset();
     }
-    int getsize() override
+    LONGINT getsize() override
     {
         return stop - start;
         // return cutoff >= 0 ? cutoff : 0;
@@ -2087,7 +1936,7 @@ public:
 
     }
 
-    int getsize() override
+    LONGINT getsize() override
     {
         if (supersetpos)
             return pow(2,supersetsize);
@@ -2140,8 +1989,8 @@ class setitrchoicefunctions : public setitr
 {
 protected:
     int numberoftuples;
-    long long int sz;
-    long long int howmanycomputed = 0;
+    long LONGINT sz;
+    long LONGINT howmanycomputed = 0;
     setitr* currentset;
     std::vector<valms> currentchoice {};
     std::vector<int> respectivesizes {};
@@ -2152,7 +2001,7 @@ public:
     {
         pos = -1;
     }
-    int getsize() override
+    LONGINT getsize() override
     {
         return sz;
     }
@@ -2228,8 +2077,8 @@ class setitrchoicefunctions2 : public setitr
 {
 protected:
     int numberoftuples;
-    long long int sz;
-    long long int howmanycomputed = 0;
+    long LONGINT sz;
+    long LONGINT howmanycomputed = 0;
     setitr* currentset;
     std::vector<valms> currentchoice {};
     std::vector<int> respectivesizes {};
@@ -2240,7 +2089,7 @@ public:
     {
         pos = -1;
     }
-    int getsize() override
+    LONGINT getsize() override
     {
         return sz;
     }
@@ -2319,8 +2168,8 @@ class setitrmaps : public setitr
 protected:
     unsigned int tosize;
     unsigned int fromsize;
-    long long int sz;
-    long long int howmanycomputed = 0;
+    long LONGINT sz;
+    long LONGINT howmanycomputed = 0;
     setitr* currentset;
     std::vector<valms> currentchoice {};
 public:
@@ -2330,7 +2179,7 @@ public:
     {
         pos = -1;
     }
-    int getsize() override
+    LONGINT getsize() override
     {
         return sz;
     }
@@ -2404,7 +2253,7 @@ public:
 
     abstractmakesubset* subsetmaker;
 
-    int getsize() override
+    LONGINT getsize() override
     {
         // if (setA->parent == this)
         // {
@@ -2572,7 +2421,7 @@ public:
 
     }
 
-    int getsize() override
+    LONGINT getsize() override
     {
         supersetsize = setA->getsize();
         maxint = subsetmaker->getmaxint();
@@ -3471,7 +3320,7 @@ public:
                         }
                 } else
                 {
-                    int vidx;
+                    LONGINT vidx;
                     mtconverttodiscrete(v,vidx);
                     vmap[i] = vidx;
                     if (labelled)
@@ -3577,7 +3426,7 @@ class TupletoSet : public set
 
 class toInttally : public tally
 {public: int takemeas(const int idx, const params& ps) override
-    {int out; mtconverttodiscrete(ps[0],out); return out;}
+    {LONGINT out; mtconverttodiscrete(ps[0],out); return out;}
     toInttally( mrecords* recin ) : tally(recin, "toInt", "Converts a value to an int value")
     {valms v {}; v.t = mtcontinuous; nps.push_back(std::pair{"input",v}); bindnamedparams();}};
 

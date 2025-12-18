@@ -133,6 +133,25 @@ inline graphtype* edgegraph( neighborstype* ns )
     return gout;
 }
 
+inline std::vector<std::pair<vertextype,vertextype>> graphedges( graphtype* g ) {
+    std::vector<std::pair<vertextype,vertextype>> edges {};
+    int dim = g->dim;
+    for (vertextype i = 0; i+1 < dim; ++i)
+        for (vertextype j = i+1; j < dim; ++j)
+            if (g->adjacencymatrix[i*dim + j])
+                edges.push_back(std::make_pair(i, j));
+    return edges;
+}
+
+inline std::vector<std::pair<vertextype,vertextype>> graphnonedges( graphtype* g ) {
+    std::vector<std::pair<vertextype,vertextype>> nonedges {};
+    int dim = g->dim;
+    for (vertextype i = 0; i+1 < dim; ++i)
+        for (vertextype j = i+1; j < dim; ++j)
+            if (!g->adjacencymatrix[i*dim + j])
+                nonedges.push_back(std::make_pair(i, j));
+    return nonedges;
+}
 
 using graphmorphism = std::vector<std::pair<vertextype,vertextype>>;
 

@@ -15,7 +15,7 @@
 #include <regex>
 
 #include "graphio.h"
-
+#include "config.h"
 // #include "graphs.h" already included by graphio.h
 
 #define ABSCUTOFF 0.000001
@@ -160,7 +160,7 @@ union vals
 {
     bool bv;
     double dv;
-    int iv;
+    LONGINT iv;
     neighborstype* nsv; // which has g built in
     std::string* rv;
 };
@@ -187,9 +187,11 @@ bool tupleeq( itrpos* in1, itrpos* in2);
 struct valms
 {
     measuretype t = mtbool;
-    vals v;
-    setitr* seti;
-    valms* uv;
+    union {
+        vals v;
+        setitr* seti;
+        valms* uv;
+    };
 //    valms() : valms(mtbool,{},nullptr) {};
 //    valms( measuretype tin, vals vin, setitr* setiin );
 };
@@ -202,7 +204,7 @@ void mtconverttupleto( setitr* vin, valms& vout );
 void mtconvertstringto( std::string* vin, valms& vout );
 void mtconvertgraphto( neighborstype* vin, valms& vout );
 void mtconverttobool( const valms& vin, bool& vout );
-void mtconverttodiscrete( const valms& vin, int& vout );
+void mtconverttodiscrete( const valms& vin, LONGINT& vout );
 void mtconverttocontinuous( const valms& vin, double& vout );
 void mtconverttoset( const valms& vin, setitr*& vout );
 void mtconverttotuple( const valms& vin, setitr*& vout );
@@ -228,8 +230,8 @@ public:
     itrpos* getitrpos();
 
 
-    long int pos = -1;
-    virtual int getsize() {return 0;}
+    LONGINT pos = -1;
+    virtual LONGINT getsize() {return 0;}
     measuretype t = mtdiscrete;
 
     virtual void reset() {pos = -1;}
@@ -260,14 +262,14 @@ class itrpos
 {
 public:
     setitr* parent;
-    long int pos = -1;
+    LONGINT pos = -1;
     bool ended()
     {
         // std::cout << "itrpos.ended " << pos+1 << ", " << parent->getsize() << "\n";
         return (pos+1 >= parent->getsize());
     }
     void reset() {pos = -1;}
-    int getsize() {return parent->getsize();}
+    LONGINT getsize() {return parent->getsize();}
     virtual valms getnext()
     {
         if (ended())
@@ -404,7 +406,7 @@ class setitrmodeone : public setitr
 
     bool computed = false;
     virtual void compute() {computed = true;}
-    int getsize() override
+    LONGINT getsize() override
     {
         if (!computed)
         {
@@ -887,7 +889,7 @@ public:
 };
 
 template<>
-inline valms setitrtuple<long int>::assignvalms( long int elt ) {
+inline valms setitrtuple<LONGINT>::assignvalms( LONGINT elt ) {
     valms v;
     v.t = mtdiscrete;
     v.v.iv = elt;
@@ -1070,7 +1072,7 @@ public:
     } */
 
 
-    int getsize() override
+    LONGINT getsize() override
     {
         return itrint->getsize();
     }
@@ -2561,7 +2563,7 @@ inline void mtconvertboolto( const bool vin, valms& vout )
         }
     }
 }
-inline void mtconvertdiscreteto( const int vin, valms& vout )
+inline void mtconvertdiscreteto( const LONGINT vin, valms& vout )
 {
     switch (vout.t)
     {
@@ -2822,7 +2824,7 @@ inline void mtconverttobool( const valms& vin, bool& vout )
     case mtuncast: mtconverttobool(*vin.uv,vout); break;
     }
 }
-inline void mtconverttodiscrete( const valms& vin, int& vout )
+inline void mtconverttodiscrete( const valms& vin, LONGINT& vout )
 {
     switch (vin.t)
     {

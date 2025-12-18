@@ -1,5 +1,4 @@
 # This is a comprehensive script running in the ones or tens of minutes depending on the hardware
-# It predates THREADDED, PARTITION, SORT, and GPU stuff
 # It covers some very pertinent theorems from graph theory, and leans heavily on set-theoretic notions and FOL
 
 PTH=${PTH:-'../bin'}
@@ -480,4 +479,4 @@ $PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set all
 
 # 5:23 runtime 5/1/2025 after idealizeset
 
-# 4:20 on a Threadripper 24 core Shimada Peak series 12/12/2025
+# 4:20 on a Threadripper 24 core Shimada Peak series 12/12/2025: update: 4:00 on 12/18/2025

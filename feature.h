@@ -2359,6 +2359,7 @@ struct pythonmethodstruct {
     std::string name;
     py::object m;
     namedparams nps;
+    namedparams ips; // e.g. dim, adjmatrix, etc.
     ams a;
     int iidx;
     std::string filename;
@@ -2551,7 +2552,7 @@ protected:
 
                     std::string s {};
 
-                    pythonuncastmeas* pu = new pythonuncastmeas(&rec,pym.m,pym.nps,pym.name);
+                    pythonuncastmeas* pu = new pythonuncastmeas(&rec,pym.m,pym.nps,pym.ips,pym.name);
                     a.a.uc = pu;
 
 
@@ -3236,25 +3237,45 @@ public:
                             // pym.a.t = mtcontinuous;
                             pym.a.t = mtuncast;
                             namedparams nps {};
+                            namedparams ips {};
 
                             // std::cout << "The Python function has " << num_params << " arguments: ";
                             int i = 0;
+                            int specialargumentcount = 0;
                             valms u;
                             u.t = mtuncast;
                             for (auto v : parameters_dict) {
                                 std::string s = py::str(v);
                                 std::cout << s << ",";
-                                if (i >= 2)
+                                if (s == "adjmatrix" || s == "dim"
+                                    || s == "Edges" || s == "Nonedges"
+                                    || s == "Neighborslist" || s == "Nonneighborslist"
+                                    || s == "degrees"
+                                    || s == "maxdegree") {
+                                    valms w;
+                                    if (s == "dim" || s == "maxdegree")
+                                        w.t = mtdiscrete;
+                                    else if (s == "Neighborslist" || s == "Nonneighborslist"
+                                        || s == "degrees")
+                                        w.t = mttuple;
+                                    else
+                                        w.t = mtset;
+                                    ++specialargumentcount;
+                                    ips.push_back({s,w});
+                                }
+                                if (i >= specialargumentcount)
                                     nps.push_back({s,u});
                                 i++;
                             }
                             std::cout << "\b)\n";
 
                             pym.nps = nps;
+                            pym.ips = ips;
                             pym.iidx = -1;
                             pythonmethods.push_back(pym);
 
-                        } catch (std::exception& e) {
+                        } catch ( std::exception& e) { // need to figure out how simply to test for being a function or not
+                            // also need to replace with the specific exception thrown
                             std::cout << "\b: Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
                         }
                     }

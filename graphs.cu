@@ -1885,9 +1885,6 @@ public:
 };
 
 
-
-
-
 void osfingerprintrecurse( std::ostream &os, neighbors* ns, FP* fps, int fpscnt, int depth ) {
     for (int i = 0; i < depth; ++i) {
         os << "   ";

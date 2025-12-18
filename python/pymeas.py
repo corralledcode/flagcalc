@@ -92,6 +92,19 @@ def pyfindspanningtree( adjmatrix, dim, Es ):
                 return []
     return newEs
 
+def pytestEdgesparameter( Edges, Nonedges ):
+    print (Edges)
+    print (Nonedges)
+    return Edges
+
+def pytestNonedgesparameter( Nonedgeslist ):
+    return Nonedgeslist
+
+def pytestNeighborslistparameter( Neighborslist, Nonneighborslist, degrees ):
+    print (Neighborslist)
+    print (Nonneighborslist)
+    print (degrees)
+    return Neighborslist
 
 testgraph = [[0,1,1],[1,0,1],[1,1,0]]
 testgraphdim = 3

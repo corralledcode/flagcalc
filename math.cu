@@ -3012,7 +3012,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
-                                    int tmp;
+                                    LONGINT tmp;
                                     mtconverttodiscrete(ress[m],tmp);
                                     res.v.iv += tmp;
                                 }
@@ -3313,7 +3313,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
                                 {
-                                    int tmp;
+                                    LONGINT tmp;
                                     mtconverttodiscrete(ress[m],tmp);
                                     res.v.iv += tmp;
                                 }
@@ -5450,7 +5450,7 @@ inline formulaclass* parseformulainternal(
                     return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                 } else
                 {
-                    std::cout << "Error: parameterized literal has no parameters\n";
+                    std::cout << "Error: parameterized literal \"" << litnames[fv.lit.l] << "\" has no parameters\n";
                     return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
 
                 }

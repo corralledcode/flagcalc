@@ -17,4 +17,6 @@
 #define FLAGCALCWITHPYTHON
 #endif
 
+#define LONGINT long int
+
 #endif //FLAGCALC_CONFIG_H

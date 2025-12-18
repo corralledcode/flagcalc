@@ -83,7 +83,7 @@ __global__ void wrapCUDAevalcriterionfast( bool* crit, CUDAvalms* out, CUDAexten
 }
 
 
-__global__ void CUDAcomputeneighborslistenmasse( const CUDAgraph* gs, CUDAneighbors* ns, const long int sz)
+__global__ void CUDAcomputeneighborslistenmasse( const CUDAgraph* gs, CUDAneighbors* ns, const LONGINT sz)
 {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -592,7 +592,7 @@ void CUDAcomputeneighborslistenmassewrapper( std::vector<graphtype*>& gv, std::v
 
     for (int i = 0; i < sz; ++i)
     {
-        long int dim = gv[i]->dim;
+        LONGINT dim = gv[i]->dim;
 
         nsv[i] = new neighbors(gv[i],false); // tell it not to compute the neighborslist
 
