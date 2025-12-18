@@ -71,6 +71,7 @@ protected:
     std::ostream* _os;
     workspace* _ws;
 public:
+    unsigned thread_count = std::thread::hardware_concurrency();
     virtual std::string cmdlineoption() {return "";};
     virtual std::string cmdlineoptionlong() { return "";};
     virtual void listoptions() {
@@ -294,6 +295,46 @@ public:
 
 };
 
+// in addition to feature->thread_count, some quantifiermanager in particular, need thread_count
+inline unsigned global_thread_count = std::thread::hardware_concurrency();
+
+class threadsfeature : public feature {
+public:
+    std::vector<feature*> featureslist {};
+    std::string cmdlineoption() {return "j";};
+    std::string cmdlineoptionlong() {return "threads";};
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "  <n>" << " global set thread count" << " \t\t \n";
+        *_os << "  p=<f>" << " global set thread portion (0 < f <= 1)" << " \t\t \n";
+    }
+    void execute(std::vector<std::string> args) {
+        std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
+        int cnt = 1;
+        for (int n = 0; n < cmdlineoptions.size(); ++n) {
+            if (cmdlineoptions[n].first == "p") {
+                double f = stod(cmdlineoptions[n].second);
+                double availthreads = (double)std::thread::hardware_concurrency();
+                if (0 < f && f <= 1)
+                    cnt = (int)(availthreads * f);
+                else
+                    cnt = 1;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default") {
+                cnt = stoi(cmdlineoptions[n].second);
+                continue;
+            }
+        }
+        for (auto f : featureslist)
+            f->thread_count = cnt;
+        global_thread_count = cnt;
+        // *_os << "Threads globally: " << cnt << "\n";
+    }
+    threadsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
+
+};
+
 class abstractrandomgraphsfeature : public feature {
 protected:
     std::vector<abstractparameterizedrandomgraph*> rgs {};
@@ -405,7 +446,6 @@ public:
         rgs[rgsidx]->setparams(rgparams);
 
 
-        unsigned const thread_count = std::thread::hardware_concurrency();
         // unsigned const thread_count = 1;
 
         int cnt = 0;
@@ -464,6 +504,7 @@ public:
         *_os << "\t" << "<edgecount>: \t\t edge count, where probability is <edgecount>/maxedges, maxedges = (dim-choose-2)\n";
         *_os << "\t" << "<count>: \t\t\t how many random graphs to output to the workspace\n";
         *_os << "\t" << "<randomalgorithm>:\t which algorithm to use, standard options are r1,...,r5:\n";
+        *_os << "\t" << "p=<f>:\t percentage in place of <edgecount>, 0<=f<=1 (must be in position of <edgecount>: second of the three inputs\n";
         for (int n = 0; n < rgs.size(); ++n) {
             *_os << "\t\t\"" << rgs[n]->shortname() << "\": " << rgs[n]->name << "\n";
         }
@@ -486,7 +527,7 @@ public:
         if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_real(parsedargs[1].second)) {
             edgecnt = std::stof(parsedargs[1].second);
         }
-        int cnt = 100; // the default count when count is omitted
+        long int cnt = 100; // the default count when count is omitted
         if (parsedargs.size() >= 3 && parsedargs[2].first == "default" && is_number(parsedargs[2].second)) {
             cnt = std::stoi(parsedargs[2].second);
         }
@@ -515,6 +556,14 @@ public:
             edgecnt = std::stof(rgparams[1]);
         if (rgparams.size() > 2 && is_number(rgparams[2]))
             cnt = stoi(rgparams[2]);
+        for (auto p : parsedargs) {
+            if (p.first == "p") {
+                double f = std::stof(p.second);
+                if (f >= 0 && f <= 1)
+                    edgecnt = (long int)(std::stof(p.second) * nchoosek(dim,2));
+            }
+        }
+
         //if (legacyrandomgraph<abstractrandomgraph>* larg = dynamic_cast<legacyrandomgraph<abstractrandomgraph>*>(rgs[rgsidx])) {
         //    std::cout << "LEGACY ARG\n";
         if (rgparams.empty()) {
@@ -582,6 +631,8 @@ public:
 
 
 */
+
+        rgs[rgsidx]->thread_count = thread_count;
         gv = randomgraphs(rgs[rgsidx],dim,edgecnt,cnt);
         auto wi = new randomgraphsitem(rgs[rgsidx]);
         for (auto p : rgparams) {
@@ -1070,7 +1121,7 @@ public:
                 std::cout << "Using std::cin for input\n"; // recode so this is possible
             }
 
-            unsigned const thread_count = std::thread::hardware_concurrency();
+            // unsigned const thread_count = std::thread::hardware_concurrency();
             std::vector<std::future<bool>> t;
             t.resize(thread_count);
 
@@ -1256,7 +1307,7 @@ public:
 #ifdef THREADPOOL5
 
 
-        unsigned const thread_count = std::thread::hardware_concurrency();
+        // unsigned const thread_count = std::thread::hardware_concurrency();
         // unsigned const thread_count = 1;
 
         std::vector<std::future<void>> t {};
@@ -2190,21 +2241,20 @@ inline compactcmdline parsecompactcmdline( std::string& s )
 
 // unsigned const thread_count = 1;
 
-inline unsigned thread_count = std::thread::hardware_concurrency();
 
 
 template<typename T>
 void runthreads(const int iidx, const params& ps, thrrecords<T>& r )
 {
-    const double section = double(r.sz) / double(thread_count);
+    const double section = double(r.sz) / double(global_thread_count);
     std::vector<std::future<void>> t;
-    t.resize(thread_count);
-    for (int m = 0; m < thread_count; ++m) {
+    t.resize(global_thread_count);
+    for (int m = 0; m < global_thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
         t[m] = std::async(&thrrecords<T>::threadfetch,r,startidx,stopidx,iidx,ps);
     }
-    for (int m = 0; m < thread_count; ++m)
+    for (int m = 0; m < global_thread_count; ++m)
     {
         t[m].get();
     }
@@ -2213,15 +2263,15 @@ void runthreads(const int iidx, const params& ps, thrrecords<T>& r )
 template<typename T>
 void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r, std::vector<bool>* todo )
 {
-    const double section = double(r.sz) / double(thread_count);
+    const double section = double(r.sz) / double(global_thread_count);
     std::vector<std::future<void>> t;
-    t.resize(thread_count);
-    for (int m = 0; m < thread_count; ++m) {
+    t.resize(global_thread_count);
+    for (int m = 0; m < global_thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
         t[m] = std::async(&thrrecords<T>::threadfetchpartial,r,startidx,stopidx,iidx,ps,todo);
     }
-    for (int m = 0; m < thread_count; ++m)
+    for (int m = 0; m < global_thread_count; ++m)
     {
         t[m].get();
     }
@@ -2435,6 +2485,7 @@ protected:
         resi->round = roundin;
         resi->iidx = rec.maxm()+1;
         rec.addm(resi->iidx,resi->t,j);
+        rec.thread_count = thread_count;
         resi->hidden = hiddenin;
         //resi->ps.clear();
         return resi;
@@ -4353,7 +4404,7 @@ protected:
         if (cnt <= 0)
             return res;
 
-        auto g = r->randomgraphs(dims,parentgi,subg, cnt);
+        auto g = r->randomgraphs(dims,parentgi,subg, cnt, thread_count);
         for (auto r : g)
         {
             res.push_back(r);
@@ -4485,7 +4536,7 @@ protected:
             if (rgparams.size() > 0)
                 outof = stoi(rgparams[0]);
 
-            unsigned const thread_count = std::thread::hardware_concurrency();
+            // unsigned const thread_count = std::thread::hardware_concurrency();
             // unsigned const thread_count = 1;
 
             int cnt2 = 0;
@@ -4735,7 +4786,7 @@ public:
                 rgs[rgsidx]->setparams(rgparams);
                 int outof = stoi(rgparams[1]);
 
-                unsigned const thread_count = std::thread::hardware_concurrency();
+                // unsigned const thread_count = std::thread::hardware_concurrency();
                 //unsigned const thread_count = 1;
 
                 int cnt2 = 0;
@@ -4953,7 +5004,7 @@ public:
         if (outof == 0)
             outof = items.size();
 
-        unsigned const thread_count = std::thread::hardware_concurrency();
+        // unsigned const thread_count = std::thread::hardware_concurrency();
         //unsigned const thread_count = 1;
 
         int cnt2 = 0;

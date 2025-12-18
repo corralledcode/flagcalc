@@ -30,6 +30,8 @@ public:
 
 class abstractparameterizedrandomgraph : public abstractrandomgraph {
 public:
+    unsigned thread_count = std::thread::hardware_concurrency();
+
     std::vector<std::string> ps;
     virtual void setparams( std::vector<std::string> psin ) {
         ps = psin;
@@ -56,8 +58,8 @@ public:
      * lest it create a contention when threaded. Use local variables instead,
      * e.g. such as _edgecnt; just use the local version of it. */
 
-    std::vector<graphtype*> randomgraphs( const int dim, const double edgecnt, const int cnt ) {
-        unsigned const thread_count = std::thread::hardware_concurrency();
+    std::vector<graphtype*> randomgraphs( const int dim, const double edgecnt, const int cnt, const unsigned thread_count ) {
+        // unsigned const thread_count = std::thread::hardware_concurrency();
         //unsigned const thread_count = 1;
 
         double section = double(cnt)/double(thread_count);
@@ -522,7 +524,7 @@ public:
             dim = stoi(ps[0]);
         if (ps.size()>1)
             edgecnt = stof(ps[1]);
-        return legacyrandomgraphptr->randomgraphs(dim,edgecnt,cnt);
+        return legacyrandomgraphptr->randomgraphs(dim,edgecnt,cnt,thread_count);
     }
 
     legacyrandomgraph() : legacyrandomgraphptr{new T}, abstractparameterizedrandomgraph("legacy random graph") {

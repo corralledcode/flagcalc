@@ -1356,8 +1356,8 @@ public:
     {
         pos = 0;
         std::vector<namedparams> contexts {};
-        contexts.resize(thread_count);
-        while (pos < thread_count && k < supersetpos.size())
+        contexts.resize(global_thread_count);
+        while (pos < global_thread_count && k < supersetpos.size())
         {
             contexts[pos] = context;
             multipleadvance();
@@ -1377,8 +1377,8 @@ public:
     {
         pos = 0;
         std::vector<namedparams> contexts {};
-        contexts.resize(thread_count);
-        while (pos < thread_count && k < supersetpos.size())
+        contexts.resize(global_thread_count);
+        while (pos < global_thread_count && k < supersetpos.size())
         {
             contexts[pos] = context;
             multipleadvance();

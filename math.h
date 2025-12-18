@@ -2439,6 +2439,7 @@ protected:
     void preprocessbindvariablenames( formulaclass* fc, namedparams& context );
 
 public:
+    unsigned thread_count = std::thread::hardware_concurrency();
     graphtype* g {};
     std::vector<valms> literals {};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
@@ -2448,7 +2449,6 @@ public:
     virtual valms evalvariablederef( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
     virtual valms eval( formulaclass& fc, namedparams& context );
     evalformula();
-
     ~evalformula()
     {
     }

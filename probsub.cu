@@ -20,7 +20,7 @@ public:
     std::string name;
 
     // virtual void randomgraph( graphtype* gptr, graphtype* parentg, std::vector<int>* subg ) {}
-    virtual std::vector<std::vector<graphtype*>> randomgraphs( std::vector<int> dims, graphtype* parentg, std::vector<int>* subg, const int cnt ) { return {};}
+    virtual std::vector<std::vector<graphtype*>> randomgraphs( std::vector<int> dims, graphtype* parentg, std::vector<int>* subg, const int cnt, const unsigned thread_count ) { return {};}
     pairwisedisjointrandomgraph(const std::string namein) : name{namein} {}
 };
 
@@ -115,9 +115,9 @@ public:
     }
 
 
-    std::vector<std::vector<graphtype*>> randomgraphs( std::vector<int> dims, graphtype* parentg, std::vector<int>* subg, const int cnt ) override {
+    std::vector<std::vector<graphtype*>> randomgraphs( std::vector<int> dims, graphtype* parentg, std::vector<int>* subg, const int cnt, const unsigned thread_count ) override {
 
-        unsigned const thread_count = std::thread::hardware_concurrency();
+        // unsigned const thread_count = std::thread::hardware_concurrency();
         //unsigned const thread_count = 1;
 
         double section = double(cnt)/double(thread_count);
@@ -192,8 +192,8 @@ public:
      * lest it create a contention when threaded. Use local variables instead,
      * e.g. such as _edgecnt; just use the local version of it. */
 
-    std::vector<graphtype*> randomgraphs( const int dim, graphtype* parentg, std::vector<int>* subg, const int cnt ) {
-        unsigned const thread_count = std::thread::hardware_concurrency();
+    std::vector<graphtype*> randomgraphs( const int dim, graphtype* parentg, std::vector<int>* subg, const int cnt, const unsigned thread_count ) {
+        // unsigned const thread_count = std::thread::hardware_concurrency();
         //unsigned const thread_count = 1;
 
         double section = double(cnt)/double(thread_count);
@@ -308,6 +308,7 @@ class legacyrandomsubgraph : public abstractparameterizedsubrandomgraph {
 protected:
     T* legacyrandomsubgraphptr {};
 public:
+    unsigned thread_count = std::thread::hardware_concurrency();
     std::string shortname() {return legacyrandomsubgraphptr->shortname();}
 
     void randomgraph(graphtype* gptr,graphtype* parentg, std::vector<int>* subg ) override {
@@ -318,7 +319,7 @@ public:
             // dim = stoi(ps[0]);
         // if (ps.size()>1)
             // edgecnt = stof(ps[1]);
-        return legacyrandomsubgraphptr->randomgraphs(dim,parentg,subg,cnt);
+        return legacyrandomsubgraphptr->randomgraphs(dim,parentg,subg,cnt,thread_count);
     }
 
     legacyrandomsubgraph() : legacyrandomsubgraphptr{new T}, abstractparameterizedsubrandomgraph("legacy random graph") {

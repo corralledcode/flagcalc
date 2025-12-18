@@ -20,6 +20,7 @@
 int main(int argc, char* argv[]) {
     workspace* ws = new workspace();
 
+    auto gj = new threadsfeature(&std::cin,&std::cout,ws);
     auto ug = new userguidefeature(&std::cin, &std::cout,ws);
     auto rg = new readgraphsfeature(&std::cin, &std::cout,ws);
     auto ei = new enumisomorphismsfeature(&std::cin, &std::cout,ws);
@@ -37,7 +38,9 @@ int main(int argc, char* argv[]) {
     auto sbg = new populatesubobjectfeature(&std::cin, &std::cout,ws);
     auto pd = new pairwisedisjointrandomfeature(&std::cin,&std::cout, ws);
 
+
     std::vector<feature*> featureslist {};
+    featureslist.push_back(gj);
     featureslist.push_back(ug);
     featureslist.push_back(rg);
     featureslist.push_back(ei);
@@ -56,6 +59,7 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(pd);
 
     ug->featureslist = featureslist;
+    gj->featureslist = featureslist;
 
     std::vector<std::vector<std::string>> args {};
 

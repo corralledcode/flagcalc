@@ -568,6 +568,7 @@ class mrecords
 public:
     int sz = 0;
     int msz = 0;
+    unsigned thread_count = std::thread::hardware_concurrency();
     std::vector<graphtype*>* gptrs;
     std::vector<neighborstype*>* nsptrs;
     thrrecords<bool> boolrecs;
@@ -739,6 +740,7 @@ public:
 inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalformula(), rec{recin}, idx{idxin}
 {
     ns = (*recin->nsptrs)[idx];
+    thread_count = rec->thread_count;
 }
 inline evalmformula::evalmformula( mrecords* recin, neighborstype* nsin ) : evalformula(), rec{recin}, ns{nsin}
 {
