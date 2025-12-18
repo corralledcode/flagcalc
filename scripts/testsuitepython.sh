@@ -10,8 +10,6 @@ $PTH/flagcalc -r 10000 24997500 1 -a ipy="pymeas" z="pyDeltat" all -v i=minimal3
 $PTH/flagcalc -r 5000 6248750 5 -a j=1 z="Deltam" all -v i=minimal3.cfg
 $PTH/flagcalc -r 5000 6248750 5 -a j=1 ipy="pymeas" z="pyDeltat" all -v i=minimal3.cfg
 
-# The above has revealed difficulty (a bug) in flagcalc reading in large (1000 vertices) graphs from a file
-# after all flagcalc was mostly used with large numbers of smaller graphs
 $PTH/flagcalc -r 100 2475 1 -g o=out.dat overwrite -v i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a z="Deltam" all -v i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a ipy="pymeas" z="pyDeltat" all -v i=minimal3.cfg
@@ -33,4 +31,18 @@ $PTH/flagcalc -r 11 p=0.5 25 -a j=1 ipy="pymeas" s="pyedgesetcontainscycle(E) IF
 
 $PTH/flagcalc -r 8 p=0.3 75 -a j=1 ipy="pymeas" s="FORALL (S IN Ps(E), pyedgesetcontainscycle(S) IMPLIES st(pyfindspanningtree(S)) == 0)"  all -v i=minimal3.cfg allsets
 
-$PTH/flagcalc -r 15 p=0.4 250 -a j=1 ipy="pymeas" s="edgecm > 0" s2="pyfindspanningtree(Nulls) == E IFF treec"  all -v i=minimal3.cfg allsets
+# Find some graphs and acyclic edge sets that cannot be extended to a spanning tree
+$PTH/flagcalc -r 5 p=0.3 75 -a j=1 ipy="pymeas" s1=conn1c s2="EXISTS (S IN Ps(E), NOT pyedgesetcontainscycle(S) AND st(pyfindspanningtree(S)) == 0)" all -g o=out.dat overwrite passed -v i=minimal3.cfg allsets
+$PTH/flagcalc -d out.dat -a j=1 ipy="pymeas" e="SETD (S IN Ps(E), NOT pyedgesetcontainscycle(S) AND st(pyfindspanningtree(S)) == 0, S)" all -v i=minimal3.cfg allsets
+
+$PTH/flagcalc -r 8 p=0.3 75 -a j=1 ipy="pymeas" s1=conn1c s2="FORALL (S IN Ps(E), pyedgesetcontainscycle(S) IFF st(pyfindspanningtree(S)) == 0)"  all -v i=minimal3.cfg allsets
+
+# Very important to note in the following: use "E" on the left of the equality to cast the tuple of tuples returned by pyfindspanningtree into sets,
+# or do as in the second line
+$PTH/flagcalc -r 15 p=0.2 250 -a j=1 ipy="pymeas" s="edgecm > 0" s2="E == pyfindspanningtree(Nulls) IFF treec"  all -v i=minimal3.cfg allsets
+$PTH/flagcalc -r 16 p=0.3 400 -a j=1 ipy="pymeas" s="edgecm > 0" s2="SETD (e IN pyfindspanningtree(Nulls), TupletoSet(e)) == E IFF treec"  all -v i=minimal3.cfg allsets
+
+$PTH/flagcalc -r 8 p=0.4 25 -a j=1 ipy="pymeas" s="FORALL (S IN Ps(E), NAMING (T AS pyfindspanningtree(S), st(T) == 0 OR st(T) + 1 == dimm))"  all -v i=minimal3.cfg allsets
+
+$PTH/flagcalc -r 20 p=0.2 250 -a j=1 ipy="pymeas" s1="NOT conn1c" s2="pyfindspanningtree(E) == Nulls"  all -v i=minimal3.cfg allsets
+

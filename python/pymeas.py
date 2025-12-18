@@ -56,56 +56,82 @@ def pytestacceptset( adjmatrix, dim, set ):
     return set
 
 def pyfindspanningtree( adjmatrix, dim, Es ):
-    visited = np.zeros(dim, dtype=bool)
+
+    def mergecomponents( components, idxa, idxb ):
+        components[idxa] = components[idxa] + components[idxb]
+        components.pop(idxb)
+        return
+
+    def lookupvertex( components, v ):
+        for i in range(len(components)):
+            if v in components[i]:
+                return i
+        return -1
+
+    components = []
+    for v in range(dim):
+        components.append([v])
     newEs = []
-    if len(Es) == 0:
-        root = 0
-    else:
-        root = Es[0][0]
-    visited[root] = True
-    more = True
-    while more:
-        more = False
-        for n in range(dim):
-            if not visited[n]:
-                found = 0
-                more = True
-                for e in Es:
-                    if found == 0:
-                        if e[0] == n and visited[e[1]]:
-                            newEs.append(e)
-                            visited[n] = True
-                            found += 1
-                            Es.remove(e)
-                        else:
-                            if e[1] == n and visited[e[0]]:
-                                newEs.append(e)
-                                visited[n] = True
-                                found += 1
-                                Es.remove(e)
-                            else:
-                                if e[0] == n or e[1] == n:
-                                    more = True
-                if found == 0:
-                    for v in range(dim):
-                        if (visited[v]):
-                            if (found == 0) and pyac( adjmatrix, dim, n, v):
-                                visited[n] = True
-                                newEs.append([v,n])
-                                found += 1
-                else:
-                    if found > 1:
-                        print("pyfindspanningtree: cycle found")
+    i = 0
+    overallchanged = True
+    while overallchanged:
+        overallchanged = False
+        changed = True
+        while changed and i < len(components):
+            changed = False
+            c = components[i]
+            for e in Es:
+                if e[0] in c:
+                    if e[1] in c:
                         return []
-        if found == 0:
-            return []
-    all = True
-    for n in range(dim):
-        all = all and visited[n]
-    if all and len(Es) == 0:
-        return newEs
-    else:
+                    j = lookupvertex( components, e[1] )
+                    mergecomponents(components,i,j)
+                    if i > j:
+                        i -= 1
+                    newEs.append(e)
+                    Es.remove(e)
+                    changed = True
+                    break
+                if e[1] in c:
+                    if e[0] in c:
+                        return []
+                    j = lookupvertex( components, e[0] )
+                    mergecomponents(components,i,j)
+                    if i > j:
+                        i -= 1
+                    newEs.append(e)
+                    Es.remove(e)
+                    changed = True
+                    break
+            if not changed:
+                i += 1
+                changed = True
+            else:
+                overallchanged = True
+    if len(Es) > 0:
+        print ("Error: Es should be empty:" + str(Es))
         return []
+    changed = True
+    while changed and len(components) > 1:
+        c = components[0]
+        changed = False
+        i = 0
+        while i < len(c) and not changed:
+            for v in range(dim):
+                if adjmatrix[v][c[i]] and v not in c:
+                    j = lookupvertex(components, v)
+                    newEs.append([c[i], v])
+                    mergecomponents(components,0,j)
+                    changed = True
+                    break
+            i += 1
+
+    if len(components) == 1:
+        return newEs
+    return []
+
+
+
 
 def pathdoescycle( E, visited ):
     for e in E:
@@ -146,9 +172,12 @@ def pytestNeighborslistparameter( Neighborslist, Nonneighborslist, degrees ):
 
 testgraph = [[0,1,1,1,1],[1,0,1,1,1],[1,1,0,1,1],[1,1,1,0,1],[1,1,1,1,0]]
 testgraphdim = 5
+# print(pyfindspanningtree(testgraph,testgraphdim,[[0,1]]))
 # print(pyfindspanningtree(testgraph,testgraphdim,[[0,1],[2,3]]))
+# print(pyfindspanningtree(testgraph,testgraphdim,[[0,1],[2,3],[1,2],[0,3]]))
+# print(pyfindspanningtree(testgraph,testgraphdim,[]))
 
-pyTestreturnset( [[0,1,1],[1,0,1],[1,1,0]], 3, 3, 3)
+# pyTestreturnset( [[0,1,1],[1,0,1],[1,1,0]], 3, 3, 3)
 
 # print (pyedgesetcontainscycle(6,[[0,1],[1,2],[3,4],[4,5]]))
 

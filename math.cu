@@ -5022,23 +5022,23 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     else
                     {
                         std::cout << "Error mismatched parentheses (loc 2)\n";
-                        for (auto o : output)
-                            std::cout << o << ", ";
-                        std::cout << "\n";
+                        // for (auto o : output)
+                            // std::cout << o << ", ";
+                        // std::cout << "\n";
                         return output;
                     }
                 }
             }
             if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
                 std::cout << "Error mismatched parentheses (loc 3)\n";
-                for (auto t : operatorstack) {
-                    std::cout << t << ", ";
-                }
-                std::cout << std::endl;
+                // for (auto t : operatorstack) {
+                    // std::cout << t << ", ";
+                // }
+                // std::cout << std::endl;
 
-                for (auto o : output)
-                    std::cout << o << ", ";
-                std::cout << "\n";
+                // for (auto o : output)
+                    // std::cout << o << ", ";
+                // std::cout << "\n";
 
                 return output;
             }
@@ -5103,14 +5103,14 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
         if (ostok == "(" || ostok == "{" || ostok == "<<" || ostok == "[") {
             std::cout << "Error mismatched parentheses, curley braces, brackets, or tuple brackets: " << ostok << ", (loc 4)\n";
 
-            for (auto t : operatorstack) {
-                std::cout << t << ", ";
-            }
-            std::cout << std::endl;
+            // for (auto t : operatorstack) {
+                // std::cout << t << ", ";
+            // }
+            // std::cout << std::endl;
 
-            for (auto o : output)
-                std::cout << o << ", ";
-            std::cout << "\n";
+            // for (auto o : output)
+                // std::cout << o << ", ";
+            // std::cout << "\n";
 
             return output;
         }
