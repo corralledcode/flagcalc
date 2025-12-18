@@ -25,7 +25,7 @@ def pyac( adjmatrix, dim, u, v ):
     # now checkes types of parameters before passing them
     # (but only up to two parameters, and only if both are integers;
     # otherwise it casts them as double precision floats)
-    return adjmatrix[u,v]
+    return adjmatrix[u][v]
 
 def pytest( adjmatrix, dim ):
     for i in range(dim):
@@ -52,5 +52,48 @@ def pyTestreturnset( adjmatrix, dim, m, n ):
             r[i][j] = adjmatrix[i][j]
     return r
 
+def pytestacceptset( adjmatrix, dim, set ):
+    return set
 
+def pyfindspanningtree( adjmatrix, dim, Es ):
+    visited = np.zeros(dim, dtype=bool)
+    newEs = []
+    if len(Es) == 0:
+        root = 0
+    else:
+        root = Es[0][0]
+    visited[root] = True
+    for n in range(dim):
+        if not visited[n]:
+            found = 0
+            for e in Es:
+                if e[0] == n and visited[e[1]]:
+                    newEs.append(e)
+                    visited[n] = True
+                    found += 1
+                else:
+                    if e[1] == n and visited[e[0]]:
+                        newEs.append(e)
+                        visited[n] = True
+                        found += 1
+            if found == 0:
+                for v in range(dim):
+                    if (visited[v]):
+                        if (not found) and pyac( adjmatrix, dim, n, v):
+                            visited[n] = True
+                            newEs.append([v,n])
+                            found += 1
+            else:
+                if found > 1:
+                    # print("pyfindspanningtree: cycle found")
+                    return []
+            if found == 0:
+                # print( "pyfindspanningtree: no path found" )
+                return []
+    return newEs
+
+
+testgraph = [[0,1,1],[1,0,1],[1,1,0]]
+testgraphdim = 3
+pyfindspanningtree(testgraph,testgraphdim,[[0,1]])
 pyTestreturnset( [[0,1,1],[1,0,1],[1,1,0]], 3, 3, 3)

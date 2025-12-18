@@ -4163,6 +4163,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
     valms resright = evalinternal(*fc.fcright, context);
 
+    while (resright.t == mtuncast)
+        resright = *resright.uv;
+
     if (fc.fo == formulaoperator::fonot)
     {
         res.t = measuretype::mtbool;
@@ -4197,6 +4200,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 || (fc.fo == formulaoperator::foiff))
             {
                 valms resleft = evalinternal(*fc.fcleft, context);
+                while (resleft.t == mtuncast)
+                    resleft = *resleft.uv;
                 switch (resleft.t)
                 {
                 case mtbool: res.v.bv = eval2ary<bool,bool,bool>(resleft.v.bv,resright.v.bv,fc.fo);
@@ -4226,7 +4231,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 || (fc.fo == formulaoperator::foiff))
             {
                 valms resleft = evalinternal(*fc.fcleft, context);
-
+                while (resleft.t == mtuncast)
+                    resleft = *resleft.uv;
                 switch (resleft.t)
                 {
                 case mtbool: res.v.bv = eval2ary<bool,bool,int>(resleft.v.bv,resright.v.iv,fc.fo);
@@ -4257,7 +4263,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 || (fc.fo == formulaoperator::foiff))
             {
                 valms resleft = evalinternal(*fc.fcleft, context);
-
+                while (resleft.t == mtuncast)
+                    resleft = *resleft.uv;
                 switch (resleft.t)
                 {
                 case mtbool: res.v.bv = eval2ary<bool,bool,double>(resleft.v.bv,resright.v.dv,fc.fo);
@@ -4276,6 +4283,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     case formulaoperator::foor: res.v.bv = true; break;
                     case formulaoperator::foif: res.v.bv = true; break;
                     case formulaoperator::foimplies: res.v.bv = true; break;
+                    case formulaoperator::foxor: res.v.bv = true; break;
+                    case formulaoperator::foiff: res.v.bv = true; break;
                     }
 
                 }

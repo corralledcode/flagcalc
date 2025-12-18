@@ -1288,6 +1288,54 @@ public:
 #ifdef FLAGCALCWITHPYTHON
 
 
+using mtflatvarianttype = std::variant<bool,int,double>;
+
+inline mtflatvarianttype translatemttopython( const valms& v ) {
+    mtflatvarianttype out;
+    if (v.t == mtuncast)
+        return translatemttopython(*v.uv);
+    switch (v.t) {
+        case mtbool: {
+            out = v.v.bv;
+            break;
+        }
+        case mtdiscrete: {
+            out = v.v.iv;
+            break;
+        }
+        case mtcontinuous: {
+            out = v.v.dv;
+            break;
+        }
+        default: {
+            out = 0;
+        }
+    }
+    return out;
+}
+
+inline py::list translatesetitrtopython( setitr* s ) {
+    py::list out {};
+    auto pos = s->getitrpos();
+    while (!pos->ended()) {
+        auto v = pos->getnext();
+        while (v.t == mtuncast)
+            v = *v.uv;
+        switch (v.t) {
+            case mtset:
+            case mttuple: {
+                out.append ( translatesetitrtopython(v.seti));
+                break;
+            }
+            default: {
+                out.append(translatemttopython(v) );
+                break;
+            }
+        }
+    }
+    return out;
+}
+
 inline py::object callpythonmethod( neighborstype* ns, const params& ps, const py::object& m, namedparams nps, const std::string& methodname ) {
     py::gil_scoped_release release;
 
@@ -1314,25 +1362,10 @@ inline py::object callpythonmethod( neighborstype* ns, const params& ps, const p
             const char* s = nps[i].first.c_str();
             while (a.t == mtuncast)
                 a = *a.uv;
-            switch (a.t) {
-                case mtbool: {
-                    kwargs[s] = a.v.bv;
-                    break;
-                }
-                case mtdiscrete: {
-                    kwargs[s] = a.v.iv;
-                    break;
-                }
-                case mtcontinuous: {
-                    kwargs[s] = a.v.dv;
-                    break;
-                }
-                case mtset:
-                case mttuple: {
-                    std::cout << "Passing of sets and tuples to Python methods is not yet implemented.\n";
-                    break;
-                }
-            }
+            if (a.t == mtset || a.t == mttuple)
+                kwargs[s] = translatesetitrtopython(a.seti);
+            else
+                kwargs[s] = translatemttopython(a);
             i++;
         }
         // for (auto a : kwargs)

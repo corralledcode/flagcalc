@@ -2928,8 +2928,9 @@ public:
     }
 
     ~checkcriterionfeature() {
-        if (is_pyinterpreterstarted)
-            py::finalize_interpreter();
+        // if (is_pyinterpreterstarted)
+            // py::finalize_interpreter();
+        // is_pyinterpreterstarted = false; // crashes when using multiple s's
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();

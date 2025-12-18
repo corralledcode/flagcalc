@@ -157,6 +157,12 @@ SET (m IN Maps(length+1, dimm),
 
 END
 
+mtbool eac( mtset e1, mtset e2 )
+
+(e1[0] == e2[0] AND e1[1] != e2[1]) OR (e1[1] == e2[0] AND e1[0] != e2[1])
+OR (e1[0] == e2[1] AND e1[1] != e2[0]) OR (e1[1] == e2[1] AND e1[0] != e2[0])
+
+END
 
 #include "../scripts/recursion.dat"
 #include "../scripts/planarity.dat"

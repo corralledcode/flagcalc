@@ -1741,7 +1741,7 @@ public:
             valms b1 = itrb->getnext();
             valms a2 = itra->getnext();
             valms b2 = itrb->getnext();
-            res = (a1 == b1 && !(a2 == b2)) || (a2 == b2 && !(a1 == b1)) || a1 == b2 || a2 == b1;
+            res = (a1 == b1 && !(a2 == b2)) || (a2 == b2 && !(a1 == b1)) || (a1 == b2 && a2 != b1) || (a2 == b1 && a1 != b2);
             delete itra;
             delete itrb;
             return res;
