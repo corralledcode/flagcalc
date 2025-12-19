@@ -481,6 +481,12 @@ inline std::map<formulaoperator,bool> booleanopslookup {
                             {formulaoperator::foqintersection,false},
                             {formulaoperator::foqmedian,false},
                             {formulaoperator::foqmode,false},
+                            {formulaoperator::foqany,false},
+                            {formulaoperator::foqexistsunique,false},
+                            {formulaoperator::foqanyn,false},
+                            {formulaoperator::foqexistsnunique,false},
+                            {formulaoperator::foqexistsn,false},
+                            {formulaoperator::foqforalln,false},
                             {formulaoperator::fonaming,false},
                             {formulaoperator::foexponent,false},
                             {formulaoperator::fotimes,false},
@@ -550,6 +556,12 @@ inline std::map<formulaoperator,bool> equalityopslookup {
                             {formulaoperator::foqintersection,false},
                             {formulaoperator::foqmedian,false},
                             {formulaoperator::foqmode,false},
+                            {formulaoperator::foqany,false},
+                            {formulaoperator::foqexistsunique,false},
+                            {formulaoperator::foqanyn,false},
+                            {formulaoperator::foqexistsnunique,false},
+                            {formulaoperator::foqexistsn,false},
+                            {formulaoperator::foqforalln,false},
                             {formulaoperator::fonaming,false},
                             {formulaoperator::foexponent,false},
                             {formulaoperator::fotimes,false},
@@ -583,7 +595,7 @@ inline std::map<formulaoperator,bool> equalityopslookup {
                             {formulaoperator::fomeet, true},
                             {formulaoperator::fodisjoint, true},
                             {formulaoperator::fothreaded, false},
-{formulaoperator::fogpu, false},
+                            {formulaoperator::fogpu, false},
                             {formulaoperator::forsort, false},
                             {formulaoperator::forpartition, false}
 };
@@ -621,7 +633,13 @@ inline std::map<formulaoperator,bool> quantifieropslookup {
                             {formulaoperator::foqintersection,true},
                             {formulaoperator::foqmedian,true},
                             {formulaoperator::foqmode,true},
-                            {formulaoperator::fonaming,false},
+                            {formulaoperator::foqany,true},
+                            {formulaoperator::foqexistsunique,true},
+                            {formulaoperator::foqanyn,true},
+                            {formulaoperator::foqexistsnunique,true},
+                            {formulaoperator::foqexistsn,true},
+                            {formulaoperator::foqforalln,false},
+                            {formulaoperator::fonaming,true},
                             {formulaoperator::foexponent,false},
                             {formulaoperator::fotimes,false},
                             {formulaoperator::fodivide,false},
@@ -654,8 +672,8 @@ inline std::map<formulaoperator,bool> quantifieropslookup {
                             {formulaoperator::fomeet, false},
                             {formulaoperator::fodisjoint, false},
                             {formulaoperator::fothreaded, false},
-                             {formulaoperator::fogpu, false},
-    {formulaoperator::forsort, false},
+                            {formulaoperator::fogpu, false},
+                            {formulaoperator::forsort, false},
                             {formulaoperator::forpartition, false}
 };
 
@@ -681,7 +699,13 @@ inline bool quantifierops( const formulaoperator fo )
             || fo == formulaoperator::foqdupeunion
             || fo == formulaoperator::foqintersection
             || fo == formulaoperator::foqmedian
-            || fo == formulaoperator::foqmode);
+            || fo == formulaoperator::foqmode
+            || fo == formulaoperator::foqany
+            || fo == formulaoperator::foqexistsunique
+            || fo == formulaoperator::foqanyn
+            || fo == formulaoperator::foqexistsnunique
+            || fo == formulaoperator::foqexistsn
+            || fo == formulaoperator::foqforalln);
 }
 
 inline std::map<formulaoperator,bool> relationalopslookup {
@@ -703,6 +727,12 @@ inline std::map<formulaoperator,bool> relationalopslookup {
                             {formulaoperator::foqintersection,false},
                             {formulaoperator::foqmedian,false},
                             {formulaoperator::foqmode,false},
+                            {formulaoperator::foqany,false},
+                            {formulaoperator::foqexistsunique,false},
+                            {formulaoperator::foqanyn,false},
+                            {formulaoperator::foqexistsnunique,false},
+                            {formulaoperator::foqexistsn,false},
+                            {formulaoperator::foqforalln,false},
                             {formulaoperator::fonaming,false},
                             {formulaoperator::foexponent,false},
                             {formulaoperator::fotimes,false},
@@ -736,7 +766,7 @@ inline std::map<formulaoperator,bool> relationalopslookup {
                             {formulaoperator::fomeet, false},
                             {formulaoperator::fodisjoint, false},
                             {formulaoperator::fothreaded, false},
-{formulaoperator::fogpu, false},
+                            {formulaoperator::fogpu, false},
                             {formulaoperator::forsort, true},
                             {formulaoperator::forpartition, true}
 };
@@ -1232,6 +1262,8 @@ public:
     std::vector<valms> vv {};
     int originalcontextsize;
     formulaclass* criterion;
+    formulaclass* cntforquota; // for foqanyn and foqexistsnunique
+    unsigned computedcntforquota;
     bool vacuouslytrue = false;
     std::vector<bool> needtodeletevseti {};
     std::vector<std::pair<int,int>> a;
@@ -1243,7 +1275,12 @@ public:
 
         originalcontextsize = context.size();
         criterion = fc.fcright->criterion;
+        cntforquota = fc.fcright->cntforquota;
         needtodeletevseti.resize(fc.fcright->boundvariables.size());
+        if (cntforquota)
+            computedcntforquota = to_mtdiscrete(emf->evalinternal(*cntforquota,context)).v.iv;
+        else
+            computedcntforquota = 1;
         for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
             if (fc.fcright->boundvariables[j]->superset) {
                 valms v = emf->evalinternal(*fc.fcright->boundvariables[j]->superset, context);
@@ -2276,6 +2313,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     exit(1);
                     break;
                 }
+            case formulaoperator::foqany:
+            case formulaoperator::foqexistsunique:
+            case formulaoperator::foqanyn:
+            case formulaoperator::foqexistsnunique:
+            case formulaoperator::foqexistsn:
+            case formulaoperator::foqforalln: {
+                std::cout << "No support yet for CUDA ANY, ANYN, EXISTSUNIQUE, EXISTSNUNIQUE, EXISTSN, FORALLN\n";
+                break;
+            }
 
             default:
             {
@@ -2580,13 +2626,98 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         exit(1);
                         break;
                     }
+                case formulaoperator::foqanyn:
+                    {
+                        res.t = mtset;
+                        unsigned found = 0;
+                        std::vector<valms> tot {};
+                        while (!qm.ended() && found < qm.computedcntforquota) {
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            if (c.v.bv) {
+                                tot.push_back(evalinternal(*fc.fcright, context));
+                                found++;
+                            }
+                            qm.multipleadvance();
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                case formulaoperator::foqany:
+                    {
+                        res.t = mtuncast;
+                        bool found = false;
+                        while (!qm.ended() && !found) {
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            if (c.v.bv) {
+                                res = evalinternal(*fc.fcright, context);
+                                found = true;
+                            }
+                            qm.multipleadvance();
+                        }
+                        break;
+                    }
+                case formulaoperator::foqexistsnunique:
+                case formulaoperator::foqexistsunique:
+                    {
+                        res.t = mtbool;
+                        unsigned found = 0;
+                        while (!qm.ended() && found < qm.computedcntforquota) {
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            if (c.v.bv) {
+                                if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv) {
+                                    found++;
+                                };
+                            }
+                            qm.multipleadvance();
+                        }
+                        res.v.bv = found == qm.computedcntforquota;
+                        while (!qm.ended() && res.v.bv) {
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            if (c.v.bv) {
+                                if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv) {
+                                    res.v.bv = false;
+                                    break;
+                                };
+                            }
+                            qm.multipleadvance();
+                        }
+                        break;
+                    }
+                case formulaoperator::foqexistsn:
+                    {
+                        res.t = mtbool;
+                        int found = 0;
+                        while (!qm.ended() && found < qm.computedcntforquota) {
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            if (c.v.bv) {
+                                found += to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 1 : 0;
+                            }
+                            qm.multipleadvance();
+                        }
+                        res.v.bv = found >= qm.computedcntforquota;
+                        break;
+                    }
+                case formulaoperator::foqforalln:
+                    {
+                        res.t = mtbool;
+                        int found = qm.computedcntforquota;
+                        while (!qm.ended() && found >= 0) {
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            if (c.v.bv) {
+                                found -= to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 0 : 1;
+                            }
+                            qm.multipleadvance();
+                        }
+                        res.v.bv = found >= 0;
+                        break;
+                    }
+
                 }
 
             } else // QUANTIFIER: case of not threaded, no criterion
             {
-                switch (fc.fo)
-                {
-                case formulaoperator::foqexists:
+                switch (fc.fo) {
+                    case formulaoperator::foqexists:
                     {
                         res.t = mtbool;
                         res.v.bv = true;
@@ -2598,7 +2729,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         break;
                     }
 
-                case formulaoperator::foqforall:
+                    case formulaoperator::foqforall:
                     {
                         res.v.bv = true;
                         res.t = mtbool;
@@ -2608,7 +2739,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         break;
                     }
-                case formulaoperator::foqsum:
+                    case formulaoperator::foqsum:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 0;
@@ -2622,7 +2753,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         break;
                     }
-                case formulaoperator::foqproduct:
+                    case formulaoperator::foqproduct:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 1;;
@@ -2636,7 +2767,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         break;
                     }
-                case formulaoperator::foqmin:
+                    case formulaoperator::foqmin:
                     {
                         res.t = mtcontinuous;
                         double min = std::numeric_limits<double>::infinity();
@@ -2655,7 +2786,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = min;
                         break;
                     }
-                case formulaoperator::foqmax:
+                    case formulaoperator::foqmax:
                     {
                         res.t = mtcontinuous;
                         double max = -std::numeric_limits<double>::infinity();
@@ -2672,7 +2803,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = max;
                         break;
                     }
-                case formulaoperator::foqrange:
+                    case formulaoperator::foqrange:
                     {
                         res.t = mtcontinuous;
                         double min = std::numeric_limits<double>::infinity();
@@ -2694,7 +2825,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = max - min;
                         break;
                     }
-                case formulaoperator::foqaverage:
+                    case formulaoperator::foqaverage:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 0.0;
@@ -2711,7 +2842,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = count > 0 ? res.v.dv / count : 0;
                         break;
                     }
-                case formulaoperator::foqtally:
+                    case formulaoperator::foqtally:
                     {
                         res.t = mtdiscrete;
                         res.v.iv = 0;
@@ -2724,7 +2855,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         break;
                     }
-                case formulaoperator::foqcount:
+                    case formulaoperator::foqcount:
                     {
                         res.t = mtdiscrete;
                         res.v.iv = 0;
@@ -2738,7 +2869,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         break;
                     }
-                case formulaoperator::foqdupeset:
+                    case formulaoperator::foqdupeset:
                     {
                         res.t = mtset;
                         std::vector<valms> tot {};
@@ -2751,7 +2882,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         idealizeset(tot,res);
                         break;
                     }
-                case formulaoperator::foqtuple:
+                    case formulaoperator::foqtuple:
                     {
                         res.t = mttuple;
                         std::vector<valms> tot {};
@@ -2764,7 +2895,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         idealizetuple(tot,res);
                         break;
                     }
-                case formulaoperator::foqset:
+                    case formulaoperator::foqset:
                     {
                         res.t = mtset;
                         std::vector<valms> tot {};
@@ -2781,9 +2912,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         idealizeset(tot,res);
                         break;
                     }
-                case formulaoperator::foqunion:
-                case formulaoperator::foqintersection:
-                case formulaoperator::foqdupeunion:
+                    case formulaoperator::foqunion:
+                    case formulaoperator::foqintersection:
+                    case formulaoperator::foqdupeunion:
                     {
                         res.t = mtset;
                         res.seti = nullptr;
@@ -2804,18 +2935,86 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             res.seti = new setitrint(-1);
                         break;
                     }
-                case formulaoperator::foqmedian:
+                    case formulaoperator::foqmedian:
                     {
                         std::cout << "No support yet for MEDIAN\n";
                         exit(1);
                         break;
                     }
-                case formulaoperator::foqmode:
+                    case formulaoperator::foqmode:
                     {
                         std::cout << "No support yet for MODE\n";
                         exit(1);
                         break;
                     }
+                    case formulaoperator::foqanyn: {
+                        res.t = mtset;
+                        unsigned found = 0;
+                        std::vector<valms> tot {};
+                        while (!qm.ended() && found < qm.computedcntforquota) {
+                            tot.push_back(evalinternal(*fc.fcright, context));
+                            found++;
+                            qm.multipleadvance();
+                        }
+                        res.seti = new setitrmodeone(tot);
+                        break;
+                    }
+                    case formulaoperator::foqany:
+                        {
+                            res.t = mtuncast;
+                            bool found = false;
+                            while (!qm.ended() && !found) {
+                                res = evalinternal(*fc.fcright, context);
+                                found = true;
+                                // qm.multipleadvance();
+                            }
+                            break;
+                        }
+                    case formulaoperator::foqexistsunique:
+                    case formulaoperator::foqexistsnunique:
+                    {
+                        res.t = mtbool;
+                        unsigned int found = 0;
+                        while (!qm.ended() && found < qm.computedcntforquota) {
+                            if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv)
+                                found++;
+                            qm.multipleadvance();
+                        }
+                        res.v.bv = found >= qm.computedcntforquota;
+                        while (!qm.ended() && res.v.bv) {
+                            if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv) {
+                                res.v.bv = false;
+                                break;
+                            };
+                            qm.multipleadvance();
+                        }
+                        break;
+                    }
+                    case formulaoperator::foqexistsn:
+
+                    {
+                        res.t = mtbool;
+                        int found = 0;
+                        while (!qm.ended() && found < qm.computedcntforquota) {
+                            found += to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 1 : 0;
+                            qm.multipleadvance();
+                        }
+                        res.v.bv = found >= qm.computedcntforquota;
+                        break;
+                    }
+
+                    case formulaoperator::foqforalln:
+                    {
+                        res.t = mtbool;
+                        int found = qm.computedcntforquota;
+                        while (!qm.ended() && found >= 0) {
+                            found -= to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 0 : 1;
+                            qm.multipleadvance();
+                        }
+                        res.v.bv = found >= 0;
+                        break;
+                    }
+
                 }
             }
 
@@ -3142,9 +3341,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
             } else { // QUANTIFIER: case of threaded and no criterion
                 
-                switch (fc.fo)
-                {
-                case formulaoperator::foqexists:
+                switch (fc.fo) {
+                    case formulaoperator::foqexists:
                     {
                         res.v.bv = true;
                         res.t = mtbool;
@@ -3160,7 +3358,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         break;
                     }
 
-                case formulaoperator::foqforall:
+                    case formulaoperator::foqforall:
                     {
                         res.v.bv = true;
                         res.t = mtbool;
@@ -3174,7 +3372,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         break;
                     }
-                case formulaoperator::foqsum:
+                    case formulaoperator::foqsum:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 0;
@@ -3184,15 +3382,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    double out;
-                                    mtconverttocontinuous(ress[m],out);
-                                    res.v.dv += out;
-                                }
+                            {
+                                double out;
+                                mtconverttocontinuous(ress[m],out);
+                                res.v.dv += out;
+                            }
                         }
                         break;
                     }
-                case formulaoperator::foqproduct:
+                    case formulaoperator::foqproduct:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 1;
@@ -3202,15 +3400,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    double out;
-                                    mtconverttocontinuous(ress[m],out);
-                                    res.v.dv *= out;
-                                }
+                            {
+                                double out;
+                                mtconverttocontinuous(ress[m],out);
+                                res.v.dv *= out;
+                            }
                         }
                         break;
                     }
-                case formulaoperator::foqmin:
+                    case formulaoperator::foqmin:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 0;
@@ -3221,18 +3419,18 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    mtconverttocontinuous(ress[m],res.v.dv);
-                                    if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
-                                        min = res.v.dv;
-                                    else
-                                        min = res.v.dv < min ? res.v.dv : min;
-                                }
+                            {
+                                mtconverttocontinuous(ress[m],res.v.dv);
+                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                    min = res.v.dv;
+                                else
+                                    min = res.v.dv < min ? res.v.dv : min;
+                            }
                         }
                         res.v.dv = min;
                         break;
                     }
-                case formulaoperator::foqmax:
+                    case formulaoperator::foqmax:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 0;
@@ -3243,18 +3441,18 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    mtconverttocontinuous(ress[m],res.v.dv);
-                                    if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
-                                        max = res.v.dv;
-                                    else
-                                        max = res.v.dv > max ? res.v.dv : max;
-                                }
+                            {
+                                mtconverttocontinuous(ress[m],res.v.dv);
+                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                    max = res.v.dv;
+                                else
+                                    max = res.v.dv > max ? res.v.dv : max;
+                            }
                         }
                         res.v.dv = max;
                         break;
                     }
-                case formulaoperator::foqrange:
+                    case formulaoperator::foqrange:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 0;
@@ -3266,22 +3464,22 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    mtconverttocontinuous(ress[m],res.v.dv);
-                                    if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
-                                        min = res.v.dv;
-                                    else
-                                        min = res.v.dv < min ? res.v.dv : min;
-                                    if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
-                                        max = res.v.dv;
-                                    else
-                                        max = res.v.dv > max ? res.v.dv : max;
-                                }
+                            {
+                                mtconverttocontinuous(ress[m],res.v.dv);
+                                if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
+                                    min = res.v.dv;
+                                else
+                                    min = res.v.dv < min ? res.v.dv : min;
+                                if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
+                                    max = res.v.dv;
+                                else
+                                    max = res.v.dv > max ? res.v.dv : max;
+                            }
                         }
                         res.v.dv = max - min;
                         break;
                     }
-                case formulaoperator::foqaverage:
+                    case formulaoperator::foqaverage:
                     {
                         res.t = mtcontinuous;
                         res.v.dv = 0;
@@ -3292,17 +3490,17 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    ++count;
-                                    double out;
-                                    mtconverttocontinuous(ress[m],out);
-                                    res.v.dv += out;
-                                }
+                            {
+                                ++count;
+                                double out;
+                                mtconverttocontinuous(ress[m],out);
+                                res.v.dv += out;
+                            }
                         }
                         res.v.dv = count > 0 ? res.v.dv/count : 0;
                         break;
                     }
-                case formulaoperator::foqtally:
+                    case formulaoperator::foqtally:
                     {
                         res.t = mtdiscrete;
                         res.v.iv = 0;
@@ -3312,15 +3510,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    LONGINT tmp;
-                                    mtconverttodiscrete(ress[m],tmp);
-                                    res.v.iv += tmp;
-                                }
+                            {
+                                LONGINT tmp;
+                                mtconverttodiscrete(ress[m],tmp);
+                                res.v.iv += tmp;
+                            }
                         }
                         break;
                     }
-                case formulaoperator::foqcount:
+                    case formulaoperator::foqcount:
                     {
                         res.t = mtdiscrete;
                         res.v.iv = 0;
@@ -3330,16 +3528,16 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    bool tmp;
-                                    mtconverttobool(ress[m],tmp);
-                                    if (tmp)
-                                        ++res.v.iv;
-                                }
+                            {
+                                bool tmp;
+                                mtconverttobool(ress[m],tmp);
+                                if (tmp)
+                                    ++res.v.iv;
+                            }
                         }
                         break;
                     }
-                case formulaoperator::foqdupeset:
+                    case formulaoperator::foqdupeset:
                     {
                         res.t = mtset;
                         std::vector<valms> tot {};
@@ -3349,13 +3547,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                    tot.push_back(ress[m]);
+                                tot.push_back(ress[m]);
                         }
                         idealizeset(tot,res);
                         // res.seti = new setitrmodeone(tot);
                         break;
                     }
-                case formulaoperator::foqtuple:
+                    case formulaoperator::foqtuple:
                     {
                         res.t = mttuple;
                         std::vector<valms> tot {};
@@ -3365,12 +3563,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                    tot.push_back(ress[m]);
+                                tot.push_back(ress[m]);
                         }
                         idealizetuple(tot,res);
                         break;
                     }
-                case formulaoperator::foqset:
+                    case formulaoperator::foqset:
                     {
                         res.t = mtset;
                         std::vector<valms> tot {};
@@ -3391,9 +3589,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         idealizeset(tot,res);
                         break;
                     }
-                case formulaoperator::foqunion:
-                case formulaoperator::foqintersection:
-                case formulaoperator::foqdupeunion:
+                    case formulaoperator::foqunion:
+                    case formulaoperator::foqintersection:
+                    case formulaoperator::foqdupeunion:
                     {
                         res.t = mtset;
                         res.seti = nullptr;
@@ -3404,11 +3602,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
                             for (int m = 0; m < pos ; ++m)
-                                {
-                                    setitr* out;
-                                    mtconverttoset(ress[m],out);
-                                    composite.push_back(out);
-                                }
+                            {
+                                setitr* out;
+                                mtconverttoset(ress[m],out);
+                                composite.push_back(out);
+                            }
                         }
                         auto abstractpluralsetops = getsetitrpluralops(composite);
                         res.seti = abstractpluralsetops->setops(fc.fo);
@@ -3418,16 +3616,28 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                         break;
                     }
-                case formulaoperator::foqmedian:
+                    case formulaoperator::foqmedian:
                     {
                         std::cout << "No support yet for MEDIAN\n";
                         exit(1);
                         break;
                     }
-                case formulaoperator::foqmode:
+                    case formulaoperator::foqmode:
                     {
                         std::cout << "No support yet for MODE\n";
                         exit(1);
+                        break;
+                    }
+                    case formulaoperator::foqany:
+                    case formulaoperator::foqanyn: {
+
+                        std::cout << "No support yet for threaded ANY, ANYN\n";
+                    }
+                    case formulaoperator::foqexistsunique:
+                    case formulaoperator::foqexistsnunique:
+                    {
+                        std::cout << "No support yet for threaded EXISTSUNIQUE, EXISTSNUNIQUE\n";
+
                         break;
                     }
                 }
@@ -5262,7 +5472,10 @@ inline formulaclass* parseformulainternal(
                 if (argcnt < 2)
                     std::cout << "Wrong number (" << argcnt << ") of arguments to a quantifier or relational quantifier " << tok << "\n";
             }
-            std::string INtok = "IN";
+
+
+
+            std::string INtok = "IN"; // note this code specifies a default "IN" but then defers to what is found in operatorsmap
             for (auto s : operatorsmap)
                 if (s.second == formulaoperator::foin)
                 {
@@ -5295,6 +5508,7 @@ inline formulaclass* parseformulainternal(
                     while (q[pos2+1] == SHUNTINGYARDVARIABLEARGUMENTENDKEY)
                         ++pos2;
                     qc->name = q[++pos2];
+
                     qcs.push_back(qc);
                     if (is_relational(tok))
                     {
@@ -5313,6 +5527,17 @@ inline formulaclass* parseformulainternal(
             if (pos2 >= q.size() && qcs.size() == 0) {
                 std::cout << "Quantifier not containing an 'IN'\n";
                 exit(1);
+            }
+
+
+            int CNTcnt = 0;
+            int anyncnt = 1;
+
+            formulaclass* cntforquota {};
+
+            if (q[lastpos2+1] != SHUNTINGYARDVARIABLEARGUMENTENDKEY) {
+                cntforquota = parseformulainternal(q,lastpos2,litnumps,littypes,litnames, ps, fnptrs);
+                CNTcnt = 1;
             }
 
             int pos3 = pos+1;
@@ -5341,11 +5566,48 @@ inline formulaclass* parseformulainternal(
                 }
             }
 
+
+
+
+
+/*
+
+            int pos4 = pos+1;
+
+            int cntcount = 0;
+            while (pos4 < q.size() && q[pos4] != SHUNTINGYARDVARIABLEARGUMENTENDKEY && cntcount >= 0) {
+                while (pos4+1 <= q.size() && cntcount >= 0) {
+                    cntcount += (is_naming(q[pos4]) || is_quantifier(q[pos4]) || is_relational(q[pos4])) ? 1 : 0;
+                    cntcount -= q[pos4] == SHUNTINGYARDVARIABLEARGUMENTENDKEY ? 1 : 0;
+                    ++pos4;
+                }
+                if (pos4 > 0)
+                    pos4--;
+                if (pos4 < q.size() && q[pos4] == SHUNTINGYARDVARIABLEARGUMENTENDKEY && cntcount < 0) {
+                    pos4--;
+                    try {
+                        anyncnt = std::stoi(q[pos4]);
+                        CNTcnt = 1;
+                    } catch (const std::invalid_argument& e) {
+                        anyncnt = 1;
+                        CNTcnt = 0;
+                    }
+                    if (qcs.size() > 0)
+                        qcs[0]->cnt = anyncnt;
+            
+                }
+            }
+
+*/
+
+
+
             formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
             fcright->criterion = nullptr;
             fcright->boundvariables = qcs;
+            fcright->cntforquota = cntforquota;
 
-            if (argcnt > (INcount + AScount + 1))
+            if (argcnt > (INcount + AScount + CNTcnt + 1))
             {
                 fcright->criterion = parseformulainternal(q,pos, litnumps, littypes, litnames, ps,  fnptrs);
             }

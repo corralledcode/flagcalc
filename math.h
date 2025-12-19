@@ -51,6 +51,7 @@ enum class formulaoperator
     foqsum, foqproduct, foqmin, foqmax, foqaverage, foqrange,
     foqtally, foqcount, foqset, foqdupeset, foqtuple, foqunion, foqdupeunion, foqintersection,
     foqmedian, foqmode,
+    foqany, foqexistsunique, foqanyn, foqexistsnunique, foqexistsn, foqforalln,
     foswitch, focases, foin, fonaming, foas,
     fosetminus, fosetxor, fomeet, fodisjoint,
     fothreaded, fogpu,
@@ -81,9 +82,15 @@ inline const std::map<std::string,formulaoperator> operatorsmap
         {"!=",formulaoperator::fone},
         {"SET",formulaoperator::foqset},
         {"SETD",formulaoperator::foqdupeset},
-           {"TUPLE", formulaoperator::foqtuple},
+        {"TUPLE", formulaoperator::foqtuple},
         {"FORALL",formulaoperator::foqforall},
         {"EXISTS",formulaoperator::foqexists},
+        {"ANY", formulaoperator::foqany},
+        {"EXISTSUNIQUE", formulaoperator::foqexistsunique},
+        {"ANYN",formulaoperator::foqanyn},
+        {"EXISTSNUNIQUE", formulaoperator::foqexistsnunique},
+        {"EXISTSN", formulaoperator::foqexistsn},
+        {"FORALLN", formulaoperator::foqforalln},
         {"CUP",formulaoperator::founion},
         {"CUPD",formulaoperator::fodupeunion},
         {"CAP",formulaoperator::fointersection},
@@ -2174,6 +2181,7 @@ public:
     valms qs;
     formulaclass* superset {};
     formulaclass* alias {};
+    formulaclass* cntforquota {}; // for foqanyn foqexistsnunique etc
     formulaclass* value {};
     int CUDAfastidx = -1;
     bool secondorder = false;
@@ -2343,6 +2351,7 @@ struct formulavalue {
     fnstruct fns;
     std::vector<qclass*> qcs;
     formulaclass* criterion;
+    formulaclass* cntforquota {}; // for foqanyn etc
     variablestruct vs;
     setstruct ss;
     bool subgraph;
@@ -2352,6 +2361,7 @@ class formulaclass {
 public:
     std::vector<qclass*> boundvariables {};
     formulaclass* criterion {};
+    formulaclass* cntforquota {}; // for foqanyn and foqexistsnunique
     formulavalue v;
     formulaclass* fcleft;
     formulaclass* fcright;
@@ -2359,7 +2369,7 @@ public:
     bool threaded = false;
     bool gpu = false;
     formulaclass(formulavalue vin, formulaclass* fcleftin, formulaclass* fcrightin, formulaoperator foin)
-        : v{vin}, fcleft(fcleftin), fcright(fcrightin), fo(foin) {}
+        : v{vin}, fcleft(fcleftin), fcright(fcrightin), fo(foin), cntforquota{vin.cntforquota} {}
     ~formulaclass() {
         //delete fcleft;
         //delete fcright;
@@ -2399,6 +2409,12 @@ inline std::map<formulaoperator,int> precedencemap {
                             {formulaoperator::foqintersection,0},
                             {formulaoperator::foqmedian,0},
                             {formulaoperator::foqmode,0},
+                            {formulaoperator::foqany,0},
+                            {formulaoperator::foqexistsunique,0},
+                            {formulaoperator::foqanyn,0},
+                            {formulaoperator::foqexistsnunique,0},
+                            {formulaoperator::foqexistsn,0},
+                            {formulaoperator::foqforalln,0},
                             {formulaoperator::fonaming,0},
                             {formulaoperator::foexponent,1},
                             {formulaoperator::fotimes,2},

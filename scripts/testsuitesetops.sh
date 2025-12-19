@@ -18,7 +18,9 @@ $PTH/flagcalc -r 8 5 1 -a s="FORALL (s IN Ps(V), FORALL (t IN Ps(V), s CAP t == 
 $PTH/flagcalc -r 8 5 1 -a s="FORALL (s IN Ps(V), FORALL (t IN Ps(V), (s CAP t == Nulls AND s CUP t == V) IMPLIES FORALL (v IN V, v ELT s XOR v ELT t)))" all
 $PTH/flagcalc -r 8 5 1 -a s="FORALL (s IN Ps(V), FORALL (t IN Ps(V), s CAP t == Nulls IMPLIES st(s) + st(t) == st(s CUP t)))" all
 $PTH/flagcalc -d f="abc" -a s="nwisec({{0,1},{0,2,3},{2,5,0},{1,2}},\"MEET\",2,1)" all -v i=minimal3.cfg
+# Note: true below
 $PTH/flagcalc -d f="abc" -a s="nwisec(E,\"MEET\",2,1)" all -v i=minimal3.cfg
+# Note: false below
 $PTH/flagcalc -d f="abcd" -a s="nwisec(E,\"MEET\",2,1)" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{3,4,6}}" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{1,3}}" all -v i=minimal3.cfg

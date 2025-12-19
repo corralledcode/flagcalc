@@ -57,13 +57,6 @@ def pytestacceptset( adjmatrix, dim, set ):
 
 # def pyfindnormalspanningtree( adjmatrix, dim, rootvertex ):
 
-def pyTgetroot( tree ):
-    if tree == None:
-        return None
-    if tree[0][0] < tree[0][1]:
-        return tree[0][0]
-    else:
-        return tree[0][1]
 
 
 def pyTdownclosure( root, tree, vertex ):

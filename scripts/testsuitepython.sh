@@ -33,6 +33,8 @@ $PTH/flagcalc -r 8 p=0.3 75 -a j=1 ipy="pymeas" s="FORALL (S IN Ps(E), pyedgeset
 
 # Find some graphs and acyclic edge sets that cannot be extended to a spanning tree
 $PTH/flagcalc -r 5 p=0.3 75 -a j=1 ipy="pymeas" s1=conn1c s2="EXISTS (S IN Ps(E), NOT pyedgesetcontainscycle(S) AND st(pyfindspanningtree(S)) == 0)" all -g o=out.dat overwrite passed -v i=minimal3.cfg allsets
+
+# should return No graphs available error
 $PTH/flagcalc -d out.dat -a j=1 ipy="pymeas" e="SETD (S IN Ps(E), NOT pyedgesetcontainscycle(S) AND st(pyfindspanningtree(S)) == 0, S)" all -v i=minimal3.cfg allsets
 
 $PTH/flagcalc -r 8 p=0.3 75 -a j=1 ipy="pymeas" s1=conn1c s2="FORALL (S IN Ps(E), pyedgesetcontainscycle(S) IFF st(pyfindspanningtree(S)) == 0)"  all -v i=minimal3.cfg allsets
@@ -59,14 +61,14 @@ $PTH/flagcalc -r 18 p=0.1 10000 -a j=1 ipy=pymeas s="treec" s2="NAMING (P AS pyo
 
 $PTH/flagcalc -r 10 p=0.25 1000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" all -g o=out.dat overwrite passed -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" e2="SETD (v IN V, pyTdownclosure(0,treefromorderedvertices(pyordervertices(0)),v))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="TnormalinG(treefromorderedvertices(pyordervertices(0)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="TnormalinG(0,treefromorderedvertices(pyordervertices(0)))" all -v set allsets i=minimal3.cfg
 
 # Diestel p. 15 "T is normal in G" for a tree T = G with any vertex as its root
-$PTH/flagcalc -r 12 p=0.15 10000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="NAMING (P AS pyordervertices(0), TnormalinG( treefromorderedvertices(P) ))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -r 10 p=0.15 10000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="FORALL (root IN V, NAMING (P AS pyordervertices(root), TnormalinG(treefromorderedvertices(P)) ))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 12 p=0.15 10000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="NAMING (P AS pyordervertices(0), TnormalinG( 0, treefromorderedvertices(P) ))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.15 10000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="FORALL (root IN V, NAMING (P AS pyordervertices(root), TnormalinG(root,treefromorderedvertices(P)) ))" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" e2="NAMING (T AS treefromorderedvertices(pyordervertices(0)), NAMING (H AS BIGCUP( e IN T, e ), SETD (v IN H, pyTdownclosure(0,T,v))))" all -v set allsets i=minimal3.cfg
 
 # Diestel p. 15 "T is normal in G" for a spanning tree T contained in G: the algorithm does not (yet) seek normalcy
-$PTH/flagcalc -r 10 p=0.25 1000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="TnormalinG(pyfindspanningtree({}))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.25 1000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="TnormalinG(0,pyfindspanningtree({}))" all -v set allsets i=minimal3.cfg
 

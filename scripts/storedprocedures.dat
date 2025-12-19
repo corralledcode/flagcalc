@@ -165,22 +165,22 @@ BIGCUP (u IN H, v IN H, u < v, SET (p IN Pathss(u,v), p CAP H == {u,v}, p))
 END
 
 
-mtbool Tpartialorder( mtset T, mtdiscrete u, mtdiscrete v )
+mtbool Tpartialorder( mtdiscrete root, mtset T, mtdiscrete u, mtdiscrete v )
 
-u ELT pyTdownclosure(pyTgetroot(T), T, v)
+u ELT pyTdownclosure(root, T, v)
 
 END
 
-mtbool TnormalinG( mtset T )
+mtbool TnormalinG( mtdiscrete root, mtset T )
 
 NAMING (H AS BIGCUP( e IN T, e ),
-    FORALL (p IN Hpaths(H), Tpartialorder( T, p[0], p[st(p)-1] ) OR Tpartialorder( T, p[st(p)-1], p[0] )))
+    FORALL (p IN Hpaths(H), Tpartialorder( root, T, p[0], p[st(p)-1] ) OR Tpartialorder( root, T, p[st(p)-1], p[0] )))
 
 END
 
 mtset treefromorderedvertices( mttuple O )
 
-SET (n IN NN(dimm), n >= 1, {MIN (m IN NN(n), ac(O[n],O[m]), O[m]),O[n]} )
+SET (n IN NN(dimm), n >= 1, {ANY (m IN NN(n), ac(O[n],O[m]), O[m]),O[n]} )
 
 END
 
