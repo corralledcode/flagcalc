@@ -1904,13 +1904,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 while (i++ <= idx.v.iv && !pos->ended())
                     res = pos->getnext();
             else {
-                std::cout << "Dereferencing beyond end of set\n";
+                std::cout << "Dereferencing beyond end of set, index == " << i << "\n";
                 res.t = measuretype::mtdiscrete;
                 res.v.iv = 0;
             }
             if (i <= idx.v.iv)
             {
-                std::cout << "Dereferencing beyond end of set\n";
+                std::cout << "Dereferencing beyond end of set, index == " << i << "\n";
                 res.t = measuretype::mtdiscrete;
                 res.v.iv = 0;
             }
@@ -5260,7 +5260,7 @@ inline formulaclass* parseformulainternal(
             {
                 argcnt = stoi(q[++pos]);
                 if (argcnt < 2)
-                    std::cout << "Wrong number (" << argcnt << ") of arguments to a quantifier or relational quantifier\n";
+                    std::cout << "Wrong number (" << argcnt << ") of arguments to a quantifier or relational quantifier " << tok << "\n";
             }
             std::string INtok = "IN";
             for (auto s : operatorsmap)

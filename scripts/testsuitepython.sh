@@ -44,5 +44,29 @@ $PTH/flagcalc -r 16 p=0.3 400 -a j=1 ipy="pymeas" s="edgecm > 0" s2="SETD (e IN 
 
 $PTH/flagcalc -r 8 p=0.4 25 -a j=1 ipy="pymeas" s="FORALL (S IN Ps(E), NAMING (T AS pyfindspanningtree(S), st(T) == 0 OR st(T) + 1 == dimm))"  all -v i=minimal3.cfg allsets
 
-$PTH/flagcalc -r 20 p=0.2 250 -a j=1 ipy="pymeas" s1="NOT conn1c" s2="pyfindspanningtree(E) == Nulls"  all -v i=minimal3.cfg allsets
+$PTH/flagcalc -r 20 p=0.2 250 -a j=1 ipy="pymeas" s1="NOT conn1c" s2="pyfindspanningtree({}) == Nulls"  all -v i=minimal3.cfg allsets
+
+$PTH/flagcalc -r 20 p=0.2 2500 -a j=1 ipy="pymeas" s="BIGCUP (e IN pyfindspanningtree({}), e) == V OR NOT conn1c"  all -v i=minimal3.cfg allsets
+$PTH/flagcalc -r 20 p=0.2 2500 -a j=1 ipy="pymeas" s="BIGCUPD (e IN pyfindspanningtree({}), e) >= V OR NOT conn1c"  all -v i=minimal3.cfg allsets
+
+$PTH/flagcalc -r 10 p=0.5 10 -a j=1 ipy=pymeas p="pyordervertices(0)" all -v crit allsets
+
+$PTH/flagcalc -r 14 p=0.5 1000 -a j=1 ipy=pymeas s1=conn1c s2="NAMING (O AS pyordervertices(0), FORALL (i IN st(O), conn1c(SubgraphonUg(Sp(O,i)))))" all -v i=minimal3.cfg
+
+# borrowed from testsuitesettheory.sh: Diestel Cor 1.5.2
+$PTH/flagcalc -r 9 p=0.2 100 -a s="treec" s2="EXISTS (P IN Perms(V), FORALL (v IN V, P[v] >= 1, EXISTS (n IN NN(dimm), P[n] < P[v] AND ac(n,v), FORALL (m IN NN(dimm), (P[m] < P[v] AND ac(m,v)) IMPLIES m == n))))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 18 p=0.1 10000 -a j=1 ipy=pymeas s="treec" s2="NAMING (P AS pyordervertices(0), FORALL (i IN NN(dimm), i >= 1, EXISTS (j IN NN(dimm), j < i AND ac(P[i],P[j]), FORALL (k IN NN(dimm), k < i AND ac(P[i],P[k])) IMPLIES j == k))))" all -v set allsets i=minimal3.cfg
+
+$PTH/flagcalc -r 10 p=0.25 1000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" all -g o=out.dat overwrite passed -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" e2="SETD (v IN V, pyTdownclosure(0,treefromorderedvertices(pyordervertices(0)),v))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="TnormalinG(treefromorderedvertices(pyordervertices(0)))" all -v set allsets i=minimal3.cfg
+
+# Diestel p. 15 "T is normal in G" for a tree T = G with any vertex as its root
+$PTH/flagcalc -r 12 p=0.15 10000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="NAMING (P AS pyordervertices(0), TnormalinG( treefromorderedvertices(P) ))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.15 10000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" s2="FORALL (root IN V, NAMING (P AS pyordervertices(root), TnormalinG(treefromorderedvertices(P)) ))" all -v set allsets i=minimal3.cfg
+
+$PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" e2="NAMING (T AS treefromorderedvertices(pyordervertices(0)), NAMING (H AS BIGCUP( e IN T, e ), SETD (v IN H, pyTdownclosure(0,T,v))))" all -v set allsets i=minimal3.cfg
+
+# Diestel p. 15 "T is normal in G" for a spanning tree T contained in G: the algorithm does not (yet) seek normalcy
+$PTH/flagcalc -r 10 p=0.25 1000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="TnormalinG(pyfindspanningtree({}))" all -v set allsets i=minimal3.cfg
 

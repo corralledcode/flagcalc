@@ -403,6 +403,11 @@ $PTH/flagcalc -r 8 14 10000 -a s="dimm>1" s2="kappat <= lambdat && lambdat <= de
 $PTH/flagcalc -r 12 50 1000 -a s="FORALL (k IN dimm, k > 0 AND dm >= 4*k, EXISTS (U IN Ps(V), kconnc(SubgraphonUg(U),k+1) AND dm(SubgraphonUg(U))/2 > dm/2 - k))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 50 1000 -a s="FORALL (k IN dimm, k > 0 AND dm >= 4*k, EXISTS (U IN Ps(V), NAMING (SU AS SubgraphonUg(U), kconnc(SU,k+1) AND dm(SU)/2 > dm/2 - k)))" all -v i=minimal3.cfg
 
+$PTH/flagcalc -r 12 p=0.4 1000 -a s="FORALL (k IN dimm, k > 0 AND dm >= 4*k, EXISTS (U IN Ps(V), NAMING (SU AS SubgraphonUg(U), kconnc(SU,k+1) AND dm(SU)/2 > dm/2 - k)))" all -v i=minimal3.cfg
+
+# SLOW (by being specific about max k-connectedness rather than just a threshold: uncomment for a run-time magnitudes slower than the above
+# $PTH/flagcalc -r 12 p=0.4 100 -a s="FORALL (k IN NN(dimm), k > 0, dm >= 4*k IMPLIES EXISTS (S IN Ps(V), NAMING (H AS SubgraphonUg(S), kappat(H) > k AND  edgecm(H)/dimm(H) > edgecm/dimm - k))) "  all -v i=minimal3.cfg allsets
+
 $PTH/flagcalc -r 12 30.5 100 -a a="st(Cyclesvs(0)) + st(Cyclesvs(0)) + st(Cyclesvs(0))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 30.5 100 -a a="NAMING (C AS Cyclesvs(0), st(C) + st(C) + st(C))" all -v i=minimal3.cfg
 
@@ -480,3 +485,7 @@ $PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set all
 # 5:23 runtime 5/1/2025 after idealizeset
 
 # 4:20 on a Threadripper 24 core Shimada Peak series 12/12/2025: update: 4:00 on 12/18/2025
+
+# Diestel Cor. 1.5.2
+$PTH/flagcalc -r 9 p=0.2 100 -a s="treec" s2="EXISTS (P IN Perms(V), FORALL (v IN V, P[v] >= 1, EXISTS (n IN NN(dimm), P[n] < P[v] AND ac(n,v), FORALL (m IN NN(dimm), (P[m] < P[v] AND ac(m,v)) IMPLIES m == n))))" all -v set allsets i=minimal3.cfg
+

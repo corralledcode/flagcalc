@@ -324,16 +324,28 @@ inline setitr::~setitr() {}
 
 inline bool operator==(const valms& a1, const valms& a2)
 {
-    if (a1.t != a2.t)
-        return false;
-
     switch (a1.t) {
     case measuretype::mtcontinuous:
-        return a1.v.dv == a2.v.dv;
+            switch (a2.t) {
+                case measuretype::mtcontinuous: return a1.v.dv == a2.v.dv;
+                case measuretype::mtdiscrete: return a1.v.dv == (double)a2.v.iv;
+                case measuretype::mtbool: return a1.v.dv == (double)a2.v.bv;
+                default: return false;
+            }
     case measuretype::mtdiscrete:
-        return a1.v.iv == a2.v.iv;
+            switch (a2.t) {
+                case measuretype::mtcontinuous: return a1.v.iv == (int)a2.v.dv;
+                case measuretype::mtdiscrete: return a1.v.iv == a2.v.iv;
+                case measuretype::mtbool: return a1.v.iv == (int)a2.v.bv;
+                default: return false;
+            }
     case measuretype::mtbool:
-        return a1.v.bv == a2.v.bv;
+            switch (a2.t) {
+                case measuretype::mtcontinuous: return a1.v.bv == (bool)a2.v.dv;
+                case measuretype::mtdiscrete: return a1.v.bv == (bool)a2.v.iv;
+                case measuretype::mtbool: return a1.v.bv == a2.v.bv;
+                default: return false;
+                    }
     case measuretype::mtset:
         { // code below assumes both sets sorted
             std::cout << "early code being used...\n"; // as coded, probably not capable of nested sets...
@@ -352,11 +364,11 @@ inline bool operator==(const valms& a1, const valms& a2)
     }
 }
 
-
+/*
 inline bool operator<(const valms& a1, const valms& a2)
 {
-    if (a1.t < a2.t)
-        return true;
+    // if (a1.t < a2.t)
+        // return true;
     if (a1.t == a2.t)
         switch (a1.t) {
     case measuretype::mtcontinuous:
@@ -370,6 +382,7 @@ inline bool operator<(const valms& a1, const valms& a2)
     return false;
 }
 
+
 inline bool operator>(const valms& a1, const valms& a2)
 {
     return a2 < a1;
@@ -378,8 +391,8 @@ inline bool operator>(const valms& a1, const valms& a2)
 
 inline bool operator<=(const valms& a1, const valms& a2)
 {
-    if (a1.t < a2.t)
-        return true;
+    // if (a1.t < a2.t)
+        // return true;
     if (a1 == a2)
         return true;
     if (a1.t == a2.t)
@@ -399,6 +412,7 @@ inline bool operator>=(const valms& a1, const valms& a2)
 {
     return a2 <= a1;
 }
+*/
 
 class setitrmodeone : public setitr
 {
@@ -511,7 +525,7 @@ class setitrunion : public setitrmodeone
             valms v = Bitr->getnext();
 
             for (int i = 0; !found && i < temp.size(); i++)
-                found = mtareequal(temp[i], v);
+                found = mtareequalgenerous(temp[i], v);
             if (!found)
                 temp.push_back(v);
         }
@@ -594,7 +608,7 @@ public:
             bool found = false;
             valms v = Bitr->getnext();
             for (int i = 0; !found && i < temp.size(); i++)
-                found = found || mtareequal(temp[i], v);
+                found = found || mtareequalgenerous(temp[i], v);
             /*
                 if (v.t == temp[i].t)
                     if (v.t == mtbool || v.t == mtdiscrete || v.t == mtcontinuous)

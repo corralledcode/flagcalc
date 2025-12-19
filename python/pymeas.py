@@ -55,6 +55,45 @@ def pyTestreturnset( adjmatrix, dim, m, n ):
 def pytestacceptset( adjmatrix, dim, set ):
     return set
 
+# def pyfindnormalspanningtree( adjmatrix, dim, rootvertex ):
+
+def pyTgetroot( tree ):
+    if tree == None:
+        return None
+    if tree[0][0] < tree[0][1]:
+        return tree[0][0]
+    else:
+        return tree[0][1]
+
+
+def pyTdownclosure( root, tree, vertex ):
+
+    def recurse( root, tree, u ):
+        if u == root:
+            return []
+        for e in tree:
+            if e[0] == u or e[1] == u:
+                if e[0] == u:
+                    w = e[1]
+                else:
+                    w = e[0]
+                newtree = tree.copy()
+                newtree.remove(e)
+                # newtree2 = newtree.copy()
+                if w != root:
+                    set = recurse( root, newtree, w )
+                    if root in set:
+                        return set + [w]
+                    set = recurse( root, newtree, u )
+                    if root in set:
+                        return set + [u]
+                else:
+                    return [w]
+        return []
+
+    return recurse( root, tree, vertex ) + [vertex]
+
+
 def pyfindspanningtree( adjmatrix, dim, Es ):
 
     def mergecomponents( components, idxa, idxb ):
@@ -154,21 +193,23 @@ def pyedgesetcontainscycle( dim, E ):
     visited[E[0][0]] = True
     return pathdoescycle( E, visited )
 
+def pyordervertices( Neighborslist, degrees, dim, startvertex ):
+    list = [startvertex]
+    i = 0
+    changed = True
+    while len(list) < dim and changed:
+        changed = False
+        for j in list:
+            for k in range(degrees[j]):
+                if Neighborslist[j][k] not in list:
+                    list.append(Neighborslist[j][k])
+                    changed = True
+    if len(list) < dim:
+        return []
+    return list
 
 
-def pytestEdgesparameter( Edges, Nonedges ):
-    print (Edges)
-    print (Nonedges)
-    return Edges
 
-def pytestNonedgesparameter( Nonedgeslist ):
-    return Nonedgeslist
-
-def pytestNeighborslistparameter( Neighborslist, Nonneighborslist, degrees ):
-    print (Neighborslist)
-    print (Nonneighborslist)
-    print (degrees)
-    return Neighborslist
 
 testgraph = [[0,1,1,1,1],[1,0,1,1,1],[1,1,0,1,1],[1,1,1,0,1],[1,1,1,1,0]]
 testgraphdim = 5

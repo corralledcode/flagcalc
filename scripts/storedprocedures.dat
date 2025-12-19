@@ -150,6 +150,7 @@ END
 
 
 
+
 mtset nWalkss( mtdiscrete u, mtdiscrete v, mtdiscrete length )
 
 SET (m IN Maps(length+1, dimm),
@@ -157,10 +158,29 @@ SET (m IN Maps(length+1, dimm),
 
 END
 
-mtbool eac( mtset e1, mtset e2 )
+mtset Hpaths( mtset H )
 
-(e1[0] == e2[0] AND e1[1] != e2[1]) OR (e1[1] == e2[0] AND e1[0] != e2[1])
-OR (e1[0] == e2[1] AND e1[1] != e2[0]) OR (e1[1] == e2[1] AND e1[0] != e2[0])
+BIGCUP (u IN H, v IN H, u < v, SET (p IN Pathss(u,v), p CAP H == {u,v}, p))
+
+END
+
+
+mtbool Tpartialorder( mtset T, mtdiscrete u, mtdiscrete v )
+
+u ELT pyTdownclosure(pyTgetroot(T), T, v)
+
+END
+
+mtbool TnormalinG( mtset T )
+
+NAMING (H AS BIGCUP( e IN T, e ),
+    FORALL (p IN Hpaths(H), Tpartialorder( T, p[0], p[st(p)-1] ) OR Tpartialorder( T, p[st(p)-1], p[0] )))
+
+END
+
+mtset treefromorderedvertices( mttuple O )
+
+SET (n IN NN(dimm), n >= 1, {MIN (m IN NN(n), ac(O[n],O[m]), O[m]),O[n]} )
 
 END
 
