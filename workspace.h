@@ -1026,6 +1026,7 @@ public:
         workitems::ositem(os,verbositylevel);
         for (int n = 0; n < this->res.size(); ++n)
         {
+
             osadjacencymatrix(os, this->res[n]->g);
             os << "\n";
         }

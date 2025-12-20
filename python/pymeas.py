@@ -55,8 +55,37 @@ def pyTestreturnset( adjmatrix, dim, m, n ):
 def pytestacceptset( adjmatrix, dim, set ):
     return set
 
-# def pyfindnormalspanningtree( adjmatrix, dim, rootvertex ):
-
+def pyfindnormalspanningtree( adjmatrix, dim, rootvertex ):
+    Tedges = []
+    Tvertices = [rootvertex]
+    while len(Tvertices) < dim:
+        i = 0
+        while i in Tvertices:
+            i += 1
+        NC = [i]
+        changed = True
+        while changed:
+            changed = False
+            j = 0
+            while j < len(NC):
+                for k in range(dim):
+                    if pyac( adjmatrix, dim, k, NC[j] ):
+                        if k not in NC and k not in Tvertices:
+                            NC.append(k)
+                            changed = True
+                j += 1
+        max = rootvertex
+        for x in Tvertices:
+            for findy in NC:
+                if pyac( adjmatrix, dim, findy, x ):
+                    downclosure = pyTdownclosure(rootvertex,Tedges,x)
+                    if max in downclosure:
+                        max = x
+                        y = findy
+        x = max
+        Tvertices.append(y)
+        Tedges.append([x,y])
+    return Tedges
 
 
 def pyTdownclosure( root, tree, vertex ):
@@ -186,19 +215,41 @@ def pyedgesetcontainscycle( dim, E ):
     visited[E[0][0]] = True
     return pathdoescycle( E, visited )
 
-def pyordervertices( Neighborslist, degrees, dim, startvertex ):
-    list = [startvertex]
-    i = 0
-    changed = True
-    while len(list) < dim and changed:
-        changed = False
-        for j in list:
-            for k in range(degrees[j]):
-                if Neighborslist[j][k] not in list:
-                    list.append(Neighborslist[j][k])
-                    changed = True
-    if len(list) < dim:
+def pyfindpath( adjmatrix, dim, u, v ):
+
+    def findpathinternal( w, visited ):
+        if w == v:
+            return [v]
+        visited[w] = True
+        for j in range(dim):
+            if pyac( adjmatrix, dim, j, w ):
+                if not visited[j]:
+                    visited2 = visited.copy()
+                    p = findpathinternal( j, visited2 )
+                    if len(p) > 0:
+                        return [w] + p
         return []
+
+    visited = np.zeros(dim, dtype=bool)
+    visited[u] = True
+    return findpathinternal( u, visited )
+
+
+
+def pyordervertices( adjmatrix, dim, startvertex ):
+    list = [startvertex]
+    while len(list) < dim:
+        v = 0
+        while v in list:
+            v += 1
+        p = pyfindpath(adjmatrix,dim,v,startvertex)
+        if p == []:
+            print ("graph not connected")
+            return list
+        for v in p:
+            if v not in list:
+                viplus1 = v
+        list.append(viplus1)
     return list
 
 

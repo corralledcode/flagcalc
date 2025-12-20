@@ -13,6 +13,8 @@
 #include <functional>
 #include <stdexcept>
 
+#include "ameas.h"
+
 #ifdef FLAGCALCWITHPYTHON
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -3120,6 +3122,45 @@ class Nullset : public set
     }
 };
 
+class SubgraphsonUset : public set {
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        //
+    }
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
+    SubgraphsonUset( mrecords* recin ) : set(recin, "SubgraphsonU", "Subgraphs on a vertex set U set") {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"U",v});
+        bindnamedparams();
+    }
+
+
+};
+
+class SubgraphsonDset : public set {
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        //
+    }
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
+    SubgraphsonDset( mrecords* recin ) : set(recin, "SubgraphsonD", "Subgraphs on an edge set D set") {
+        valms v;
+        v.t = mtset;
+        nps.push_back(std::pair{"U",v});
+        bindnamedparams();
+    }
+
+
+};
+
+
 class Subgraphsset: public set
 {
     public:
@@ -3129,6 +3170,14 @@ class Subgraphsset: public set
 class InducedSubgraphsset: public set
 { // Diestel p. 4
 public:
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+
+    }
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
     InducedSubgraphsset( mrecords* recin ) : set(recin, "InducedSubgraphss", "set of induced subgraphs") {}
 };
 
@@ -3292,58 +3341,87 @@ public:
     }
 };
 
+inline neighborstype* pathsubgraphaddedges( graphtype* gout, std::vector<vertextype> vv) {
+    auto dim = gout->dim;
+    memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
+    for (int i = 0; i+1 < dim; ++i)
+    {
+        gout->adjacencymatrix[i*dim + i+1] = true;
+        gout->adjacencymatrix[(i+1)*dim + i] = true;
+    }
+    return new neighborstype(gout);
+}
+
+inline void inducedsubgraphedges( graphtype& g, std::vector<vertextype> vv, const graphtype* gout) {
+    auto dim = gout->dim;
+    auto dimg = g.dim;
+    memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
+    for (int i = 0; i+1 < dim; ++i)
+        for (int j = i+1; j < dim; ++j)
+        {
+            gout->adjacencymatrix[i*dim + j] = g.adjacencymatrix[vv[i]*dimg + vv[j]];
+            gout->adjacencymatrix[j*dim + i] = g.adjacencymatrix[vv[j]*dimg + vv[i]];
+        }
+}
+
+inline void inducedsubgraphvertices( const graphtype& g, const std::vector<valms>& vv,
+    std::vector<vertextype>& vout, graphtype* gout ) {
+
+    int dimg = g.dim;
+    int dim = vv.size();
+    if (dim > 1)
+    {
+        int* vmap = (int*)(malloc(dim*sizeof(int)));
+        int i = 0;
+        bool labelled = g.vertexlabels.size() == dimg;
+        if (labelled)
+            gout->vertexlabels.resize(dim);
+        for (auto v : vv)
+        {
+            if (v.t == mtstring && labelled)
+            {
+                for (int k = 0; k < dimg; ++k)
+                    if (g.vertexlabels[k] == *v.v.rv)
+                    {
+                        vmap[i] = k;
+                        gout->vertexlabels[i] = *v.v.rv;
+                        break;
+                    }
+            } else
+            {
+                LONGINT vidx;
+                mtconverttodiscrete(v,vidx);
+                vmap[i] = vidx;
+                if (labelled)
+                    gout->vertexlabels[i] = g.vertexlabels[vidx];
+            }
+            ++i;
+        }
+        vout.clear();
+        for (int i = 0; i < dim; ++i)
+            vout.push_back(vmap[i]);
+        delete vmap;
+    } else {
+        gout->adjacencymatrix[0] = false;;
+        vout.clear();
+    }
+}
+
 class SubgraphonUgmeas : public gmeas
 {
 public:
     neighborstype* takemeas(neighborstype* ns, const params& ps ) override
     {
-        auto g = ns->g;
-        int dimg = g->dim;
         auto Upos = ps[0].seti->getitrpos();
-        int dim = Upos->getsize();
-        auto gout = new graphtype(dim);
-        if (dim > 1)
-        {
-            int* vmap = (int*)(malloc(dim*sizeof(int)));
-            int i = 0;
-            bool labelled = g->vertexlabels.size() == dimg;
-            if (labelled)
-                gout->vertexlabels.resize(dim);
-            while (!Upos->ended())
-            {
-                auto v = Upos->getnext();
-                if (v.t == mtstring && labelled)
-                {
-                    for (int k = 0; k < dimg; ++k)
-                        if (g->vertexlabels[k] == *v.v.rv)
-                        {
-                            vmap[i] = k;
-                            gout->vertexlabels[i] = *v.v.rv;
-                            break;
-                        }
-                } else
-                {
-                    LONGINT vidx;
-                    mtconverttodiscrete(v,vidx);
-                    vmap[i] = vidx;
-                    if (labelled)
-                        gout->vertexlabels[i] = ns->g->vertexlabels[vidx];
-                }
-                ++i;
-            }
-            memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
-            for (int i = 0; i+1 < dim; ++i)
-                for (int j = i+1; j < dim; ++j)
-                {
-                    bool adj = g->adjacencymatrix[vmap[i]*dimg + vmap[j]];
-                    gout->adjacencymatrix[i*dim + j] = adj;
-                    gout->adjacencymatrix[j*dim + i] = adj;
-                }
-            delete vmap;
-        } else
-            gout->adjacencymatrix[0] = false;;
-        neighborstype* out = new neighborstype(gout);
-        return out;
+        std::vector<valms> vv {};
+        while (!Upos->ended())
+            vv.push_back(Upos->getnext());
+        auto g = ns->g;
+        graphtype* gout = new graphtype(vv.size());
+        std::vector<vertextype> vout;
+        inducedsubgraphvertices(*g,vv,vout,gout);
+        inducedsubgraphedges(*g,vout, gout);
+        return new neighborstype(gout);
     }
     neighborstype* takemeas(const int idx, const params& ps ) override
     {
@@ -3358,6 +3436,55 @@ public:
         bindnamedparams();
     }
 };
+
+class Gpathsset : public set
+{
+public:
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto g = ns->g;
+        std::vector<std::vector<vertextype>> out;
+        pathsbetweentuples(g,ns,ps[0].v.iv,ps[1].v.iv, out);
+
+        std::vector<valms> temp {};
+        for (auto p : out) {
+
+            std::vector<valms> vv {};
+            for (auto v : p) {
+                valms u;
+                u.t = mtdiscrete;
+                u.v.iv = v;
+                vv.push_back(u);
+            }
+
+            auto pathg = new graphtype(p.size());
+            std::vector<vertextype> vout;
+            inducedsubgraphvertices(*g,vv,vout, pathg);
+            pathsubgraphaddedges(pathg,p);
+
+            auto pathns = new neighborstype(pathg);
+            valms u;
+            u.t = mtgraph;
+            u.v.nsv = pathns;
+            temp.push_back(u);
+        }
+        return new setitrmodeone(temp);
+    }
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    Gpathsset( mrecords* recin ) : set(recin,"Gpathss", "Graphs of paths between two vertices")
+    {
+        valms v;
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        bindnamedparams();
+    }
+};
+
 
 
 class Ggmeas : public gmeas

@@ -1962,7 +1962,7 @@ public:
         auto (e2eadjs) = setfactory<e2eadjset>;
         auto (Epathss) = setfactory<Epathsset>;
         auto (Mapss) = setfactory<Mapsset>;
-
+        auto (Gpathss) = setfactory<Gpathsset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -1978,8 +1978,8 @@ public:
         stsfactory.push_back(nEs);
         stsfactory.push_back(Cycless);
         stsfactory.push_back(Perms);
-        stsfactory.push_back(Subgraphss);
-        stsfactory.push_back(InducedSubgraphss);
+        // stsfactory.push_back(Subgraphss);
+        // stsfactory.push_back(InducedSubgraphss);
         stsfactory.push_back(Componentss);
         stsfactory.push_back(Edgess);
         stsfactory.push_back(Automs);
@@ -1993,6 +1993,7 @@ public:
         stsfactory.push_back(Epathss);
         stsfactory.push_back(Pathsusingvsets);
         stsfactory.push_back(Mapss);
+        stsfactory.push_back(Gpathss);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));

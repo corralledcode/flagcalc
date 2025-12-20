@@ -1112,6 +1112,7 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                         if (!found) {
                             std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
                             fc->v.vs.l = 0;
+                            exit(-1);
                         }
                         else
                             fc->v.vs.l = j+1;
@@ -1924,8 +1925,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     case formulaoperator::foderef:
         {
             auto v = evalinternal(*fc.fcright,context);
-            if (v.t != measuretype::mtset && v.t != measuretype::mttuple)
+            if (v.t != measuretype::mtset && v.t != measuretype::mttuple) {
                 std::cout << "Non-set or tuple variable being dereferenced\n";
+                return v; // to prevent segfaulting
+            }
             auto pos = v.seti->getitrpos();
             int i = 0;
             valms res;
@@ -5818,7 +5821,11 @@ inline formulaclass* parseformulainternal(
                 } else
                 {
                     if (q[pos] != "1")
-                        std::cout << "Less or more than one parameter used to index into a set or tuple (could indicate an unknown token or mistyped function call)\n";
+                        std::cout << "Less or more than one parameter used to index into a set or tuple (could indicate an unknown token or mistyped function call: name \"" << tok << "\")\n";
+                    fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);
+                    fc->v.vs.name = tok;
+                    fc->v.vs.l = -1;
+                    fc->v.vs.ps.clear();
                 }
             } else {
                 fc = fccombine(fv,nullptr,nullptr,formulaoperator::fovariable);

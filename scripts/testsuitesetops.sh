@@ -26,7 +26,11 @@ $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{3,4,6}}" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{1,3}}" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a s="E DISJOINT {{3,1},{4}}" all -v i=minimal3.cfg
 $PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), nwisec(a,\"DISJOINT\",2,1))" all -v i=minimal3.cfg
+
+# should be false
 $PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), nwisec(a,\"DISJOINT\",2,(-3)))" all -v i=minimal3.cfg
+
+# True: (for all a sized below 3, they three-wise meet in all but 3 elements)
 $PTH/flagcalc -r 6 20 100 -a s="FORALL (a IN Setpartition(V), st(a) < 3, nwisec(a,\"MEET\",3,(-3)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 20 100 -a s="FORALL (a IN Setpartition({0,1,2,3,4,5,6,7}), st(a) < 3, nwisec(a,\"MEET\",3,(-3)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), nwisec(p,\"DISJOINT\",2,1) AND SUM (x IN p, st(x)) == dimm AND FORALL (x IN p, x != Nulls), p) <= Setpartition(V)" all -v i=minimal3.cfg
@@ -38,7 +42,11 @@ $PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), p) >= Setpartition(V)" all -
 $PTH/flagcalc -d f="abcd" -a e="SET (ps IN Ps(Pathss(0,1)), nwisec(ps,\"DISJOINT\",2,3), ps)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc" -a e="BIGCUP (v IN V, SET (p IN Cyclesvs(v), p))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="SET (p IN Pathss(0,1), p <= <<0,2,1,3,4,5>>, p)" all -v set allsets i=minimal3.cfg
+
+# should be false
 $PTH/flagcalc -d f="abcd ef -agha" -a s="FORALL (p IN Pathss(0,1), EXISTS (A IN Ps(V), (NOT 0 ELT A) AND p <= A))" all
+
+# true
 $PTH/flagcalc -d f="abcd ef -agha" -a s="FORALL (p IN Pathss(0,1), EXISTS (A IN Ps(V), p <= A))" all
 $PTH/flagcalc -d f="abcd ef -agha" -a s="FORALL (p IN Pathss(0,1), EXISTS (A IN Ps(V), A <= p))" all
 $PTH/flagcalc -r 8 14 100 -a z="SUM (A IN Ps(V), COUNT (B IN Ps(V), A <= B))" all -v i=minimal3.cfg
@@ -47,10 +55,13 @@ $PTH/flagcalc -r 10 22.5 10 -a z="SUM (A IN Ps(V), st(A CUP {0,1,2,3}))" all -v 
 $PTH/flagcalc -r 10 22.5 10 -a z="SUM (A IN Ps(V), SUM (B IN Ps(V), st(A CUP B)))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 22.5 10 -a z="SUM (A IN Ps(V), SUM (B IN Ps(V), st(A) + st(B)))" all -v i=minimal3.cfg
 
+# not all true
 $PTH/flagcalc -r 8 14 1000 -a s="FORALL (p IN Pathss(0,1), EXISTS (q IN Pathss(0,1), q != p AND (q SETMINUS {0,1}) MEET p))" all -v i=minimal3.cfg
 
 $PTH/flagcalc -r 8 14 10 -a s="EXISTS (p IN Setpartition(V), st(p) > 1, FORALL (v IN V, FORALL (u IN V, FORALL (q IN Pathss(u,v), EXISTS (r IN p, q <= r)))))" \
  s2="st(Componentss) > 1" all -v i=minimal3.cfg
+
+ # not true
 $PTH/flagcalc -r 8 14 10 -a s="EXISTS (p IN Setpartition(V), st(p) > 1, FORALL (v IN V, FORALL (u IN V, FORALL (q IN Pathss(u,v), EXISTS (r IN p, TupletoSet(q) <= r)))))" \
  s2="st(Componentss) > 1" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 14 10 -a s="FORALL (p IN Setpartition(V), st(p) == 2, FORALL (v IN V, FORALL (u IN V, FORALL (q IN Pathss(u,v), FORALL (r IN p, TupletoSet(q) <= r IFF q <= r)))))" all -v i=minimal3.cfg

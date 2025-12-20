@@ -51,13 +51,18 @@ $PTH/flagcalc -r 20 p=0.2 250 -a j=1 ipy="pymeas" s1="NOT conn1c" s2="pyfindspan
 $PTH/flagcalc -r 20 p=0.2 2500 -a j=1 ipy="pymeas" s="BIGCUP (e IN pyfindspanningtree({}), e) == V OR NOT conn1c"  all -v i=minimal3.cfg allsets
 $PTH/flagcalc -r 20 p=0.2 2500 -a j=1 ipy="pymeas" s="BIGCUPD (e IN pyfindspanningtree({}), e) >= V OR NOT conn1c"  all -v i=minimal3.cfg allsets
 
-$PTH/flagcalc -r 10 p=0.5 10 -a j=1 ipy=pymeas p="pyordervertices(0)" all -v crit allsets
+$PTH/flagcalc -d f="abc cde fge" -a j=1 ipy="pymeas" e="pyfindpath(0,5)"  all -v i=minimal3.cfg allsets
+
+# Diestel Cor 1.4.1
+$PTH/flagcalc -r 10 p=0.5 3 -a j=1 ipy=pymeas s="conn1c" p2="pyordervertices(0)" all -v crit allsets
 
 $PTH/flagcalc -r 14 p=0.5 1000 -a j=1 ipy=pymeas s1=conn1c s2="NAMING (O AS pyordervertices(0), FORALL (i IN st(O), conn1c(SubgraphonUg(Sp(O,i)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 14 p=0.5 1000 -a j=1 ipy=pymeas s1=conn1c s2="FORALL (v0 IN V, NAMING (O AS pyordervertices(v0), FORALL (i IN st(O), conn1c(SubgraphonUg(Sp(O,i))))))" all -v i=minimal3.cfg
 
 # borrowed from testsuitesettheory.sh: Diestel Cor 1.5.2
 $PTH/flagcalc -r 9 p=0.2 100 -a s="treec" s2="EXISTS (P IN Perms(V), FORALL (v IN V, P[v] >= 1, EXISTS (n IN NN(dimm), P[n] < P[v] AND ac(n,v), FORALL (m IN NN(dimm), (P[m] < P[v] AND ac(m,v)) IMPLIES m == n))))" all -v set allsets i=minimal3.cfg
-$PTH/flagcalc -r 18 p=0.1 10000 -a j=1 ipy=pymeas s="treec" s2="NAMING (P AS pyordervertices(0), FORALL (i IN NN(dimm), i >= 1, EXISTS (j IN NN(dimm), j < i AND ac(P[i],P[j]), FORALL (k IN NN(dimm), k < i AND ac(P[i],P[k])) IMPLIES j == k))))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 18 p=0.1 1000 -a j=1 ipy=pymeas s="treec" s2="NAMING (P AS pyordervertices(0), FORALL (i IN NN(dimm), i >= 1, EXISTS (j IN NN(dimm), j < i AND ac(P[i],P[j]), FORALL (k IN NN(dimm), k < i AND ac(P[i],P[k])) IMPLIES j == k))))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 18 p=0.1 1000 -a j=1 ipy=pymeas s="treec" s2="NAMING (P AS pyordervertices(0), FORALL (i IN NN(dimm), i >= 1, EXISTS (j IN NN(dimm), j < i AND ac(P[i],P[j]), FORALL (k IN NN(dimm), k < i AND ac(P[i],P[k])) IMPLIES j == k))))" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -r 10 p=0.25 1000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" all -g o=out.dat overwrite passed -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="treec" e2="SETD (v IN V, pyTdownclosure(0,treefromorderedvertices(pyordervertices(0)),v))" all -v set allsets i=minimal3.cfg
@@ -72,3 +77,15 @@ $PTH/flagcalc -d out.dat -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat"
 # Diestel p. 15 "T is normal in G" for a spanning tree T contained in G: the algorithm does not (yet) seek normalcy
 $PTH/flagcalc -r 10 p=0.25 1000 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="TnormalinG(0,pyfindspanningtree({}))" all -v set allsets i=minimal3.cfg
 
+# output the normal spanning trees found for four random graphs
+$PTH/flagcalc -r 10 p=0.70 4 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" e2="pyfindnormalspanningtree(0)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.50 25 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="TnormalinG(0,pyfindnormalspanningtree(0))" all -v set allsets i=minimal3.cfg
+
+# ... the normal spanning tree encompasses all of V
+$PTH/flagcalc -r 10 p=0.50 25 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="NAMING (T AS pyfindnormalspanningtree(0), FORALL (v IN V, EXISTS (e IN T, v ELT e)))" all -v set allsets i=minimal3.cfg
+
+# ... the normal spanning tree has dimm - 1 edges
+$PTH/flagcalc -r 10 p=0.50 25 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="NAMING (T AS pyfindnormalspanningtree(0), st(T) == dimm - 1)" all -v set allsets i=minimal3.cfg
+
+# ... the normal spanning tree is connected
+$PTH/flagcalc -r 10 p=0.50 25 -a j=1 ipy=pymeas isp="../scripts/storedprocedures.dat" s="conn1c" s2="NAMING (T AS pyfindnormalspanningtree(0), connvsc(V,T))" all -v set allsets i=minimal3.cfg

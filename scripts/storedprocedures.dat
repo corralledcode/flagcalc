@@ -160,7 +160,16 @@ END
 
 mtset Hpaths( mtset HV, mtset HE )
 
-BIGCUP (u IN HV, v IN HV, u < v, SET (p IN Pathss(u,v), FORALL (n IN NN(st(p)-1), NOT {p[n],p[n+1]} ELT HE) AND p CAP HV == {u,v}, p))
+BIGCUP (u IN HV, v IN HV, u < v, SET (P IN Pathss(u,v), P CAP HV == {u,v} AND ({u,v} ELT HE IMPLIES st(P) > 2), P))
+
+END
+
+/* When in service of Tpartialorder and TnormalinG, the need to check whether
+   the edge is in the subgraph is obviated, since always they are then comparable in the Torder */
+
+mtset Hpathsquick( mtset HV )
+
+BIGCUP (u IN HV, v IN HV, u < v, SET (P IN Pathss(u,v), P CAP HV == {u,v}, P))
 
 END
 
@@ -174,7 +183,7 @@ END
 mtbool TnormalinG( mtdiscrete root, mtset T )
 
 NAMING (TV AS BIGCUP(e IN T, e),
-    FORALL (p IN Hpaths(TV,T), Tpartialorder( root, T, p[0], p[st(p)-1] ) OR Tpartialorder( root, T, p[st(p)-1], p[0] )))
+    FORALL (p IN Hpathsquick(TV), Tpartialorder( root, T, p[0], p[st(p)-1] ) OR Tpartialorder( root, T, p[st(p)-1], p[0] )))
 
 END
 
