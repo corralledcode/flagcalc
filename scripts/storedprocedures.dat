@@ -158,9 +158,9 @@ SET (m IN Maps(length+1, dimm),
 
 END
 
-mtset Hpaths( mtset H )
+mtset Hpaths( mtset HV, mtset HE )
 
-BIGCUP (u IN H, v IN H, u < v, SET (p IN Pathss(u,v), p CAP H == {u,v}, p))
+BIGCUP (u IN HV, v IN HV, u < v, SET (p IN Pathss(u,v), FORALL (n IN NN(st(p)-1), NOT {p[n],p[n+1]} ELT HE) AND p CAP HV == {u,v}, p))
 
 END
 
@@ -173,8 +173,8 @@ END
 
 mtbool TnormalinG( mtdiscrete root, mtset T )
 
-NAMING (H AS BIGCUP( e IN T, e ),
-    FORALL (p IN Hpaths(H), Tpartialorder( root, T, p[0], p[st(p)-1] ) OR Tpartialorder( root, T, p[st(p)-1], p[0] )))
+NAMING (TV AS BIGCUP(e IN T, e),
+    FORALL (p IN Hpaths(TV,T), Tpartialorder( root, T, p[0], p[st(p)-1] ) OR Tpartialorder( root, T, p[st(p)-1], p[0] )))
 
 END
 

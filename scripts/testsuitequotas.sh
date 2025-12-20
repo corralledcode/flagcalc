@@ -21,6 +21,7 @@ $PTH/flagcalc -r 9 p=0.2 100 -a s="treec" s2="EXISTS (P IN Perms(V), FORALL (v I
 
 $PTH/flagcalc -r 6 p=0.2 100 -a z="EXISTSNUNIQUE( 16, P IN Perms(V), FORALLN (2, w IN V, P[w] == w))" all -v set allsets i=minimal3.cfg
 
+$PTH/flagcalc -r 6 p=0.2 100 -a s="EXISTSNUNIQUE( 1, P IN Perms(V), FORALLN (1, w IN V, P[w] == w))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 6 p=0.2 100 -a s="EXISTSNUNIQUE( nchoosek(dimm,2)+1, P IN Perms(V), FORALLN (2, w IN V, P[w] == w))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 6 p=0.2 100 -a s="EXISTSNUNIQUE( nchoosek(dimm,3)*2 + nchoosek(dimm,2) + 1, P IN Perms(V), FORALLN (3, w IN V, P[w] == w))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -r 6 p=0.2 100 -a s="EXISTSNUNIQUE( nchoosek(dimm,4)*9 + nchoosek(dimm,3)*2 + nchoosek(dimm,2) + 1, P IN Perms(V), FORALLN (4, w IN V, P[w] == w))" all -v set allsets i=minimal3.cfg
