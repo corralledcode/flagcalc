@@ -3172,7 +3172,7 @@ class InducedSubgraphsset: public set
 public:
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-
+        return nullptr; // un-implemented
     }
     setitr* takemeas(const int idx, const params& ps ) override
     {

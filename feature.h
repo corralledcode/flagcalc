@@ -3046,6 +3046,10 @@ public:
         for (int n = 0; n < oss.size(); ++n) {
             *_os << "\t\t\"" << oss[n]->shortname << "\": " << oss[n]->name << "\n";
         }
+        *_os << "\t" << "gm=<tuple>:\t which graph to use, standard options are:\n";
+        for (int n = 0; n < gms.size(); ++n) {
+            *_os << "\t\t\"" << gms[n]->shortname << "\": " << gms[n]->name << "\n";
+        }
     }
 
     void execute(std::vector<std::string> args) override
