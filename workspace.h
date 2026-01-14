@@ -10,6 +10,7 @@
 #include <vector>
 #include <regex>
 //#include <bits/regex.h>
+#include <boost/regex.hpp>
 
 #include "asymp.h"
 #include "graphio.h"
@@ -64,20 +65,25 @@ inline bool verbositycmdlineincludes( const std::string str, const std::string s
     return (tmp1.find(tmp2) != std::string::npos);
 }
 
+
 inline std::vector<std::pair<std::string,std::string>>  cmdlineparseiterationtwo( const std::vector<std::string> args ) {
     std::vector<std::pair<std::string,std::string>> res {};
     for (int i = 1; i < args.size(); ++i) {
 
-        std::regex r("([[:alnum:]]+)=((\\w|[[:punct:]]|\\s)*)"); // entire match will be 2 numbers
+        boost::regex r("([[:alnum:]]+)=((\\w|[[:punct:]]|\\s)*)"); // entire match will be 2 numbers
 
-        std::smatch m;
-        std::regex_search(args[i], m, r);
+        boost::smatch m;
+        boost::regex_search(args[i], m, r);
 
-        if (m.size() > 2) {
-            res.push_back({m[1],m[2]});
+        std::vector<std::string> m2 {}; // boost as opposed to std::regex_search, seems to return blank strings...
+        for (auto me : m)
+            if (me.length() != 0)
+                m2.push_back(me);
+        if (m2.size() > 2) {
+            res.push_back({m2[1],m2[2]});
         } else {
-            if (m.size() > 0) {
-                res.push_back( {"default",m[0]});
+            if (m2.size() > 0) {
+                res.push_back( {"default",m2[0]});
             } else {
                 res.push_back( {"default",args[i]});
             }
@@ -94,23 +100,29 @@ inline std::vector<std::pair<std::string,std::string>>  cmdlineparseiterationtwo
 inline std::vector<std::pair<std::string,std::vector<std::string>>> cmdlineparseiterationthree( const std::string arg ) {
     std::vector<std::string> res;
     std::vector<std::pair<std::string,std::vector<std::string>>> overallres {};
-    std::regex r( "(-|\\w|\\(|\\)|,)+(;|\\s|:)?");
+    boost::regex r( "(-|\\w|\\(|\\)|,)+(;|\\s|:)?");
 
-    for (std::sregex_iterator p(arg.begin(),arg.end(),r); p!=std::sregex_iterator{}; ++p) {
-        std::regex r2( "(-|\\w)*");
-        std::smatch m2;
+    for (boost::sregex_iterator p(arg.begin(),arg.end(),r); p!=boost::sregex_iterator{}; ++p) {
+        boost::regex r2( "(-|\\w)*");
+        boost::smatch m2;
         std::string tmp2 = (*p)[0];
-        std::regex_search(tmp2,m2,r2);
+        boost::regex_search(tmp2,m2,r2);
         std::string s2 = "default";
-        if (m2.size() > 0)
-            s2 = m2[0];
+
+        std::vector<std::string> m2d {}; // boost as opposed to std::regex_search, seems to return blank strings...
+        for (auto me : m2)
+            if (me.length() != 0)
+                m2d.push_back(me);
+
+        if (m2d.size() > 0)
+            s2 = m2d[0];
 
         //std::regex r3( "\\((\\w)+,(\\w)+\\)");
-        std::regex r3( "\\(([^\\)]+)\\)" );
+        boost::regex r3( "\\(([^\\)]+)\\)" );
 
         std::vector<std::string> parametersall {};
 
-        for (std::sregex_iterator p3( tmp2.begin(), tmp2.end(),r3); p3 != std::sregex_iterator{}; ++p3) {
+        for (boost::sregex_iterator p3( tmp2.begin(), tmp2.end(),r3); p3 != boost::sregex_iterator{}; ++p3) {
             parametersall.push_back((*p3)[1]);
         }
 
@@ -118,17 +130,12 @@ inline std::vector<std::pair<std::string,std::vector<std::string>>> cmdlineparse
 
         if (!parametersall.empty()) {
 
-            std::regex r4( "(.+?)(?:,|$)" );
+            boost::regex r4( "(.+?)(?:,|$)" );
 
-            for (std::sregex_iterator p4( parametersall[0].begin(),parametersall[0].end(),r4); p4 != std::sregex_iterator{}; ++p4) {
+            for (boost::sregex_iterator p4( parametersall[0].begin(),parametersall[0].end(),r4); p4 != boost::sregex_iterator{}; ++p4) {
                 parameters.push_back((*p4)[1]);
             }
 
-
-/*            for (auto f4 : parameters)
-                std::cout << "parameters " << f4 << " // ";
-            std::cout << "\n";
-*/
         }
 
 
@@ -137,6 +144,7 @@ inline std::vector<std::pair<std::string,std::vector<std::string>>> cmdlineparse
 
     return overallres;
 }
+
 
 
 

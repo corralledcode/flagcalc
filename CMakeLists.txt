@@ -7,13 +7,14 @@ set (INTERNALFLAGCALC_CUDA ON)
 set (INTERNALFLAGCALCWITHPYTHON ON)
 
 if (INTERNALFLAGCALC_CUDA)
-    project(flagcalc CUDA)
+    project(flagcalc LANGUAGES CXX CUDA)
     set(CMAKE_CUDA_STANDARD 20)
 else()
-    project(flagcalc CUDA)
+    project(flagcalc LANGUAGES CXX CUDA)
     set(CMAKE_CXX_STANDARD 20)
 endif ()
 
+find_package(Boost CONFIG REQUIRED COMPONENTS regex)
 
 add_executable(flagcalc main.cu
         graphs.cu
@@ -61,9 +62,12 @@ add_executable(flagcalc main.cu
 if (INTERNALFLAGCALCWITHPYTHON)
     find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
     include_directories(${Python3_INCLUDE_DIRS})
-    target_link_libraries(flagcalc ${Python3_LIBRARIES})
+    target_link_libraries(flagcalc PRIVATE ${Python3_LIBRARIES})
     target_compile_definitions(flagcalc PRIVATE FLAGCALC_CMAKE_PYTHON)
 endif ()
+
+
+target_link_libraries(flagcalc PRIVATE ${Boost_LIBRARIES})
 
 
 
@@ -72,3 +76,5 @@ if (INTERNALFLAGCALC_CUDA)
             CUDA_SEPARABLE_COMPILATION ON)
     target_compile_definitions(flagcalc PRIVATE FLAGCALC_CMAKE_CUDA)
 endif ()
+
+set_property(TARGET flagcalc PROPERTY CXX_STANDARD 20)

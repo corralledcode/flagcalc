@@ -40,6 +40,7 @@ DEALINGS IN THE SOFTWARE.
 #include <thread>
 #include <vector>
 #include "thread_safe_queue.cpp"
+#include <type_traits>
 
 struct join_threads
 {
