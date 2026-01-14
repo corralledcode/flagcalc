@@ -61,7 +61,7 @@ $PTH/flagcalc -r 8 14 1000 -a s="FORALL (p IN Pathss(0,1), EXISTS (q IN Pathss(0
 $PTH/flagcalc -r 8 14 10 -a s="EXISTS (p IN Setpartition(V), st(p) > 1, FORALL (v IN V, FORALL (u IN V, FORALL (q IN Pathss(u,v), EXISTS (r IN p, q <= r)))))" \
  s2="st(Componentss) > 1" all -v i=minimal3.cfg
 
- # not true
+ # true
 $PTH/flagcalc -r 8 14 10 -a s="EXISTS (p IN Setpartition(V), st(p) > 1, FORALL (v IN V, FORALL (u IN V, FORALL (q IN Pathss(u,v), EXISTS (r IN p, TupletoSet(q) <= r)))))" \
  s2="st(Componentss) > 1" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 14 10 -a s="FORALL (p IN Setpartition(V), st(p) == 2, FORALL (v IN V, FORALL (u IN V, FORALL (q IN Pathss(u,v), FORALL (r IN p, TupletoSet(q) <= r IFF q <= r)))))" all -v i=minimal3.cfg
