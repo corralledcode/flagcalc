@@ -1004,7 +1004,7 @@ public:
         int k = 0;
         for (int i = 0; i < dim1; ++i)
             for (int j = 0; j < dim2; ++j) {
-                if (itrint->elts[i*dim1 + j]) {
+                if (itrint->elts[i*dim2 + j]) {
                     valms v;
                     v.t = mtset;
                     v.seti = new setitrintpair(i,j);

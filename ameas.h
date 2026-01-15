@@ -2503,6 +2503,7 @@ public:
             std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
         if (setA)
             reset();
+        maxint = subsetmaker->getmaxint();
     }
 
     ~setitrsetpartitions() override
@@ -2811,25 +2812,26 @@ public:
 class nEset : public set
 {
 public:
-    graphtype* ginv;
+    // graphtype* ginv;
 
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
         auto g = ns->g;
-        ginv = new graphtype(g->dim);
-        for (int i = 0; i+1 <= g->dim; ++i)
+        auto ginv = new graphtype(g->dim);
+        for (int i = 0; i < g->dim; ++i)
         {
             ginv->adjacencymatrix[i*g->dim + i] = false;
-            for (int j = i+1; j <= g->dim; ++j)
+            for (int j = i+1; j < g->dim; ++j)
             {
                 bool val = !g->adjacencymatrix[i*g->dim + j];
                 ginv->adjacencymatrix[i*g->dim + j] = val;
                 ginv->adjacencymatrix[j*g->dim + i] = val;
             }
         }
-        ginv->adjacencymatrix[(g->dim-1)*g->dim + g->dim-1] = false;
+        // ginv->adjacencymatrix[(g->dim-1)*g->dim + g->dim-1] = false;
         // auto itr = new setitredges(ginv);
         auto itr = new setitrint2dsymmetric( ginv->dim, ginv->adjacencymatrix );
+        delete ginv;
         return itr;
     }
 
@@ -2843,7 +2845,7 @@ public:
 
     ~nEset()
     {
-        delete ginv;
+        // delete ginv;
     }
 
 };
