@@ -1790,7 +1790,10 @@ public:
     bool test(int* testseq) {
         int dim = gtemp->dim;
         bool* subsetv = (bool*)malloc(dim*sizeof(bool));
-        memset(subsetv,true,dim*sizeof(bool));
+        // memset(subsetv,true,dim*sizeof(bool));
+        for (int i = 0; i < dim; ++i) {
+            subsetv[i] = true;
+        }
         int idx = 0;
         if (seqsize > 0)
             subsetv[testseq[idx++]] = false;
@@ -1847,7 +1850,10 @@ public:
     bool test(int* testseq) {
         const int edgecnt = edges.size();
         bool* subsetv = (bool*)malloc(edgecnt*sizeof(bool));
-        memset(subsetv,true,edgecnt*sizeof(bool));
+        // memset(subsetv,true,edgecnt*sizeof(bool));
+        for (int i = 0; i < edgecnt; ++i) {
+            subsetv[i] = true;
+        }
         int idx = 0;
         if (seqsize > 0)
             subsetv[testseq[idx++]] = false;

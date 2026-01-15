@@ -2776,7 +2776,9 @@ public:
     {
         auto g = ns->g;
         auto itr = new setitrint(g->dim-1);
-        memset(itr->elts,true,(itr->maxint+1)*sizeof(bool));
+        // memset(itr->elts,true,(itr->maxint+1)*sizeof(bool));
+        for (int i = 0; i < g->dim; ++i)
+            itr->elts[i] = true;
         itr->computed = false;
         itr->reset();
         return itr;
@@ -3261,7 +3263,9 @@ public:
         copygraph(ns->g,gtemp);
         auto itr = ps[0].seti->getitrpos();
         bool* negvertices = new bool[dim];
-        memset(negvertices,true,sizeof(bool)*dim);
+        // memset(negvertices,true,sizeof(bool)*dim);
+        for (int i = 0; i < dim; ++i)
+            negvertices[i] = true;
         while (!itr->ended()) {
             auto v = itr->getnext().v.iv;
             negvertices[v] = false;

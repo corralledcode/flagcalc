@@ -811,7 +811,9 @@ class setitrint : public setitrmodeone
         if (maxint >= 0)
         {
             elts = (bool*)malloc((maxint+1)*sizeof(bool));
-            memset(elts, true, (maxint+1)*sizeof(bool));
+            // memset(elts, true, (maxint+1)*sizeof(bool));
+            for (int i = 0; i < maxint+1; ++i)
+                elts[i] = true;
         } else
         {
             elts = nullptr;
@@ -1378,7 +1380,9 @@ template<typename T>
 inline void fasttupleintersection( const int lengthA, const int lengthB, int& length, T* eltsA, T* eltsB, T* out) {
 // the convention here is that the "tuple" on the right be treated as a set, so this is like subtracting its complement
     bool deprecated[lengthA];
-    memset(deprecated, true, lengthA * sizeof(T));
+    // memset(deprecated, true, lengthA * sizeof(bool));
+    for (int i = 0; i < lengthA; ++i)
+        deprecated[i] = true;
     for (int i = 0; i < lengthA; ++i)
         for (int j = 0; deprecated[i] && j < lengthB; ++j) {
             deprecated[i] = deprecated[i] && (eltsA[i] != eltsB[j]);
@@ -1615,7 +1619,9 @@ public:
             break;
         }
         case formulaoperator::foqintersection: {
-            memset(out->elts,true,sizeof(bool)*(maxint + 1));
+            // memset(out->elts,true,sizeof(bool)*(maxint + 1));
+            for (int i = 0; i < maxint+1; ++i)
+                out->elts[i] = true;
             for (auto i = 0; i <= maxint; ++i)
                 for (auto j = 0; j < casts.size(); ++j)
                     if (!casts[j]->elts[i]) {
@@ -1675,7 +1681,9 @@ public:
 
         bool* elts = new bool[minsz];
         int cnt = 0;
-        memset( elts, true, sizeof(bool) * minsz );
+        // memset( elts, true, sizeof(bool) * minsz );
+        for (int i = 0; i < minsz; ++i)
+            elts[i] = true;
         for (int i = 0; i < minsz; ++i) {
             for (int j = 0; j < casts.size(); ++j) {
                 elts[i] = elts[i] && casts[j]->elts[i];
