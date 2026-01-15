@@ -3003,6 +3003,7 @@ public:
     }
     void listoptions() override {
         abstractcheckcriterionfeature::listoptions();
+
         *_os << "\t" << "\"" << CMDLINE_ALL << "\": \t\t\t checks criteria for ALL graphs found on the workspace\n";
         *_os << "\t" << "\"" << CMDLINE_ENUMISOSSORTED << "\": \t\t checks criteria for each fingerprint-equivalent class\n";
         *_os << "\t" << "\t\t\t\t obtained by previous calls to \"-f\"\n";
@@ -3024,32 +3025,31 @@ public:
         *_os << "\t" << "\"ia=<filename>\": uses the mathematical expression(s) in <filename> embedding\n";
         *_os << "\t" << "<expression>: using these built-in mtcontinuous-type mathematical functions:\n";
         for (const auto& pair : global_fnptrs) {
-            *_os << "\t\t\"" << pair.first << "\": takes " << pair.second.second << " input(s)\n";
+            *_os << "\t\t\"" << pair.first << "\": takes " << pair.second.second << " input";
+            if  (pair.second.second != 1)
+                *_os << "s";
+            if (pair.second.second == 0)
+                *_os << " (zero inputs for mathematical functions do require empty parentheses \"()\")";
+            *_os << "\n";
         }
-        *_os << "\t" << "<criterion>:\t which criterion to use, standard options are:\n";
-        for (int n = 0; n < crs.size(); ++n) {
-            *_os << "\t\t\"" << crs[n]->shortname << "\": " << crs[n]->name << "\n";
-        }
-        *_os << "\t" << "m=<measure>:\t which measure to use, standard options are:\n";
-        for (int n = 0; n < mss.size(); ++n) {
-            *_os << "\t\t\"" << mss[n]->shortname << "\": " << mss[n]->name << "\n";
-        }
-        *_os << "\t" << "z=<tally>:\t which tally to use, standard options are:\n";
-        for (int n = 0; n < tys.size(); ++n) {
-            *_os << "\t\t\"" << tys[n]->shortname << "\": " << tys[n]->name << "\n";
-        }
-        *_os << "\t" << "e=<set>:\t which set to use, standard options are:\n";
-        for (int n = 0; n < sts.size(); ++n) {
-            *_os << "\t\t\"" << sts[n]->shortname << "\": " << sts[n]->name << "\n";
-        }
-        *_os << "\t" << "p=<tuple>:\t which tuple to use, standard options are:\n";
-        for (int n = 0; n < oss.size(); ++n) {
-            *_os << "\t\t\"" << oss[n]->shortname << "\": " << oss[n]->name << "\n";
-        }
-        *_os << "\t" << "gm=<tuple>:\t which graph to use, standard options are:\n";
-        for (int n = 0; n < gms.size(); ++n) {
-            *_os << "\t\t\"" << gms[n]->shortname << "\": " << gms[n]->name << "\n";
-        }
+        *_os << "\t" << "<criterion>: which criterion to use, standard options are:\n";
+        for (int n = 0; n < crs.size(); ++n)
+            crs[n]->listmeasure(_os);
+        *_os << "\t" << "m=<measure>: which measure to use, standard options are:\n";
+        for (int n = 0; n < mss.size(); ++n)
+            mss[n]->listmeasure(_os);
+        *_os << "\t" << "z=<tally>: which tally to use, standard options are:\n";
+        for (int n = 0; n < tys.size(); ++n)
+            tys[n]->listmeasure(_os);
+        *_os << "\t" << "e=<set>: which set to use, standard options are:\n";
+        for (int n = 0; n < sts.size(); ++n)
+            sts[n]->listmeasure(_os);
+        *_os << "\t" << "p=<tuple>: which tuple to use, standard options are:\n";
+        for (int n = 0; n < oss.size(); ++n)
+            oss[n]->listmeasure(_os);
+        *_os << "\t" << "gm=<graph>: which graph to use, standard options are:\n";
+        for (int n = 0; n < gms.size(); ++n)
+            gms[n]->listmeasure(_os);
     }
 
     void execute(std::vector<std::string> args) override

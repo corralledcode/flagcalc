@@ -318,7 +318,7 @@ public:
         auto ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
     }
-    indntally( mrecords* recin ) : tally( recin, "indnt", "alpha, the tally of independent_n embeddings, " )
+    indntally( mrecords* recin ) : tally( recin, "indnt", "alpha, the tally of independent_n embeddings" )
 
     {
         valms p1 {};
@@ -1532,7 +1532,7 @@ public:
 class kconnectedcrit : public crit {
 // Diestel, Grath Theory, p. 11
     public:
-    kconnectedcrit( mrecords* recin ) : crit( recin, "kconnc", "Graph k-connected ")
+    kconnectedcrit( mrecords* recin ) : crit( recin, "kconnc", "Graph k-connected")
     {
         valms p1 {};
         p1.t = mtdiscrete;

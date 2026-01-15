@@ -51,6 +51,7 @@ protected:
 public:
     const std::string shortname {};
     const std::string name {};
+
     virtual T takemeas(neighborstype* ns)
     {
         std::cout << "Error: abstract virtual ancestor method invoked (i)\n";
@@ -135,6 +136,20 @@ public:
     namedparams nps {};
     int npssz = 0;
     std::vector<int> npreferences {};
+
+    void listmeasure( std::ostream* _os ) {
+        *_os << "\t\t\"" << this->shortname << "\": " << this->name;
+        if (nps.size() > 0)
+            *_os << ": takes ";
+        bool first = true;
+        for (auto ps : nps) {
+            if (!first)
+                *_os << ", ";
+            first = false;
+            *_os << "\"" << ps.first << "\" (" << measuretypenames[ps.second.t] << ")";
+        }
+        *_os << "\n";
+    }
 
     void bindnamedparams()
     {
