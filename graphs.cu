@@ -241,8 +241,9 @@ int FPcmpextends( const vertextype* m1, const vertextype* m2, const neighbors* n
 }
 
 
-int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) { // acts without consideration of self or parents; looks only downwards
-// does ns2 have every edge that ns1 has?
+int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) {
+    // acts without consideration of self or parents; looks only downwards
+    // does ns2 have every edge that ns1 has?
 
     if (ns1->g->dim != ns2->g->dim)
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
@@ -252,20 +253,17 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
     if (w1->nscnt > w2->nscnt)
         return -1;
 
-    auto perms1 = getpermutations(w1->nscnt);
+    auto perms2 = getpermutations(w2->nscnt);
     int res = -1;
-    for (int i = 0; res != 0 && i < perms1.size(); i++) {
+    for (int i = 0; res != 0 && i < perms2.size(); i++) {
         res = 0;
-        for (int j = 0; res == 0 && j < w1->nscnt; ++j) {
-            res = -1;
-            for (int k = 0; res != 0 && k < w2->nscnt; ++k) {
-                if (ns1->degrees[w1->ns[perms1[i][j]].v] <= ns2->degrees[w2->ns[k].v])
-                    res = FPgenerouscmp(ns1,ns2,&w1->ns[perms1[i][j]],&w2->ns[k]);
-                else
-                    res = -1;
-            }
-        }
+        for (int j = 0; res == 0 && j < w1->nscnt; ++j)
+            if (ns1->degrees[w1->ns[j].v] <= ns2->degrees[w2->ns[perms2[i][j]].v])
+                res = FPgenerouscmp(ns1,ns2,&w1->ns[j],&w2->ns[perms2[i][j]]);
+            else
+                res = -1;
     }
+
 
 
 /*
