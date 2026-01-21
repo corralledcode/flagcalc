@@ -123,7 +123,7 @@ public:
                 mincnt = ps[1].v.iv;
                 newps.push_back(ps[1]);
             }
-            if (0<=ksz && ksz <= KNMAXCLIQUESIZE)
+            if (0<=ksz && ksz < KNMAXCLIQUESIZE)
             {
                 return negated != kns[ksz]->takemeas(ns,newps);
             } else {
@@ -249,6 +249,7 @@ public:
         int dim = g->dim;
         std::vector<int> subsets {};
         enumsizedsubsets(0,ksz,nullptr,0,dim,&subsets);
+
         bool found = false;
         int foundcnt = 0;
         int j = 0;
@@ -358,6 +359,43 @@ public:
 
 class embedscrit : public crit {
 public:
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        neighbors* flagns = ps[0].v.nsv;
+
+        int dim = flagns->g->dim;
+        FP* fp = (FP*)malloc(dim*sizeof(FP));
+        for (int j = 0; j < dim; ++j) {
+            fp[j].v=j;
+            fp[j].ns = nullptr;
+            fp[j].nscnt = dim;
+            fp[j].parent = nullptr;
+            fp[j].invert = false; // flagns->degrees[j] >= int((dim+1)/2);
+        }
+
+        takefingerprint(flagns,fp,flagns->g->dim, false);
+        auto r = negated != (embedsgenerousquick(flagns, fp, ns, 1));
+        freefps(fp,dim);
+        return r;
+    }
+    bool takemeas( const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    embedscrit( mrecords* recin ) : crit( recin, "embedsgenerousc", "embeds the given graph as a subgraph" )
+
+    {
+        valms p1 {};
+        p1.t = mtgraph;
+        nps.push_back(std::pair{"H",p1});
+        bindnamedparams();
+    }
+
+
+    ~embedscrit() {}
+};
+
+class embedsinducedcrit : public crit {
+public:
     graphtype* flagg;
     neighbors* flagns;
     bool takemeas( neighborstype* ns, const params& ps ) override {
@@ -383,7 +421,7 @@ public:
         auto ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
     }
-    embedscrit( mrecords* recin ) : crit( recin, "embedsc", "embeds the given graph, " )
+    embedsinducedcrit( mrecords* recin ) : crit( recin, "embedsc", "embeds the given graph as an induced subgraph" )
 
     {
         valms p1 {};
@@ -393,7 +431,7 @@ public:
     }
 
 
-    ~embedscrit()
+    ~embedsinducedcrit()
     {
         delete flagg;
         delete flagns;
@@ -401,6 +439,7 @@ public:
         flagns = nullptr;
     }
 };
+
 
 
 class forestcrit : public crit {
@@ -1503,12 +1542,12 @@ template<typename T> set* tuplefactory(mrecords* recin) {return new T(recin);}
 template<typename T> strmeas* stringfactory(mrecords* recin) {return new T(recin);}
 template<typename T> gmeas* graphfactory(mrecords* recin) {return new T(recin);}
 
-class embedstally : public tally {
+class embedstallyinternal : public tally { // this is a dinosaur and not used as a listed measure, only internally
 public:
     graphtype* flagg;
     neighbors* flagns;
     FP* fp;
-    embedstally( mrecords* recin , neighbors* flagnsin,FP* fpin)
+    embedstallyinternal( mrecords* recin , neighbors* flagnsin,FP* fpin)
         : tally(recin , "embedst","embeds type tally"),
         flagg{flagnsin->g},flagns{flagnsin},fp{fpin} {}
     int takemeas( neighborstype* ns, const params& ps ) override {
@@ -1517,7 +1556,7 @@ public:
     int takemeas( const int idx ) override {
         return embedscount(flagns, fp, (*this->rec->nsptrs)[idx]);
     }
-    ~embedstally()
+    ~embedstallyinternal()
     {
         freefps(fp,flagg->dim);
         delete fp;
@@ -1528,6 +1567,73 @@ public:
         fp = nullptr;
     }
 };
+
+class embedsinducedtally : public tally {
+public:
+    embedsinducedtally( mrecords* recin ) : tally {recin , "embedst","embeds induced type tally"} {
+        valms p1 {};
+        p1.t = measuretype::mtgraph;
+        nps.push_back(std::pair{"subgraph",p1});
+        bindnamedparams();
+    }
+    int takemeas( neighborstype* ns, const params& ps ) override {
+
+        neighborstype* subns = ps[0].v.nsv;
+        int dim = subns->g->dim;
+        FP* fp = (FP*)malloc(dim*sizeof(FP));
+        for (int j = 0; j < dim; ++j) {
+            fp[j].v=j;
+            fp[j].ns = nullptr;
+            fp[j].nscnt = dim;
+            fp[j].parent = nullptr;
+            fp[j].invert = subns->degrees[j] >= int((dim+1)/2);
+        }
+        takefingerprint(subns,fp,dim);
+        ams a;
+        a.t = mtdiscrete;
+
+        return embedscount(subns, fp, ns);
+    }
+    int takemeas( const int idx, const params& ps ) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    ~embedsinducedtally() {}
+};
+
+class embedstally : public tally {
+public:
+    embedstally( mrecords* recin ) : tally {recin , "embedsgeneroust","embeds type tally"} {
+        valms p1 {};
+        p1.t = measuretype::mtgraph;
+        nps.push_back(std::pair{"subgraph",p1});
+        bindnamedparams();
+    }
+    int takemeas( neighborstype* ns, const params& ps ) override {
+
+        neighborstype* subns = ps[0].v.nsv;
+        int dim = subns->g->dim;
+        FP* fp = (FP*)malloc(dim*sizeof(FP));
+        for (int j = 0; j < dim; ++j) {
+            fp[j].v=j;
+            fp[j].ns = nullptr;
+            fp[j].nscnt = dim;
+            fp[j].parent = nullptr;
+            fp[j].invert = false; // subns->degrees[j] >= int((dim+1)/2);
+        }
+        takefingerprint(subns,fp,dim, false);
+        ams a;
+        a.t = mtdiscrete;
+
+        return embedsgenerouscount(subns, fp, ns);
+    }
+    int takemeas( const int idx, const params& ps ) override {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    ~embedstally() {}
+};
+
 
 class kconnectedcrit : public crit {
 // Diestel, Grath Theory, p. 11

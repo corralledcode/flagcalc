@@ -1356,7 +1356,7 @@ public:
 #ifdef THREADPOOL5
 
             //wi->nslist[i] = gi->ns;
-            t[i] = std::async(&takefingerprint,(wi->nslist[i]),fpsptr,gi->g->dim);
+            t[i] = std::async(&takefingerprint,(wi->nslist[i]),fpsptr,gi->g->dim,true);
             wi->glist[i] = gi->g;
             wi->gnames[i] = gi->name;
 
@@ -1805,8 +1805,9 @@ public:
         auto (indnpc) = critfactory<indnpcrit>;
         auto (nwisec) = critfactory<nwisecrit>;
         auto (toBoolc) = critfactory<toBoolcrit>;
-        auto (embedsc) = critfactory<embedscrit>;
+        auto (embedsinducedc) = critfactory<embedsinducedcrit>;
         auto (connvusingsetc) = critfactory<connvusingsetcrit>;
+        auto (embedsc) = critfactory<embedscrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1832,8 +1833,9 @@ public:
         crsfactory.push_back(indnpc);
         crsfactory.push_back(nwisec);
         crsfactory.push_back(toBoolc);
-        crsfactory.push_back(embedsc);
+        crsfactory.push_back(embedsinducedc);
         crsfactory.push_back(connvusingsetc);
+        crsfactory.push_back(embedsc);
 
         // ...
 
@@ -1901,6 +1903,8 @@ public:
         auto (cyclest) = tallyfactory<cyclestally>;
         auto (toIntt) = tallyfactory<toInttally>;
         auto (connt) = tallyfactory<conntally>;
+        auto (embedsinducedt) = tallyfactory<embedsinducedtally>;
+        auto (embedst) = tallyfactory<embedstally>;
 
         tysfactory.push_back(ms2);
         tysfactory.push_back(ms3);
@@ -1926,6 +1930,8 @@ public:
         tysfactory.push_back(cyclest);
         tysfactory.push_back(toIntt);
         tysfactory.push_back(connt);
+        tysfactory.push_back(embedsinducedt);
+        tysfactory.push_back(embedst);
 
         // ...
 
@@ -3625,7 +3631,7 @@ public:
 
                 ams a;
                 a.t = mtdiscrete;
-                a.a.ts = new embedstally(&rec,gi->ns,fp);
+                a.a.ts = new embedstallyinternal(&rec,gi->ns,fp);
                 auto it = newiteration(mtdiscrete,ccl.i,a);
                 iter.push_back(it);
 

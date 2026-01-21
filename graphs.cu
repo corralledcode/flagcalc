@@ -241,6 +241,57 @@ int FPcmpextends( const vertextype* m1, const vertextype* m2, const neighbors* n
 }
 
 
+int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) { // acts without consideration of self or parents; looks only downwards
+// does ns2 have every edge that ns1 has?
+
+    if (ns1->g->dim != ns2->g->dim)
+        return ns1->g->dim < ns2->g->dim ? 1 : -1;
+
+    if (w1->nscnt == 0)
+        return 0;
+    if (w1->nscnt > w2->nscnt)
+        return -1;
+
+    auto perms1 = getpermutations(w1->nscnt);
+    int res = -1;
+    for (int i = 0; res != 0 && i < perms1.size(); i++) {
+        res = 0;
+        for (int j = 0; res == 0 && j < w1->nscnt; ++j) {
+            res = -1;
+            for (int k = 0; res != 0 && k < w2->nscnt; ++k) {
+                if (ns1->degrees[w1->ns[perms1[i][j]].v] <= ns2->degrees[w2->ns[k].v])
+                    res = FPgenerouscmp(ns1,ns2,&w1->ns[perms1[i][j]],&w2->ns[k]);
+                else
+                    res = -1;
+            }
+        }
+    }
+
+
+/*
+
+    auto perms1 = getpermutations(w1->nscnt);
+    auto perms2 = getpermutations(w2->nscnt);
+    int res = -1;
+    for (int i = 0; res != 0 && i < perms1.size(); i++) {
+        for (int k = 0; res != 0 && k < perms2.size(); k++) {
+            res = 0;
+            for (int j = 0; res == 0 && j < w1->nscnt; ++j) {
+                if (ns1->degrees[w1->ns[perms1[i][j]].v] <= ns2->degrees[w2->ns[perms2[k][j]].v])
+                    res = FPgenerouscmp(ns1,ns2,&w1->ns[perms1[i][j]],&w2->ns[perms2[k][j]]);
+                else
+                    res = -1;
+            }
+        }
+    }
+*/
+
+    return res;
+}
+
+
+
+
 inline int partition2( std::vector<int> &arr, int start, int end, const neighbors* ns, FP* fpslist ) {
     int pivot = arr[start];
     int count = 0;
@@ -368,7 +419,7 @@ void sortneighbors( const neighbors* ns, FP* fps, int fpscnt ) {
 }
 
 
-void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
+void takefingerprint( const neighbors* ns, FP* fps, int fpscnt, const bool useinvert) {
 
     if (fpscnt == 0 || ns == nullptr) {
 
@@ -378,14 +429,14 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
     const int dim = ns->g->dim;
     FP* sorted = new FP[dim];
     FP* sortedinverted = new FP[dim];
-    int halfdegree = (dim+1)/2;
+    int halfdegree = useinvert ? (dim+1)/2 : dim;
     bool invert = false;
     int idx = 0;
     int invertedidx = 0;
 
     //std::cout << "fpscnt == " << fpscnt << ", ns.maxdegree == " << ns.maxdegree << "\n";
     int md = ns->maxdegree;
-    if (ns->maxdegree < halfdegree)
+    if (useinvert && ns->maxdegree < halfdegree)
         md = dim - ns->maxdegree;
     //md = dim-1;
     int* sizeofdegree = new int[md+1];
@@ -441,7 +492,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
                             }
                         }
                         // std::cout << fps[vidx].ns->v << std::endl;
-                        takefingerprint( ns, fps[vidx].ns, tmpn );
+                        takefingerprint( ns, fps[vidx].ns, tmpn, useinvert );
                     } else {
                         if ((deg > 0) && invert) {
                             fps[vidx].nscnt = deg;
@@ -467,7 +518,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt ) {
                                 }
                             }
                             // std::cout << fps[vidx].ns->v << std::endl;
-                            takefingerprint( ns, fps[vidx].ns, tmpn  );
+                            takefingerprint( ns, fps[vidx].ns, tmpn, useinvert );
                         } else {
                             fps[vidx].ns = nullptr;
                             fps[vidx].nscnt = 0;
@@ -675,7 +726,7 @@ std::vector<std::vector<int>> getpermutations( const int i ) {
 // time up.
 
 /*
-fastgetpermutations pseudocope
+fastgetpermutations pseudocode
 
 in: cnt, index, targetset,
 out: add one map per pair {index,t}, t from targetset
@@ -1376,6 +1427,10 @@ bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, c
 
 }
 
+bool existsgenerousisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, const FP* fp2) {
+    return FPgenerouscmp(ns1,ns2,fp1,fp2) == 0 ? true : false ;
+}
+
 
 bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
     if (ns1 == nullptr || ns2 == nullptr)
@@ -1434,6 +1489,94 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
     //vertextype del[g1.dim+2];
 
     bool res = existsisocore(ns1,ns2,fps1ptr,fps2ptr);
+
+    if (responsibletofree) {
+        freefps(fps1ptr,g1->dim);
+        free(fps1ptr);
+    }
+    if (fps2ptr != fps1ptr) {
+        freefps(fps2ptr,g2->dim);
+        free(fps2ptr);
+    }
+
+    return res;
+
+}
+
+
+bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
+    if (ns1 == nullptr || ns2 == nullptr)
+        return {};
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    if (g1->dim != g2->dim) // || ns1->maxdegree != ns2->maxdegree)
+        return false;
+
+    /* BELOW CODE WORKS, BUT ENDEAVORING FOR FASTER CODE USING FINGERPRINTS... TESTING THE WORKING FINGERPRINT CODE AROUND FPgenerouscmp
+    auto perm = getpermutations(g1->dim);
+    bool all = false;
+    for (int i = 0; !all && i < perm.size(); ++i) {
+        all = true;
+        for (int j = 0; all && j < g1->dim; ++j)
+            for (int k = j+1; all && k < g1->dim; ++k)
+                all = !g1->adjacencymatrix[perm[i][j]*g1->dim + perm[i][k]] ||
+                    g2->adjacencymatrix[j*g2->dim + k];
+    }
+    return all;
+
+    */
+
+    // ------
+
+    // to do: save time in most cases by checking that ns1 matches ns2
+
+    int dim = g1->dim;
+
+    bool responsibletofree = false;
+
+    if (fps1ptr == nullptr) {
+        responsibletofree = true;
+        FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
+        for (int n = 0; n < dim; ++n) {
+            fps1ptr[n].v = n;
+            fps1ptr[n].ns = nullptr;
+            fps1ptr[n].nscnt = 0;
+            fps1ptr[n].parent = nullptr;
+            fps1ptr[n].invert = false; // ns1->degrees[n] >= int((dim+1)/2);
+        }
+
+        takefingerprint(ns1,fps1ptr,dim, false);
+
+        //sortneighbors(ns1,fps1ptr,dim);
+
+
+        //osfingerprint(std::cout,ns1,fps1ptr,dim);
+    }
+
+    FP* fps2ptr;
+
+    if (g1 == g2)
+        fps2ptr = fps1ptr;
+    else {
+        fps2ptr = (FP*)malloc(dim * sizeof(FP));
+
+        for (int n = 0; n < dim; ++n) {
+            fps2ptr[n].v = n;
+            fps2ptr[n].ns = nullptr;
+            fps2ptr[n].nscnt = 0;
+            fps2ptr[n].parent = nullptr;
+            fps2ptr[n].invert = false; // ns2->degrees[n] >= int((dim+1)/2);
+        }
+
+        takefingerprint(ns2,fps2ptr,dim, false);
+        //sortneighbors(ns2,fps2ptr,dim);
+    }
+    //osfingerprint(std::cout,ns2,fps2,g2.dim);
+
+    //vertextype del[ns1.maxdegree+2];
+    //vertextype del[g1.dim+2];
+
+    bool res = existsgenerousisocore(ns1,ns2,fps1ptr,fps2ptr);
 
     if (responsibletofree) {
         freefps(fps1ptr,g1->dim);
@@ -1601,7 +1744,7 @@ public:
     virtual bool test(int* testseq) {return false;}
 };
 
-class embedsquicktest : public quicktest {
+class embedsinducedquicktest : public quicktest {
 public:
     graphtype* gtemp;
     const graphtype* g2;
@@ -1624,7 +1767,35 @@ public:
         free(nstemp);
         return resbool;
     }
-    embedsquicktest( graphtype* gtempin, const graphtype* g2in, const neighbors* ns1in, FP* fpin, const int dim1in, const int dim2in)
+    embedsinducedquicktest( graphtype* gtempin, const graphtype* g2in, const neighbors* ns1in, FP* fpin, const int dim1in, const int dim2in)
+        : gtemp{gtempin}, g2{g2in}, ns1{ns1in}, fp{fpin}, dim1{dim1in}, dim2{dim2in} {}
+
+};
+
+class embedsgenerousquicktest : public quicktest {
+public:
+    graphtype* gtemp;
+    const graphtype* g2;
+    const neighbors* ns1;
+    FP* fp;
+    const int dim1;
+    const int dim2;
+    bool test(int* testseq) override {
+        for (int i = 0; i < dim1; ++i) {
+            vertextype g2vertex1 = testseq[i];
+            for (int j = 0; j < dim1; ++j) {
+                vertextype g2vertex2 = testseq[j];
+                gtemp->adjacencymatrix[i*dim1+j] = g2->adjacencymatrix[g2vertex1*dim2 + g2vertex2];
+            }
+        }
+
+        bool resbool;
+        auto nstemp = new neighbors(gtemp);
+        resbool = existsgenerousiso(ns1,fp,nstemp);
+        free(nstemp);
+        return resbool;
+    }
+    embedsgenerousquicktest( graphtype* gtempin, const graphtype* g2in, const neighbors* ns1in, FP* fpin, const int dim1in, const int dim2in)
         : gtemp{gtempin}, g2{g2in}, ns1{ns1in}, fp{fpin}, dim1{dim1in}, dim2{dim2in} {}
 
 };
@@ -1686,7 +1857,7 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
 
     int cnt = 0;
     auto gtemp = new graphtype(dim1);
-    auto test = new embedsquicktest(gtemp,g2,ns1,fp,dim1,dim2);
+    auto test = new embedsinducedquicktest(gtemp,g2,ns1,fp,dim1,dim2);
 
     bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
 
@@ -1695,6 +1866,41 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
         // (that is, allowing the subsets above to be a larger set
         // that contains rearrangements of things already in the set)
         //nstemp->computeneighborslist();
+
+    delete gtemp;
+    delete test;
+
+    //free(subsets);
+    return resbool;
+}
+bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt ) {
+    //graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+    int numberofsubsets; // = nchoosek(dim2,dim1);
+    //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
+    //std::vector<int> subsets {};
+    //enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
+    //numberofsubsets = subsets.size()/dim1;
+    /*if (numberofsubsets*dim1 != subsets.size()) {
+        std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
+        return false;
+    }*/
+
+    int cnt = 0;
+    auto gtemp = new graphtype(dim1);
+    auto test = new embedsgenerousquicktest(gtemp,g2,ns1,fp,dim1,dim2);
+
+    bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
+
+    // note this code obviously might be much faster
+    // when instead simply checking iso for the identity map
+    // (that is, allowing the subsets above to be a larger set
+    // that contains rearrangements of things already in the set)
+    //nstemp->computeneighborslist();
 
     delete gtemp;
     delete test;
@@ -1763,7 +1969,7 @@ int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2) {
 
     int cnt = 0;
     auto gtemp = new graphtype(dim1);
-    auto test = new embedsquicktest(gtemp,g2,ns1,fp,dim1,dim2);
+    auto test = new embedsinducedquicktest(gtemp,g2,ns1,fp,dim1,dim2);
 
     enumsizedsubsetsquicktally(0,dim1,nullptr,0,dim2,&cnt,test);
 
@@ -1779,6 +1985,44 @@ int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2) {
     //free(subsets);
     return cnt;
 }
+
+
+int embedsgenerouscount( const neighbors* ns1, FP* fp, const neighbors* ns2) {
+    //graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+    int numberofsubsets; // = nchoosek(dim2,dim1);
+    //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
+    //std::vector<int> subsets {};
+    //enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
+    //numberofsubsets = subsets.size()/dim1;
+    /*if (numberofsubsets*dim1 != subsets.size()) {
+        std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
+        return false;
+    }*/
+
+    int cnt = 0;
+    auto gtemp = new graphtype(dim1);
+    auto test = new embedsgenerousquicktest(gtemp,g2,ns1,fp,dim1,dim2);
+
+    enumsizedsubsetsquicktally(0,dim1,nullptr,0,dim2,&cnt,test);
+
+    // note this code obviously might be much faster
+    // when instead simply checking iso for the identity map
+    // (that is, allowing the subsets above to be a larger set
+    // that contains rearrangements of things already in the set)
+    //nstemp->computeneighborslist();
+
+    delete gtemp;
+    delete test;
+
+    //free(subsets);
+    return cnt;
+}
+
 
 
 

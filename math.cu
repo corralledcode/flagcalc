@@ -5569,42 +5569,6 @@ inline formulaclass* parseformulainternal(
                 }
             }
 
-
-
-
-
-/*
-
-            int pos4 = pos+1;
-
-            int cntcount = 0;
-            while (pos4 < q.size() && q[pos4] != SHUNTINGYARDVARIABLEARGUMENTENDKEY && cntcount >= 0) {
-                while (pos4+1 <= q.size() && cntcount >= 0) {
-                    cntcount += (is_naming(q[pos4]) || is_quantifier(q[pos4]) || is_relational(q[pos4])) ? 1 : 0;
-                    cntcount -= q[pos4] == SHUNTINGYARDVARIABLEARGUMENTENDKEY ? 1 : 0;
-                    ++pos4;
-                }
-                if (pos4 > 0)
-                    pos4--;
-                if (pos4 < q.size() && q[pos4] == SHUNTINGYARDVARIABLEARGUMENTENDKEY && cntcount < 0) {
-                    pos4--;
-                    try {
-                        anyncnt = std::stoi(q[pos4]);
-                        CNTcnt = 1;
-                    } catch (const std::invalid_argument& e) {
-                        anyncnt = 1;
-                        CNTcnt = 0;
-                    }
-                    if (qcs.size() > 0)
-                        qcs[0]->cnt = anyncnt;
-            
-                }
-            }
-
-*/
-
-
-
             formulaclass* fcright = parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs);
             fcright->criterion = nullptr;
             fcright->boundvariables = qcs;

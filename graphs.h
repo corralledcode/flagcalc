@@ -162,7 +162,7 @@ int FPcmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w
 
 void sortneighbors( neighbors* ns, FP* fps, int fpscnt );
 
-void takefingerprint( const neighbors* ns, FP* fps, int fpscnt );
+void takefingerprint( const neighbors* ns, FP* fps, int fpscnt, const bool useinvert = true );
 
 void freefps( FP* fps, int fpscnt );
 
@@ -199,8 +199,12 @@ bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2, const int 
 
 bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt );
 
+bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt );
+// i.e. non-induced (preserving adjacency but not necessarily non-adjacency
 
 int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
+
+int embedsgenerouscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
 
 bool kconnectedfn( graphtype* g, neighborstype* ns, int k );
 
