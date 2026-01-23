@@ -210,15 +210,16 @@ bool hastopologicalminorquick2( const neighbors* childns, const neighbors* paren
 
 bool hastopologicalminorquick3( const neighbors* childns, const neighbors* parentns, const int mincnt );
 
+bool hastopologicalminorquick4( const neighbors* ns1, const neighbors* ns2, const int mincnt );
+
 int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
 
 int embedsgenerouscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
 
 // int hastopologicalminorcount( const neighbors* ns1, const neighbors* ns2 );
 
-
-bool graphextendstotopologicalminor( const graphtype& g,
-    const vertextype* vertices, const graphtype& g2 );
+bool graphextendstotopologicalminor( const neighborstype& parentns,
+        const vertextype* vertices, const neighborstype& childns, const int& mincnt );
 
 bool kconnectedfn( graphtype* g, neighborstype* ns, int k );
 
@@ -248,6 +249,8 @@ void zerograph(graphtype* g);
 int pathsbetweencount( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2);
 
 void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<std::vector<vertextype>>& out );
+
+void pathbetweentuple( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<vertextype>& out );
 
 int cyclesvcount( graphtype* g, neighborstype* ns, vertextype v1 );
 

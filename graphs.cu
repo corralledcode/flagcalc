@@ -268,59 +268,244 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
     return res;
 }
 
-bool graphextendstotopologicalminorcore( const graphtype& g, bool* adjmatrix, int adjmatrixcount, int* usedvertices ) {
-    bool res = adjmatrixcount == 0;
+// labelled as algorithm 4:
+bool graphextendstotopologicalminorcore( const neighborstype* parentns, const neighborstype* childns,
+        neighborstype* minorns, const vertextype* vertices, std::vector<std::vector<vertextype>>& usedvertices,
+        const std::vector<vertextype>& reverselookup, const int& mincnt ) {
+    const auto parentg = parentns->g;
+    const auto childg = childns->g;
+    auto minorg = minorns->g;
     // osadjacencymatrix(std::cout, &g);
     // std::cout << "\n";
-    for (int i = 0; !res && i < g.dim; i++) {
-        if (usedvertices[i] > 0) {
-            for (int j = i+1; !res && j < g.dim; j++) {
-                // std::cout << "i == " << i << " , j == " << j << std::endl;
-                if (g.adjacencymatrix[i*g.dim + j])
-                    if (usedvertices[j] == 0) {
-                        // std::cout << "Calling core, adjmatrixcount == " << adjmatrixcount << std::endl;
-                        usedvertices[j] = usedvertices[i];
-                        res = res || graphextendstotopologicalminorcore( g, adjmatrix, adjmatrixcount, usedvertices );
-                        usedvertices[j] = 0;
-                    } else if (adjmatrix[(usedvertices[i]-1)*g.dim + (usedvertices[j]-1)]) {
-                        adjmatrix[(usedvertices[i]-1)*g.dim + (usedvertices[j]-1)] = false;
-                        adjmatrix[(usedvertices[j]-1)*g.dim + (usedvertices[i]-1)] = false;
-                        adjmatrixcount--;
-                        // std::cout << "removing edge " << usedvertices[i]-1 << " , " << usedvertices[j]-1 << std::endl;
-                        // std::cout << "adjmatrixcount now at " << adjmatrixcount << std::endl;
-                        if (adjmatrixcount == 0)
-                            res = true;
-                    } else ;
-                // else
-                    // std::cout << "No edge " << i << ", " << j << std::endl;
+
+    if (edgecnt(minorg) >= edgecnt(childg)) {
+        int newmincnt = mincnt;
+        FP* fp = startfingerprint(*childns,false);
+        takefingerprint(childns,fp,childns->g->dim,false);
+        if (newmincnt == 1) {
+            // std::cout << "res being false...\n";
+            // osadjacencymatrix(std::cout, minorg);
+            // std::cout << "\n";
+
+            // osadjacencymatrix(std::cout, childg);
+            // std::cout << "\n";
+
+            if (embedsgenerousquick(childns, fp, minorns, 1)) {
+                // std::cout << "passing minor graph:\n";
+                // osadjacencymatrix(std::cout,minorg);
+                // std::cout << "\n";
+                // for (int i = 0; i < childg->dim; ++i)
+                // std::cout << vertices[i] << " ";
+                // std::cout << std::endl;
+
+                return true;
             }
         }
     }
-    return res;
-}
 
-bool graphextendstotopologicalminor( const graphtype& g,
-        const vertextype* vertices, const graphtype& g2 ) {
-    int* usedvertices = new int[g.dim];
-    memset(usedvertices,0,sizeof(int) * g.dim);
-    for (int i = 0; i < g2.dim; i++)
-        usedvertices[vertices[i]] = vertices[i]+1;
-    bool* adjmatrix = new bool[g.dim*g.dim];
-    memset(adjmatrix,false,sizeof(bool) * g.dim * g.dim);
-    int adjmatrixcount = 0;
-    for (int i = 0; i < g2.dim; i++)
-        for (int j = i+1; j < g2.dim; j++) {
-            int a = vertices[i];
-            int b = vertices[j];
-            adjmatrix[a*g.dim + b] = g2.adjacencymatrix[i*g2.dim + j];
-            adjmatrix[b*g.dim + a] = g2.adjacencymatrix[j*g2.dim + i];
-            if (adjmatrix[a*g.dim + b]) {
-                adjmatrixcount++;
-                std::cout << "adjmatrix edge " << a << ", " << b << std::endl;
+    bool res = false;
+
+    /*
+    for (int i = 0; i < childg->dim; ++i)
+        if (usedvertices[vertices[i]].size() != 1 || usedvertices[vertices[i]][0] != vertices[i])
+            std::cout << "Error\n";
+
+    for (int i = 0; i < parentg->dim; ++i) {
+        std::cout << "Vertex (parent): " << i << "\n";
+        for (int j = 0; j < usedvertices[i].size(); ++j) {
+            std::cout << usedvertices[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }*/
+
+    bool changed = true;
+    for (int u = 0; !res && changed && u < parentg->dim; ++u) {
+        if (!usedvertices[u].empty() && usedvertices[u][0] != -1) {
+            for (int k = 0; !res && k < parentns->degrees[u]; ++k) {
+                auto l = parentns->neighborslist[u*parentg->dim + k];
+                auto a = usedvertices[u][0];
+                if (!usedvertices[l].empty()) {
+                    if (usedvertices[l][0] != -1) {
+                        auto b = usedvertices[l][0];
+                        if (a != b) {
+                            changed = false;
+                            auto i = reverselookup[a];
+                            auto j = reverselookup[b];
+                            // if (i == j || i == -1 || j == -1)
+                            // std::cout<< "error, i == " << i << ", j == " << j << ", a == " << a << ", b == " << b << std::endl;
+                            if (!minorg->adjacencymatrix[i*minorg->dim + j]) {
+                                changed = true;
+                                // auto usedverticescopy = usedvertices;
+                                // for (int m = 1; m < usedvertices[u].size(); ++m)
+                                    // usedverticescopy[usedvertices[u][m]] = {-1};
+                                // for (int m = 1; m < usedvertices[l].size(); ++m)
+                                    // usedverticescopy[usedvertices[l][m]] = {-1};
+                                minorg->adjacencymatrix[i*minorg->dim + j] = true;
+                                minorg->adjacencymatrix[j*minorg->dim + i] = true;
+                                minorns->computeneighborslist();
+                                res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
+                                if (a != u || b != l) {
+                                    minorg->adjacencymatrix[i*minorg->dim + j] = false;
+                                    minorg->adjacencymatrix[j*minorg->dim + i] = false;
+                                    minorns->computeneighborslist();
+                                }
+                            } else {
+                                // osadjacencymatrix(std::cout, minorg);
+                                // std::cout << changed << std::endl;
+                                // res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
+                                changed = true;
+                            }
+
+                        }
+                    }
+                } else {
+                    auto temp = usedvertices[u];
+                    temp.push_back(l);
+                    usedvertices[l] = temp;
+                    res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
+                    // usedvertices[l].clear();
+                    changed = true;
+                }
             }
         }
+    }
 
-    return graphextendstotopologicalminorcore( g, adjmatrix, adjmatrixcount, usedvertices );
+    return res;
+
+    /*
+    // vertextype lastvertex = -1;
+    for (int i = 0; !res && i < childg->dim; ++i) {
+        int j = vertices[i];
+        auto a = usedvertices[j] - 1;
+        for (int h = 0; h < parentg->dim; ++h) {
+            if (a == usedvertices[h]) {
+                for (int k = 0; !res && k < parentns->degrees[j]; ++k) {
+                    auto b = parentns->neighborslist[j*parentg->dim + k];
+                    if (usedvertices[b] != a+1 && usedvertices[b] != -1) {
+                        if (usedvertices[b] > 0) {
+                            int l;
+                            bool done = false;
+                            for (l = 0; !done && l < childg->dim; ++l)
+                                if (usedvertices[b] == vertices[l] + 1) {
+                                    if (!minorg->adjacencymatrix[i*minorg->dim+l]) {
+                                        // std::cout << "i == " << i << ", l == " << l << std::endl;
+                                        minorg->adjacencymatrix[i*minorg->dim + l] = true;
+                                        minorg->adjacencymatrix[l*minorg->dim + i] = true;
+                                        minorns->computeneighborslist();
+                                        for (auto m = 0; m < parentg->dim; ++m) {
+                                            if (m != a && m+1 != usedvertices[b])
+                                                if (usedvertices[m] == usedvertices[b] || usedvertices[m] == a+1) {
+                                                    usedvertices[m] = 0;
+                                                }
+                                        }
+                                        res = res || graphextendstotopologicalminorcore(parentns,childns,minorns,vertices,usedvertices,mincnt);
+                                        // minorg->adjacencymatrix[i*minorg->dim + l] = false;
+                                        // minorg->adjacencymatrix[l*minorg->dim + i] = false;
+                                        // minorns->computeneighborslist();
+
+                                    }
+                                    // osadjacencymatrix(std::cout, minorg);
+                                    // std::cout << "\n";
+                                    done = true;
+                                    break;
+                                }
+                        } else {
+                            usedvertices[b] = a + 1;
+                            res = res || graphextendstotopologicalminorcore(parentns,childns,minorns,vertices,usedvertices, mincnt);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (res) {
+        // osadjacencymatrix(std::cout, minorg);
+        // std::cout << "\n";
+        return true;
+    }
+    if (!res) {
+        int newmincnt = mincnt;
+        FP* fp = startfingerprint(*childns,false);
+        takefingerprint(childns,fp,childns->g->dim,false);
+        if (newmincnt == 1) {
+
+            // std::cout << "res being false...\n";
+            // osadjacencymatrix(std::cout, minorg);
+            // std::cout << "\n";
+
+            // osadjacencymatrix(std::cout, childg);
+            // std::cout << "\n";
+
+            if (embedsgenerousquick(childns, fp, minorns, 1)) {
+                // std::cout << "passing minor graph:\n";
+                // osadjacencymatrix(std::cout,minorg);
+                // std::cout << "\n";
+                // for (int i = 0; i < childg->dim; ++i)
+                    // std::cout << vertices[i] << " ";
+                // std::cout << std::endl;
+
+                return true;
+            } else return false;
+        } else {
+            newmincnt -= embedsgenerouscount(childns, fp, minorns);
+            if (newmincnt <= 0)
+                return true;
+            else
+                return false;
+        }
+
+    }
+*/
+
+}
+
+// labelled as algorithm 4
+bool graphextendstotopologicalminor( const neighborstype* parentns,
+        const vertextype* vertices, const neighborstype* childns, const int& mincnt ) {
+    auto parentg = parentns->g;
+    auto childg = childns->g;
+
+    std::vector<std::vector<vertextype>> usedvertices;
+    usedvertices.resize(parentg->dim);
+    for (int i = 0; i < parentg->dim; ++i) {
+        usedvertices[i].clear();
+    }
+    for (int i = 0; i < childg->dim; ++i) {
+        usedvertices[vertices[i]].push_back(vertices[i]);
+    }
+    std::vector<vertextype> reverselookup;
+    reverselookup.resize(parentg->dim);
+    for (int i = 0; i < parentg->dim; ++i) {
+        reverselookup[i] = -1;
+    }
+    for (int i = 0; i < childg->dim; ++i) {
+        reverselookup[vertices[i]] = i;
+    }
+    auto minorg = new graphtype((childg->dim));
+    memset(minorg->adjacencymatrix,false,sizeof(bool)*minorg->dim*minorg->dim);
+    auto minorns = new neighborstype(minorg);
+
+    auto res = graphextendstotopologicalminorcore(parentns,childns,minorns,vertices,usedvertices,reverselookup,mincnt);
+    delete minorns;
+    delete minorg;
+    return res;
+
+
+
+    /*
+    int* usedvertices = new int[parentg->dim];
+    memset(usedvertices,0,sizeof(int) * parentg->dim);
+    for (int i = 0; i < childg->dim; i++)
+        usedvertices[vertices[i]] = vertices[i]+1;
+
+    auto minorg = new graphtype(childg->dim);
+    memset (minorg->adjacencymatrix,false,sizeof(bool)*minorg->dim*minorg->dim);
+    auto minorns = new neighborstype(minorg);
+    auto res = graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, mincnt );
+    delete usedvertices;
+    delete minorns;
+    delete minorg;
+    return res;*/
 }
 
 
@@ -1825,6 +2010,7 @@ public:
 };
 
 class embedsgenerousquicktest : public quicktest {
+    // g2 is the parent graph and ns1 is the one seeking to be embedded
 public:
     graphtype* gtemp;
     const graphtype* g2;
@@ -1852,18 +2038,19 @@ public:
 
 };
 
-class hastopologicalminorquicktest : public quicktest {
+class hastopologicalminorquick4test : public quicktest {
 public:
-    const graphtype* parentgraph;
-    const neighbors* flagns;
+    const neighborstype* parentns;
+    const neighborstype* childns;
+    const int mincnt;
 
     bool test(int* testseq) override {
         bool resbool = false;
-        resbool = graphextendstotopologicalminor(*parentgraph, testseq, *flagns->g );
+        resbool = graphextendstotopologicalminor(parentns, testseq, childns, mincnt );
         return resbool;
     }
-    hastopologicalminorquicktest( const graphtype* parentgraphin, const neighbors* flagnsin )
-        : parentgraph{parentgraphin}, flagns{flagnsin} {}
+    hastopologicalminorquick4test( const neighborstype* parentnsin, const neighborstype* childnsin, const int mincntin )
+        : parentns{parentnsin}, childns{childnsin}, mincnt {mincntin} {}
 
 };
 
@@ -2044,6 +2231,31 @@ bool hastopologicalminorquick( const neighbors* ns1, const neighbors* ns2, const
     return hastopologicalminorquickcore(*ns1, *ns2, edges, mincnt );
 
 }
+
+
+bool hastopologicalminorquick4( const neighbors* ns1, const neighbors* ns2, const int mincnt ) {
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+
+    std::vector<std::pair<vertextype,vertextype>> edges {};
+    for (int i = 0; i < dim1; ++i) {
+        for (int j = i+1; j < dim1; ++j)
+            if (g1->adjacencymatrix[i*dim1+j])
+                edges.push_back({i,j});
+    }
+    int cnt = 0;
+    auto test = new hastopologicalminorquick4test(ns2,ns1,mincnt);
+    bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
+
+    return resbool;
+
+}
+
+
 
 void partitionintoncomponents( const int& size, const int& n, std::vector<int*>& partitions ) {
     // similar to setitrmaps, however technically into less than or equal to n components
@@ -2331,7 +2543,7 @@ bool hastopologicalminorquick3core(const neighbors* childns, neighbors* playns, 
         FP* fp = startfingerprint(*childns,false);
         takefingerprint(childns,fp,childns->g->dim,false);
         if (newmincnt == 1) {
-            if (embedsgenerousquick(childns, fp, minorns, 1)) {
+            if (existsgenerousiso(childns, fp, minorns)) {
                 // std::cout << "passing minor graph:\n";
                 // osadjacencymatrix(std::cout,minorg);
                 // std::cout << "\n";
@@ -3220,6 +3432,45 @@ void pathsbetweentuplesinternal( graphtype* g, neighborstype* ns, vertextype v1,
 }
 
 
+void pathbetweentupleinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<vertextype> existingpath, std::vector<vertextype>& out )
+{
+    if (v1 == v2)
+    {
+        out = existingpath;
+        return;
+    }
+    auto g2 = new graphtype(g->dim);
+    copygraph( g, g2 );
+    // int res = 0;
+    for (int j = 0; j < ns->degrees[v2]; ++j)
+    {
+        vertextype v3 = ns->neighborslist[v2*g->dim + j];
+        g2->adjacencymatrix[v2*g->dim + v3] = false;
+        g2->adjacencymatrix[v3*g->dim + v2] = false;
+    }
+    auto ns2 = new neighborstype(g2);
+
+    for (int i = 0; i < ns->degrees[v2]; ++i) {
+        // copygraph( g, g2 );
+        vertextype v = ns->neighborslist[v2*g->dim + i];
+        // existingpath.insert(existingpath.begin(),v);
+
+        existingpath.push_back(v);
+        if (v == v1) {
+            out = existingpath;
+            break;
+        }
+        // g2->adjacencymatrix[v2*g->dim + v] = false;
+        // g2->adjacencymatrix[v*g->dim + v2] = false;
+        // auto ns2 = new neighborstype(g2);
+        pathbetweentupleinternal(g2,ns2, v1,v,existingpath, out);
+        existingpath.resize(existingpath.size()-1);
+        // .erase(existingpath.begin(),existingpath.begin()+1);
+    }
+    delete ns2;
+    delete g2;
+}
+
 
 
 
@@ -3229,6 +3480,14 @@ void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertext
     std::vector<vertextype> existingpath {};
     existingpath.push_back(v1);
     pathsbetweentuplesinternal( g, ns, v2, v1, existingpath, out );
+}
+
+void pathbetweentuple( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<vertextype>& out )
+{
+    // std::cout << "v1 == " << v1 << ", v2 == " << v2 << "\n";
+    std::vector<vertextype> existingpath {};
+    existingpath.push_back(v1);
+    pathbetweentupleinternal( g, ns, v2, v1, existingpath, out );
 }
 
 int cyclesvcountinternal( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {

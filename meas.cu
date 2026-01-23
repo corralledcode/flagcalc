@@ -468,8 +468,31 @@ public:
         bindnamedparams();
     }
 
-
     ~hastopologicalminorcrit() {}
+};
+
+class hastopologicalminor4crit : public crit {
+public:
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        neighbors* flagns = ps[0].v.nsv;
+        auto r = negated != hastopologicalminorquick4(flagns, ns, 1);
+        return r;
+    }
+    bool takemeas( const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    hastopologicalminor4crit( mrecords* recin ) : crit( recin, "hastopologicalminorc4", "has the given graph as a topological minor (algorithm 4)" )
+
+    {
+        valms p1 {};
+        p1.t = mtgraph;
+        nps.push_back(std::pair{"H",p1});
+        bindnamedparams();
+    }
+
+
+    ~hastopologicalminor4crit() {}
 };
 
 

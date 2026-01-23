@@ -563,7 +563,7 @@ public:
             if (p.first == "p") {
                 double f = std::stof(p.second);
                 if (f >= 0 && f <= 1)
-                    edgecnt = (long int)(std::stof(p.second) * nchoosek(dim,2));
+                    edgecnt = std::stof(p.second) * nchoosek(dim,2);
             }
         }
 
@@ -1809,6 +1809,7 @@ public:
         auto (connvusingsetc) = critfactory<connvusingsetcrit>;
         auto (embedsc) = critfactory<embedscrit>;
         auto (hastopologicalminorc) = critfactory<hastopologicalminorcrit>;
+        auto (hastopologicalminorc4) = critfactory<hastopologicalminor4crit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1838,6 +1839,7 @@ public:
         crsfactory.push_back(connvusingsetc);
         crsfactory.push_back(embedsc);
         crsfactory.push_back(hastopologicalminorc);
+        crsfactory.push_back(hastopologicalminorc4);
 
         // ...
 
@@ -2020,6 +2022,7 @@ public:
         auto (CUDAnwalksbetweenp) = tuplefactory<CUDAnwalksbetweentuple>;
         auto (CUDAConnvp) = tuplefactory<CUDAConnvtuple>;
 #endif
+        auto (Pathp) = tuplefactory<Pathtuple>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
@@ -2032,6 +2035,7 @@ public:
         ossfactory.push_back(CUDAnwalksbetweenp);
         ossfactory.push_back(CUDAConnvp);
 #endif
+        ossfactory.push_back(Pathp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));

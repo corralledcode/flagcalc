@@ -1555,6 +1555,7 @@ public:
 
 };
 
+
 class setitrcyclesv : public setitrmodeone
 {
 public:
@@ -3621,6 +3622,36 @@ public:
         bindnamedparams();
     }
 };
+
+class Pathtuple : public set
+{
+public:
+
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        auto g = ns->g;
+        std::vector<vertextype> path {};
+        pathbetweentuple(g,ns,ps[0].v.iv,ps[1].v.iv,path);
+        return new setitrtuple<int>(path);
+    }
+
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Pathtuple( mrecords* recin ) : set(recin,"Pathp", "One path between two vertices tuple")
+    {
+        valms v {};
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        bindnamedparams();
+    }
+};
+
 
 class Pathsusingvsetset : public set
 {
