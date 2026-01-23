@@ -164,6 +164,8 @@ void sortneighbors( neighbors* ns, FP* fps, int fpscnt );
 
 void takefingerprint( const neighbors* ns, FP* fps, int fpscnt, const bool useinvert = true );
 
+FP* startfingerprint( const neighborstype& ns, bool useinvert = true );
+
 void freefps( FP* fps, int fpscnt );
 
 /* superceded by class method of class neighbors
@@ -202,9 +204,21 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
 bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt );
 // i.e. non-induced (preserving adjacency but not necessarily non-adjacency
 
+bool hastopologicalminorquick( const neighbors* ns1, const neighbors* ns2, const int mincnt );
+
+bool hastopologicalminorquick2( const neighbors* childns, const neighbors* parentns, const int mincnt );
+
+bool hastopologicalminorquick3( const neighbors* childns, const neighbors* parentns, const int mincnt );
+
 int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
 
 int embedsgenerouscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
+
+// int hastopologicalminorcount( const neighbors* ns1, const neighbors* ns2 );
+
+
+bool graphextendstotopologicalminor( const graphtype& g,
+    const vertextype* vertices, const graphtype& g2 );
 
 bool kconnectedfn( graphtype* g, neighborstype* ns, int k );
 

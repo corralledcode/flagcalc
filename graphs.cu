@@ -13,6 +13,7 @@
 // The THREADED2 functionality is now working, in some cases faster and in some slower
 //#define THREADPOOL2
 #define THREADED2
+#include <variant>
 //#define NOTTHREADED2
 
 #ifdef THREADED1
@@ -264,29 +265,63 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
                 res = -1;
     }
 
-
-
-/*
-
-    auto perms1 = getpermutations(w1->nscnt);
-    auto perms2 = getpermutations(w2->nscnt);
-    int res = -1;
-    for (int i = 0; res != 0 && i < perms1.size(); i++) {
-        for (int k = 0; res != 0 && k < perms2.size(); k++) {
-            res = 0;
-            for (int j = 0; res == 0 && j < w1->nscnt; ++j) {
-                if (ns1->degrees[w1->ns[perms1[i][j]].v] <= ns2->degrees[w2->ns[perms2[k][j]].v])
-                    res = FPgenerouscmp(ns1,ns2,&w1->ns[perms1[i][j]],&w2->ns[perms2[k][j]]);
-                else
-                    res = -1;
-            }
-        }
-    }
-*/
-
     return res;
 }
 
+bool graphextendstotopologicalminorcore( const graphtype& g, bool* adjmatrix, int adjmatrixcount, int* usedvertices ) {
+    bool res = adjmatrixcount == 0;
+    // osadjacencymatrix(std::cout, &g);
+    // std::cout << "\n";
+    for (int i = 0; !res && i < g.dim; i++) {
+        if (usedvertices[i] > 0) {
+            for (int j = i+1; !res && j < g.dim; j++) {
+                // std::cout << "i == " << i << " , j == " << j << std::endl;
+                if (g.adjacencymatrix[i*g.dim + j])
+                    if (usedvertices[j] == 0) {
+                        // std::cout << "Calling core, adjmatrixcount == " << adjmatrixcount << std::endl;
+                        usedvertices[j] = usedvertices[i];
+                        res = res || graphextendstotopologicalminorcore( g, adjmatrix, adjmatrixcount, usedvertices );
+                        usedvertices[j] = 0;
+                    } else if (adjmatrix[(usedvertices[i]-1)*g.dim + (usedvertices[j]-1)]) {
+                        adjmatrix[(usedvertices[i]-1)*g.dim + (usedvertices[j]-1)] = false;
+                        adjmatrix[(usedvertices[j]-1)*g.dim + (usedvertices[i]-1)] = false;
+                        adjmatrixcount--;
+                        // std::cout << "removing edge " << usedvertices[i]-1 << " , " << usedvertices[j]-1 << std::endl;
+                        // std::cout << "adjmatrixcount now at " << adjmatrixcount << std::endl;
+                        if (adjmatrixcount == 0)
+                            res = true;
+                    } else ;
+                // else
+                    // std::cout << "No edge " << i << ", " << j << std::endl;
+            }
+        }
+    }
+    return res;
+}
+
+bool graphextendstotopologicalminor( const graphtype& g,
+        const vertextype* vertices, const graphtype& g2 ) {
+    int* usedvertices = new int[g.dim];
+    memset(usedvertices,0,sizeof(int) * g.dim);
+    for (int i = 0; i < g2.dim; i++)
+        usedvertices[vertices[i]] = vertices[i]+1;
+    bool* adjmatrix = new bool[g.dim*g.dim];
+    memset(adjmatrix,false,sizeof(bool) * g.dim * g.dim);
+    int adjmatrixcount = 0;
+    for (int i = 0; i < g2.dim; i++)
+        for (int j = i+1; j < g2.dim; j++) {
+            int a = vertices[i];
+            int b = vertices[j];
+            adjmatrix[a*g.dim + b] = g2.adjacencymatrix[i*g2.dim + j];
+            adjmatrix[b*g.dim + a] = g2.adjacencymatrix[j*g2.dim + i];
+            if (adjmatrix[a*g.dim + b]) {
+                adjmatrixcount++;
+                std::cout << "adjmatrix edge " << a << ", " << b << std::endl;
+            }
+        }
+
+    return graphextendstotopologicalminorcore( g, adjmatrix, adjmatrixcount, usedvertices );
+}
 
 
 
@@ -592,6 +627,19 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt, const bool usein
     delete sortedinverted;
     delete sizeofdegree;
     delete sizeofinverteddegree;
+}
+
+FP* startfingerprint( const neighborstype& ns, bool useinvert ) {
+    int dim = ns.dim;
+    FP* fp = (FP*)malloc(dim*sizeof(FP));
+    for (int j = 0; j < dim; ++j) {
+        fp[j].v=j;
+        fp[j].ns = nullptr;
+        fp[j].nscnt = dim;
+        fp[j].parent = nullptr;
+        fp[j].invert = useinvert ? ns.degrees[j] >= int((dim+1)/2) : false;
+    }
+    return fp;
 }
 
 void freefps( FP* fps, int fpscnt ) {
@@ -1534,6 +1582,7 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
 
     if (fps1ptr == nullptr) {
         responsibletofree = true;
+        /*
         FP* fps1ptr = (FP*)malloc(dim * sizeof(FP));
         for (int n = 0; n < dim; ++n) {
             fps1ptr[n].v = n;
@@ -1542,6 +1591,8 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
             fps1ptr[n].parent = nullptr;
             fps1ptr[n].invert = false; // ns1->degrees[n] >= int((dim+1)/2);
         }
+        */
+        FP* fps1ptr = startfingerprint(*ns1,false);
 
         takefingerprint(ns1,fps1ptr,dim, false);
 
@@ -1551,11 +1602,12 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
         //osfingerprint(std::cout,ns1,fps1ptr,dim);
     }
 
-    FP* fps2ptr;
 
+    FP* fps2ptr;
     if (g1 == g2)
         fps2ptr = fps1ptr;
     else {
+        /*
         fps2ptr = (FP*)malloc(dim * sizeof(FP));
 
         for (int n = 0; n < dim; ++n) {
@@ -1564,7 +1616,9 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
             fps2ptr[n].nscnt = 0;
             fps2ptr[n].parent = nullptr;
             fps2ptr[n].invert = false; // ns2->degrees[n] >= int((dim+1)/2);
-        }
+        }*/
+
+        fps2ptr = startfingerprint(*ns2,false);
 
         takefingerprint(ns2,fps2ptr,dim, false);
         //sortneighbors(ns2,fps2ptr,dim);
@@ -1798,6 +1852,22 @@ public:
 
 };
 
+class hastopologicalminorquicktest : public quicktest {
+public:
+    const graphtype* parentgraph;
+    const neighbors* flagns;
+
+    bool test(int* testseq) override {
+        bool resbool = false;
+        resbool = graphextendstotopologicalminor(*parentgraph, testseq, *flagns->g );
+        return resbool;
+    }
+    hastopologicalminorquicktest( const graphtype* parentgraphin, const neighbors* flagnsin )
+        : parentgraph{parentgraphin}, flagns{flagnsin} {}
+
+};
+
+
 
 
 bool enumsizedsubsetsquick(int sizestart, int sizeend, int* seq, int start, int stop, int* cnt, const int mincnt, quicktest* test) {
@@ -1878,15 +1948,6 @@ bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, co
     int dim2 = g2->dim;
     if (dim2 < dim1)
         return false;
-    int numberofsubsets; // = nchoosek(dim2,dim1);
-    //int* subsets = (int*)malloc(numberofsubsets*dim1*sizeof(int));
-    //std::vector<int> subsets {};
-    //enumsizedsubsets(0,dim1,nullptr,0,dim2,&subsets);
-    //numberofsubsets = subsets.size()/dim1;
-    /*if (numberofsubsets*dim1 != subsets.size()) {
-        std::cout << "Counting error in 'embeds': "<< numberofsubsets << " != "<<subsets.size()<< "\n";
-        return false;
-    }*/
 
     int cnt = 0;
     auto gtemp = new graphtype(dim1);
@@ -1905,6 +1966,440 @@ bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, co
 
     //free(subsets);
     return resbool;
+}
+bool hastopologicalminorquickcore(const neighbors& childns, const neighbors& parentns,
+        std::vector<std::pair<vertextype,vertextype>>& edges, int mincnt ) {
+    FP* fp = startfingerprint(childns,false);
+    takefingerprint(&childns,fp,childns.g->dim,false);
+    int newmincnt = mincnt;
+    if (newmincnt == 1) {
+        if (embedsgenerousquick(&childns, fp, &parentns, 1))
+            return true;
+    } else {
+        newmincnt -= embedsgenerouscount(&childns, fp, &parentns);
+        if (newmincnt <= 0)
+            return true;
+    }
+
+    int newdim = childns.g->dim +1;
+    if (newdim > parentns.g->dim)
+        return false;
+    auto expandedchild = new graphtype(newdim);
+    for (int i = 0; i < childns.g->dim; ++i)
+        for (int j = 0; j < childns.g->dim; ++j) {
+            expandedchild->adjacencymatrix[i*newdim + j] = childns.g->adjacencymatrix[i*childns.g->dim + j];
+        }
+    for (int i = 0; i < newdim; ++i) {
+        expandedchild->adjacencymatrix[i*newdim + newdim-1] = false;
+        expandedchild->adjacencymatrix[(newdim-1)*newdim + i] = false;
+    }
+    int sz = edges.size();
+    bool res = false;
+    for (int i = 0; !res && i < sz; ++i) {
+        const int a = edges[i].first;
+        const int b = edges[i].second;
+        edges.erase(edges.begin() + i);
+        edges.push_back({a, newdim - 1});
+        edges.push_back({b, newdim - 1});
+        expandedchild->adjacencymatrix[a*newdim + newdim - 1] = true;
+        expandedchild->adjacencymatrix[(newdim-1)*newdim + a] = true;
+        expandedchild->adjacencymatrix[b*newdim + newdim - 1] = true;
+        expandedchild->adjacencymatrix[(newdim-1)*newdim + b] = true;
+        expandedchild->adjacencymatrix[a*newdim + b] = false;
+        expandedchild->adjacencymatrix[b*newdim + a] = false;
+        auto expandedchildns = new neighborstype(expandedchild);
+        res = res || hastopologicalminorquickcore(*expandedchildns,parentns,edges, newmincnt);
+        delete expandedchildns;
+        expandedchild->adjacencymatrix[a*newdim + newdim - 1] = false;
+        expandedchild->adjacencymatrix[(newdim-1)*newdim + a] = false;
+        expandedchild->adjacencymatrix[b*newdim + newdim - 1] = false;
+        expandedchild->adjacencymatrix[(newdim-1)*newdim + b] = false;
+        expandedchild->adjacencymatrix[a*newdim + b] = true;
+        expandedchild->adjacencymatrix[b*newdim + a] = true;
+        edges.pop_back();
+        edges.pop_back();
+        edges.insert(edges.begin() + i, {a,b});
+    }
+    freefps(fp,childns.dim);
+    delete expandedchild;
+    return res;
+
+}
+
+bool hastopologicalminorquick( const neighbors* ns1, const neighbors* ns2, const int mincnt ) {
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+
+    std::vector<std::pair<vertextype,vertextype>> edges {};
+    for (int i = 0; i < dim1; ++i) {
+        for (int j = i+1; j < dim1; ++j)
+            if (g1->adjacencymatrix[i*dim1+j])
+                edges.push_back({i,j});
+    }
+
+    return hastopologicalminorquickcore(*ns1, *ns2, edges, mincnt );
+
+}
+
+void partitionintoncomponents( const int& size, const int& n, std::vector<int*>& partitions ) {
+    // similar to setitrmaps, however technically into less than or equal to n components
+
+    if (n <= 0)
+        return;
+    partitions.clear();
+    bool ended = false;
+    int lastindex = 0;
+    int* newpartition = new int[size];
+    memset(newpartition, 0, size*sizeof(int));
+    partitions.push_back(newpartition);
+    while (!ended) {
+        int i = 0;
+        while (i < size && partitions[lastindex][i] == n-1)
+            i++;
+        if (i < size) {
+            int* newpartition = new int[size];
+            partitions.push_back(newpartition);
+            memcpy(newpartition, partitions[lastindex], size*sizeof(int));
+            for (int j = 0; j < i; ++j)
+                newpartition[j] = 0;
+            newpartition[i]++;
+            lastindex++;
+        } else
+            ended = true;
+    }
+}
+
+bool hastopologicalminorquick2( const neighbors* childns, const neighbors* parentns, const int mincnt ) {
+    graphtype* childg = childns->g;
+    graphtype* parentg = parentns->g;
+    int childdim = childns->g->dim;
+    int parentdim = parentg->dim;
+    if (parentdim < childdim)
+        return false;
+
+    if (parentdim == childdim) {
+        int newmincnt = mincnt;
+        FP* fp = startfingerprint(*childns,false);
+        takefingerprint(childns,fp,childns->g->dim,false);
+        if (newmincnt == 1) {
+            if (embedsgenerousquick(childns, fp, parentns, 1))
+                return true;
+            else return false;
+        } else {
+            newmincnt -= embedsgenerouscount(childns, fp, parentns);
+            if (newmincnt <= 0)
+                return true;
+            else
+                return false;
+        }
+
+    }
+
+    std::vector<int*> partitions;
+    std::vector<std::pair<vertextype,vertextype>> childedges {};
+    for (int i = 0; i < childdim; ++i)
+        for (int j = i+1; j < childdim; ++j)
+            if (childg->adjacencymatrix[i*childdim+j])
+                childedges.push_back({i,j});
+
+    partitionintoncomponents(parentdim - childdim,childedges.size(), partitions);
+
+    std::vector<int> subsets {};
+    enumsizedsubsets(0,childdim,nullptr,0,parentdim,&subsets);
+    const int subsetscount = subsets.size()/childdim;
+
+    bool res = false;
+    for (int s = 0; !res && s < subsetscount; ++s) {
+        for (int i = 0; !res && i < partitions.size(); ++i) {
+            auto minorg = new graphtype(childdim);
+            memset(minorg->adjacencymatrix, false, sizeof(bool)*minorg->dim*minorg->dim);
+            for (int j = 0; !res && j < childedges.size(); ++j) {
+
+                vertextype a = subsets[s*childdim + childedges[j].first];
+                vertextype b = subsets[s*childdim + childedges[j].second];
+                // std::cout << "a==" << a << ", b==" << b << std::endl;
+
+
+
+                std::vector<vertextype> partvertices {};
+                int delta = 0;
+                for (int l = 0; l < parentdim - childdim; ++l) {
+                    if (partitions[i][l] == j)
+                        partvertices.push_back(l + delta);
+                    if (subsets[s*childdim + l] == l + delta)
+                        delta++;
+                }
+
+                auto portiong = new graphtype(partvertices.size()+2);
+                memset(portiong->adjacencymatrix, false, sizeof(bool)*portiong->dim*portiong->dim);
+
+                bool connecteda = false;
+                bool connectedb = false;
+                for (int l = 0; (!connecteda || !connectedb) && l < partvertices.size(); ++l) {
+                    if (parentg->adjacencymatrix[partvertices[l]*parentdim+a]) {
+                        portiong->adjacencymatrix[partvertices.size()*portiong->dim + l] = true;
+                        portiong->adjacencymatrix[l*portiong->dim + partvertices.size()] = true;
+                        connecteda = true;
+                    }
+                    if (parentg->adjacencymatrix[partvertices[l]*parentdim+b]) {
+                        portiong->adjacencymatrix[(partvertices.size()+1)*portiong->dim + l] = true;
+                        portiong->adjacencymatrix[l*portiong->dim + partvertices.size()+1] = true;
+                        connectedb = true;
+                    }
+                }
+                if (!connecteda || !connectedb) {
+                    portiong->adjacencymatrix[partvertices.size()*portiong->dim + partvertices.size()+1] = parentg->adjacencymatrix[a*parentg->dim + b];
+                    connectedb = parentg->adjacencymatrix[a*parentg->dim + b];
+                    portiong->adjacencymatrix[(partvertices.size()+1)*portiong->dim + partvertices.size()] = parentg->adjacencymatrix[b*parentg->dim + a];
+                    connecteda = parentg->adjacencymatrix[b*parentg->dim + a];
+                    if (!connecteda || !connectedb)
+                        continue;
+                }
+
+                // for (auto v : partvertices)
+                    // std::cout << v << " ";
+                // std::cout << std::endl;
+                for (int u = 0; u < partvertices.size(); ++u) {
+                    for (int v = u+1; v < partvertices.size(); ++v) {
+                        portiong->adjacencymatrix[u*portiong->dim+v] =
+                            parentg->adjacencymatrix[partvertices[u]*parentdim+partvertices[v]];
+                        portiong->adjacencymatrix[v*portiong->dim+u] =
+                            parentg->adjacencymatrix[partvertices[v]*parentdim+partvertices[u]];
+                    }
+                }
+
+
+                auto portionns = new neighborstype(portiong);
+                // std::cout << "portiong:" <<"\n";
+                // osadjacencymatrix(std::cout , portiong);
+                // std::cout << "\n";
+                minorg->adjacencymatrix[childedges[j].first*minorg->dim + childedges[j].second] =
+                    pathsbetweenmin(portiong, portionns, partvertices.size(), partvertices.size()+1, 1);
+                minorg->adjacencymatrix[childedges[j].second*minorg->dim + childedges[j].first] =
+                    minorg->adjacencymatrix[childedges[j].first*minorg->dim + childedges[j].second];
+                delete portionns;
+                delete portiong;
+            }
+
+            // std::cout << "minorg:" <<"\n";
+            // osadjacencymatrix(std::cout, minorg);
+
+            auto minorns = new neighborstype(minorg);
+
+            FP* fp = startfingerprint(*childns,false);
+            takefingerprint(childns,fp,childns->g->dim,false);
+            int newmincnt = mincnt;
+            if (newmincnt == 1) {
+                if (embedsgenerousquick(childns, fp, minorns, 1))
+                    res = true;
+            } else {
+                newmincnt -= embedsgenerouscount(childns, fp, minorns);
+                if (newmincnt <= 0)
+                    res = true;
+            }
+            delete minorns;
+            delete minorg;
+
+        }
+    }
+    for (auto p : partitions)
+        delete p;
+    return res;
+
+}
+
+bool hastopologicalminorquick3core(const neighbors* childns, neighbors* playns, neighbors* minorns, const graphtype& parentg,
+        const std::vector<int>& subsets, const int& subsetsoffset, const int& mincnt ) {
+    graphtype* childg = childns->g;
+    graphtype* playg = playns->g;
+    graphtype* minorg = minorns->g;
+    int minordim = minorg->dim;
+    int childdim = childg->dim;
+    int playdim = playg->dim;
+    int parentdim = parentg.dim;
+    if (playdim < childdim)
+        return false;
+
+    if (playdim == childdim) {
+        int newmincnt = mincnt;
+        FP* fp = startfingerprint(*childns,false);
+        takefingerprint(childns,fp,childns->g->dim,false);
+        if (newmincnt == 1) {
+            if (embedsgenerousquick(childns, fp, playns, 1))
+                return true;
+            else return false;
+        } else {
+            newmincnt -= embedsgenerouscount(childns, fp, playns);
+            if (newmincnt <= 0)
+                return true;
+            else
+                return false;
+        }
+    }
+
+    int i = 0;
+    bool res = false;
+    while (i < childdim && !res) {
+        int j = i+1;
+        while (j < childdim && !res) {
+            if (!minorg->adjacencymatrix[i*childdim+j]) {
+                const int u = subsets[subsetsoffset*childdim + i];
+                const int v = subsets[subsetsoffset*childdim + j];
+                auto newnewplayg = new graphtype(playdim);
+                copygraph(playg, newnewplayg);
+                // Erroneous code commented out:
+                // for (int m = 0; m < playdim; ++m) {
+                    // bool found = false;
+                    // if (m != u && m != v)
+                        // for (int l = 0; !found && l < childdim; ++l)
+                            // found = found || (subsets[subsetsoffset*childdim + l] == m);
+                    // if (!found) {
+                        // newnewplayg->adjacencymatrix[u*playdim + m] = parentg.adjacencymatrix[u*parentdim + m];
+                        // newnewplayg->adjacencymatrix[v*playdim + m] = parentg.adjacencymatrix[v*parentdim + m];
+                        // newnewplayg->adjacencymatrix[m*playdim + u] = parentg.adjacencymatrix[m*parentdim + u];
+                        // newnewplayg->adjacencymatrix[m*playdim + v] = parentg.adjacencymatrix[m*parentdim + v];
+                    // }
+                // }
+                for (int t = 0; t < childdim; ++t) {
+                    int w = subsets[subsetsoffset*childdim + t];
+                    if (w != u && w != v) {
+                        for (int m = 0; m < parentdim; ++m) {
+                            if (m != u && m != v) {
+                                newnewplayg->adjacencymatrix[m*parentdim + w] = false;
+                                newnewplayg->adjacencymatrix[w*parentdim + m] = false;
+                            }
+                        }
+                    }
+                }
+                auto newnewplayns = new neighborstype(newnewplayg);
+                std::vector<std::vector<vertextype>> outpaths {};
+                pathsbetweentuples( newnewplayg, newnewplayns, u, v, outpaths );
+                if (outpaths.size() > 0) {
+                    auto newminorg = new graphtype(childdim);
+                    copygraph(minorg, newminorg);
+                    // std::cout << "i == " << i << " (" << u << "), j == " << j << " (" << v << ")\n";
+                    newminorg->adjacencymatrix[i*childdim + j] = true;
+                    newminorg->adjacencymatrix[j*childdim + i] = true;
+                    auto newminorns = new neighborstype(newminorg);
+                    for (int k = 0; k < outpaths.size(); ++k) {
+                        if (outpaths[k].size() > 2) {
+                            auto newplayg = new graphtype(playdim);
+                            copygraph(playg, newplayg);
+                            for (int l = 1; l < outpaths[k].size() - 1; ++l) {
+                                for (int m = 0; m < playdim; ++m) {
+                                    newplayg->adjacencymatrix[m*playdim + outpaths[k][l]] = false;
+                                    newplayg->adjacencymatrix[outpaths[k][l]*playdim + m] = false;
+                                }
+                            }
+                            newplayg->adjacencymatrix[u*playdim + v] = false;
+                            newplayg->adjacencymatrix[v*playdim + u] = false;
+                            auto newplayns = new neighborstype(newplayg);
+                            res = res || hastopologicalminorquick3core(childns, newplayns, newminorns, parentg, subsets, subsetsoffset, mincnt );
+                            delete newplayns;
+                            delete newplayg;
+                        } else {
+                            playg->adjacencymatrix[u*playdim + v] = false;
+                            playg->adjacencymatrix[v*playdim + u] = false;
+                            auto newplayns = new neighborstype(playg);
+                            res = res || hastopologicalminorquick3core(childns,newplayns,newminorns,parentg, subsets, subsetsoffset, mincnt );
+                            delete newplayns;
+                        }
+                    }
+                    delete newminorns;
+                    delete newminorg;
+                }
+                // delete newnewplayns;
+                // delete newnewplayg;
+            }
+            j++;
+        }
+        i++;
+    }
+    if (res) {
+        // osadjacencymatrix(std::cout, minorg);
+        // std::cout << "\n";
+        // osadjacencymatrix(std::cout, playg);
+        // std::cout << "\n\n";
+        return true;
+    }
+    if (!res) {
+        int newmincnt = mincnt;
+        FP* fp = startfingerprint(*childns,false);
+        takefingerprint(childns,fp,childns->g->dim,false);
+        if (newmincnt == 1) {
+            if (embedsgenerousquick(childns, fp, minorns, 1)) {
+                // std::cout << "passing minor graph:\n";
+                // osadjacencymatrix(std::cout,minorg);
+                // std::cout << "\n";
+                // for (int i = 0; i < childdim; ++i)
+                    // std::cout << subsets[subsetsoffset*childdim + i] << " ";
+                // std::cout << std::endl;
+
+                return true;
+            }
+            else return false;
+        } else {
+            newmincnt -= embedsgenerouscount(childns, fp, minorns);
+            if (newmincnt <= 0)
+                return true;
+            else
+                return false;
+        }
+
+    }
+}
+
+
+
+
+bool hastopologicalminorquick3( const neighbors* childns, const neighbors* parentns, const int mincnt ) {
+
+    graphtype* childg = childns->g;
+    graphtype* parentg = parentns->g;
+    int childdim = childns->g->dim;
+    int parentdim = parentg->dim;
+    if (parentdim < childdim)
+        return false;
+    std::vector<int> subsets {};
+    enumsizedsubsets(0,childdim,nullptr,0,parentdim,&subsets);
+    const int subsetscount = subsets.size()/childdim;
+
+
+    bool res = false;
+    for (int s = 0; !res && s < subsetscount; ++s) {
+        auto playgraph = new graphtype(parentdim);
+        copygraph(parentg,playgraph);
+        auto minorg = new graphtype(childdim);
+        memset(minorg->adjacencymatrix,false,sizeof(bool)*childdim*childdim);
+        // for (int i = 0; i < childdim; ++i) {
+            // int a = subsets[s*childdim + i];
+            // for (int b = 0; b < parentdim; ++b) {
+                // playgraph->adjacencymatrix[a*parentdim + b] = false;
+                // playgraph->adjacencymatrix[b*parentdim + a] = false;
+            // }
+        // }
+        auto playns = new neighborstype(playgraph);
+        auto minorns = new neighborstype(minorg);
+        res = res || hastopologicalminorquick3core(childns,playns,minorns,*parentg,subsets,s,mincnt);
+        // if (res) {
+            // for (int i = 0; i < childdim; ++i)
+                // std::cout << subsets[s*childdim + i] << " ";
+            // std::cout << std::endl;
+        // }
+
+        delete playns;
+        delete playgraph;
+        delete minorns;
+        delete minorg;
+    }
+
+    return res;
+
+
 }
 
 

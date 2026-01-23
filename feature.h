@@ -1808,6 +1808,7 @@ public:
         auto (embedsinducedc) = critfactory<embedsinducedcrit>;
         auto (connvusingsetc) = critfactory<connvusingsetcrit>;
         auto (embedsc) = critfactory<embedscrit>;
+        auto (hastopologicalminorc) = critfactory<hastopologicalminorcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1836,6 +1837,7 @@ public:
         crsfactory.push_back(embedsinducedc);
         crsfactory.push_back(connvusingsetc);
         crsfactory.push_back(embedsc);
+        crsfactory.push_back(hastopologicalminorc);
 
         // ...
 

@@ -363,6 +363,7 @@ public:
         neighbors* flagns = ps[0].v.nsv;
 
         int dim = flagns->g->dim;
+        /*
         FP* fp = (FP*)malloc(dim*sizeof(FP));
         for (int j = 0; j < dim; ++j) {
             fp[j].v=j;
@@ -370,7 +371,9 @@ public:
             fp[j].nscnt = dim;
             fp[j].parent = nullptr;
             fp[j].invert = false; // flagns->degrees[j] >= int((dim+1)/2);
-        }
+        }*/
+
+        FP* fp = startfingerprint(*flagns, false);
 
         takefingerprint(flagns,fp,flagns->g->dim, false);
         auto r = negated != (embedsgenerousquick(flagns, fp, ns, 1));
@@ -402,6 +405,7 @@ public:
         flagns = ps[0].v.nsv;
         flagg = flagns->g;
 
+        /*
         int dim = flagns->g->dim;
         FP* fp = (FP*)malloc(dim*sizeof(FP));
         for (int j = 0; j < dim; ++j) {
@@ -410,11 +414,13 @@ public:
             fp[j].nscnt = dim;
             fp[j].parent = nullptr;
             fp[j].invert = flagns->degrees[j] >= int((dim+1)/2);
-        }
+        }*/
+
+        FP* fp = startfingerprint(*flagns);
 
         takefingerprint(flagns,fp,flagns->g->dim);
         auto r = negated != (embedsquick(flagns, fp, ns, 1));
-        freefps(fp,dim);
+        freefps(fp,flagns->dim);
         return r;
     }
     bool takemeas( const int idx, const params& ps ) override {
@@ -440,6 +446,31 @@ public:
     }
 };
 
+
+class hastopologicalminorcrit : public crit {
+public:
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        neighbors* flagns = ps[0].v.nsv;
+
+        auto r = negated != hastopologicalminorquick3(flagns, ns, 1);
+        return r;
+    }
+    bool takemeas( const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    hastopologicalminorcrit( mrecords* recin ) : crit( recin, "hastopologicalminorc", "has the given graph as a topological minor" )
+
+    {
+        valms p1 {};
+        p1.t = mtgraph;
+        nps.push_back(std::pair{"H",p1});
+        bindnamedparams();
+    }
+
+
+    ~hastopologicalminorcrit() {}
+};
 
 
 class forestcrit : public crit {

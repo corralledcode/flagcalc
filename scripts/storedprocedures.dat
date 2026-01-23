@@ -193,5 +193,18 @@ SET (n IN NN(dimm), n >= 1, {ANY (m IN NN(n), ac(O[n],O[m]), O[m]),O[n]} )
 
 END
 
+mtcontinuous density(mtset X, mtset Y)
+
+Nsst(X,Y)/(st(X)*st(Y))
+
+END
+
+mtbool epsilonregular( mtcontinuous epsilon, mtset A, mtset B )
+
+NAMING (densityAB AS density(A,B), FORALL (X IN Ps(A), Y IN Ps(B), st(X) >= epsilon*st(A) AND st(Y) >= epsilon*st(B), abs(density(X,Y) - densityAB) <= epsilon))
+
+END
+
+
 #include "../scripts/recursion.dat"
 #include "../scripts/planarity.dat"

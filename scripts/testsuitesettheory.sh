@@ -383,7 +383,8 @@ $PTH/flagcalc -r 5 5 50 -a isp="../scripts/storedprocedures.dat" s="FORALL (A IN
 
 # Diestel Theorem 7.4.1 (Regularity lemma), specifically "admits an epsilon-regular partition with partition size k <= M"
 
-# $PTH/flagcalc -r 8 14 300 -a z="EXISTS (vp IN Setpartition(V), st(vp(0)) <= 0.1*st(vp(1)) AND st(vp) <= 5 AND FORALL (n IN st(vp)-1, n > 0, vp(n) == vp(n+1)), FORALL (i IN st(vp), FORALL (j IN st(vp), i != j, Nsst(vp(i),vp(j))/(st(vp(i)*st(vp(j)) "
+# $PTH/flagcalc -r 7 10.5 10 -r 8 14 10 -r 9 18 10 -r 10 22.5 10 -a isp="../scripts/storedprocedures.dat" s="NAMING (eps AS 0.2, NAMING (m AS 3, NAMING (M AS 10, EXISTS (vp IN Setpartition(V), st(vp) > m AND st(vp)-1 <= M AND st(vp[0]) <= eps*dimm AND FORALL (i IN st(vp) - 2, st(vp[i+2]) == st(vp[1]) AND FORALLN (eps*((st(vp)-1)^2)+1, i IN st(vp) - 1, j IN st(vp) - 1, i < j, epsilonregular(eps, vp[i+1],vp[j+1])))))))" all -v i=minimal3.cfg
+
 
 # Diestel Exercise 1.7 (p 10)
 
@@ -488,4 +489,12 @@ $PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set all
 
 # Diestel Cor. 1.5.2
 $PTH/flagcalc -r 9 p=0.2 100 -a s="treec" s2="EXISTS (P IN Perms(V), FORALL (v IN V, P[v] >= 1, EXISTS (n IN NN(dimm), P[n] < P[v] AND ac(n,v), FORALL (m IN NN(dimm), (P[m] < P[v] AND ac(m,v)) IMPLIES m == n))))" all -v set allsets i=minimal3.cfg
+
+# Diestel defn p 174 "extremal"
+
+$PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(3,1)" a2="edgecm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(4,1)" a2="edgecm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(5,1)" a2="edgecm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(6,1)" a2="edgecm" all -v i=minimal3.cfg
+
 

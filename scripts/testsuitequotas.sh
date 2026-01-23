@@ -6,7 +6,7 @@ $PTH/flagcalc -r 5000 6248750 2 -a e="ANYN (3, e IN E, e)"  all -v i=minimal3.cf
 $PTH/flagcalc -d f="abcde" -a s="EXISTSN (3, v IN V, v < 2)"  all -v i=minimal3.cfg allsets
 $PTH/flagcalc -d f="abcde" -a s="EXISTSN (3, v IN V, v < 3)"  all -v i=minimal3.cfg allsets
 
-# FORALLN means For all BUT n-mamy
+# FORALLN means For all BUT n-many
 $PTH/flagcalc -d f="abcde" -a s="FORALLN (3, v IN V, v > 2)"  all -v i=minimal3.cfg allsets
 $PTH/flagcalc -d f="abcde" -a s="FORALLN (3, v IN V, v > 3)"  all -v i=minimal3.cfg allsets
 
