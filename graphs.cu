@@ -242,27 +242,53 @@ int FPcmpextends( const vertextype* m1, const vertextype* m2, const neighbors* n
 }
 
 
-int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2 ) {
+int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2, std::vector<vertextype>& vertices ) {
     // acts without consideration of self or parents; looks only downwards
     // does ns2 have every edge that ns1 has?
 
     if (ns1->g->dim != ns2->g->dim)
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
 
-    if (w1->nscnt == 0)
-        return 0;
+    if (w1->nscnt == 0) {
+        bool embeds = true;
+        for (int i = 0; embeds && i < vertices.size(); i++) {
+            if (vertices[i] != -1)
+                for (int j = 0; embeds && j < vertices.size(); j++)
+                    if (vertices[j] != -1)
+                        embeds = embeds && (!ns1->g->adjacencymatrix[i*ns1->g->dim + j]
+                            || ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]]);
+        }
+        return embeds ? 0 : -1;
+    }
     if (w1->nscnt > w2->nscnt)
         return -1;
 
-    auto perms2 = getpermutations(w2->nscnt);
+    int minimal = ns1->degrees[w1->ns[w1->nscnt-1].v];
+
+    if (minimal > ns2->degrees[w2->ns[w1->nscnt-1].v])
+        return -1;
+
+    int maxidx;
+    for (maxidx = w2->nscnt - 1; maxidx >= 0 && ns2->degrees[w2->ns[maxidx].v] < minimal; --maxidx)
+        ;
+    maxidx++;
+    auto perms2 = getpermutations(maxidx);
+
     int res = -1;
     for (int i = 0; res != 0 && i < perms2.size(); i++) {
         res = 0;
-        for (int j = 0; res == 0 && j < w1->nscnt; ++j)
-            if (ns1->degrees[w1->ns[j].v] <= ns2->degrees[w2->ns[perms2[i][j]].v])
-                res = FPgenerouscmp(ns1,ns2,&w1->ns[j],&w2->ns[perms2[i][j]]);
-            else
-                res = -1;
+        for (int k = 0; k < w1->nscnt; k++) {
+            if (w1->ns[k].v + 1 > vertices.size()) {
+                auto oldsz = vertices.size();
+                vertices.resize(w1->ns[k].v+1);
+                for (int l = oldsz; l < vertices.size(); ++l)
+                    vertices[l] = -1;
+            }
+            vertices[w1->ns[k].v] = w2->ns[perms2[i][k]].v;
+        }
+        for (int j = 0; res == 0 && j < w1->nscnt; ++j) {
+            res = FPgenerouscmp(ns1,ns2,&w1->ns[j],&w2->ns[perms2[i][j]],vertices);
+        }
     }
 
     return res;
@@ -1416,8 +1442,10 @@ bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, c
 
 }
 
-bool existsgenerousisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, const FP* fp2) {
-    return FPgenerouscmp(ns1,ns2,fp1,fp2) == 0 ? true : false ;
+bool existsgenerousisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, FP* fp2) {
+    std::vector<vertextype> vertices {};
+    auto res= FPgenerouscmp(ns1,ns2,fp1,fp2,vertices) == 0 ? true : false;
+    return res;
 }
 
 
@@ -1788,6 +1816,13 @@ public:
         bool resbool;
         auto nstemp = new neighbors(gtemp);
         resbool = existsgenerousiso(ns1,fp,nstemp);
+        if (resbool) {
+            std::cout << "testseq: ";
+            for (int i = 0; i < dim1; ++i) {
+                std::cout << testseq[i];
+            }
+            std::cout << std::endl;
+        }
         free(nstemp);
         return resbool;
     }
@@ -2325,19 +2360,35 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                             // std::cout<< "error, i == " << i << ", j == " << j << ", a == " << a << ", b == " << b << std::endl;
                             if (!minorg->adjacencymatrix[i*minorg->dim + j]) {
                                 changed = true;
-                                auto usedverticescopy = usedvertices;
+                                // auto usedverticescopy = usedvertices;
+                                auto upath = usedvertices[u];
+                                auto lpath = usedvertices[l];
                                 for (int m = 1; m < usedvertices[u].size(); ++m)
-                                    usedverticescopy[usedvertices[u][m]] = {-1};
+                                    usedvertices[usedvertices[u][m]] = {-1};
                                 for (int m = 1; m < usedvertices[l].size(); ++m)
-                                    usedverticescopy[usedvertices[l][m]] = {-1};
+                                    usedvertices[usedvertices[l][m]] = {-1};
                                 minorg->adjacencymatrix[i*minorg->dim + j] = true;
                                 minorg->adjacencymatrix[j*minorg->dim + i] = true;
                                 minorns->computeneighborslist();
-                                res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedverticescopy, reverselookup, mincnt );
+                                res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
                                 if (a != u || b != l) {
                                     minorg->adjacencymatrix[i*minorg->dim + j] = false;
                                     minorg->adjacencymatrix[j*minorg->dim + i] = false;
                                     minorns->computeneighborslist();
+                                    if (a != u) {
+                                        std::vector<vertextype> temppath {a};
+                                        for (int m = 1; m < upath.size(); ++m) {
+                                            temppath.push_back(upath[m]);
+                                            usedvertices[upath[m]] = temppath;
+                                        }
+                                    }
+                                    if (b != l) {
+                                        std::vector<vertextype> temppath {b};
+                                        for (int m = 1; m < lpath.size(); ++m) {
+                                            temppath.push_back(lpath[m]);
+                                            usedvertices[lpath[m]] = temppath;
+                                        }
+                                    }
                                 }
                             } else {
                                 // osadjacencymatrix(std::cout, minorg);

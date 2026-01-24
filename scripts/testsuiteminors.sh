@@ -68,4 +68,21 @@ $PTH/flagcalc -d f="-abcdef -ghijc" -a s="NOT hastopologicalminorc4(\"abc\")" al
 # should be true
 $PTH/flagcalc -r 8 p=0.25 100 -a s="hastopologicalminorc4(\"-abcda\") IFF hastopologicalminorc(\"-abcda\")" all -v i=minimal3.cfg
 
+# should be true
 $PTH/flagcalc -r 7 p=0.5 10 -a s="hastopologicalminorc4(\"ab=cde\") IFF hastopologicalminorc(\"ab=cde\")" all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 8 p=0.25 25 -a s="hastopologicalminorc4(\"abc=def\") IFF hastopologicalminorc(\"abc=def\")" all -v i=minimal3.cfg
+
+# should be 18 out of 20 (note three-fold faster with this order of the two OR'ed statements)
+$PTH/flagcalc -d testplanarshort.dat testplanarsmall.dat -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -v i=minimal3.cfg
+
+# should be true (i.e. 16-cell graph is non-planar)
+
+$PTH/flagcalc -d f="a+bcefgh  b+defgh c+defgh d+efgh -efghe" -a s="hastopologicalminorc4(\"abc=def\") OR hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
+
+
+-d f="ab bc ce ef fg ga ae bf bg cf eg" -a s="embedsgenerousc(\"abc=def\")" -v i=minimal3.cfg
+
+-d f="abcd" -a s="embedsgenerousc(\"-abcda\")" -v i=minimal3.cfg
+
