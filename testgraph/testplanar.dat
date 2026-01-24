@@ -39,16 +39,14 @@ op gq ir ks mt
 END END
 
 /* #name=Goldner-Harary */
-abcd -gkj -hki befc
--dkf -bkc -gdi -hej
--gbh -icj
-END END
 
-/* #name=Goldner-Harary-2 again */
-
-ahe ahg hec hdg hcf hdf cef 
-dfg feh fhj gfi fij
-ehj gij ejk gjk eg
+ae ab ag
+be bc bf bd bg
+ce cf df dg
+ef eg gf
+kj ke kg
+je jg jh ji jf
+he hf if ig
 
 END END
 
