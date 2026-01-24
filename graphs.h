@@ -252,6 +252,8 @@ void pathsbetweentuples( graphtype* g, neighborstype* ns, vertextype v1, vertext
 
 void pathbetweentuple( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, std::vector<vertextype>& out );
 
+void shortpathbetweentuple( const graphtype* g, const neighborstype* ns, const vertextype& v1, const vertextype& v2, std::vector<vertextype>& out );
+
 int cyclesvcount( graphtype* g, neighborstype* ns, vertextype v1 );
 
 void cyclesvset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std::vector<vertextype>>& out );

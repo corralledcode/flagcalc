@@ -59,3 +59,13 @@ $PTH/flagcalc -r 10 p=0.177 2000 -a s="forestc" s="hastopologicalminorc4(\"abc\"
 
 # Same as above, more vertices
 $PTH/flagcalc -r 15 p=0.11 500 -a s="forestc" s="hastopologicalminorc4(\"abc\") IFF NOT forestc" all -v i=minimal3.cfg
+
+# Should be true
+$PTH/flagcalc -d f="-abcda ag bh ci dj" -a s="NOT hastopologicalminorc4(\"-abcdea\")" all -v crit allcrit set i=minimal3.cfg rt
+
+$PTH/flagcalc -d f="-abcdef -ghijc" -a s="NOT hastopologicalminorc4(\"abc\")" all -v crit allcrit set i=minimal3.cfg rt
+
+# should be true
+$PTH/flagcalc -r 8 p=0.25 100 -a s="hastopologicalminorc4(\"-abcda\") IFF hastopologicalminorc(\"-abcda\")" all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 7 p=0.5 10 -a s="hastopologicalminorc4(\"ab=cde\") IFF hastopologicalminorc(\"ab=cde\")" all -v i=minimal3.cfg
