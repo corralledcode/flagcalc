@@ -399,11 +399,11 @@ public:
 
 class embedsinducedcrit : public crit {
 public:
-    graphtype* flagg;
-    neighbors* flagns;
+    // graphtype* flagg;
+    // neighbors* flagns;
     bool takemeas( neighborstype* ns, const params& ps ) override {
-        flagns = ps[0].v.nsv;
-        flagg = flagns->g;
+        auto flagns = ps[0].v.nsv;
+        auto flagg = flagns->g;
 
         /*
         int dim = flagns->g->dim;
@@ -439,10 +439,10 @@ public:
 
     ~embedsinducedcrit()
     {
-        delete flagg;
-        delete flagns;
-        flagg = nullptr;
-        flagns = nullptr;
+        // delete flagg;
+        // delete flagns;
+        // flagg = nullptr;
+        // flagns = nullptr;
     }
 };
 

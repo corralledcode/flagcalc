@@ -81,4 +81,22 @@ $PTH/flagcalc -d testplanarshort.dat testplanarsmall.dat -a s="hastopologicalmin
 
 $PTH/flagcalc -d f="a+bcefgh  b+defgh c+defgh d+efgh -efghe" -a s="hastopologicalminorc4(\"abc=def\") OR hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
 
+# should be true (a relic from a bug fix)
+$PTH/flagcalc -d f="ab bc ce ef fg ga ae bf bg cf eg" -a s="NOT embedsgenerousc(\"abc=def\")" -v i=minimal3.cfg
 
+# should be true
+$PTH/flagcalc -r 8 p=0.25 25 -a s="embedsgenerousc(\"-abcda\") IFF (embedsc(\"-abcda\") \
+OR embedsc(\"-abcda ac\") OR embedsc(\"abcd\"))" all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 10 p=0.5 500 -a s1="embedsgenerousc(\"abc=def\")" s2="embedsc(\"abc=def\") \
+OR embedsc(\"abc=def ab\") OR embedsc(\"abc=def ab bc\") OR embedsc(\"abc=def abc\") \
+OR embedsc(\"abc=def abc de\") OR embedsc(\"abc=def abc de ef\") OR embedsc(\"abc=def abc def\") \
+OR embedsc(\"abc=def ab de\") OR embedsc(\"abc=def ab bc de\") OR embedsc(\"abc=def ab bc de ef\")" all -v i=minimal3.cfg
+
+# clearly TRUE
+$PTH/flagcalc -r 10 p=0.5 500 -a s1="embedsc(\"abc=def\") \
+OR embedsc(\"abc=def ab\") OR embedsc(\"abc=def ab bc\") OR embedsc(\"abc=def abc\") \
+OR embedsc(\"abc=def abc de\") OR embedsc(\"abc=def abc de ef\") OR embedsc(\"abc=def abc def\") \
+OR embedsc(\"abc=def ab de\") OR embedsc(\"abc=def ab bc de\") OR embedsc(\"abc=def ab bc de ef\")" \
+s2="embedsgenerousc(\"abc=def\")" all -v i=minimal3.cfg

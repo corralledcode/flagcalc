@@ -250,14 +250,45 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
 
     if (w1->nscnt == 0) {
+        // std::vector<vertextype> missingvertices {};
+        // auto foundvertices = new bool[ns1->g->dim];
+        // memset(foundvertices,false,sizeof(bool)*ns1->g->dim);
         bool embeds = true;
         for (int i = 0; embeds && i < vertices.size(); i++) {
-            if (vertices[i] != -1)
-                for (int j = 0; embeds && j < vertices.size(); j++)
+            // std::cout << "vertex " << i << " maps to " << vertices[i] << std::endl;
+            if (vertices[i] != -1) {
+                // foundvertices[vertices[i]] = true;
+                for (int j = i+1; embeds && j < vertices.size(); j++) {
+                    // std::cout << "i == " << i << ", j == " << j << std::endl;
+                    // auto b1 = ns1->g->adjacencymatrix[i*ns1->g->dim + j];
+                    // auto b2 = ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]];
+                    // std::cout << "b1 " << b1 << " b2 " << b2 << std::endl;
                     if (vertices[j] != -1)
                         embeds = embeds && (!ns1->g->adjacencymatrix[i*ns1->g->dim + j]
                             || ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]]);
+                }
+            } else {
+                // missingvertices.push_back(i);
+            }
         }
+        /*
+        if (embeds && missingvertices.size() > 0) {
+            auto perms = getpermutations(missingvertices.size());
+            std::vector<vertextype> missingvertices2 {};
+            for (int k = 0; k < missingvertices.size(); k++)
+                if (!foundvertices[k])
+                    missingvertices2.push_back(k);
+            if (missingvertices.size() != missingvertices2.size()) {
+                std::cout << "Error in FPgenerouscmp\n";
+            }
+            for (int i = 0; embeds && i < missingvertices.size(); i++) {
+                for (int j = i+1; embeds && j < missingvertices.size(); j++)
+                    embeds = embeds && (!ns1->g->adjacencymatrix[missingvertices[i]*ns1->g->dim + missingvertices[j]]
+                        || ns2->g->adjacencymatrix[missingvertices2[i]*ns2->g->dim + missingvertices2[j]]);
+            }
+        }
+*/
+        // delete foundvertices;
         return embeds ? 0 : -1;
     }
     if (w1->nscnt > w2->nscnt)
@@ -1529,19 +1560,17 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
     if (g1->dim != g2->dim) // || ns1->maxdegree != ns2->maxdegree)
         return false;
 
-    /* BELOW CODE WORKS, BUT ENDEAVORING FOR FASTER CODE USING FINGERPRINTS... TESTING THE WORKING FINGERPRINT CODE AROUND FPgenerouscmp
-    auto perm = getpermutations(g1->dim);
-    bool all = false;
-    for (int i = 0; !all && i < perm.size(); ++i) {
-        all = true;
-        for (int j = 0; all && j < g1->dim; ++j)
-            for (int k = j+1; all && k < g1->dim; ++k)
-                all = !g1->adjacencymatrix[perm[i][j]*g1->dim + perm[i][k]] ||
-                    g2->adjacencymatrix[j*g2->dim + k];
-    }
-    return all;
-
-    */
+     /* BELOW CODE WORKS, BUT ENDEAVORING FOR FASTER CODE USING FINGERPRINTS... TESTING THE WORKING FINGERPRINT CODE AROUND FPgenerouscmp
+     auto perm = getpermutations(g1->dim);
+     bool all = false;
+     for (int i = 0; !all && i < perm.size(); ++i) {
+         all = true;
+         for (int j = 0; all && j < g1->dim; ++j)
+             for (int k = j+1; all && k < g1->dim; ++k)
+                 all = !g1->adjacencymatrix[perm[i][j]*g1->dim + perm[i][k]] ||
+                     g2->adjacencymatrix[j*g2->dim + k];
+     }
+     return all;*/
 
     // ------
 
@@ -1816,13 +1845,13 @@ public:
         bool resbool;
         auto nstemp = new neighbors(gtemp);
         resbool = existsgenerousiso(ns1,fp,nstemp);
-        if (resbool) {
-            std::cout << "testseq: ";
-            for (int i = 0; i < dim1; ++i) {
-                std::cout << testseq[i];
-            }
-            std::cout << std::endl;
-        }
+        // if (resbool) {
+            // std::cout << "testseq: ";
+            // for (int i = 0; i < dim1; ++i) {
+                // std::cout << testseq[i];
+            // }
+            // std::cout << std::endl;
+        // }
         free(nstemp);
         return resbool;
     }
@@ -1830,8 +1859,6 @@ public:
         : gtemp{gtempin}, g2{g2in}, ns1{ns1in}, fp{fpin}, dim1{dim1in}, dim2{dim2in} {}
 
 };
-
-
 
 
 
@@ -1932,7 +1959,6 @@ bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, co
     //free(subsets);
     return resbool;
 }
-
 
 
 void partitionintoncomponents( const int& size, const int& n, std::vector<int*>& partitions ) {
@@ -2305,6 +2331,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
 
     if (edgecnt(minorg) >= edgecnt(childg)) {
         int newmincnt = mincnt;
+
         FP* fp = startfingerprint(*childns,false);
         takefingerprint(childns,fp,childns->g->dim,false);
         if (newmincnt == 1) {
@@ -2345,12 +2372,12 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
 
     bool changed = true;
     for (int u = 0; !res && changed && u < parentg->dim; ++u) {
-        if (!usedvertices[u].empty() && usedvertices[u][0] != -1) {
+        if (!usedvertices[u].empty() && usedvertices[u].back() != -1) {
             for (int k = 0; !res && k < parentns->degrees[u]; ++k) {
                 auto l = parentns->neighborslist[u*parentg->dim + k];
                 auto a = usedvertices[u][0];
                 if (!usedvertices[l].empty()) {
-                    if (usedvertices[l][0] != -1) {
+                    if (usedvertices[l].back() != -1) {
                         auto b = usedvertices[l][0];
                         if (a != b) {
                             changed = false;
@@ -2361,12 +2388,16 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                             if (!minorg->adjacencymatrix[i*minorg->dim + j]) {
                                 changed = true;
                                 // auto usedverticescopy = usedvertices;
-                                auto upath = usedvertices[u];
-                                auto lpath = usedvertices[l];
-                                for (int m = 1; m < usedvertices[u].size(); ++m)
-                                    usedvertices[usedvertices[u][m]] = {-1};
-                                for (int m = 1; m < usedvertices[l].size(); ++m)
-                                    usedvertices[usedvertices[l][m]] = {-1};
+                                // auto upath = usedvertices[u];
+                                // auto lpath = usedvertices[l];
+                                for (int m = 1; m < usedvertices[u].size()-1; ++m)
+                                    usedvertices[usedvertices[u][m]].push_back(-1);
+                                for (int m = 1; m < usedvertices[l].size()-1; ++m)
+                                    usedvertices[usedvertices[l][m]].push_back(-1);
+                                if (a != u)
+                                    usedvertices[u].push_back(-1);
+                                if (b != l)
+                                    usedvertices[l].push_back(-1);
                                 minorg->adjacencymatrix[i*minorg->dim + j] = true;
                                 minorg->adjacencymatrix[j*minorg->dim + i] = true;
                                 minorns->computeneighborslist();
@@ -2376,18 +2407,25 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                     minorg->adjacencymatrix[j*minorg->dim + i] = false;
                                     minorns->computeneighborslist();
                                     if (a != u) {
-                                        std::vector<vertextype> temppath {a};
-                                        for (int m = 1; m < upath.size(); ++m) {
-                                            temppath.push_back(upath[m]);
-                                            usedvertices[upath[m]] = temppath;
-                                        }
+                                        // std::vector<vertextype> temppath {a};
+                                        usedvertices[u].pop_back();
+                                        for (int m = 1; m < usedvertices[u].size()-1; ++m)
+                                            usedvertices[usedvertices[u][m]].pop_back(); // remove trailing -1
+                                        // for (int m = 1; m < upath.size(); ++m) {
+                                            // temppath.push_back(upath[m]);
+                                            // usedvertices[upath[m]] = temppath;
+                                        // }
                                     }
                                     if (b != l) {
-                                        std::vector<vertextype> temppath {b};
-                                        for (int m = 1; m < lpath.size(); ++m) {
-                                            temppath.push_back(lpath[m]);
-                                            usedvertices[lpath[m]] = temppath;
-                                        }
+                                        usedvertices[l].pop_back();
+                                        for (int m = 1; m < usedvertices[l].size()-1; ++m)
+                                            usedvertices[usedvertices[l][m]].pop_back(); // remove trailing -1
+                                        // std::vector<vertextype> temppath {b};
+                                        // for (int m = 1; m < lpath.size(); ++m) {
+                                            // temppath.push_back(lpath[m]);
+                                            // usedvertices[lpath[m]] = temppath;
+                                        // }
+
                                     }
                                 }
                             } else {
