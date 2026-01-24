@@ -82,7 +82,3 @@ $PTH/flagcalc -d testplanarshort.dat testplanarsmall.dat -a s="hastopologicalmin
 $PTH/flagcalc -d f="a+bcefgh  b+defgh c+defgh d+efgh -efghe" -a s="hastopologicalminorc4(\"abc=def\") OR hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
 
 
--d f="ab bc ce ef fg ga ae bf bg cf eg" -a s="embedsgenerousc(\"abc=def\")" -v i=minimal3.cfg
-
--d f="abcd" -a s="embedsgenerousc(\"-abcda\")" -v i=minimal3.cfg
-
