@@ -100,3 +100,44 @@ OR embedsc(\"abc=def ab\") OR embedsc(\"abc=def ab bc\") OR embedsc(\"abc=def ab
 OR embedsc(\"abc=def abc de\") OR embedsc(\"abc=def abc de ef\") OR embedsc(\"abc=def abc def\") \
 OR embedsc(\"abc=def ab de\") OR embedsc(\"abc=def ab bc de\") OR embedsc(\"abc=def ab bc de ef\")" \
 s2="embedsgenerousc(\"abc=def\")" all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 12 p=0.5 500 -a s="embedsgenerousc(\"abc=def\") IFF (embedsc(\"abc=def\") \
+OR embedsc(\"abc=def ab\") OR embedsc(\"abc=def ab bc\") OR embedsc(\"abc=def abc\") \
+OR embedsc(\"abc=def abc de\") OR embedsc(\"abc=def abc de ef\") OR embedsc(\"abc=def abc def\") \
+OR embedsc(\"abc=def ab de\") OR embedsc(\"abc=def ab bc de\") OR embedsc(\"abc=def ab bc de ef\"))" all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 16 p=0.125 1500 -a s="embedsgenerousc(\"-abcda\") IFF (embedsc(\"abcd\") \
+OR embedsc(\"-abcda ac\") OR embedsc(\"-abcda\"))" all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 12 p=0.125 500 -a s="hastopologicalminorc4(\"-abcda\") IF (cr1 AND NOT forestc)" all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 12 p=0.125 500 -a s1="NOT forestc" s2="cr1" s3="hastopologicalminorc4(\"-abcda\")" all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 12 p=0.125 250 -a s1="(NOT forestc) AND NOT hastopologicalminorc4(\"-abcda\")" s2="NOT cr1" all -v i=minimal3.cfg
+
+# should be true (Diestel example graph p. 20)
+$PTH/flagcalc -d f="ab ag ah bc bh cd ch de ef eh fg" -a s="hasminorc(\"-abcda bd\")" all -v i=minimal3.cfg
+
+# should be true (implied by Diestel Prop 1.7.3)
+$PTH/flagcalc -r 12 p=0.125 500 -a s="hasminorc(\"-abcda bd\") IFF hastopologicalminorc4(\"-abcda bd\")" all -v i=minimal3.cfg
+
+# should be true (i.e. the Petersen graph has a K_5 minor but not a K_5 topological minor)
+$PTH/flagcalc -d f="-abcdea -fhjgif af bg ch di ej" -a s="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+
+# should both be true
+$PTH/flagcalc -d f="-abcdefa -ad ae bf ce df" -a s="hasminorc(\"abcde\")" s="NOT hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
+
+# should be 18 out of 20 (note three-fold faster with this order of the two OR'ed statements)
+$PTH/flagcalc -d testplanarshort.dat testplanarsmall.dat -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -v i=minimal3.cfg
+
+# should be true (Diestel Lemma 4.4.2) (note in the following, runtimes vary widely, hence doing only 15)
+$PTH/flagcalc -r 7 p=0.65 15 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
+
+# should be partly true partly false (testing adjacent queries for run times)
+$PTH/flagcalc -r 7 p=0.65 15 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -g o=out.dat overwrite all -v i=minimal3.cfg
+$PTH/flagcalc -d out.dat -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -v i=minimal3.cfg

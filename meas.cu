@@ -495,6 +495,30 @@ public:
     ~hastopologicalminor4crit() {}
 };
 
+class hasminorcrit : public crit {
+public:
+    bool takemeas( neighborstype* ns, const params& ps ) override {
+        neighbors* flagns = ps[0].v.nsv;
+        auto r = negated != hasminorquick(flagns, ns, 1);
+        return r;
+    }
+    bool takemeas( const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    hasminorcrit( mrecords* recin ) : crit( recin, "hasminorc", "has the given graph as a minor" )
+
+    {
+        valms p1 {};
+        p1.t = mtgraph;
+        nps.push_back(std::pair{"H",p1});
+        bindnamedparams();
+    }
+
+
+    ~hasminorcrit() {}
+};
+
 
 class forestcrit : public crit {
 public:

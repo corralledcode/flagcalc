@@ -1810,6 +1810,7 @@ public:
         auto (embedsc) = critfactory<embedscrit>;
         auto (hastopologicalminorc) = critfactory<hastopologicalminorcrit>;
         auto (hastopologicalminorc4) = critfactory<hastopologicalminor4crit>;
+        auto (hasminorc) = critfactory<hasminorcrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -1840,6 +1841,7 @@ public:
         crsfactory.push_back(embedsc);
         crsfactory.push_back(hastopologicalminorc);
         crsfactory.push_back(hastopologicalminorc4);
+        crsfactory.push_back(hasminorc);
 
         // ...
 

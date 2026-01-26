@@ -2483,23 +2483,125 @@ bool graphextendstotopologicalminor( const neighborstype* parentns,
     delete minorg;
     return res;
 
+}
+
+bool graphextendstominorcore( const neighborstype* parentns, const neighborstype* childns,
+        neighborstype* minorns, const vertextype* vertices, std::vector<vertextype>& usedvertices,
+        const std::vector<vertextype>& reverselookup, const int& mincnt ) {
+    auto parentg = parentns->g;
+    auto childg = childns->g;
+    auto minorg = minorns->g;
+
+    if (edgecnt(minorg) >= edgecnt(childg)) {
+        int newmincnt = mincnt;
+
+        FP* fp = startfingerprint(*childns,false);
+        takefingerprint(childns,fp,childns->g->dim,false);
+        if (newmincnt == 1) {
+            // std::cout << "res being false...\n";
+            // osadjacencymatrix(std::cout, minorg);
+            // std::cout << "\n";
+
+            // osadjacencymatrix(std::cout, childg);
+            // std::cout << "\n";
+
+            if (existsgenerousiso(childns, fp, minorns)) {
+                // std::cout << "passing minor graph:\n";
+                // osadjacencymatrix(std::cout,minorg);
+                // std::cout << "\n";
+                // for (int i = 0; i < childg->dim; ++i)
+                // std::cout << vertices[i] << " ";
+                // std::cout << std::endl;
+
+                return true;
+            }
+        }
+    }
 
 
-    /*
-    int* usedvertices = new int[parentg->dim];
-    memset(usedvertices,0,sizeof(int) * parentg->dim);
-    for (int i = 0; i < childg->dim; i++)
-        usedvertices[vertices[i]] = vertices[i]+1;
+    bool res = false;
+    bool changed = true;
+    for (int u = 0; !res && changed && u < parentg->dim; ++u) {
+        if (usedvertices[u] != -1) {
+            auto a = usedvertices[u];
+            auto i = reverselookup[a];
+            for (int k = 0; !res && k < parentns->degrees[u]; ++k) {
+                auto l = parentns->neighborslist[u*parentg->dim + k];
+                if (usedvertices[l] != -1) {
+                    auto b = usedvertices[l];
+                    if (a != b) {
+                        changed = false;
+                        auto j = reverselookup[b];
+                        // if (i == j || i == -1 || j == -1)
+                        // std::cout<< "error, i == " << i << ", j == " << j << ", a == " << a << ", b == " << b << std::endl;
+                        if (!minorg->adjacencymatrix[i*minorg->dim + j]) {
+                            changed = true;
+                            minorg->adjacencymatrix[i*minorg->dim + j] = true;
+                            minorg->adjacencymatrix[j*minorg->dim + i] = true;
+                            minorns->computeneighborslist();
+                            res = res || graphextendstominorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
+                            if (a != u || b != l) {
+                                minorg->adjacencymatrix[i*minorg->dim + j] = false;
+                                minorg->adjacencymatrix[j*minorg->dim + i] = false;
+                                minorns->computeneighborslist();
+                            }
+                        } else {
+                            // osadjacencymatrix(std::cout, minorg);
+                            // std::cout << changed << std::endl;
+                            // res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
+                            changed = true;
+                        }
 
-    auto minorg = new graphtype(childg->dim);
-    memset (minorg->adjacencymatrix,false,sizeof(bool)*minorg->dim*minorg->dim);
+                    }
+                }
+                else {
+                    usedvertices[l] = a;
+                    res = res || graphextendstominorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    return res;
+}
+
+
+
+
+
+bool graphextendstominor( const neighborstype* parentns,
+        const vertextype* vertices, const neighborstype* childns, const int& mincnt ) {
+    auto parentg = parentns->g;
+    auto childg = childns->g;
+
+    std::vector<vertextype> usedvertices;
+    usedvertices.resize(parentg->dim);
+    for (int i = 0; i < parentg->dim; ++i) {
+        usedvertices[i] = -1;
+    }
+    for (int i =0 ; i < childg->dim; ++i) {
+        usedvertices[vertices[i]] = vertices[i];
+    }
+    std::vector<vertextype> reverselookup;
+    reverselookup.resize(parentg->dim);
+    for (int i = 0; i < parentg->dim; ++i) {
+        reverselookup[i] = -1;
+    }
+    for (int i = 0; i < childg->dim; ++i) {
+        reverselookup[vertices[i]] = i;
+    }
+    auto minorg = new graphtype((childg->dim));
+    memset(minorg->adjacencymatrix,false,sizeof(bool)*minorg->dim*minorg->dim);
     auto minorns = new neighborstype(minorg);
-    auto res = graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, mincnt );
-    delete usedvertices;
+
+    auto res = graphextendstominorcore(parentns,childns,minorns,vertices,usedvertices,reverselookup,mincnt);
     delete minorns;
     delete minorg;
-    return res;*/
+    return res;
+
 }
+
 
 class hastopologicalminorquick4test : public quicktest {
 public:
@@ -2513,6 +2615,22 @@ public:
         return resbool;
     }
     hastopologicalminorquick4test( const neighborstype* parentnsin, const neighborstype* childnsin, const int mincntin )
+        : parentns{parentnsin}, childns{childnsin}, mincnt {mincntin} {}
+
+};
+
+class hasminorquicktest : public quicktest {
+public:
+    const neighborstype* parentns;
+    const neighborstype* childns;
+    const int mincnt;
+
+    bool test(int* testseq) override {
+        bool resbool = false;
+        resbool = graphextendstominor(parentns, testseq, childns, mincnt );
+        return resbool;
+    }
+    hasminorquicktest( const neighborstype* parentnsin, const neighborstype* childnsin, const int mincntin )
         : parentns{parentnsin}, childns{childnsin}, mincnt {mincntin} {}
 
 };
@@ -2604,12 +2722,6 @@ bool hastopologicalminorquick4( const neighbors* ns1, const neighbors* ns2, cons
     if (dim2 < dim1)
         return false;
 
-    std::vector<std::pair<vertextype,vertextype>> edges {};
-    for (int i = 0; i < dim1; ++i) {
-        for (int j = i+1; j < dim1; ++j)
-            if (g1->adjacencymatrix[i*dim1+j])
-                edges.push_back({i,j});
-    }
     int cnt = 0;
     auto test = new hastopologicalminorquick4test(ns2,ns1,mincnt);
     bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
@@ -2617,6 +2729,23 @@ bool hastopologicalminorquick4( const neighbors* ns1, const neighbors* ns2, cons
     return resbool;
 
 }
+
+bool hasminorquick( const neighbors* ns1, const neighbors* ns2, const int mincnt ) {
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+
+    int cnt = 0;
+    auto test = new hasminorquicktest(ns2,ns1,mincnt);
+    bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
+
+    return resbool;
+
+}
+
 
 
 
