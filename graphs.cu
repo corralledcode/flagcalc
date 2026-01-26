@@ -2540,11 +2540,11 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
                             minorg->adjacencymatrix[j*minorg->dim + i] = true;
                             minorns->computeneighborslist();
                             res = res || graphextendstominorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
-                            // if (a != u || b != l) {
-                                // minorg->adjacencymatrix[i*minorg->dim + j] = false;
-                                // minorg->adjacencymatrix[j*minorg->dim + i] = false;
-                                // minorns->computeneighborslist();
-                            // }
+                            if (a != u || b != l) {
+                                minorg->adjacencymatrix[i*minorg->dim + j] = false;
+                                minorg->adjacencymatrix[j*minorg->dim + i] = false;
+                                minorns->computeneighborslist();
+                            }
                         } else {
                             // osadjacencymatrix(std::cout, minorg);
                             // std::cout << changed << std::endl;
