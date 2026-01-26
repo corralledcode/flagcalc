@@ -141,3 +141,9 @@ $PTH/flagcalc -r 7 p=0.65 15 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\
 # should be partly true partly false (testing adjacent queries for run times)
 $PTH/flagcalc -r 7 p=0.65 15 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -g o=out.dat overwrite all -v i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -v i=minimal3.cfg
+
+# -d out.dat -a s1="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" s="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" s="NOT (hastopologicalminorc(\"abcde\") OR hastopologicalminorc(\"abc=def\"))" all -v i=minimal3.cfg
+
+# ab ac ad ae af bc bd be cf df ef
+
+# -d f="ab ac ad ae af bc bd be cf df ef" -a s="embedsgenerousc(\"abc=def\")"  all -v i=minimal3.cfg
