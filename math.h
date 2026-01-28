@@ -2589,8 +2589,12 @@ inline void mtconvertboolto( const bool vin, valms& vout )
             break;
         case mtstring: vout.v.rv = new std::string(vin ? "true" : "false");
             break;
-        case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin ? 1 : 0));
+        case mtgraph: {
+            auto g = new graphtype(vin ? 1 : 0);
+            zerograph(g);
+            vout.v.nsv = new neighborstype(g);
             break;
+        }
         case mtuncast: {
             valms v;
             v.t = mtbool;
@@ -2617,8 +2621,12 @@ inline void mtconvertdiscreteto( const LONGINT vin, valms& vout )
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
-    case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin));
+    case mtgraph: {
+        auto g = new graphtype(vin);
+        zerograph(g);
+        vout.v.nsv = new neighborstype(g);
         break;
+        }
     case mtuncast: {
         valms v;
         v.t = mtdiscrete;
@@ -2645,8 +2653,12 @@ inline void mtconvertcontinuousto( const double vin, valms& vout )
         break;
     case mtstring: vout.v.rv = new std::string(std::to_string(vin));
         break;
-    case mtgraph: vout.v.nsv = new neighborstype(new graphtype((int)vin));
+    case mtgraph: {
+        auto g = new graphtype((int)vin);
+        zerograph(g);
+        vout.v.nsv = new neighborstype(g);
         break;
+    }
     case mtuncast: {
         valms v;
         v.t = mtcontinuous;
@@ -2752,8 +2764,12 @@ inline void mtconverttupleto( setitr* vin, valms& vout )
         break;
     case mtstring: vout.v.rv = new std::string("< TUPLE of size " + std::to_string(vin->getsize()) + ">");
         break;
-    case mtgraph: vout.v.nsv = new neighborstype(new graphtype(vin->getsize()));
+    case mtgraph: {
+        auto g = new graphtype(vin->getsize());
+        zerograph(g);
+        vout.v.nsv = new neighborstype(g);
         break;
+    }
     case mtuncast: {
         valms v;
         v.t = mttuple;
@@ -3042,7 +3058,7 @@ inline void mtconverttograph( const valms& vin, neighborstype*& vout )
                         g->adjacencymatrix[vertexindices[j]*dim + vertexindices[i]] = true;
                     }
                 }
-            vout = new neighbors(g);
+            vout = new neighborstype(g);
             break;
         }
         case mtstring:

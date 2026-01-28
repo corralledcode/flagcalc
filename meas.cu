@@ -3053,7 +3053,9 @@ public:
         while (!vsitr->ended())
             vs.push_back(vsitr->getnext().v.iv);
         auto subns = new neighborstype(findedgesgivenvertexset(ns->g,vs));
-        return pathsbetweenmin( subns->g, subns, ps[0].v.iv, ps[1].v.iv, 1);
+        auto res = pathsbetweenmin( subns->g, subns, ps[0].v.iv, ps[1].v.iv, 1);
+        delete subns;
+        return res;
     }
     bool takemeas( const int idx, const params& ps) override
     {

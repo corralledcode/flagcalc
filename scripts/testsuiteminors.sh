@@ -124,7 +124,8 @@ $PTH/flagcalc -r 12 p=0.125 250 -a s1="(NOT forestc) AND NOT hastopologicalminor
 $PTH/flagcalc -d f="ab ag ah bc bh cd ch de ef eh fg" -a s="hasminorc(\"-abcda bd\")" all -v i=minimal3.cfg
 
 # should be true (implied by Diestel Prop 1.7.3)
-$PTH/flagcalc -r 12 p=0.175 50 -a s="hasminorc(\"-abcda bd\") IFF hastopologicalminorc4(\"-abcda bd\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.175 50 -a s="hasminorc(\"-abcda bd\") IFF hastopologicalminorc4(\"-abcda bd\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 p=0.215 50 -a s="hasminorc(\"-abcda ae be ce\") IFF hastopologicalminorc4(\"-abcda ae be ce\")" all -v i=minimal3.cfg
 
 # should be true (i.e. the Petersen graph has a K_5 minor but not a K_5 topological minor)
 $PTH/flagcalc -d f="-abcdea -fhjgif af bg ch di ej" -a s="hasminorc(\"abcde\")" s="NOT hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
@@ -137,7 +138,10 @@ $PTH/flagcalc -d testplanarshort.dat testplanarsmall.dat -a s="hasminorc(\"abcde
 
 # should be true (Diestel Lemma 4.4.2) (note in the following, runtimes vary widely, hence doing only 15)
 $PTH/flagcalc -r 8 p=0.5 50 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 10 p=0.4 5 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 p=0.4 5 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
+
+# should match numbers, testing relative runtimes
+$PTH/flagcalc -r 10 p=0.3 5 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -v i=minimal3.cfg
 
 # should be partly true partly false (testing adjacent queries for run times)
 $PTH/flagcalc -r 8 p=0.5 150 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -g o=out.dat overwrite all -v i=minimal3.cfg
@@ -155,9 +159,9 @@ $PTH/flagcalc -r 12 p=0.2 50 -a s="st(cyclest) > 0 IFF hasminorc(\"abc\")" all -
 
 # Diestel Prop 7.2.1
 $PTH/flagcalc -r 10 20 250 -a s1="dm >= 4" s2="hasminorc(\"abcd\")" all -v i=minimal3.cfg
-#$PTH/flagcalc -r 10 40 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
-#$PTH/flagcalc -r 12 48 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
-#$PTH/flagcalc -r 16 64 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 40 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 48 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 16 64 15 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 24 96 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 32 128 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 32 256 500 -a s1="dm >= 16" s2="hasminorc(\"abcdef\")" all -v i=minimal3.cfg

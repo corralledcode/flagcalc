@@ -2321,15 +2321,9 @@ bool hastopologicalminorquick3( const neighbors* childns, const neighbors* paren
 
 }
 
-void graphextendstotopologicalminorcorecore( const neighborstype* parentns, const neighborstype* childns
-    ) {
-
-
-}
-
 // labelled as algorithm 4:
 bool graphextendstotopologicalminorcore( const neighborstype* parentns, const neighborstype* childns, FP* childfp,
-        neighborstype* minorns, const vertextype* vertices, std::vector<std::vector<vertextype>>& usedvertices,
+        neighborstype* minorns, const bool& minornschanged, const vertextype* vertices, std::vector<std::vector<vertextype>>& usedvertices,
         const std::vector<vertextype>& reverselookup, const int& startvertex, const int& mincnt ) {
     const auto parentg = parentns->g;
     const auto childg = childns->g;
@@ -2338,7 +2332,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
     // std::cout << "\n";
 
     bool res = false;
-    if (edgecnt(minorg) >= edgecnt(childg)) {
+    if (minornschanged && edgecnt(minorg) >= edgecnt(childg)) {
         int newmincnt = mincnt;
         minorns->computeneighborslist();
 
@@ -2428,7 +2422,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                 minorg->adjacencymatrix[i*minorg->dim + j] = true;
                                 minorg->adjacencymatrix[j*minorg->dim + i] = true;
                                 // minorns->computeneighborslist();
-                                res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns, vertices, usedvertices, reverselookup, u, mincnt );
+                                res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns, true, vertices, usedvertices, reverselookup, u, mincnt );
                                 minorg->adjacencymatrix[i*minorg->dim + j] = false;
                                 minorg->adjacencymatrix[j*minorg->dim + i] = false;
                                 // minorns->computeneighborslist();
@@ -2487,7 +2481,20 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                         }
                                         minorg->adjacencymatrix[i*minorg->dim + j] = true;
                                         minorg->adjacencymatrix[j*minorg->dim + i] = true;
-                                        res = res || graphextendstotopologicalminorcore(parentns, childns, childfp, minorns, vertices, usedvertices, reverselookup, u, mincnt );
+                                        if (edgecnt(minorg) >= edgecnt(childg)) {
+                                            minorns->computeneighborslist();
+                                            if (existsgenerousiso(childns, childfp, minorns)) {
+                                                // std::cout << "passing minor graph:\n";
+                                                // osadjacencymatrix(std::cout,minorg);
+                                                // std::cout << "\n";
+                                                // for (int i = 0; i < childg->dim; ++i)
+                                                // std::cout << vertices[i] << " ";
+                                                // std::cout << std::endl;
+                                                res = true;
+                                            }
+                                        }
+
+                                        // res = res || graphextendstotopologicalminorcore(parentns, childns, childfp, minorns, true, vertices, usedvertices, reverselookup, u, mincnt );
                                         minorg->adjacencymatrix[i*minorg->dim + j] = false;
                                         minorg->adjacencymatrix[j*minorg->dim + i] = false;
                                         if (a != l) {
@@ -2520,7 +2527,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                     // auto minorg2 = new graphtype(minorg->dim);
                     // copygraph(minorg,minorg2);
                     // auto minorns2 = new neighborstype(minorg2);
-                    res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns, vertices, usedvertices, reverselookup, u, mincnt );
+                    res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices, reverselookup, u, mincnt );
                     usedvertices[l].clear();
                     // delete minorns2;
                     // delete minorg2;
@@ -2563,7 +2570,7 @@ bool graphextendstotopologicalminor( const neighborstype* parentns,
     }
     auto minorns = new neighborstype(minorg);
 
-    auto res = graphextendstotopologicalminorcore(parentns,childns,childfp,minorns,vertices,usedvertices,reverselookup, 0, mincnt);
+    auto res = graphextendstotopologicalminorcore(parentns,childns,childfp,minorns,true,vertices,usedvertices,reverselookup, 0, mincnt);
     delete minorns;
     delete minorg;
     return res;
@@ -2571,14 +2578,14 @@ bool graphextendstotopologicalminor( const neighborstype* parentns,
 }
 
 bool graphextendstominorcore( const neighborstype* parentns, const neighborstype* childns, FP* childfp,
-        neighborstype* minorns, const vertextype* vertices, std::vector<vertextype>& usedvertices,
+        neighborstype* minorns, const bool& minornschanged, const vertextype* vertices, std::vector<vertextype>& usedvertices,
         const std::vector<vertextype>& reverselookup, const int& startvertex, const int& mincnt ) {
     auto parentg = parentns->g;
     auto childg = childns->g;
     auto minorg = minorns->g;
 
     bool res = false;
-    if (edgecnt(minorg) >= edgecnt(childg)) {
+    if (minornschanged && edgecnt(minorg) >= edgecnt(childg)) {
         int newmincnt = mincnt;
         // FP* fp = startfingerprint(*childns,false);
         // takefingerprint(childns,fp,childns->g->dim,false);
@@ -2620,7 +2627,7 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
                             minorg->adjacencymatrix[i*minorg->dim + j] = true;
                             minorg->adjacencymatrix[j*minorg->dim + i] = true;
                             minorns->computeneighborslist();
-                            res = res || graphextendstominorcore( parentns, childns, childfp, minorns, vertices, usedvertices,
+                            res = res || graphextendstominorcore( parentns, childns, childfp, minorns, true, vertices, usedvertices,
                                 reverselookup, u,  mincnt );
                             // if (a != u || b != l) {
                             // minorg->adjacencymatrix[i*minorg->dim + j] = false;
@@ -2640,7 +2647,7 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
                     usedvertices[l] = a;
                     copygraph(minorg, minorg2);
                     auto minorns2 = new neighborstype(minorg2);
-                    res = res || graphextendstominorcore( parentns, childns, childfp, minorns2, vertices, usedvertices,
+                    res = res || graphextendstominorcore( parentns, childns, childfp, minorns2, false, vertices, usedvertices,
                         reverselookup, u, mincnt );
                     usedvertices[l] = -1;
                     delete minorns2;
@@ -2696,7 +2703,7 @@ bool graphextendstominor( const neighborstype* parentns,
     }
     auto minorns = new neighborstype(minorg);
 
-    auto res = graphextendstominorcore(parentns,childns,childfp,minorns,vertices,usedvertices,reverselookup,0,mincnt);
+    auto res = graphextendstominorcore(parentns,childns,childfp,minorns,true,vertices,usedvertices,reverselookup,0,mincnt);
     delete minorns;
     delete minorg;
     return res;
