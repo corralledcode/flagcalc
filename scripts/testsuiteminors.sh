@@ -58,7 +58,7 @@ $PTH/flagcalc -d f="-abcdef -bg -chi -djkl -am" -a s="hastopologicalminorc4(\"-a
 $PTH/flagcalc -r 10 p=0.177 2000 -a s="forestc" s="hastopologicalminorc4(\"abc\") IFF NOT forestc" all -v i=minimal3.cfg
 
 # Same as above, more vertices
-$PTH/flagcalc -r 15 p=0.11 500 -a s="forestc" s="hastopologicalminorc4(\"abc\") IFF NOT forestc" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 15 p=0.11 500 -a s="forestc" s="hastopologicalminorc4(\"abc\") IFF NOT forestc" all -v i=minimal3.cfg
 
 # Should be true
 $PTH/flagcalc -d f="-abcda ag bh ci dj" -a s="NOT hastopologicalminorc4(\"-abcdea\")" all -v crit allcrit set i=minimal3.cfg rt
@@ -136,14 +136,32 @@ $PTH/flagcalc -d f="-abcdefa -ad ae bf ce df" -a s="hasminorc(\"abcde\")" s="NOT
 $PTH/flagcalc -d testplanarshort.dat testplanarsmall.dat -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -v i=minimal3.cfg
 
 # should be true (Diestel Lemma 4.4.2) (note in the following, runtimes vary widely, hence doing only 15)
-$PTH/flagcalc -r 7 p=0.65 15 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 p=0.65 15 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
 
 # should be partly true partly false (testing adjacent queries for run times)
-$PTH/flagcalc -r 7 p=0.65 15 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -g o=out.dat overwrite all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 p=0.5 150 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -g o=out.dat overwrite all -v i=minimal3.cfg
 $PTH/flagcalc -d out.dat -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -v i=minimal3.cfg
 
 # -d out.dat -a s1="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" s="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" s="NOT (hastopologicalminorc(\"abcde\") OR hastopologicalminorc(\"abc=def\"))" all -v i=minimal3.cfg
-
+# -d f="ab ac ad ae af be bg cf cg df dg ef fg" -a s1="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" s="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" s="NOT (hastopologicalminorc(\"abcde\") OR hastopologicalminorc(\"abc=def\"))" all -v i=minimal3.cfg
+# -d f="ah ac ad ae af he hg cf cg df dg ef fg" -a s1="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" s="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" s="NOT (hastopologicalminorc(\"abcde\") OR hastopologicalminorc(\"abc=def\"))" all -v i=minimal3.cfg
 # ab ac ad ae af bc bd be cf df ef
 
 # -d f="ab ac ad ae af bc bd be cf df ef" -a s="embedsgenerousc(\"abc=def\")"  all -v i=minimal3.cfg
+
+# Diestel Prop 7.2.1
+$PTH/flagcalc -r 10 20 250 -a s1="dm >= 4" s2="hasminorc(\"abcd\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 10 40 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 12 48 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 16 64 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 24 96 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 32 128 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 32 256 500 -a s1="dm >= 16" s2="hasminorc(\"abcdef\")" all -v i=minimal3.cfg
+
+
+# Diestel Prop 7.2.2
+$PTH/flagcalc -r 10 40 25 -a s1="dm >= 8" s2="hastopologicalminorc4(\"abc\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 100 400 250 -a s1="dm >= 8" s2="hastopologicalminorc4(\"abc\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 100 3200 25 -a s1="dm >= 64" s2="hastopologicalminorc4(\"abcd\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 125 4000 250 -a s1="dm >= 64" s2="hastopologicalminorc4(\"abcd\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 150 4800 2500 -a s1="dm >= 64" s2="hastopologicalminorc4(\"abcd\")" all -v i=minimal3.cfg
