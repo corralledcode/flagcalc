@@ -2228,8 +2228,8 @@ bool hastopologicalminorquick3core(const neighbors* childns, FP* childfp, neighb
                     delete newminorns;
                     delete newminorg;
                 }
-                // delete newnewplayns;
-                // delete newnewplayg;
+                delete newnewplayns;
+                delete newnewplayg;
             }
             j++;
         }

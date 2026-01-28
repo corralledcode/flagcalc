@@ -699,6 +699,14 @@ public:
         }
         std::cout << "\n";*/
     }
+
+    ~randomgraphsfeature() {
+        for (int n = 0; n < _ws->items.size(); ++n) {
+            _ws->items[n]->freemem();  // figure out if this is a memory leak
+            delete _ws->items[n];
+        }
+        _ws->items.clear();
+    }
 };
 
 
