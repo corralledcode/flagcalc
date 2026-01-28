@@ -2128,7 +2128,7 @@ bool hastopologicalminorquick2( const neighbors* childns, const neighbors* paren
 
 }
 
-bool hastopologicalminorquick3core(const neighbors* childns, neighbors* playns, neighbors* minorns, const graphtype& parentg,
+bool hastopologicalminorquick3core(const neighbors* childns, FP* childfp, neighbors* playns, neighbors* minorns, const graphtype& parentg,
         const std::vector<int>& subsets, const int& subsetsoffset, const int& mincnt ) {
     graphtype* childg = childns->g;
     graphtype* playg = playns->g;
@@ -2142,14 +2142,14 @@ bool hastopologicalminorquick3core(const neighbors* childns, neighbors* playns, 
 
     if (playdim == childdim) {
         int newmincnt = mincnt;
-        FP* fp = startfingerprint(*childns,false);
-        takefingerprint(childns,fp,childns->g->dim,false);
+        bool res;
         if (newmincnt == 1) {
-            if (embedsgenerousquick(childns, fp, playns, 1))
-                return true;
-            else return false;
+            if (embedsgenerousquick(childns, childfp, playns, 1))
+                res = true;
+            else res = false;
+            return res;
         } else {
-            newmincnt -= embedsgenerouscount(childns, fp, playns);
+            newmincnt -= embedsgenerouscount(childns, childfp, playns);
             if (newmincnt <= 0)
                 return true;
             else
@@ -2214,14 +2214,14 @@ bool hastopologicalminorquick3core(const neighbors* childns, neighbors* playns, 
                             newplayg->adjacencymatrix[u*playdim + v] = false;
                             newplayg->adjacencymatrix[v*playdim + u] = false;
                             auto newplayns = new neighborstype(newplayg);
-                            res = res || hastopologicalminorquick3core(childns, newplayns, newminorns, parentg, subsets, subsetsoffset, mincnt );
+                            res = res || hastopologicalminorquick3core(childns, childfp, newplayns, newminorns, parentg, subsets, subsetsoffset, mincnt );
                             delete newplayns;
                             delete newplayg;
                         } else {
                             playg->adjacencymatrix[u*playdim + v] = false;
                             playg->adjacencymatrix[v*playdim + u] = false;
                             auto newplayns = new neighborstype(playg);
-                            res = res || hastopologicalminorquick3core(childns,newplayns,newminorns,parentg, subsets, subsetsoffset, mincnt );
+                            res = res || hastopologicalminorquick3core(childns,childfp,newplayns,newminorns,parentg, subsets, subsetsoffset, mincnt );
                             delete newplayns;
                         }
                     }
@@ -2244,10 +2244,8 @@ bool hastopologicalminorquick3core(const neighbors* childns, neighbors* playns, 
     }
     if (!res) {
         int newmincnt = mincnt;
-        FP* fp = startfingerprint(*childns,false);
-        takefingerprint(childns,fp,childns->g->dim,false);
         if (newmincnt == 1) {
-            if (existsgenerousiso(childns, fp, minorns)) {
+            if (existsgenerousiso(childns, childfp, minorns)) {
                 // std::cout << "passing minor graph:\n";
                 // osadjacencymatrix(std::cout,minorg);
                 // std::cout << "\n";
@@ -2255,18 +2253,19 @@ bool hastopologicalminorquick3core(const neighbors* childns, neighbors* playns, 
                     // std::cout << subsets[subsetsoffset*childdim + i] << " ";
                 // std::cout << std::endl;
 
-                return true;
+                res = true;
             }
-            else return false;
+            else res = false;
         } else {
-            newmincnt -= embedsgenerouscount(childns, fp, minorns);
+            newmincnt -= embedsgenerouscount(childns, childfp, minorns);
             if (newmincnt <= 0)
-                return true;
+                res = true;
             else
-                return false;
+                res = false;
         }
 
     }
+    return res;
 }
 
 
@@ -2284,6 +2283,8 @@ bool hastopologicalminorquick3( const neighbors* childns, const neighbors* paren
     enumsizedsubsets(0,childdim,nullptr,0,parentdim,&subsets);
     const int subsetscount = subsets.size()/childdim;
 
+    FP* childfp = startfingerprint(*childns,false);
+    takefingerprint(childns,childfp,childns->g->dim,false);
 
     bool res = false;
     for (int s = 0; !res && s < subsetscount; ++s) {
@@ -2300,7 +2301,7 @@ bool hastopologicalminorquick3( const neighbors* childns, const neighbors* paren
         // }
         auto playns = new neighborstype(playgraph);
         auto minorns = new neighborstype(minorg);
-        res = res || hastopologicalminorquick3core(childns,playns,minorns,*parentg,subsets,s,mincnt);
+        res = res || hastopologicalminorquick3core(childns,childfp,playns,minorns,*parentg,subsets,s,mincnt);
         // if (res) {
             // for (int i = 0; i < childdim; ++i)
                 // std::cout << subsets[s*childdim + i] << " ";
@@ -2312,6 +2313,8 @@ bool hastopologicalminorquick3( const neighbors* childns, const neighbors* paren
         delete minorns;
         delete minorg;
     }
+
+    freefps(childfp,childdim);
 
     return res;
 
