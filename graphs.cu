@@ -2608,8 +2608,8 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
             auto i = reverselookup[a];
             for (int k = 0; !res && k < parentns->degrees[u]; ++k) {
                 auto l = parentns->neighborslist[u*parentg->dim + k];
-                if (reverselookup[l] != -1 && l < u)
-                    continue;
+                // if (reverselookup[l] != -1 && l < u)
+                    // continue;
                 if (usedvertices[l] != -1) {
                     auto b = usedvertices[l];
                     if (a != b) {
@@ -2637,9 +2637,9 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
                 }
                 else {
                     auto minorg2 = new graphtype((childg->dim));
+                    usedvertices[l] = a;
                     copygraph(minorg, minorg2);
                     auto minorns2 = new neighborstype(minorg2);
-                    usedvertices[l] = a;
                     res = res || graphextendstominorcore( parentns, childns, childfp, minorns2, vertices, usedvertices,
                         reverselookup, u, mincnt );
                     usedvertices[l] = -1;
