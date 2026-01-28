@@ -2467,18 +2467,18 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                     auto j = reverselookup[b];
 
                                     if (!minorg->adjacencymatrix[i*minorg->dim + j]) {
-                                        auto lpath = usedvertices[l];
-                                        auto vpath = usedvertices[v];
-                                        if (a != l) {
-                                            for (int m = 1; m < usedvertices[l].size()-1; ++m)
-                                                usedvertices[usedvertices[l][m]] = {-1};
-                                            usedvertices[l] = {-1};
-                                        }
-                                        if (b != v) {
-                                            for (int m = 1; m < usedvertices[v].size()-1; ++m)
-                                                usedvertices[usedvertices[v][m]] = {-1};
-                                            usedvertices[v] = {-1};
-                                        }
+                                        // auto lpath = usedvertices[l];
+                                        // auto vpath = usedvertices[v];
+                                        // if (a != l) {
+                                            // for (int m = 1; m < usedvertices[l].size()-1; ++m)
+                                                // usedvertices[usedvertices[l][m]] = {-1};
+                                            // usedvertices[l] = {-1};
+                                        // }
+                                        // if (b != v) {
+                                            // for (int m = 1; m < usedvertices[v].size()-1; ++m)
+                                                // usedvertices[usedvertices[v][m]] = {-1};
+                                            // usedvertices[v] = {-1};
+                                        // }
                                         minorg->adjacencymatrix[i*minorg->dim + j] = true;
                                         minorg->adjacencymatrix[j*minorg->dim + i] = true;
                                         if (edgecnt(minorg) >= edgecnt(childg)) {
@@ -2497,27 +2497,27 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                         // res = res || graphextendstotopologicalminorcore(parentns, childns, childfp, minorns, true, vertices, usedvertices, reverselookup, u, mincnt );
                                         minorg->adjacencymatrix[i*minorg->dim + j] = false;
                                         minorg->adjacencymatrix[j*minorg->dim + i] = false;
-                                        if (a != l) {
-                                            std::vector<vertextype> temppath {a};
+                                        // if (a != l) {
+                                            // std::vector<vertextype> temppath {a};
                                             // usedvertices[u].pop_back();
                                             // for (int m = 1; m < usedvertices[u].size()-1; ++m)
                                             // usedvertices[usedvertices[u][m]].pop_back(); // remove trailing -1
-                                            for (int m = 1; m < lpath.size(); ++m) {
-                                                temppath.push_back(lpath[m]);
-                                                usedvertices[lpath[m]] = temppath;
-                                            }
-                                        }
-                                        if (b != v) {
+                                            // for (int m = 1; m < lpath.size(); ++m) {
+                                                // temppath.push_back(lpath[m]);
+                                                // usedvertices[lpath[m]] = temppath;
+                                            // }
+                                        // }
+                                        // if (b != v) {
                                             // usedvertices[l].pop_back();
                                             // for (int m = 1; m < usedvertices[l].size()-1; ++m)
                                             // usedvertices[usedvertices[l][m]].pop_back(); // remove trailing -1
-                                            std::vector<vertextype> temppath {b};
-                                            for (int m = 1; m < vpath.size(); ++m) {
-                                                temppath.push_back(vpath[m]);
-                                                usedvertices[vpath[m]] = temppath;
-                                            }
+                                            // std::vector<vertextype> temppath {b};
+                                            // for (int m = 1; m < vpath.size(); ++m) {
+                                                // temppath.push_back(vpath[m]);
+                                                // usedvertices[vpath[m]] = temppath;
+                                            // }
 
-                                        }
+
                                     }
                                 }
                             }
