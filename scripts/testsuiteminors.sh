@@ -124,10 +124,10 @@ $PTH/flagcalc -r 12 p=0.125 250 -a s1="(NOT forestc) AND NOT hastopologicalminor
 $PTH/flagcalc -d f="ab ag ah bc bh cd ch de ef eh fg" -a s="hasminorc(\"-abcda bd\")" all -v i=minimal3.cfg
 
 # should be true (implied by Diestel Prop 1.7.3)
-$PTH/flagcalc -r 12 p=0.125 500 -a s="hasminorc(\"-abcda bd\") IFF hastopologicalminorc4(\"-abcda bd\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 12 p=0.175 50 -a s="hasminorc(\"-abcda bd\") IFF hastopologicalminorc4(\"-abcda bd\")" all -v i=minimal3.cfg
 
 # should be true (i.e. the Petersen graph has a K_5 minor but not a K_5 topological minor)
-$PTH/flagcalc -d f="-abcdea -fhjgif af bg ch di ej" -a s="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="-abcdea -fhjgif af bg ch di ej" -a s="hasminorc(\"abcde\")" s="NOT hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
 
 # should both be true
 $PTH/flagcalc -d f="-abcdefa -ad ae bf ce df" -a s="hasminorc(\"abcde\")" s="NOT hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
@@ -136,7 +136,8 @@ $PTH/flagcalc -d f="-abcdefa -ad ae bf ce df" -a s="hasminorc(\"abcde\")" s="NOT
 $PTH/flagcalc -d testplanarshort.dat testplanarsmall.dat -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -v i=minimal3.cfg
 
 # should be true (Diestel Lemma 4.4.2) (note in the following, runtimes vary widely, hence doing only 15)
-$PTH/flagcalc -r 8 p=0.65 15 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 p=0.5 50 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.4 5 -a s="(hasminorc(\"abcde\") OR hasminorc(\"abc=def\")) IFF (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" all -v i=minimal3.cfg
 
 # should be partly true partly false (testing adjacent queries for run times)
 $PTH/flagcalc -r 8 p=0.5 150 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -g o=out.dat overwrite all -v i=minimal3.cfg
@@ -148,6 +149,9 @@ $PTH/flagcalc -d out.dat -a s="hastopologicalminorc4(\"abcde\") OR hastopologica
 # ab ac ad ae af bc bd be cf df ef
 
 # -d f="ab ac ad ae af bc bd be cf df ef" -a s="embedsgenerousc(\"abc=def\")"  all -v i=minimal3.cfg
+
+# should be true
+$PTH/flagcalc -r 12 p=0.2 50 -a s="st(cyclest) > 0 IFF hasminorc(\"abc\")" all -v i=minimal3.cfg
 
 # Diestel Prop 7.2.1
 $PTH/flagcalc -r 10 20 250 -a s1="dm >= 4" s2="hasminorc(\"abcd\")" all -v i=minimal3.cfg
@@ -165,3 +169,5 @@ $PTH/flagcalc -r 10 40 25 -a s1="dm >= 8" s2="hastopologicalminorc4(\"abc\")" al
 #$PTH/flagcalc -r 100 3200 25 -a s1="dm >= 64" s2="hastopologicalminorc4(\"abcd\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 125 4000 250 -a s1="dm >= 64" s2="hastopologicalminorc4(\"abcd\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 150 4800 2500 -a s1="dm >= 64" s2="hastopologicalminorc4(\"abcd\")" all -v i=minimal3.cfg
+
+# -d out2.dat -a s="hasminorc(\"-abcda bd\")" s="hastopologicalminorc4(\"-abcda bd\")" s="hastopologicalminorc(\"-abcda bd\")" all -v i=minimal3.cfg

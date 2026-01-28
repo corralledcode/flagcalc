@@ -2321,6 +2321,11 @@ bool hastopologicalminorquick3( const neighbors* childns, const neighbors* paren
 
 }
 
+void graphextendstotopologicalminorcorecore( const neighborstype* parentns, const neighborstype* childns
+    ) {
+
+
+}
 
 // labelled as algorithm 4:
 bool graphextendstotopologicalminorcore( const neighborstype* parentns, const neighborstype* childns, FP* childfp,
@@ -2332,11 +2337,11 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
     // osadjacencymatrix(std::cout, &g);
     // std::cout << "\n";
 
+    bool res = false;
     if (edgecnt(minorg) >= edgecnt(childg)) {
         int newmincnt = mincnt;
         minorns->computeneighborslist();
 
-        bool res = false;
         if (newmincnt == 1) {
             // std::cout << "res being false...\n";
             // osadjacencymatrix(std::cout, minorg);
@@ -2359,8 +2364,6 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
             return true;
     }
 
-    bool res = false;
-
     /*
     for (int i = 0; i < childg->dim; ++i)
         if (usedvertices[vertices[i]].size() != 1 || usedvertices[vertices[i]][0] != vertices[i])
@@ -2378,7 +2381,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
         if (!usedvertices[u].empty() && usedvertices[u].back() != -1) {
             auto a = usedvertices[u][0];
             // if (usedvertices[u].size() == 2)
-                // std::cout << "uFound " << usedvertices[u][0] << " " << usedvertices[u][1] << "\n";
+            // std::cout << "uFound " << usedvertices[u][0] << " " << usedvertices[u][1] << "\n";
             for (int k = 0; !res && k < parentns->degrees[u]; ++k) {
                 auto l = parentns->neighborslist[u*parentg->dim + k];
                 if (reverselookup[l] != -1 && l < u)
@@ -2386,12 +2389,12 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                 if (!usedvertices[l].empty()) {
                     if (usedvertices[l].back() != -1) {
                         // if (usedvertices[l].size() == 2)
-                            // std::cout << "lFound " << usedvertices[l][0] << " " << usedvertices[l][1] << "\n";
+                        // std::cout << "lFound " << usedvertices[l][0] << " " << usedvertices[l][1] << "\n";
                         auto b = usedvertices[l][0];
                         // if (usedvertices[l].size() == 2 && usedvertices[l][0] == 6)
-                            // std::cout << "Found " << usedvertices[l][1] << "\n";
+                        // std::cout << "Found " << usedvertices[l][1] << "\n";
                         // if (a == 4 && reverselookup[1] == -1 && l == 1)
-                            // std::cout << "a is 4... " << b << "\n";
+                        // std::cout << "a is 4... " << b << "\n";
                         if (a != b) {
                             auto i = reverselookup[a];
                             auto j = reverselookup[b];
@@ -2401,17 +2404,17 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                 auto lpath = usedvertices[l];
                                 // std::cout << "adding edge " << a << " " << b << ": \n";
                                 // for (int w = 0; w < usedvertices[u].size(); ++w) {
-                                    // std::cout << usedvertices[u][w] << " ";
+                                // std::cout << usedvertices[u][w] << " ";
                                 // }
                                 // std::cout << "; ";
                                 // for (int w = 0; w < usedvertices[l].size(); ++w) {
-                                    // std::cout << usedvertices[l][w] << " ";
+                                // std::cout << usedvertices[l][w] << " ";
                                 // }
                                 // std::cout << std::endl;
                                 // for (int m = 1; m < usedvertices[u].size()-1; ++m)
-                                    // usedvertices[usedvertices[u][m]].push_back(-1);
+                                // usedvertices[usedvertices[u][m]].push_back(-1);
                                 // for (int m = 1; m < usedvertices[l].size()-1; ++m)
-                                    // usedvertices[usedvertices[l][m]].push_back(-1);
+                                // usedvertices[usedvertices[l][m]].push_back(-1);
                                 if (a != u) {
                                     for (int m = 1; m < usedvertices[u].size()-1; ++m)
                                         usedvertices[usedvertices[u][m]] = {-1};
@@ -2424,46 +2427,96 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                 }
                                 minorg->adjacencymatrix[i*minorg->dim + j] = true;
                                 minorg->adjacencymatrix[j*minorg->dim + i] = true;
-                                minorns->computeneighborslist();
+                                // minorns->computeneighborslist();
                                 res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns, vertices, usedvertices, reverselookup, u, mincnt );
-                                if (a != u || b != l) {
-                                    minorg->adjacencymatrix[i*minorg->dim + j] = false;
-                                    minorg->adjacencymatrix[j*minorg->dim + i] = false;
-                                    minorns->computeneighborslist();
-                                    if (a != u) {
-                                        std::vector<vertextype> temppath {a};
-                                        // usedvertices[u].pop_back();
-                                        // for (int m = 1; m < usedvertices[u].size()-1; ++m)
-                                            // usedvertices[usedvertices[u][m]].pop_back(); // remove trailing -1
-                                        for (int m = 1; m < upath.size(); ++m) {
-                                            temppath.push_back(upath[m]);
-                                            usedvertices[upath[m]] = temppath;
-                                        }
+                                minorg->adjacencymatrix[i*minorg->dim + j] = false;
+                                minorg->adjacencymatrix[j*minorg->dim + i] = false;
+                                // minorns->computeneighborslist();
+                                if (a != u) {
+                                    std::vector<vertextype> temppath {a};
+                                    // usedvertices[u].pop_back();
+                                    // for (int m = 1; m < usedvertices[u].size()-1; ++m)
+                                    // usedvertices[usedvertices[u][m]].pop_back(); // remove trailing -1
+                                    for (int m = 1; m < upath.size(); ++m) {
+                                        temppath.push_back(upath[m]);
+                                        usedvertices[upath[m]] = temppath;
                                     }
-                                    if (b != l) {
-                                        // usedvertices[l].pop_back();
-                                        // for (int m = 1; m < usedvertices[l].size()-1; ++m)
-                                            // usedvertices[usedvertices[l][m]].pop_back(); // remove trailing -1
-                                        std::vector<vertextype> temppath {b};
-                                        for (int m = 1; m < lpath.size(); ++m) {
-                                            temppath.push_back(lpath[m]);
-                                            usedvertices[lpath[m]] = temppath;
-                                        }
+                                }
+                                if (b != l) {
+                                    // usedvertices[l].pop_back();
+                                    // for (int m = 1; m < usedvertices[l].size()-1; ++m)
+                                    // usedvertices[usedvertices[l][m]].pop_back(); // remove trailing -1
+                                    std::vector<vertextype> temppath {b};
+                                    for (int m = 1; m < lpath.size(); ++m) {
+                                        temppath.push_back(lpath[m]);
+                                        usedvertices[lpath[m]] = temppath;
+                                    }
 
-                                    }
                                 }
                             } else {
                                 // osadjacencymatrix(std::cout, minorg);
                                 // std::cout << changed << std::endl;
                                 // res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
                             }
-
                         }
                     }
                 } else {
                     auto temp = usedvertices[u];
                     temp.push_back(l);
                     usedvertices[l] = temp;
+                    for (int v = 0; !res && v < parentg->dim; ++v) {
+                        if (parentg->adjacencymatrix[l*parentg->dim+v]) {
+                            if (!usedvertices[v].empty() && usedvertices[v].back() != -1) {
+                                auto b = usedvertices[v][0];
+                                if (a != b) {
+                                    auto i = reverselookup[a];
+                                    auto j = reverselookup[b];
+
+                                    if (!minorg->adjacencymatrix[i*minorg->dim + j]) {
+                                        auto lpath = usedvertices[l];
+                                        auto vpath = usedvertices[v];
+                                        if (a != l) {
+                                            for (int m = 1; m < usedvertices[l].size()-1; ++m)
+                                                usedvertices[usedvertices[l][m]] = {-1};
+                                            usedvertices[l] = {-1};
+                                        }
+                                        if (b != v) {
+                                            for (int m = 1; m < usedvertices[v].size()-1; ++m)
+                                                usedvertices[usedvertices[v][m]] = {-1};
+                                            usedvertices[v] = {-1};
+                                        }
+                                        minorg->adjacencymatrix[i*minorg->dim + j] = true;
+                                        minorg->adjacencymatrix[j*minorg->dim + i] = true;
+                                        res = res || graphextendstotopologicalminorcore(parentns, childns, childfp, minorns, vertices, usedvertices, reverselookup, u, mincnt );
+                                        minorg->adjacencymatrix[i*minorg->dim + j] = false;
+                                        minorg->adjacencymatrix[j*minorg->dim + i] = false;
+                                        if (a != l) {
+                                            std::vector<vertextype> temppath {a};
+                                            // usedvertices[u].pop_back();
+                                            // for (int m = 1; m < usedvertices[u].size()-1; ++m)
+                                            // usedvertices[usedvertices[u][m]].pop_back(); // remove trailing -1
+                                            for (int m = 1; m < lpath.size(); ++m) {
+                                                temppath.push_back(lpath[m]);
+                                                usedvertices[lpath[m]] = temppath;
+                                            }
+                                        }
+                                        if (b != v) {
+                                            // usedvertices[l].pop_back();
+                                            // for (int m = 1; m < usedvertices[l].size()-1; ++m)
+                                            // usedvertices[usedvertices[l][m]].pop_back(); // remove trailing -1
+                                            std::vector<vertextype> temppath {b};
+                                            for (int m = 1; m < vpath.size(); ++m) {
+                                                temppath.push_back(vpath[m]);
+                                                usedvertices[vpath[m]] = temppath;
+                                            }
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // auto minorg2 = new graphtype(minorg->dim);
                     // copygraph(minorg,minorg2);
                     // auto minorns2 = new neighborstype(minorg2);
@@ -2474,7 +2527,6 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                 }
             }
         }
-
     }
 
     return res;
