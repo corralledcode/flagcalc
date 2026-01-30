@@ -175,3 +175,11 @@ $PTH/flagcalc -r 10 40 25 -a s1="dm >= 8" s2="hastopologicalminorc4(\"abc\")" al
 #$PTH/flagcalc -r 150 4800 2500 -a s1="dm >= 64" s2="hastopologicalminorc4(\"abcd\")" all -v i=minimal3.cfg
 
 # -d out2.dat -a s="hasminorc(\"-abcda bd\")" s="hastopologicalminorc4(\"-abcda bd\")" s="hastopologicalminorc(\"-abcda bd\")" all -v i=minimal3.cfg
+# -d out2.dat -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -a s="hastopologicalminorc(\"abcde\") OR hastopologicalminorc(\"abc=def\")" all -v i=minimal3.cfg
+# -d out.dat -a s="hasminorc(\"-abcda bd\")" all -a s="hastopologicalminorc4(\"-abcda bd\")" all -a s="hastopologicalminorc(\"-abcda bd\")" all -v i=minimal3.cfg
+
+# Diestel Prop 1.7.3
+$PTH/flagcalc -r 9 p=0.4 1000 -a s1="hastopologicalminorc4(\"abcde\")" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+
+# -d f="a b c dg eg fg -ghijklmnop oq" -a s="hasminorc(\"-abc -bcdef eh ei\")" all -v i=minimal3.cfg
+# -d f="-abc -ade c+fgh e+ijk" -a s="hasminorc(\"a+bcd e+fgh ae\")" all -v i=minimal3.cfg
