@@ -2474,7 +2474,6 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                 usedvertices[l].push_back(-1);
                             }
                         } else {
-                            /*
                             if (i != -1 && j == -1) {
                                 usedvertices[l].pop_back();
                                 if (u != a)
@@ -2487,7 +2486,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                 }
                                 usedvertices[ltemp[0]].push_back(-1);
                                 res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns,
-                                    false, vertices, usedvertices, reverselookup, u, edgecount, childedgecount, mincnt );
+                                    false, vertices, usedvertices, reverselookup, ltemp[0], edgecount, childedgecount, mincnt );
                                 usedvertices[ltemp[0]].pop_back();
                                 std::vector<vertextype> temp = {};
                                 for (int o = 0; o < ltemp.size(); ++o) {
@@ -2497,7 +2496,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                 usedvertices[l].push_back(-1);
                                 if (u != a)
                                     usedvertices[u].push_back(-1);
-                            } else */
+                            } else
                             if (i == -1 && j != -1) {
                                 usedvertices[u].pop_back();
                                 if (l != b)
@@ -2538,7 +2537,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                     temp.push_back(-1);
                     usedvertices[l] = temp;
 
-                    res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns, true, vertices, usedvertices, reverselookup, u, edgecount, childedgecount, mincnt );
+                    res = res || graphextendstotopologicalminorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices, reverselookup, u, edgecount, childedgecount, mincnt );
                     usedvertices[l].clear();
                     if (i == -1 || u != a)
                         usedvertices[u].push_back(-1);

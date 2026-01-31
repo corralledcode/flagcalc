@@ -3078,8 +3078,6 @@ public:
     {
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
-        // clear();
-
         bool takeallgraphitems = false;
         int numofitemstotake = 1;
         bool sortedbool = false;
@@ -4338,6 +4336,7 @@ public:
         for (auto i : iter)
             delete i;
         iter.clear();
+
 
     }
 };
