@@ -2698,6 +2698,25 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
                                 for (int n = 0; n < btemp.size(); ++n) {
                                     usedvertices[btemp[n]] = b;
                                 }
+                            } else
+                            if (i == -1 && j == -1) {
+                                copygraph(minorg, minorg2);
+                                std::vector<vertextype> btemp {};
+                                for (int m = 0; m < parentg->dim; ++m) {
+                                    if (usedvertices[m] == b) {
+                                        usedvertices[m] = a;
+                                        btemp.push_back(m);
+                                    }
+                                }
+                                localedgecount = edgecount;
+                                res = res || graphextendstominorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices,
+                                    reverselookup, u, edgecount, childedgecount, mincnt );
+                                // delete minorns2;
+                                // delete minorg2;
+
+                                for (int n = 0; n < btemp.size(); ++n) {
+                                    usedvertices[btemp[n]] = b;
+                                }
                             }
                         }
 
@@ -2710,13 +2729,14 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
                     // copygraph(minorg, minorg2);
                     // auto minorns2 = new neighborstype(minorg2);
                     localedgecount = edgecount;
-                    res = res || graphextendstominorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices,
+                    res = res || graphextendstominorcore( parentns, childns, childfp, minorns2, true, vertices, usedvertices,
                         reverselookup, u, edgecount, childedgecount, mincnt );
                     usedvertices[l] = -1;
                     // delete minorns2;
                     // delete minorg2;
                 }
             }
+
             delete minorns2;
             delete minorg2;
         } else {
