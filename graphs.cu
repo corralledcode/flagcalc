@@ -2579,7 +2579,7 @@ bool graphextendstotopologicalminor( const neighborstype* parentns,
             minorg->adjacencymatrix[i*minorg->dim + j] = parentg->adjacencymatrix[vertices[i]*parentg->dim + vertices[j]];
         }
     }
-    auto minorns = new neighborstype(minorg);
+    auto minorns = new neighborstype(minorg, false);
 
     auto res = graphextendstotopologicalminorcore(parentns,childns,childfp,minorns,true,vertices,usedvertices,reverselookup,
         0,edgecnt(minorg),edgecnt(childg),mincnt);
@@ -2599,6 +2599,7 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
     bool res = false;
     if (minornschanged && edgecount >= childedgecount) {
         int newmincnt = mincnt;
+        minorns->computeneighborslist();
         // FP* fp = startfingerprint(*childns,false);
         // takefingerprint(childns,fp,childns->g->dim,false);
         if (newmincnt == 1) {
@@ -2625,47 +2626,109 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
         if (usedvertices[u] != -1) {
             auto a = usedvertices[u];
             auto i = reverselookup[a];
+            auto minorg2 = new graphtype((childg->dim));
+            copygraph(minorg, minorg2);
+            auto localedgecount = edgecount;
+            auto minorns2 = new neighborstype(minorg2, false);
+
             for (int k = 0; !res && k < parentns->degrees[u]; ++k) {
                 auto l = parentns->neighborslist[u*parentg->dim + k];
                 // if (reverselookup[l] != -1 && l < u)
                     // continue;
+                if (l < u)
+                    continue;
                 if (usedvertices[l] != -1) {
                     auto b = usedvertices[l];
                     if (a != b) {
                         auto j = reverselookup[b];
                         // if (i == j || i == -1 || j == -1)
                         // std::cout<< "error, i == " << i << ", j == " << j << ", a == " << a << ", b == " << b << std::endl;
-                        if (!minorg->adjacencymatrix[i*minorg->dim + j]) {
-                            minorg->adjacencymatrix[i*minorg->dim + j] = true;
-                            minorg->adjacencymatrix[j*minorg->dim + i] = true;
-                            minorns->computeneighborslist();
-                            res = res || graphextendstominorcore( parentns, childns, childfp, minorns, true, vertices, usedvertices,
-                                reverselookup, u, edgecount+1,childedgecount,  mincnt );
+                        if (i != -1 && j != -1 && !minorg2->adjacencymatrix[i*minorg2->dim + j]) {
+                            minorg2->adjacencymatrix[i*minorg->dim + j] = true;
+                            minorg2->adjacencymatrix[j*minorg->dim + i] = true;
+                            // minorns->computeneighborslist();
+                            res = res || graphextendstominorcore( parentns, childns, childfp, minorns2, true, vertices, usedvertices,
+                                reverselookup, u, ++localedgecount,childedgecount,  mincnt );
                             // if (a != u || b != l) {
-                            // minorg->adjacencymatrix[i*minorg->dim + j] = false;
-                            // minorg->adjacencymatrix[j*minorg->dim + i] = false;
+                                // minorg->adjacencymatrix[i*minorg->dim + j] = false;
+                                // minorg->adjacencymatrix[j*minorg->dim + i] = false;
                             // minorns->computeneighborslist();
                             // }
                         } else {
-                            // osadjacencymatrix(std::cout, minorg);
-                            // std::cout << changed << std::endl;
-                            // res = res || graphextendstominorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
+                            if (i == -1 && j != -1) {
+                                copygraph(minorg, minorg2);
+                                std::vector<vertextype> atemp {};
+                                for (int m = 0; m < parentg->dim; ++m) {
+                                    if (usedvertices[m] == a) {
+                                        usedvertices[m] = b;
+                                        atemp.push_back(m);
+                                    }
+                                }
+                                // auto minorg2 = new graphtype((childg->dim));
+                                // copygraph(minorg, minorg2);
+                                // auto minorns2 = new neighborstype(minorg2);
+                                localedgecount = edgecount;
+                                res = res || graphextendstominorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices,
+                                    reverselookup, u, edgecount, childedgecount, mincnt );
+                                // delete minorns2;
+                                // delete minorg2;
+
+                                for (int n = 0; n < atemp.size(); ++n) {
+                                    usedvertices[atemp[n]] = a;
+                                }
+                            } else
+                            if (i != -1 && j == -1) {
+                                copygraph(minorg, minorg2);
+                                std::vector<vertextype> btemp {};
+                                for (int m = 0; m < parentg->dim; ++m) {
+                                    if (usedvertices[m] == b) {
+                                        usedvertices[m] = a;
+                                        btemp.push_back(m);
+                                    }
+                                }
+                                // auto minorg2 = new graphtype((childg->dim));
+                                // copygraph(minorg, minorg2);
+                                // auto minorns2 = new neighborstype(minorg2);
+                                localedgecount = edgecount;
+                                res = res || graphextendstominorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices,
+                                    reverselookup, u, edgecount, childedgecount, mincnt );
+                                // delete minorns2;
+                                // delete minorg2;
+
+                                for (int n = 0; n < btemp.size(); ++n) {
+                                    usedvertices[btemp[n]] = b;
+                                }
+                            }
                         }
 
                     }
                 }
                 else {
-                    auto minorg2 = new graphtype((childg->dim));
-                    usedvertices[l] = a;
+                    // auto minorg2 = new graphtype((childg->dim));
                     copygraph(minorg, minorg2);
-                    auto minorns2 = new neighborstype(minorg2);
-                    res = res || graphextendstominorcore( parentns, childns, childfp, minorns2, false, vertices, usedvertices,
+                    usedvertices[l] = a;
+                    // copygraph(minorg, minorg2);
+                    // auto minorns2 = new neighborstype(minorg2);
+                    localedgecount = edgecount;
+                    res = res || graphextendstominorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices,
                         reverselookup, u, edgecount, childedgecount, mincnt );
                     usedvertices[l] = -1;
-                    delete minorns2;
-                    delete minorg2;
+                    // delete minorns2;
+                    // delete minorg2;
                 }
             }
+            delete minorns2;
+            delete minorg2;
+        } else {
+            usedvertices[u] = u;
+            // auto minorg2 = new graphtype((childg->dim));
+            // copygraph(minorg, minorg2);
+            // auto minorns2 = new neighborstype(minorg2);
+            res = res || graphextendstominorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices,
+                reverselookup, u, edgecount, childedgecount, mincnt );
+            usedvertices[u] = -1;
+            // delete minorns2;
+            // delete minorg2;
         }
     }
 
@@ -2693,11 +2756,11 @@ bool graphextendstominor( const neighborstype* parentns,
     std::vector<vertextype> usedvertices;
     usedvertices.resize(parentg->dim);
     for (int i = 0; i < parentg->dim; ++i) {
-        usedvertices[i] = -1;
+        usedvertices[i] = i;
     }
-    for (int i =0 ; i < childg->dim; ++i) {
-        usedvertices[vertices[i]] = vertices[i];
-    }
+    // for (int i =0 ; i < childg->dim; ++i) {
+        // usedvertices[vertices[i]] = vertices[i];
+    // }
     std::vector<vertextype> reverselookup;
     reverselookup.resize(parentg->dim);
     for (int i = 0; i < parentg->dim; ++i) {
@@ -2713,7 +2776,7 @@ bool graphextendstominor( const neighborstype* parentns,
             minorg->adjacencymatrix[i*minorg->dim + j] = parentg->adjacencymatrix[vertices[i]*parentg->dim + vertices[j]];
         }
     }
-    auto minorns = new neighborstype(minorg);
+    auto minorns = new neighborstype(minorg, false);
 
     auto res = graphextendstominorcore(parentns,childns,childfp,minorns,true,vertices,usedvertices,reverselookup,0,
         edgecnt(minorg), edgecnt(childg), mincnt);
