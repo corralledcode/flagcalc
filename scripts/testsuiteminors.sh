@@ -181,6 +181,5 @@ $PTH/flagcalc -r 10 40 25 -a s1="dm >= 8" s2="hastopologicalminorc4(\"abc\")" al
 # Diestel Prop 1.7.3
 $PTH/flagcalc -r 9 p=0.4 1000 -a s1="hastopologicalminorc4(\"abcde\")" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 
-$PTH/flagcalc -r 8 p=0.4 100 -a s1="hasminorc(\"abcde\")" s2="NOT hastopologicalminorc4(\"abcde\")" all -v i=minimal3.cfg
-# -d f="a b c dg eg fg -ghijklmnop oq" -a s="hasminorc(\"-abc -bcdef eh ei\")" all -v i=minimal3.cfg
-# -d f="-abc -ade c+fgh e+ijk" -a s="hasminorc(\"a+bcd e+fgh ae\")" all -v i=minimal3.cfg
+# check for some having a topological minor of K_5 but not a minor of K_5
+$PTH/flagcalc -r 8 p=0.4 100 -a s1="hasminorc(\"abcde\")" s2="NOT hastopologicalminorc4(\"abcde\")" s3="NOT hastopologicalminorc(\"abcde\")" all -v i=minimal3.cfg

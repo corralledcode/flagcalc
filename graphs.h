@@ -80,7 +80,7 @@ public:
             maxdegree=0;
             return;
         }
-        //dim = g->dim;
+        // dim = g->dim;
         maxdegree = 0;
         neighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
         nonneighborslist = (vertextype*)malloc(dim * dim * sizeof(vertextype));
