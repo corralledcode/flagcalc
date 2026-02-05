@@ -1962,31 +1962,71 @@ bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, co
 
 
 void partitionintoncomponents( const int& size, const int& n, std::vector<int*>& partitions ) {
-    // similar to setitrmaps, however technically into less than or equal to n components
+    // similar to setitrmaps, but allows a specified size
+
+    partitions.clear();
 
     if (n <= 0)
         return;
-    partitions.clear();
-    bool ended = false;
-    int lastindex = 0;
-    int* newpartition = new int[size];
-    memset(newpartition, 0, size*sizeof(int));
-    partitions.push_back(newpartition);
-    while (!ended) {
-        int i = 0;
-        while (i < size && partitions[lastindex][i] == n-1)
-            i++;
-        if (i < size) {
-            int* newpartition = new int[size];
-            partitions.push_back(newpartition);
-            memcpy(newpartition, partitions[lastindex], size*sizeof(int));
-            for (int j = 0; j < i; ++j)
-                newpartition[j] = 0;
-            newpartition[i]++;
-            lastindex++;
+
+    bool endedvar = false;
+    std::vector<int> sequence {};
+
+    sequence.resize(size);
+    for (int i = 0; i < size; ++i)
+        sequence[i] = 0;
+    endedvar = size == 0;
+
+    while (!endedvar) {
+
+        auto subsets = new int[size];
+        int max = 0;
+        int count = -1;
+        auto elts = new bool[size];
+        for (int i = 0; i < size; ++i)
+        {
+            // subsets[i] = new setitrsubset(setA);
+            memset(elts, false, size*sizeof(bool));
+            for (int j = 0; j < size; ++j)
+            {
+                elts[j] = sequence[j] == i;
+                // elts[subsetmaker->lookupidx(j)] = sequence[j] == i;
+                // subsets[i]->itrint->elts[j] = sequence[j] == i;
+                max = max < sequence[j] ? sequence[j] : max;
+                if (elts[j]) {
+                    subsets[j] = i;
+                    count = count > i ? count : i;
+                }
+            }
+
+        }
+        delete elts;
+        if (++count == n)
+            partitions.push_back(subsets);
+        else
+            delete subsets;
+
+        int j = size;
+        bool incrementable = false;
+        endedvar = false;
+        while (j > 1 && !incrementable)
+        {
+            --j;
+            int i = j-1;
+            while (!incrementable && i >= 0)
+                incrementable = sequence[j] <= sequence[i--];
+        }
+        if (incrementable)
+        {
+            sequence[j]++;
+            for (int k = j+1; k < size; ++k)
+                sequence[k] = 0;
+
         } else
-            ended = true;
+            endedvar = true;
     }
+
+
 }
 
 bool hastopologicalminorquick2( const neighbors* childns, const neighbors* parentns, const int mincnt ) {
@@ -2520,11 +2560,7 @@ bool graphextendstotopologicalminorcore( const neighborstype* parentns, const ne
                                 if (l != b)
                                     usedvertices[l].push_back(-1);
                             }
-                            // osadjacencymatrix(std::cout, minorg);
-                            // std::cout << changed << std::endl;
-                            // res = res || graphextendstotopologicalminorcore( parentns, childns, minorns, vertices, usedvertices, reverselookup, mincnt );
                         }
-
 
                     }
                 }
@@ -2555,6 +2591,7 @@ bool graphextendstotopologicalminor( const neighborstype* parentns,
         const vertextype* vertices, const neighborstype* childns, FP* childfp, const int& mincnt ) {
     auto parentg = parentns->g;
     auto childg = childns->g;
+
 
     std::vector<std::vector<vertextype>> usedvertices;
     usedvertices.resize(parentg->dim);
@@ -2588,25 +2625,6 @@ bool graphextendstotopologicalminor( const neighborstype* parentns,
     return res;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 bool graphextendstominorcore( const neighborstype* parentns, const neighborstype* childns, FP* childfp,
@@ -2745,7 +2763,7 @@ bool graphextendstominorcore( const neighborstype* parentns, const neighborstype
                         usedvertices[l] = {a};
                         localedgecount = edgecount;
                         res = res || graphextendstominorcore( parentns, childns, childfp, minorns, false, vertices, usedvertices,
-                            reverselookup, u, edgecount, childedgecount, mincnt );
+                            reverselookup, a, edgecount, childedgecount, mincnt );
                         // delete minorns2;
                         // delete minorg2;
 
@@ -2982,6 +3000,105 @@ bool hasminorquick( const neighbors* ns1, const neighbors* ns2, const int mincnt
 
 }
 
+
+bool hasminor2core( const neighborstype* parentns,
+        int* partition, const neighborstype* childns, FP* childfp, const int& mincnt ) {
+    graphtype* parentg = parentns->g;
+    graphtype* childg = childns->g;
+    int parentdim = parentg->dim;
+    int childdim = childg->dim;
+
+    auto minorg = new graphtype(childdim);
+    auto minorns = new neighborstype(minorg,false);
+    std::vector<graphtype*> subgs {};
+    std::vector<neighborstype*> subnss {};
+    std::vector<std::vector<vertextype>> subvs {};
+    int omit = partition[parentdim];
+    bool res = true;
+    for (int sub = 0; res && sub < childdim+1; ++sub) {
+        if (sub == omit)
+            continue;
+        auto subg = new graphtype(parentdim);
+        subgs.push_back(subg);
+        zerograph(subg);
+        std::vector<vertextype> subv {};
+        for (int j = 0; j < parentdim; ++j) {
+            if (partition[j] == sub)
+                subv.push_back(j);
+        }
+        for (int j = 0; j < subv.size(); ++j) {
+            for (int k = j+1; k < subv.size(); ++k) {
+                auto a = subv[j];
+                auto b = subv[k];
+                subg->adjacencymatrix[a*parentdim+b] = parentg->adjacencymatrix[a*parentdim+b];
+                subg->adjacencymatrix[b*parentdim+a] = parentg->adjacencymatrix[b*parentdim+a];
+            }
+        }
+        auto subns = new neighborstype(subg);
+        subnss.push_back(subns);
+        bool connected = true;
+        for (int i = 0; connected && i < subv.size(); ++i)
+            for (int j = i+1; connected && j < subv.size(); ++j)
+                connected = connected && pathsbetweenmin(subg, subns, subv[i], subv[j], 1) > 0;
+        res = connected;
+        subvs.push_back(subv);
+    }
+
+    if (res) {
+        for (int s = 0; s < subgs.size(); ++s) {
+            minorg->adjacencymatrix[s*minorg->dim + s] = false;
+            for (int t = s+1; t < subgs.size(); ++t) {
+                bool found = false;
+                for (auto i = 0; !found && i < subvs[s].size(); ++i) {
+                    for (auto j = 0; !found && j < subvs[t].size(); ++j) {
+                        found = found || parentg->adjacencymatrix[subvs[s][i]*parentdim+subvs[t][j]];
+                    }
+                }
+                minorg->adjacencymatrix[s*minorg->dim+t] = found;
+                minorg->adjacencymatrix[t*minorg->dim+s] = found;
+            }
+        }
+        minorns->computeneighborslist();
+        res = res && existsgenerousiso(childns,childfp,minorns);
+    }
+    for (auto ns : subnss)
+        delete ns;
+    for (auto g : subgs)
+        delete g;
+    delete minorns;
+    delete minorg;
+    return res;
+}
+
+
+// algorithm 2, inspired by vast speed improvements in query code HasKnminor in storedprocedures.dat
+bool hasminor2( const neighbors* ns1, const neighbors* ns2, const int mincnt ) {
+    graphtype* g1 = ns1->g;
+    graphtype* g2 = ns2->g;
+    int dim1 = ns1->g->dim;
+    int dim2 = g2->dim;
+    if (dim2 < dim1)
+        return false;
+
+    FP* childfp = startfingerprint(*ns1,false);
+    takefingerprint(ns1,childfp,ns1->g->dim,false);
+
+    std::vector<int*> part {};
+    partitionintoncomponents(g2->dim+1,g1->dim+1,part);
+
+    bool res = false;
+
+    for (int i = 0; !res && i < part.size(); ++i) {
+        res = res || hasminor2core( ns2, part[i], ns1, childfp, mincnt );
+    }
+
+    freefps(childfp,dim1);
+    for (auto p : part)
+        delete p;
+
+    return res;
+
+}
 
 
 

@@ -214,6 +214,8 @@ bool hastopologicalminorquick4( const neighbors* ns1, const neighbors* ns2, cons
 
 bool hasminorquick( const neighbors* ns1, const neighbors* ns2, const int mincnt );
 
+bool hasminor2( const neighbors* ns1, const neighbors* ns2, const int mincnt );
+
 int embedscount( const neighbors* ns1, FP* fp, const neighbors* ns2);
 
 int embedsgenerouscount( const neighbors* ns1, FP* fp, const neighbors* ns2);

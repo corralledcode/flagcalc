@@ -2003,6 +2003,8 @@ public:
     {
         delete supersetpos;
         delete subsetmaker;
+        // for (auto s : totality)
+            // delete s.seti;
     }
 };
 
@@ -2531,8 +2533,8 @@ public:
             delete s;
         }
         delete subsetmaker;
-    // for (auto t : totality) // this is handled by ~setitr() above
-        // delete t.seti;
+    for (auto t : totality) // this is handled by ~setitr() above
+        delete t.seti;
     //   setitr::~setitr();
     }
 };
@@ -2541,11 +2543,13 @@ public:
 
 class Pset : public set
 {
+    // std::vector<setitr*> todelete {};
 public:
 
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
         auto itr = new setitrpowerset(ps[0].seti);
+        // todelete.push_back(itr);
         return itr;
     }
 
@@ -2561,6 +2565,10 @@ public:
         v.t = mtset;
         nps.push_back(std::pair{"set",v});
         bindnamedparams();
+    }
+    ~Pset() {
+        // for (auto s : todelete)
+            // delete s;
     }
 };
 

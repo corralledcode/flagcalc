@@ -499,7 +499,8 @@ class hasminorcrit : public crit {
 public:
     bool takemeas( neighborstype* ns, const params& ps ) override {
         neighbors* flagns = ps[0].v.nsv;
-        auto r = negated != hasminorquick(flagns, ns, 1);
+        // auto r = negated != hasminorquick(flagns, ns, 1);
+        auto r = negated != hasminor2(flagns,ns,1);
         return r;
     }
     bool takemeas( const int idx, const params& ps ) override {
