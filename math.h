@@ -719,6 +719,7 @@ public:
     setitrintersection(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
+        compute();
     };
 
 };
@@ -759,6 +760,7 @@ class setitrsetminus : public setitrmodeone
     setitrsetminus(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
+        compute();
     };
 
 };
@@ -836,6 +838,7 @@ public:
     setitrsetxor(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
+        compute();
     }
 
 };
