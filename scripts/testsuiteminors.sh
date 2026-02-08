@@ -160,7 +160,7 @@ $PTH/flagcalc -r 12 p=0.2 50 -a s="st(cyclest) > 0 IFF hasminorc(\"abc\")" all -
 # Diestel Prop 7.2.1
 $PTH/flagcalc -r 10 20 250 -a s1="dm >= 4" s2="hasminorc(\"abcd\")" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 40 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
-$PTH/flagcalc -r 12 48 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+#$PTH/flagcalc -r 12 48 250 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 16 64 15 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 24 96 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 #$PTH/flagcalc -r 32 128 500 -a s1="dm >= 8" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
@@ -183,3 +183,22 @@ $PTH/flagcalc -r 9 p=0.4 1000 -a s1="hastopologicalminorc4(\"abcde\")" s2="hasmi
 
 # check for some having a topological minor of K_5 but not a minor of K_5
 $PTH/flagcalc -r 8 p=0.4 100 -a s1="hasminorc(\"abcde\")" s2="NOT hastopologicalminorc4(\"abcde\")" s3="NOT hastopologicalminorc(\"abcde\")" all -v i=minimal3.cfg
+
+# Hadwiger's conjecture (Diestel p. 184) (easy for r=3, r=4; four-color theorem for r=5, r=6; unknown for r >= 7)
+$PTH/flagcalc -r 8 p=0.4 100 -a s1="Chit >= 3" s2="hasminorc(\"abc\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 9 p=0.4 100 -a s1="Chit >= 4" s2="hasminorc(\"abcd\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 p=0.4 100 -a s1="Chit >= 5" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+# $PTH/flagcalc -r 11 p=0.4 100 -a s1="Chit >= 6" s2="hasminorc(\"abcdef\")" all -v i=minimal3.cfg
+# $PTH/flagcalc -r 12 p=0.4 100 -a s1="Chit >= 7" s2="hasminorc(\"abcdefg\")" all -v i=minimal3.cfg
+
+# weaker variant on Diestel Cor 7.3.2
+$PTH/flagcalc -r 10 17 100 -a s1="st(E) > 2*dimm - 3" s2="hasminorc(\"abcd\")" all -v i=minimal3.cfg
+
+# Diestel Cor 7.3.5
+$PTH/flagcalc -r 10 17 100 -a s1="NOT hasminorc(\"abcde\")" s2="st(E) <= 3*dimm - 6" all -v i=minimal3.cfg
+
+# -r 10 p=0.5 100 -a isp="../testgraph/storedprocedures.dat" s="HasKnminor(5)" all -a s="hasminorc(\"abcde\")" all -v i=minimal3.cfg
+# -r 10 p=0.5 100000 -a s="FORALL (u IN Ps(V), st(u) >= 0)" all -v i=minimal3.cfg
+# -r 10 p=0.5 50000 -a s="FORALL (u IN Ps(V), st(u) > 0, EXISTS (v IN V, v ELT u))" all -v i=minimal3.cfg
+# -r 10 p=0.5 1 -a s="EXISTS (so IN Ps(V), EXISTS (p IN Setpartition(so), st(p) >= 5))" -v i=minimal3.cfg
+# -r 10 p=0.5 100 -a s="EXISTS (so IN Ps(V), EXISTS (p IN Setpartition(so), st(p) >= 5, FORALL (s IN p, FORALL (t IN p, s != t, EXISTS (u IN s, EXISTS (v IN t, ac(u,v)))))))" all -v i=minimal3.cfg

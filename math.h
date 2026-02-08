@@ -229,12 +229,14 @@ using params = std::vector<valms>;
 
 using namedparams = std::vector<std::pair<std::string,valms>>;
 
-class setitr
-{
+class setitr {
 public:
+    int usecount = 0;
+    bool generative = false;
     std::vector<valms> totality {};
 
-    itrpos* getitrpos();
+    itrpos* getitrpos(const bool track = true);
+    std::vector<itrpos*> todelete {};
 
 
     LONGINT pos = -1;
@@ -260,10 +262,23 @@ public:
         }
         return false;
     }
+    virtual void cleanup();
+    virtual bool safetodelete() {
+        auto res = usecount <= 0;
+/*
+        for (int i = 0; res && i < totality.size(); ++i) {
+            auto s = totality[i];
+            if (s.t == mtset || s.t == mttuple)
+                res = res && s.seti->safetodelete();
+        }*/
+        return res;
+    }
     setitr() {}
 
     virtual ~setitr();
 };
+
+
 
 class itrpos
 {
@@ -273,6 +288,8 @@ public:
     bool ended()
     {
         // std::cout << "itrpos.ended " << pos+1 << ", " << parent->getsize() << "\n";
+        // if (parent->usecount <= 0)
+            // std::cout << "hark\n";
         return (pos+1 >= parent->getsize());
     }
     void reset() {pos = -1;}
@@ -318,16 +335,54 @@ public:
             exit(1);
         }
     }
-    itrpos(setitr* parentin) : parent{parentin} {}
+    itrpos(setitr* parentin) : parent{parentin} {
+        // parent->usecount++;
+    }
+    ~itrpos() {
+        // parent->usecount--;
+    }
 };
 
-inline itrpos* setitr::getitrpos()
+inline itrpos* setitr::getitrpos(const bool track)
 {
     auto itr = new itrpos(this);
+    // if (track)
+        // todelete.push_back(itr); // not thread safe, so commented out
     return itr;
 }
 
-inline setitr::~setitr() {}
+inline void setitr::cleanup() {
+    for (auto t : totality)
+        if (t.t == mtset || t.t == mttuple) {
+            if (t.seti->usecount <= 0) {
+                if (t.seti->generative)
+                    t.seti->cleanup();
+                delete t.seti;
+            }
+        }
+    totality.clear();
+}
+
+
+inline setitr::~setitr() {
+    // cleanup();
+    for (auto t : todelete)
+        delete t;
+    todelete.clear();
+}
+
+inline void claimset( valms& v ) {
+    if (v.t == mtset || v.t == mttuple) {
+        v.seti->usecount++;
+        for (auto t : v.seti->totality)
+            claimset(t);
+    }
+}
+inline void claimsetitr( setitr*& s ) {
+    s->usecount++;
+    for (auto t : s->totality)
+        claimset(t);
+}
 
 inline bool operator==(const valms& a1, const valms& a2)
 {
@@ -356,8 +411,8 @@ inline bool operator==(const valms& a1, const valms& a2)
     case measuretype::mtset:
         { // code below assumes both sets sorted
             std::cout << "early code being used...\n"; // as coded, probably not capable of nested sets...
-            auto i1 = a1.seti->getitrpos();
-            auto i2 = a2.seti->getitrpos();
+            auto i1 = a1.seti->getitrpos(false);
+            auto i2 = a2.seti->getitrpos(false);
             bool match = i1->getsize() == i2->getsize();
             while (match && !i1->ended())
             {
@@ -464,7 +519,7 @@ class setitrmodeone : public setitr
 
     setitrmodeone() {}
 
-    setitrmodeone( std::vector<valms> totalityin )
+    setitrmodeone( const std::vector<valms>& totalityin )
     {
         totality = totalityin;
         // t = mtset;
@@ -481,19 +536,21 @@ public:
     public:
     void compute() override
     {
-        auto Aitr = setA->getitrpos();
-        auto Bitr = setB->getitrpos();
+        auto Aitr = setA->getitrpos(false);
+        auto Bitr = setB->getitrpos(false);
         pos = -1;
         std::vector<valms> temp {};
         // totality.clear();
         while (!Aitr->ended())
         {
             temp.push_back(Aitr->getnext());
+            // claimset(temp.back());
             // totality.push_back(Aitr->getnext());
         }
         while (!Bitr->ended())
         {
             temp.push_back(Bitr->getnext());
+            // claimset(temp.back());
         }
         totality.resize(temp.size());
         for (int i = 0; i < temp.size(); i++)
@@ -506,6 +563,7 @@ public:
     setitrtupleappend(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
+        compute();
     }
 };
 
@@ -516,8 +574,8 @@ class setitrunion : public setitrmodeone
     public:
     void compute() override
     {
-        auto Aitr = setA->getitrpos();
-        auto Bitr = setB->getitrpos();
+        auto Aitr = setA->getitrpos(false);
+        auto Bitr = setB->getitrpos(false);
         pos = -1;
         std::vector<valms> temp {};
         // totality.clear();
@@ -525,6 +583,7 @@ class setitrunion : public setitrmodeone
         {
             temp.push_back(Aitr->getnext());
             // totality.push_back(Aitr->getnext());
+            // claimset(temp.back());
         }
         while (!Bitr->ended())
         {
@@ -533,8 +592,10 @@ class setitrunion : public setitrmodeone
 
             for (int i = 0; !found && i < temp.size(); i++)
                 found = mtareequalgenerous(temp[i], v);
-            if (!found)
+            if (!found) {
+                // claimset(v);
                 temp.push_back(v);
+            }
         }
         totality.resize(temp.size());
         for (int i = 0; i < temp.size(); i++)
@@ -548,6 +609,7 @@ class setitrunion : public setitrmodeone
     setitrunion(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
+        compute();
     };
 
 };
@@ -560,8 +622,8 @@ class setitrdupeunion : public setitrmodeone
 
     void compute() override
     {
-        auto Aitr = setA->getitrpos();
-        auto Bitr = setB->getitrpos();
+        auto Aitr = setA->getitrpos(false);
+        auto Bitr = setB->getitrpos(false);
         pos = -1;
         std::vector<valms> temp {};
         // totality.clear();
@@ -587,6 +649,7 @@ class setitrdupeunion : public setitrmodeone
     setitrdupeunion(setitr* a, setitr* b) : setA{a}, setB{b}
     {
         reset();
+        compute();
     };
 
 };
@@ -600,8 +663,8 @@ public:
     setitr* setB {};
     void compute() override
     {
-        auto Aitr = setA->getitrpos();
-        auto Bitr = setB->getitrpos();
+        auto Aitr = setA->getitrpos(false);
+        auto Bitr = setB->getitrpos(false);
         pos = -1;
         std::vector<valms> temp {};
         std::vector<valms> temp2 {};
@@ -623,16 +686,16 @@ public:
                     else
                         if (v.t == mtset)
                         {
-                            auto tmpitr1 = v.seti->getitrpos();
-                            auto tmpitr2 = temp[i].seti->getitrpos();
+                            auto tmpitr1 = v.seti->getitrpos(false);
+                            auto tmpitr2 = temp[i].seti->getitrpos(false);
                             found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
                             delete tmpitr1;
                             delete tmpitr2;
                         } else
                             if (v.t == mttuple)
                             {
-                                auto tmpitr1 = v.seti->getitrpos();
-                                auto tmpitr2 = temp[i].seti->getitrpos();
+                                auto tmpitr1 = v.seti->getitrpos(false);
+                                auto tmpitr2 = temp[i].seti->getitrpos(false);
                                 found = found || tupleeq( tmpitr1, tmpitr2);
                                 delete tmpitr1;
                                 delete tmpitr2;
@@ -667,8 +730,8 @@ class setitrsetminus : public setitrmodeone
     setitr* setB;
     void compute() override
     {
-        auto Aitr = setA->getitrpos();
-        auto Bitr = setB->getitrpos();
+        auto Aitr = setA->getitrpos(false);
+        auto Bitr = setB->getitrpos(false);
         pos = -1;
         totality.clear();
         std::vector<valms> temp {};
@@ -709,8 +772,8 @@ public:
 
     void compute() override
     {
-        auto Aitr = setA->getitrpos();
-        auto Bitr = setB->getitrpos();
+        auto Aitr = setA->getitrpos(false);
+        auto Bitr = setB->getitrpos(false);
         pos = -1;
         std::vector<valms> temp {};
         std::vector<valms> tempA {};
@@ -736,15 +799,15 @@ public:
                         found = found || v == omitv;
                         break;
                         case mtset: {
-                            auto tmpitr1 = v.seti->getitrpos();
-                            auto tmpitr2 = omitv.seti->getitrpos();
+                            auto tmpitr1 = v.seti->getitrpos(false);
+                            auto tmpitr2 = omitv.seti->getitrpos(false);
                             found = found || (setsubseteq( tmpitr1, tmpitr2) && setsubseteq( tmpitr2, tmpitr1 ));
                             delete tmpitr1;
                             delete tmpitr2;
                             break;}
                         case mttuple: {
-                            auto tmpitr1 = v.seti->getitrpos();
-                            auto tmpitr2 = omitv.seti->getitrpos();
+                            auto tmpitr1 = v.seti->getitrpos(false);
+                            auto tmpitr2 = omitv.seti->getitrpos(false);
                             found = found || tupleeq( tmpitr1, tmpitr2);
                             delete tmpitr1;
                             delete tmpitr2;
@@ -820,7 +883,7 @@ class setitrint : public setitrmodeone
             maxint = -1;
         }
         computed = false;
-        // totality.clear();
+        totality.clear();
         reset();
     }
     virtual bool iselt( valms v ) {
@@ -1010,13 +1073,14 @@ public:
                     valms v;
                     v.t = mtset;
                     v.seti = new setitrintpair(i,j);
+                    // v.seti->usecount++;
                     temp[k++] = v;
                 }
             }
 
         temp.resize(k);
-        for (auto v : totality)
-            delete v.seti;
+        // for (auto v : totality)
+            // delete v.seti;
         totality.resize(temp.size());
         int i = 0;
         for (auto v : temp)
@@ -1053,13 +1117,14 @@ public:
                     valms v;
                     v.t = mtset;
                     v.seti = new setitrintpair(i,j);
+                    // v.seti->usecount++;
                     temp[k++] = v;
                 }
             }
 
         temp.resize(k);
-        for (auto v : totality)
-            delete v.seti;
+        // for (auto v : totality)
+            // delete v.seti;
         totality.resize(temp.size());
         int i = 0;
         for (auto v : temp)
@@ -1076,15 +1141,16 @@ public:
     }
     setitrint2dsymmetric(int dim1in, setitrint* itrintin ) : setitrint2d(dim1in,dim1in, itrintin) {}
     ~setitrint2dsymmetric() {
-        for (auto v : totality)
-            delete v.seti;
+
+        // for (auto v : totality)
+            // delete v.seti;
     }
 
 };
 
 class setitrsubset : public setitr {
 public:
-    setitrint* itrint;
+    setitrint* itrint {};
     itrpos* superset {};
 
     /* void setsuperset( itrpos* supersetposin )
@@ -1138,8 +1204,8 @@ public:
     }
     void reset() override
     {
-        superset->reset();
-        itrint->reset();
+        // superset->reset();
+        // itrint->reset();
         pos = -1;
     }
     bool ended() override
@@ -1151,11 +1217,13 @@ public:
     }
     setitrsubset(itrpos* supersetin) : superset{supersetin}, itrint{new setitrint(supersetin->getsize() - 1)}
     {
+        superset->parent->usecount++;
         t = superset->parent->t;
         pos = -1;
         reset();
     };
     setitrsubset(itrpos* supersetin, setitrint* itrintin) : superset{supersetin}, itrint{itrintin} {
+        superset->parent->usecount++;
         t = superset->parent->t;
         pos = -1;
         reset();
@@ -1167,8 +1235,8 @@ public:
         reset();
     };
     ~setitrsubset() {
+        superset->parent->usecount--;
         delete itrint;
-        delete superset;
     }
 };
 
@@ -1555,7 +1623,7 @@ public:
             return false;
         if (v.seti->getsize() != 2)
             return false;
-        auto itr = v.seti->getitrpos();
+        auto itr = v.seti->getitrpos(false);
         auto one = itr->getnext();
         auto two = itr->getnext();
         delete itr;
@@ -1636,7 +1704,7 @@ public:
             // std::cout << "Less than one set passed to plural ops\n";
         }
         setitr* res;
-        res = new setitrsubset(superset->getitrpos(),out);
+        res = new setitrsubset(superset->getitrpos(false),out);
         return res;
     }
     int setopunioncount( const int cutoff, const formulaoperator fo ) override {
@@ -1808,7 +1876,7 @@ public:
     setitr* cast;
     virtual bool iselt( valms v )
     {
-        auto pos = cast->getitrpos();
+        auto pos = cast->getitrpos(false);
         pos->reset();
         bool match = false;
         while ( !match && !pos->ended())
@@ -1816,6 +1884,7 @@ public:
             auto v2 = pos->getnext();
             match = match || mtareequalgenerous( v ,v2);
         }
+        delete pos;
         return match;
     }
     setitrslowop( setitr* castin ) : cast(castin) {};
@@ -1843,8 +1912,8 @@ public:
         }
     }
     bool boolsetops( const formulaoperator fo ) override {
-        auto tmpitrA = setA->getitrpos();
-        auto tmpitrB = setB->getitrpos();
+        auto tmpitrA = setA->getitrpos(false);
+        auto tmpitrB = setB->getitrpos(false);
         bool out;
         switch (fo) {
             case formulaoperator::folte:
@@ -2027,8 +2096,8 @@ public:
         }
     }
     bool boolsetops( const formulaoperator fo ) override {
-        auto tmpitrA = setA->getitrpos();
-        auto tmpitrB = setB->getitrpos();
+        auto tmpitrA = setA->getitrpos(false);
+        auto tmpitrB = setB->getitrpos(false);
         bool out;
         switch (fo) {
             case formulaoperator::folte:
@@ -2274,7 +2343,7 @@ public:
             totality.push_back(r);
         return totality[pos];
     }
-    setitrcp(setitr* Ain, setitr* Bin) : setA{Ain->getitrpos()}, setB{Bin->getitrpos()} {}
+    setitrcp(setitr* Ain, setitr* Bin) : setA{Ain->getitrpos(false)}, setB{Bin->getitrpos(false)} {}
     ~setitrcp()
     {
         delete setA;
@@ -2470,11 +2539,11 @@ formulaclass* parseformula(
     namedparams& ps,
     const std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>* fnptrs = &global_fnptrs  );
 
-
 class evalformula
 {
 protected:
     void preprocessbindvariablenames( formulaclass* fc, namedparams& context );
+    std::vector<setitr*> tocleanup {};
 
 public:
     unsigned thread_count = std::thread::hardware_concurrency();
@@ -2486,9 +2555,11 @@ public:
     virtual valms evalvariable( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
     virtual valms evalvariablederef( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
     virtual valms eval( formulaclass& fc, namedparams& context );
+
     evalformula();
     ~evalformula()
     {
+        // cleanup(out.t == mtset || out.t == mttuple ? out.seti : nullptr);
     }
 
 };
@@ -2687,7 +2758,7 @@ inline void mtconvertsetto( setitr* vin, valms& vout )
         case mtgraph: {
             /* First count how many vertices */
 
-            auto pos = vin->getitrpos();
+            auto pos = vin->getitrpos(false);
             pos->reset();
 
             std::vector<valms> tempvertices {};
@@ -3010,7 +3081,7 @@ inline void mtconverttograph( const valms& vin, neighborstype*& vout )
         {
             /* First count how many vertices */
 
-            auto pos = vin.seti->getitrpos();
+            auto pos = vin.seti->getitrpos(false);
             pos->reset();
 
             std::vector<valms> tempvertices {};

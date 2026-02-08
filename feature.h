@@ -2283,15 +2283,14 @@ inline compactcmdline parsecompactcmdline( std::string& s )
 
 
 template<typename T>
-void runthreads(const int iidx, const params& ps, thrrecords<T>& r )
-{
+void runthreads(const int iidx, const params& ps, thrrecords<T>& r ) {
     const double section = double(r.sz) / double(r.thread_count);
     std::vector<std::future<void>> t;
     t.resize(r.thread_count);
     for (int m = 0; m < r.thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
-        t[m] = std::async(&thrrecords<T>::threadfetch,r,startidx,stopidx,iidx,ps);
+        t[m] = std::async(&thrrecords<T>::threadfetch,&r,startidx,stopidx,iidx,ps);
     }
     for (int m = 0; m < r.thread_count; ++m)
     {
@@ -2300,7 +2299,8 @@ void runthreads(const int iidx, const params& ps, thrrecords<T>& r )
 }
 
 template<typename T>
-void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r, std::vector<bool>* todo )
+void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r,
+    std::vector<bool>* todo)
 {
     const double section = double(r.sz) / double(r.thread_count);
     std::vector<std::future<void>> t;
@@ -2308,7 +2308,7 @@ void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r, std::
     for (int m = 0; m < r.thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
-        t[m] = std::async(&thrrecords<T>::threadfetchpartial,r,startidx,stopidx,iidx,ps,todo);
+        t[m] = std::async(&thrrecords<T>::threadfetchpartial,&r,startidx,stopidx,iidx,ps,todo);
     }
     for (int m = 0; m < r.thread_count; ++m)
     {
@@ -3994,28 +3994,28 @@ public:
             {
                 switch (iter[k]->t) {
                     case mtbool:
-                    runthreadspartial<bool>(ilookup,ps,rec.boolrecs,&todo);
+                    runthreadspartial<bool>(ilookup,ps,rec.boolrecs,  &todo);
                     break;
                     case mtdiscrete:
-                    runthreadspartial<int>(ilookup,ps,rec.intrecs,&todo);
+                    runthreadspartial<int>(ilookup,ps,rec.intrecs, &todo);
                     break;
                     case mtcontinuous:
-                    runthreadspartial<double>(ilookup,ps,rec.doublerecs,&todo);
+                    runthreadspartial<double>(ilookup,ps,rec.doublerecs, &todo);
                     break;
                     case mtset:
-                    runthreadspartial<setitr*>(ilookup,ps,rec.setrecs,&todo);
+                    runthreadspartial<setitr*>(ilookup,ps,rec.setrecs, &todo);
                     break;
                     case mttuple:
-                    runthreadspartial<setitr*>(ilookup,ps,rec.tuplerecs,&todo);
+                    runthreadspartial<setitr*>(ilookup,ps,rec.tuplerecs, &todo);
                     break;
                     case mtstring:
-                    runthreadspartial<std::string*>(ilookup,ps,rec.stringrecs,&todo);
+                    runthreadspartial<std::string*>(ilookup,ps,rec.stringrecs, &todo);
                     break;
                     case mtgraph:
-                    runthreadspartial<neighborstype*>(ilookup,ps,rec.graphrecs,&todo);
+                    runthreadspartial<neighborstype*>(ilookup,ps,rec.graphrecs, &todo);
                     break;
                     case mtuncast:
-                    runthreadspartial<valms>(ilookup,ps,rec.uncastrecs,&todo);
+                    runthreadspartial<valms>(ilookup,ps,rec.uncastrecs, &todo);
                     break;
                 }
             }
@@ -4056,7 +4056,8 @@ public:
                         threadset[m] = rec.setrecs.fetch(m,ilookup, ps);
                 }
                 for (int m = 0; m < eqclass.size(); ++m)
-                    rec.addliteralvalues( iter[k]->iidx, m, threadset[m]);
+                    if (alltodo || todo[m])
+                        rec.addliteralvalues( iter[k]->iidx, m, threadset[m]);
                 break;
                 case mttuple:
                 for (int m = 0; m < eqclass.size(); ++m)
@@ -4065,7 +4066,8 @@ public:
                         threadtuple[m] = rec.tuplerecs.fetch(m,ilookup, ps);
                 }
                 for (int m = 0; m < eqclass.size(); ++m)
-                    rec.addliteralvaluet( iter[k]->iidx, m, threadtuple[m]);
+                    if (alltodo || todo[m])
+                        rec.addliteralvaluet( iter[k]->iidx, m, threadtuple[m]);
                 break;
                 case mtstring:
                 for (int m = 0; m < eqclass.size(); ++m)

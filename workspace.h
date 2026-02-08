@@ -789,11 +789,12 @@ inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t
         case mttuple:
             {
                 std::string pre2 = pre + "\t";
-                auto itr2 = v.seti->getitrpos();
+                auto itr2 = v.seti->getitrpos(false);
                 newline = true;
                 osset( os, itr2, pre2, v.t, alreadyindented );
                 os << (e ? "\n" : ",\n ");
                 alreadyindented = false;
+                delete itr2;
                 break;
             }
         case mtstring:
@@ -850,7 +851,7 @@ public:
                 if (this->parentbool[i])
                 {
                     auto itr = this->meas[i];
-                    auto pos = itr->getitrpos();
+                    auto pos = itr->getitrpos(false);
                     std::string pre = "";
                     osset( os, pos, pre, mtset );
                     os << "\n";
@@ -921,7 +922,7 @@ public:
                 if (this->parentbool[i])
                 {
                     auto itr = this->meas[i];
-                    auto pos = itr->getitrpos();
+                    auto pos = itr->getitrpos(false);
                     std::string pre = "";
                     osset( os, pos, pre, mttuple );
                     os << "\n";

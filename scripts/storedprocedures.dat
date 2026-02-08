@@ -16,9 +16,9 @@ EXISTS (c IN Cycless, st(c) == n)
 
 END
 
-mtbool HasKnminor ( mtdiscrete n )
+mtbool HasKnminor (mtdiscrete n )
 
-EXISTS (s IN Ps(V), EXISTS (p IN Setpartition(s), st(p) == n, FORALL (q IN p, FORALL (r IN p, r != q, Nssc(q,r)) AND connvsc(q,E))))
+EXISTS (so IN Ps(V), EXISTS (p IN Setpartition(so), st(p) >= 5, FORALL (q IN p, FORALL (r2 IN q, FORALL (s2 IN q, r2 != s2, EXISTS (z IN Pathss(r2,s2), z <= q)))) AND FORALL (s IN p, FORALL (t IN p, s != t, EXISTS (u IN s, EXISTS (v IN t, ac(u,v)))))))
 
 END
 

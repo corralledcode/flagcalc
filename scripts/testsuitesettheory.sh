@@ -276,7 +276,7 @@ $PTH/flagcalc -d f="abcdef" -a a="MAX (n IN NN(st(Cyclesvs(0)[0])), (Cyclesvs(0)
 
 $PTH/flagcalc -d f="abc=def=ghi" -a a="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v[0])))>>[1]" all -v set allsets i=minimal3.cfg
 
-# Experiementing with tuple constants or literals; one can also add tuples pointwise with "+" or append them with CUPD or CUP (either works)
+# Experimenting with tuple constants or literals; one can also add tuples pointwise with "+" or append them with CUPD or CUP (either works)
 $PTH/flagcalc -d f="abc=def=ghi" -a a="<<0,2, SUM (v IN Ps(V), st(v) > 0, st(Cyclesvs(v[0])))>>[2]" all -v set allsets i=minimal3.cfg
 
 $PTH/flagcalc -d f="abc=def=ghi" -a e="SETD (n IN st(V), SETD (i IN n, {i}))" all -v set allsets i=minimal3.cfg
@@ -286,7 +286,7 @@ $PTH/flagcalc -d f="abcd" -a e="SET (s IN Setpartition(V), s)" all -v set allset
 # This one says: amongst the (first iteration) 1-connected sets, then amongst those the ones (second iteration) that embed a complete graph of dimension dimm,
 # there is a partition of V into \Delta (graph's max degree) partitions, such that each partition within itself is disconnected.
 # This isn't annotated because the second iteration's criteria implies the first iteration's criteria, so it is some test
-# perhaps nonetheless inspired by a meaningful proposition
+# perhaps nonetheless inspired by a meaningful proposition. Note, false since Deltam == dimm-1
 $PTH/flagcalc -r 7 20 100 -a s="conn1c" s2="Knc(dimm,1)" s3="EXISTS (c IN Setpartition(V), st(c) == Deltam AND FORALL (s IN c, FORALL (u1 IN s, FORALL (u2 IN s, NOT ac(u1,u2)))))" all -v i=minimal3.cfg
 
 # Diestel 5.2.4 (Brooks 1941)
@@ -334,7 +334,7 @@ $PTH/flagcalc -d f="abc=defg" f="abcd=efgh" f="abc=de" -a s="FORALL (v IN V, FOR
 
 $PTH/flagcalc -r 8 14 1000 -a s="FORALL (v IN V, FORALL (c IN Cyclesvs(v), mod(st(c),2) == 0))" s2="Chiprimet == Deltam" all -v i=minimal3.cfg
 
-# Diestel 2.1.1
+# Diestel 2.1.1 (Konig 1931)
 
 $PTH/flagcalc -r 8 14 200 -a s="EXISTS (p IN Setpartition(V), st(p) == 2, bipc(p[0],p[1]))" s2="MAX (es IN Ps(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))), st(es)) == MIN (vs IN Ps(V), FORALL (e IN E, vs CAP e != Nulls), st(vs))" all -v i=minimal3.cfg
 
@@ -488,7 +488,7 @@ $PTH/flagcalc -r 50 20 1 -a e="PARTITION (u,v IN V, connvc(u,v))" all -v set all
 # 4:20 on a Threadripper 24 core Shimada Peak series 12/12/2025: update: 4:00 on 12/18/2025
 
 # Diestel Cor. 1.5.2
-$PTH/flagcalc -r 9 p=0.2 100 -a s="treec" s2="EXISTS (P IN Perms(V), FORALL (v IN V, P[v] >= 1, EXISTS (n IN NN(dimm), P[n] < P[v] AND ac(n,v), FORALL (m IN NN(dimm), (P[m] < P[v] AND ac(m,v)) IMPLIES m == n))))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -r 9 p=0.3 1000 -a s="treec" s2="EXISTS (P IN Perms(V), FORALL (v IN V, P[v] >= 1, EXISTS (n IN NN(dimm), P[n] < P[v] AND ac(n,v), FORALL (m IN NN(dimm), (P[m] < P[v] AND ac(m,v)) IMPLIES m == n))))" all -v set allsets i=minimal3.cfg
 
 # Diestel defn p 174 "extremal"
 
@@ -497,4 +497,4 @@ $PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(4,1)" a2="edgecm" all -v i=mini
 $PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(5,1)" a2="edgecm" all -v i=minimal3.cfg
 $PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(6,1)" a2="edgecm" all -v i=minimal3.cfg
 
-
+# 4:08 on 24 core Shimada peak after memory improvements 2/7/2026

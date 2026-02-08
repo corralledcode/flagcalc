@@ -1920,8 +1920,8 @@ public:
 //                return false;
 //            }
             bool res;
-            auto itra = ps[0].seti->getitrpos();
-            auto itrb = ps[1].seti->getitrpos();
+            auto itra = ps[0].seti->getitrpos(false);
+            auto itrb = ps[1].seti->getitrpos(false);
             valms a1 = itra->getnext();
             valms b1 = itrb->getnext();
             valms a2 = itra->getnext();
@@ -1995,9 +1995,10 @@ public:
     {
         graphtype* g = ns->g;
         itrpos* e;
-        e = ps[0].seti->getitrpos();
+        e = ps[0].seti->getitrpos(false);
         auto e1 = e->getnext();
         auto e2 = e->getnext();
+        delete e;
         auto v1 = e1.v.iv;
         auto v2 = e2.v.iv;
 
@@ -2064,17 +2065,11 @@ public:
     }
     int takemeas(neighborstype* ns, const params& ps) override
     {
-//        if (ps.size() == 1) {
-            return ps[0].seti->getsize();
-//        }
-//        return 0;
+        return ps[0].seti->getsize();
     }
     int takemeas(const int idx, const params& ps) override
     {
-//        if (ps.size() == 1) {
-            return ps[0].seti->getsize();
-//        }
-//        return 0;
+        return ps[0].seti->getsize();
     }
 };
 
@@ -2197,7 +2192,7 @@ public:
 //        if (ps.size() != 1)
 //            return false;
         graphtype* g = ns->g;
-        auto itr = ps[0].seti->getitrpos();
+        auto itr = ps[0].seti->getitrpos(false);
         bool res = g->adjacencymatrix[g->dim * itr->getnext().v.iv + itr->getnext().v.iv];
         delete itr;
         return res;
@@ -2227,7 +2222,7 @@ public:
 //        {
 //            std::cout << "Wrong number of parameters to idxt\n";
 //        }
-        auto itr = ps[0].seti->getitrpos();
+        auto itr = ps[0].seti->getitrpos(false);
         if (itr->ended())
         {
             std::cout << "idxs called on empty set\n";
@@ -2262,7 +2257,7 @@ public:
 //        {
 //            std::cout << "Wrong number of parameters to idxs\n";
 //        }
-        auto itr = ps[0].seti->getitrpos();
+        auto itr = ps[0].seti->getitrpos(false);
         if (itr->ended())
         {
             std::cout << "idxs called on empty set\n";
@@ -2377,7 +2372,7 @@ public:
     {
         graphtype* g = ns->g;
 //        if (ps.size() == 1) {
-            auto s = ps[0].seti->getitrpos();
+            auto s = ps[0].seti->getitrpos(false);
             bool* S = (bool*)malloc(g->dim * sizeof(bool));
             memset(S,false,g->dim*sizeof(bool));
             while (!s->ended())
@@ -2426,7 +2421,7 @@ public:
     {
         graphtype* g = ns->g;
 //        if (ps.size() == 1) {
-            auto s = ps[0].seti->getitrpos();
+            auto s = ps[0].seti->getitrpos(false);
             // if (setitrint* s = dynamic_cast<setitrint*>(ps[0].seti))
             // {
             bool* S = (bool*)malloc(g->dim * sizeof(bool));
@@ -2491,8 +2486,8 @@ public:
     {
         graphtype* g = ns->g;
 //        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
-            auto s1 = ps[0].seti->getitrpos();
-            auto s2 = ps[1].seti->getitrpos();
+            auto s1 = ps[0].seti->getitrpos(false);
+            auto s2 = ps[1].seti->getitrpos(false);
             bool res = false;
             while (!s1->ended() && !res)
             {
@@ -2536,8 +2531,8 @@ public:
     {
         graphtype* g = ns->g;
 //        if (ps.size() == 2 && (ps[0].t == mtset || ps[0].t == mttuple) && (ps[1].t == mtset || ps[1].t == mttuple) ) {
-            auto s1 = ps[0].seti->getitrpos();
-            auto s2 = ps[1].seti->getitrpos();
+            auto s1 = ps[0].seti->getitrpos(false);
+            auto s2 = ps[1].seti->getitrpos(false);
             int res = 0;
 
             bool* vertices = (bool*)malloc(g->dim * sizeof(bool));
@@ -2918,9 +2913,9 @@ public:
     bool takemeas( neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        auto itrA = ps[0].seti->getitrpos();
-        auto itrB = ps[1].seti->getitrpos();
-        auto itrC = ps[2].seti->getitrpos();
+        auto itrA = ps[0].seti->getitrpos(false);
+        auto itrB = ps[1].seti->getitrpos(false);
+        auto itrC = ps[2].seti->getitrpos(false);
         bool* C = (bool*)malloc(g->dim * sizeof(bool));
         memset (C, false, g->dim * sizeof(bool));
         while (!itrC->ended())
@@ -2984,8 +2979,8 @@ class connvsscrit : public crit
     bool takemeas( neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        auto itrA = ps[0].seti->getitrpos();
-        auto itrB = ps[1].seti->getitrpos();
+        auto itrA = ps[0].seti->getitrpos(false);
+        auto itrB = ps[1].seti->getitrpos(false);
         bool res = false;
         while (!itrA->ended() && !res)
         {
@@ -3047,7 +3042,7 @@ class connvusingsetcrit : public crit
 public:
     bool takemeas( neighborstype* ns, const params& ps) override
     {
-        itrpos* vsitr = ps[2].seti->getitrpos();
+        itrpos* vsitr = ps[2].seti->getitrpos(false);
         std::vector<vertextype> vs {};
         vs.push_back(ps[0].v.iv);
         vs.push_back(ps[1].v.iv);
@@ -3056,6 +3051,7 @@ public:
         auto subns = new neighborstype(findedgesgivenvertexset(ns->g,vs));
         auto res = pathsbetweenmin( subns->g, subns, ps[0].v.iv, ps[1].v.iv, 1);
         delete subns;
+        delete vsitr;
         return res;
     }
     bool takemeas( const int idx, const params& ps) override
@@ -3083,8 +3079,8 @@ public:
     bool takemeas( neighborstype* ns, const params& ps) override
     {
         graphtype* g = ns->g;
-        auto vitr = ps[0].seti->getitrpos();
-        auto edgeitr = ps[1].seti->getitrpos();
+        auto vitr = ps[0].seti->getitrpos(false);
+        auto edgeitr = ps[1].seti->getitrpos(false);
         bool* vertices = (bool*)malloc(g->dim * sizeof(bool));
         memset (vertices, false, g->dim * sizeof(bool));
         while (!vitr->ended())
@@ -3094,7 +3090,7 @@ public:
         while (!edgeitr->ended())
         {
             valms e = edgeitr->getnext();
-            auto eitr = e.seti->getitrpos();
+            auto eitr = e.seti->getitrpos(false);
             vertextype v1 = eitr->getnext().v.iv;
             vertextype v2 = eitr->getnext().v.iv;
             delete eitr;

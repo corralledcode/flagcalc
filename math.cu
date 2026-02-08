@@ -929,16 +929,16 @@ bool tupleeq( itrpos* in1, itrpos* in2)
         else
             if (itm.t == mtset && itm2.t == mtset)
             {
-                auto pos1 = itm.seti->getitrpos();
-                auto pos2 = itm2.seti->getitrpos();
+                auto pos1 = itm.seti->getitrpos(false);
+                auto pos2 = itm2.seti->getitrpos(false);
                 res = setsubseteq( pos1, pos2) && setsubseteq( pos2, pos1);
                 delete pos1;
                 delete pos2;
             } else
                 if (itm.t == mttuple && itm2.t == mttuple)
                 {
-                    auto pos1 = itm.seti->getitrpos();
-                    auto pos2 = itm2.seti->getitrpos();
+                    auto pos1 = itm.seti->getitrpos(false);
+                    auto pos2 = itm2.seti->getitrpos(false);
                     res = tupleeq( pos1, pos2);
                     delete pos1;
                     delete pos2;
@@ -1075,7 +1075,7 @@ valms evalformula::evalvariablederef( variablestruct& v, const namedparams& cont
 
     valms res;
     int index = vidxin[0];
-    auto pos = context[v.l].second.seti->getitrpos();
+    auto pos = context[v.l].second.seti->getitrpos(false);
     pos->reset();
     int i = 0;
     if (!pos->ended())
@@ -1300,9 +1300,12 @@ public:
                         std::cout << "Cannot use mtbool for quantifier superset\n";
                     needtodeletevseti[j] = false;
                 }
-                supersetpos.push_back(v.seti->getitrpos());
+                v.seti->usecount++;
+                supersetpos.push_back(v.seti->getitrpos(false));
                 ss.push_back(nullptr);
                 context.push_back({fc.fcright->boundvariables[j]->name,fc.fcright->boundvariables[j]->qs});
+                // std::cout << "inc'ed " << v.seti->usecount << " for " << context.back().first << " (" << j << ")" << std::endl;
+                // std::cout << context.back().first << " (name)" << std::endl;
 
                 if (contextidxB < 0)
                     contextidxB = context.size()-1;
@@ -1313,8 +1316,12 @@ public:
                 supersetpos[supersetpos.size()-1]->reset();
                 if (supersetpos[supersetpos.size()-1]->ended()) {
                     vacuouslytrue = true;
-                } else
+                } else {
                     context[i[i.size()-1]].second = supersetpos[supersetpos.size()-1]->getnext();
+                    auto c = context[i[i.size()-1]].second;
+                    // if (c.t == mtset || c.t == mttuple)
+                        // c.seti->usecount++;
+                }
                 vv.push_back(v);
             }
         }
@@ -1322,6 +1329,8 @@ public:
         {
             if (fc.fcright->boundvariables[j]->alias) {
                 valms v = emf->evalinternal(*fc.fcright->boundvariables[j]->alias, context);
+                // if (v.t == mtset || v.t == mttuple)
+                    // v.seti->usecount++;
                 context.push_back({fc.fcright->boundvariables[j]->name,v});
                 a.push_back({context.size()-1,j});
             }
@@ -1341,11 +1350,17 @@ public:
         k = 0;
         if (k >= supersetpos.size())
             return;
-        context[i[k]].second = supersetpos[k]->getnext();
-        for (int l = 0; l < k; ++l) {
-            supersetpos[l]->reset();
-            context[i[l]].second = supersetpos[l]->getnext();
-        }
+        auto m = context[i[k]].second;
+        // if (m.t == mtset || m.t == mttuple)
+            // m.seti->usecount--;
+        auto n = supersetpos[k]->getnext();
+        context[i[k]].second = n;
+        // if (n.t == mtset || n.t == mttuple)
+            // n.seti->usecount++;
+        // for (int l = 0; l < k; ++l) {
+            // supersetpos[l]->reset();
+            // context[i[l]].second = supersetpos[l]->getnext();
+        // }
     }
 
     void computenamings( namedparams& context)
@@ -1359,19 +1374,34 @@ public:
 
     void multipleadvance()
     {
-        if (k < supersetpos.size())
+        if (k < supersetpos.size()) {
+            auto m = context[i[k]].second;
+            // if (m.t == mtset || m.t == mttuple) {
+                // m.seti->usecount--;
+            // }
             while (supersetpos[k]->ended())
             {
                 ++k;
                 if (k >= supersetpos.size())
                     break;
             }
+        }
         if (k < supersetpos.size())
         {
-            context[i[k]].second = supersetpos[k]->getnext();
+            auto n = supersetpos[k]->getnext();
+            context[i[k]].second = n;
+            // if (n.t == mtset || n.t == mttuple)
+                // n.seti->usecount++;
             for (int l = 0; l < k; ++l) {
+                auto q = context[i[l]].second;
+                // if (q.t == mtset || q.t == mttuple) {
+                    // q.seti->usecount--;
+                // }
                 supersetpos[l]->reset();
-                context[i[l]].second = supersetpos[l]->getnext();
+                auto p = supersetpos[l]->getnext();
+                // if (p.t == mtset || p.t == mttuple)
+                    // p.seti->usecount++;
+                context[i[l]].second = p;
             }
             computenamings(context);
             k = 0;
@@ -1380,13 +1410,42 @@ public:
 
     void cleanup()
     {
-        for (int k = 0; k < ss.size(); ++k) {
-            delete ss[k];
-            if (needtodeletevseti[k])
-                delete vv[k].seti;
+        // if (ended() && supersetpos.size() > 0) {
+            // auto m = context[i[k-1]].second;
+            // if (m.t == mtset || m.t == mttuple) {
+                // m.seti->usecount--;
+            // }
+        // }
+        for (int j = 0; j < supersetpos.size(); ++j) {
+            delete supersetpos[j];
         }
-        for (int i = 0; i < supersetpos.size(); ++i)
-            delete supersetpos[i];
+        supersetpos.clear();
+        for (int m = 0; m < ss.size(); ++m) {
+            delete ss[m];
+            --vv[m].seti->usecount;
+            // std::cout << context[i[m]].first << " " << vv[m].seti->usecount << std::endl;
+            if (needtodeletevseti[m])
+                delete vv[m].seti;
+            else if (vv[m].seti->generative && vv[m].seti->usecount <= 0) {
+                vv[m].seti->cleanup();
+                delete vv[m].seti;
+            }
+
+            // else if (vv[k].seti->safetodelete())
+                // delete vv[k].seti;
+            // else
+                // std::cout << "not deleted " << vv[k].seti->getsize() << "\n";
+            // if (omit != nullptr && vv[k].seti != omit) {
+                // delete vv[k].seti;
+            // }
+        }
+        ss.clear();
+        // for (auto j = originalcontextsize; j < context.size(); ++j) {
+        // std::cout << context[j].first << " (name)\n ";
+        // if (context[j].second.t == mtset || context[j].second.t == mttuple)
+        // delete context[j].second.seti;
+        // }
+
         context.resize(originalcontextsize);
     }
 
@@ -1832,6 +1891,7 @@ void idealizetuple( std::vector<valms>& tot, valms& res)
 valms evalformula::eval( formulaclass& fc, namedparams& context) {return {};}
 
 
+
 valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 {
     valms res;
@@ -1876,6 +1936,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             res = evalpslit(fc.v.lit.l,context,subgraph,ps);
 
         }
+        // if (res.t == mtset || res.t == mttuple)
+            // res.seti->usecount++;
         return res;
     }
 
@@ -1894,6 +1956,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             case mtset:
             case mttuple:
                 res.seti = new setitrformulae(rec, idx, fc.v.ss.elts, context ); // doesn't compute in time, that is, misses variables in a quantifier
+                // tocleanup.push_back(res.seti);
+                    // res.seti->usecount++;
                 return res;
             case mtstring:
                 res.v.rv = fc.v.v.v.rv;
@@ -1929,7 +1993,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 std::cout << "Non-set or tuple variable being dereferenced\n";
                 return v; // to prevent segfaulting
             }
-            auto pos = v.seti->getitrpos();
+            auto pos = v.seti->getitrpos(false);
             int i = 0;
             valms res;
             auto idx = evalinternal(*fc.fcleft,context);
@@ -1955,12 +2019,17 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 res.v.iv = 0;
             }
             delete pos;
+            // if (res.t == mtset || res.t == mttuple)
+                // res.seti->usecount++;
             return res;
         }
     case formulaoperator::fovariable:
         {
             std::vector<int> ps {};
             res = evalvariable(fc.v.vs, context, ps);
+            // if (res.t == mtset || res.t == mttuple)
+                // res.seti->usecount++;
+
             return res;
         }
 
@@ -1972,6 +2041,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
             }
             res = evalvariable(fc.v.vs, context,ps);
+            // if (res.t == mtset || res.t == mttuple)
+                // res.seti->usecount++;
             return res;
         }
 
@@ -1987,6 +2058,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 auto abstractsetops = getsetitrop(set.seti);
                 res.t = mtbool;
                 res.v.bv = abstractsetops->iselt( itm );
+                delete abstractsetops;
 /*
 
 
@@ -2077,6 +2149,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 res.seti = new setitrsetxor( set1.seti,set2.seti);
                                 break;
                             }*/
+
+            // if (res.t == mtset || res.t == mttuple)
+                // res.seti->usecount++;
 
             return res;
         }
@@ -2546,6 +2621,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             if (c.v.bv)
                             {
                                 auto v = evalinternal(*fc.fcright, context);
+                                claimset(v);
                                 tot.push_back(v);
                             }
                             qm.multipleadvance();
@@ -2563,6 +2639,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             if (c.v.bv)
                             {
                                 auto v = evalinternal(*fc.fcright, context);
+                                claimset(v);
                                 tot.push_back(v);
                             }
                             qm.multipleadvance();
@@ -2583,12 +2660,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 bool match = false;
                                 for (int i = 0; !match && i < tot.size(); i++)
                                     match = match || mtareequal(tot[i], v);
-                                if (!match)
+                                if (!match) {
+                                    claimset(v);
                                     tot.push_back(v);
+                                }
                             }
                             qm.multipleadvance();
                         }
                         idealizeset(tot,res);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 case formulaoperator::foqunion:
@@ -2607,6 +2687,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 valms outv;
                                 tempv = evalinternal(*fc.fcright, context);
                                 mtconverttoset(tempv,outv.seti);
+                                claimset(outv);
                                 composite.push_back(outv.seti);
                             }
                             qm.multipleadvance();
@@ -2615,6 +2696,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.seti = abstractpluralsetops->setops(fc.fo);
                         if (!res.seti)
                             res.seti = new setitrint(-1);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 case formulaoperator::foqmedian:
@@ -2638,11 +2720,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             valms c = to_mtbool(evalinternal(*qm.criterion, context));
                             if (c.v.bv) {
                                 tot.push_back(evalinternal(*fc.fcright, context));
+                                claimset(tot.back());
                                 found++;
                             }
                             qm.multipleadvance();
                         }
                         res.seti = new setitrmodeone(tot);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 case formulaoperator::foqany:
@@ -2879,10 +2963,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (!qm.ended())
                         {
                             auto v = evalinternal(*fc.fcright, context);
+                            claimset(v);
                             tot.push_back(v);
                             qm.multipleadvance();
                         }
                         idealizeset(tot,res);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqtuple:
@@ -2892,10 +2978,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (!qm.ended())
                         {
                             auto v = evalinternal(*fc.fcright, context);
+                            claimset(v);
                             tot.push_back(v);
                             qm.multipleadvance();
                         }
                         idealizetuple(tot,res);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqset:
@@ -2908,11 +2996,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             bool match = false;
                             for (int i = 0; !match && i < tot.size(); i++)
                                 match = match || mtareequal(tot[i], v);
-                            if (!match)
+                            if (!match) {
+                                claimset(v);
                                 tot.push_back(v);
+                            }
                             qm.multipleadvance();
                         }
                         idealizeset(tot,res);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqunion:
@@ -2928,6 +3019,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             valms outv;
                             tempv = evalinternal(*fc.fcright, context);
                             mtconverttoset(tempv,outv.seti);
+                            claimset(outv);
                             composite.push_back(outv.seti);
                             qm.multipleadvance();
                         }
@@ -2936,6 +3028,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                         if (!res.seti)
                             res.seti = new setitrint(-1);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqmedian:
@@ -2956,10 +3049,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         while (!qm.ended() && found < qm.computedcntforquota) {
                             tot.push_back(evalinternal(*fc.fcright, context));
+                            claimset(tot.back());
                             found++;
                             qm.multipleadvance();
                         }
                         res.seti = new setitrmodeone(tot);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqany:
@@ -2969,7 +3064,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (!qm.ended() && !found) {
                                 res = evalinternal(*fc.fcright, context);
                                 found = true;
-                                // qm.multipleadvance();
+                                qm.multipleadvance();
                             }
                             break;
                         }
@@ -3253,10 +3348,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<bool> c;
                             qm.threadsafeadvancewithcriterion(pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
-                                if (c[m])
+                                if (c[m]) {
+                                    claimset(ress[m]);
                                     tot.push_back(ress[m]);
+                                }
                         }
                         idealizeset(tot,res);
+                        // tocleanup.push_back(res.seti);
+
                         // res.seti = new setitrmodeone(tot);
                         break;
                     }
@@ -3271,9 +3370,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             std::vector<bool> c;
                             qm.threadsafeadvancewithcriterion(pos,c,ress);
                             for (int m = 0; m < pos ; ++m)
-                                if (c[m])
+                                if (c[m]) {
+                                    claimset(ress[m]);
                                     tot.push_back(ress[m]);
+                                }
+
                         }
+                        // tocleanup.push_back(res.seti);
                         idealizetuple(tot,res);
                         break;
                     }
@@ -3292,10 +3395,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     bool match = false;
                                     for (int i = 0; !match && i < tot.size(); i++)
                                         match = match || mtareequal(tot[i], ress[m]);
-                                    if (!match)
+                                    if (!match) {
+                                        claimset(ress[m]);
                                         tot.push_back(ress[m]);
+                                    }
                                 }
                         }
+                        // tocleanup.push_back(res.seti);
                         idealizeset(tot,res);
                         break;
                     }
@@ -3317,6 +3423,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 {
                                     setitr* out;
                                     mtconverttoset(ress[m],out);
+                                    claimsetitr(out);
                                     composite.push_back(out);
                                 }
                         }
@@ -3326,6 +3433,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         if (!res.seti)
                             res.seti = new setitrint(-1);
 
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 case formulaoperator::foqmedian:
@@ -3549,11 +3657,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
-                            for (int m = 0; m < pos ; ++m)
+                            for (int m = 0; m < pos ; ++m) {
+                                claimset(ress[m]);
                                 tot.push_back(ress[m]);
+                            }
                         }
                         idealizeset(tot,res);
                         // res.seti = new setitrmodeone(tot);
+                        // tocleanup.push_back(res.seti);
+
                         break;
                     }
                     case formulaoperator::foqtuple:
@@ -3565,10 +3677,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             qm.threadsafeadvance(pos,ress);
-                            for (int m = 0; m < pos ; ++m)
+                            for (int m = 0; m < pos ; ++m) {
+                                claimset(ress[m]);
                                 tot.push_back(ress[m]);
+                            }
                         }
                         idealizetuple(tot,res);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqset:
@@ -3585,11 +3700,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 bool match = false;
                                 for (int i = 0; !match && i < tot.size(); i++)
                                     match = match || mtareequal(tot[i], ress[m]);
-                                if (!match)
+                                if (!match) {
+                                    claimset(ress[m]);
                                     tot.push_back(ress[m]);
+                                }
                             }
                         }
                         idealizeset(tot,res);
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqunion:
@@ -3608,6 +3726,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             {
                                 setitr* out;
                                 mtconverttoset(ress[m],out);
+                                claimsetitr(out);
                                 composite.push_back(out);
                             }
                         }
@@ -3617,6 +3736,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         if (!res.seti)
                             res.seti = new setitrint(-1);
 
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                     case formulaoperator::foqmedian:
@@ -3691,13 +3811,15 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     qm.computenamings(context);
                                     found = evalinternal(*fc.fcright, context).v.bv;
                                 }
-                                if (found)
+                                if (found) {
                                     tot[i-1].push_back(context[qm.contextidxB].second);
-                                else
+                                    claimset(tot[i-1].back());
+                                } else
                                 {
                                     tot.resize(tot.size()+1);
                                     tot[tot.size()-1].clear();
                                     tot[tot.size()-1].push_back(context[qm.contextidxB].second);
+                                    claimset(tot[tot.size()-1].back());
                                 }
                                 // if (qm.supersetpos[qm.supersetpos.size()-2]->ended())
                                     // break;
@@ -3717,6 +3839,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         res.seti = new setitrmodeone(c);
                         qm.cleanup();
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 case formulaoperator::forsort:
@@ -3733,6 +3856,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (true)
                             {
                                 v.push_back(context[qm.contextidxA].second);
+                                claimset(v.back());
                                 if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
                                 context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
@@ -3758,6 +3882,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                         // res.seti = new setitrmodeone(tot);
                         qm.cleanup();
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 }
@@ -3789,13 +3914,16 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                         qm.computenamings(context);
                                         found = evalinternal(*fc.fcright, context).v.bv;
                                     }
-                                    if (found)
+                                    if (found) {
                                         tot[i-1].push_back(context[qm.contextidxB].second);
+                                        claimset(tot[i-1].back());
+                                    }
                                     else
                                     {
                                         tot.resize(tot.size()+1);
                                         tot[tot.size()-1].clear();
                                         tot[tot.size()-1].push_back(context[qm.contextidxB].second);
+                                        claimset(tot[tot.size()-1].back());
                                     }
                                     // if (qm.supersetpos[qm.supersetpos.size()-2]->ended())
                                     // break;
@@ -3817,6 +3945,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         res.seti = new setitrmodeone(c);
                         qm.cleanup();
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 case formulaoperator::forsort:
@@ -3838,12 +3967,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (c.v.bv)
                                 {
                                     v.push_back(context[qm.contextidxA].second);
+                                    claimset(v.back());
                                 }
                                 if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
                                 context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
                                 for (int j = 0; j < qm.a.size(); ++j) {
                                     valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    // claimset(v); // ?
                                     context[qm.a[j].first].second = v;
                                 }
 
@@ -3863,6 +3994,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         idealizeset(tot,res);
                         // res.seti = new setitrmodeone(tot);
+                        // tocleanup.push_back(res.seti);
                         qm.cleanup();
                         break;
                     }
@@ -3994,12 +4126,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (outmatrix[j*sz + l])
                                 {
                                     v.push_back(vector[l].second);
+                                    claimset(v.back());
                                     for (int m = 0; m < sz; ++m)
                                         outmatrix[m*sz + l] = false;
                                 }
                             valms u;
                             u.t = mtset;
                             u.seti = new setitrmodeone(v);
+                            // tocleanup.push_back(res.seti);
                             r.push_back(u);
                         }
 
@@ -4009,6 +4143,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         delete computedrows;
 
                         res.seti = new setitrmodeone(r);
+                        // tocleanup.push_back(res.seti);
 
 
                         qm.cleanup();
@@ -4093,6 +4228,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             while (true)
                             {
                                 v.push_back(context[qm.contextidxA].second);
+                                claimset(v.back());
                                 if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
                                 context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
@@ -4117,6 +4253,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         idealizeset(tot,res);
                         // res.seti = new setitrmodeone(tot);
                         qm.cleanup();
+                        // tocleanup.push_back(res.seti);
                         break;
                     }
                 }
@@ -4246,12 +4383,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (outmatrix[j*sz + l])
                                 {
                                     v.push_back(vector[l].second);
+                                    claimset(v.back());
                                     for (int m = 0; m < sz; ++m)
                                         outmatrix[m*sz + l] = false;
                                 }
                             valms u;
                             u.t = mtset;
                             u.seti = new setitrmodeone(v);
+                            // tocleanup.push_back(res.seti);
                             r.push_back(u);
                         }
 
@@ -4261,6 +4400,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         delete computedrows;
 
                         res.seti = new setitrmodeone(r);
+                        // tocleanup.push_back(res.seti);
 
 
                         qm.cleanup();
@@ -4287,6 +4427,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 if (c.v.bv)
                                 {
                                     v.push_back(context[qm.contextidxA].second);
+                                    claimset(v.back());
                                 }
                                 if (qm.supersetpos[qm.supersetpos.size()-1]->ended())
                                     break;
@@ -4313,6 +4454,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         idealizeset(tot,res);
                         // res.seti = new setitrmodeone(tot);
 
+                        // tocleanup.push_back(res.seti);
                         qm.cleanup();
                         break;
                     }
@@ -4323,6 +4465,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         }
 
         // qm.cleanup();
+        // if (res.t == mtset || res.t == mttuple)
+            // res.seti->usecount++;
         return res;
     }
 
@@ -4339,7 +4483,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         case mtdiscrete: b = resleft.v.iv != 0; break;
         case mtset:
         case mttuple:
-            auto itr = resleft.seti->getitrpos();
+            auto itr = resleft.seti->getitrpos(false);
             b = !itr->ended();
             delete itr;
             break;
@@ -4645,7 +4789,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 }
 
 
-
 inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
 {
     if (idx >= 0)
@@ -4668,7 +4811,8 @@ inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
     // auto contextlocal = context;
     preprocessbindvariablenames(&fc,context);
 
-    return evalinternal( fc, context );
+    auto res = evalinternal( fc, context );
+    return res;
 }
 
 

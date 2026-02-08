@@ -327,7 +327,9 @@ public:
         return res[iidx][idx];
     }
 
-    records() : msv{new std::vector<ameas<T>*>} {}
+    records() : msv{new std::vector<ameas<T>*>} {
+        msv->clear();
+    }
 
     ~records()
     {
@@ -337,6 +339,7 @@ public:
             delete computed[i];
         res.clear();
         computed.clear();
+        // delete temp;
         // for (auto m : *msv)
             // delete m;
         // delete msv;
@@ -348,6 +351,7 @@ public:
 template<typename T>
 class precords : public records<T>
 {
+    bool allocated = false;
 public:
     struct Sres
     {
@@ -386,36 +390,45 @@ public:
         return -1;
     }
 
-    virtual void setsize(const int szin)
+    int s;
+
+    void setsize(const int szin) override
     {
 
+        if (allocated)
+            cleanup();
         this->sz = szin;
-        int s = pmsv->size();
-        plookup = (params**)malloc(s*szin*sizeof(params*));
-        pres = (Sres*)malloc(s*blocksize*sizeof(Sres));
-        maxplookup = (int*)malloc(s*szin*sizeof(int));
-        memset(maxplookup,0,s*szin*sizeof(int));
-        for (int i = 0; i < s; ++i)
-        {
-            for (int j = 0; j < szin; ++j) {
-                plookup[i*szin+j] = new params[blocksize]; //(params*)malloc(blocksize*sizeof(params));
-
-            }
-            if ((*pmsv)[i]->npssz > 0)
+        s = pmsv->size();
+        if (s != 0 && szin != 0) {
+            plookup = (params**)malloc(s*szin*sizeof(params*));
+            pres = (Sres*)malloc(s*blocksize*sizeof(Sres));
+            maxplookup = (int*)malloc(s*szin*sizeof(int));
+            memset(maxplookup,0,s*szin*sizeof(int));
+            for (int i = 0; i < s; ++i)
             {
-                for (int k = 0; k < blocksize; ++k)
-                {
-                    pres[i*blocksize+k].b = (bool*)malloc(szin*sizeof(bool));
-                    pres[i*blocksize+k].r = (T*)malloc(szin*sizeof(T));
-                    memset(pres[i*blocksize+k].b,false,szin*sizeof(bool));
+                for (int j = 0; j < szin; ++j) {
+                    plookup[i*szin+j] = new params[blocksize];
+                    //(params*)malloc(blocksize*sizeof(params));
                 }
-            } else
-            {
-                pres[i*blocksize].b = (bool*)malloc(szin*sizeof(bool));
-                pres[i*blocksize].r = (T*)malloc(szin*sizeof(T));
-                memset(pres[i*blocksize].b,false,szin*sizeof(bool));
+                if ((*pmsv)[i]->npssz > 0)
+                {
+                    for (int k = 0; k < blocksize; ++k)
+                    {
+                        pres[i*blocksize+k].b = (bool*)malloc(szin*sizeof(bool));
+                        pres[i*blocksize+k].r = (T*)malloc(szin*sizeof(T));
+                        memset(pres[i*blocksize+k].b,false,szin*sizeof(bool));
+                    }
+                } else
+                {
+                    pres[i*blocksize].b = (bool*)malloc(szin*sizeof(bool));
+                    pres[i*blocksize].r = (T*)malloc(szin*sizeof(T));
+                    memset(pres[i*blocksize].b,false,szin*sizeof(bool));
+                }
             }
+            allocated = true;
         }
+        records<T>::setsize(szin);
+
     }
 
 
@@ -489,9 +502,34 @@ public:
 
     precords() : records<T>(), pmsv{new std::vector<pameas<T>*>} {}
 
+    virtual void cleanup() {
+        if (allocated) {
+            allocated = false;
+            for (int i = 0; i < s; ++i) {
+                for (int j = 0; j < this->sz; ++j) {
+                    delete[] plookup[i*this->sz+j];
+                }
+                if ((*pmsv)[i]->npssz > 0) { // could need same treatment as s above
+                    for (int k = 0; k < blocksize; ++k) {
+                        delete pres[i*blocksize+k].b;
+                        delete pres[i*blocksize+k].r;
+                    }
+                } else {
+                    delete pres[i*blocksize].b;
+                    delete pres[i*blocksize].r;
+                }
+            }
+            std::free(plookup);
+            std::free(pres);
+            std::free(maxplookup);
+        }
+    }
 
     ~precords()
     {
+        cleanup();
+        delete pmsv;
+        // pmsv = nullptr;
 
         // delete [] plookup;
         // for (int s = 0; s < pmsv->size(); ++s)
@@ -508,10 +546,8 @@ public:
         // delete pres;
         // delete plookup;
 
-
-
-        plookup = {};
-        pres = {};
+        // plookup = {};
+        // pres = {};
         //maxplookup = 0;
         // for (auto m : *pmsv)
             // delete m;
@@ -526,7 +562,7 @@ class thrrecords : public precords<T>
 {
 public:
 
-    virtual void threadfetch( const int startidx, const int stopidx, const int iidx, const params& ps)
+    virtual void threadfetch( const int startidx, const int stopidx, const int iidx, const params& ps )
     {
         for (int i = startidx; i < stopidx; ++i)
         {
@@ -534,7 +570,8 @@ public:
         }
     }
 
-    virtual void threadfetchpartial( const int startidx, const int stopidx, const int iidx, const params& ps, std::vector<bool>* todo)
+    virtual void threadfetchpartial( const int startidx, const int stopidx, const int iidx, const params& ps,
+        std::vector<bool>* todo)
     {
         for (int i = startidx; i < stopidx; ++i)
             if ((*todo)[i])
@@ -573,7 +610,6 @@ public:
     // void threadrelationalsymmetryclosure(bool* outmatrix, bool* computedmatrix, bool* changed, const int offset, const int start, const int sz  );
     void threadrelationaltransitiveclosure(bool* outmatrix, bool* computedrows, bool* computedmatrix,
         const int startidx, const int stopidx, const int pointer, int offset, const int sz  );
-
 
 
     evalmformula( mrecords* recin, const int idxin );
@@ -634,6 +670,7 @@ public:
             setmsize(iidx + 1);
         literals[iidx][idx].t = mtset;
         literals[iidx][idx].seti = v;
+        v->usecount++;
     }
     void addliteralvaluet( const int iidx, const int idx, setitr* v )
     {
@@ -641,6 +678,7 @@ public:
             setmsize(iidx + 1);
         literals[iidx][idx].t = mttuple;
         literals[iidx][idx].seti = v;
+        v->usecount++;
     }
     void addliteralvaluer( const int iidx, const int idx, std::string* v )
     {
@@ -746,12 +784,23 @@ public:
         msz = mszin;
     }
 
+    virtual void clear() {
+        for (int i = 0; i < sz; ++i)
+            delete efv[i];
+        for (int i = 0; i < msz; ++i)
+            delete literals[i];
+        // for (int i = 0; i < setrecs.res.size(); ++i)
+            // delete setrecs.res[i];
+        // setrecs.res.clear();
+        // for (int i = 0; i < tuplerecs.res.size(); ++i)
+            // delete tuplerecs.res[i];
+        // tuplerecs.res.clear();
+        // ...
+    }
+
     ~mrecords()
     {
-        // for (int i = 0; i < sz; ++i)
-            // delete efv[i];
-        // for (int i = 0; i < msz; ++i)
-            // delete literals[i];
+        clear();
     }
 };
 
@@ -879,7 +928,7 @@ inline bool istuplezero( itrpos* tuplein )
         case measuretype::mtset: iszero = iszero && v.seti->getsize() == 0; break;
         case measuretype::mttuple:
             {
-                auto itr = v.seti->getitrpos();
+                auto itr = v.seti->getitrpos(false);
                 iszero = iszero && istuplezero(itr);
                 delete itr;
                 break;
@@ -1336,7 +1385,7 @@ inline mtflatvarianttype translatemttopython( const valms& v ) {
 
 inline py::list translatesetitrtopython( setitr* s ) {
     py::list out {};
-    auto pos = s->getitrpos();
+    auto pos = s->getitrpos(false);
     while (!pos->ended()) {
         auto v = pos->getnext();
         while (v.t == mtuncast)
@@ -1353,6 +1402,7 @@ inline py::list translatesetitrtopython( setitr* s ) {
             }
         }
     }
+    delete pos;
     return out;
 }
 
@@ -1527,6 +1577,8 @@ public:
     {
         if (computed)
             return;
+        // for (auto p : totality)
+            // delete p.seti;
         totality.clear();
         std::vector<std::vector<vertextype>> out {};
         pathsbetweentuples(g,ns,v1,v2,out);
@@ -1545,12 +1597,14 @@ public:
     setitrpaths( graphtype* gin, neighborstype* nsin, vertextype v1in, vertextype v2in )
         : g{gin}, ns{nsin}, v1{v1in}, v2{v2in}
     {
+        generative = true;
+        compute();
     }
 
     ~setitrpaths()
     {
-        for (auto p : totality)
-            delete p.seti;
+        // for (auto p : totality)
+            // delete p.seti;
     }
 
 };
@@ -1567,6 +1621,8 @@ public:
     {
         if (computed)
             return;
+        // for (auto p : totality)
+            // delete p.seti;
         totality.clear();
         std::vector<std::vector<vertextype>> out {};
         cyclesvset(g,ns,v,out);
@@ -1599,12 +1655,15 @@ public:
     }
 
     setitrcyclesv( graphtype* gin, neighborstype* nsin, vertextype vin )
-        : g{gin}, ns{nsin}, v{vin} {}
+        : g{gin}, ns{nsin}, v{vin} {
+        generative = true;
+        compute();
+    }
 
     ~setitrcyclesv()
     {
-        for (auto p : totality)
-            delete p.seti;
+        // for (auto p : totality)
+            // delete p.seti;
     }
 
 };
@@ -1619,6 +1678,8 @@ public:
     {
         if (computed)
             return;
+        // for (auto p : totality)
+            // delete p.seti;
         totality.clear();
         std::vector<std::vector<vertextype>> out {};
         cyclesset(g,ns,out);
@@ -1652,12 +1713,14 @@ public:
     setitrcycles( graphtype* gin, neighborstype* nsin )
         : g{gin}, ns{nsin}
     {
+        generative = true;
+        compute();
     }
 
     ~setitrcycles()
     {
-        for (auto p : totality)
-            delete p.seti;
+        // for (auto p : totality)
+            // delete p.seti;
     }
 
 };
@@ -1752,7 +1815,7 @@ public:
     setitr* superset;
     setitr* makesubset( const int maxint, bool* elts ) {
         auto itrint = new setitrint( maxint, elts );
-        auto out = new setitrsubset( superset->getitrpos(), itrint );
+        auto out = new setitrsubset( superset->getitrpos(false), itrint );
         return out;
     }
     int getmaxint() override {
@@ -1805,6 +1868,12 @@ public:
         valms res;
         if (++pos < totality.size())
             return totality[pos];
+        if (pos >= stop-start) {
+            std::cout << "indexing beyond subsegment\n";
+            res.t = mtbool;
+            res.v.bv = false;
+            return res;
+        }
         res = superset->getnext();
         totality.resize(pos + 1);
         if (pos >= 0)
@@ -1826,8 +1895,12 @@ public:
     setitrsubsegment(itrpos* supersetin, const int startin, const int stopin) : superset{supersetin},
     start{startin}, stop{stopin}
     {
+        if (stop < start)
+            std::cout << "setitrsubsegment called with stop < start\n";
+        superset->parent->usecount++;
         t = superset->parent->t;
         pos = -1;
+        totality.resize(0);
         reset();
     };
     setitrsubsegment() : superset{}
@@ -1835,6 +1908,10 @@ public:
         t = mtdiscrete;
         pos = -1;
     };
+    ~setitrsubsegment() override {
+        superset->parent->usecount--;
+        delete superset;
+    }
 };
 class slowmakesubsegment : public abstractmakesubsegment {
 public:
@@ -1862,12 +1939,13 @@ inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
 }
 
 inline abstractmakesubsegment* getsubsegmentmaker( setitr* superset ) {
+    /*
     if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
         return new fastmakesubsegment<int>( cast );
     if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
         return new fastmakesubsegment<bool>( cast );
     if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
-        return new fastmakesubsegment<double>( cast );
+        return new fastmakesubsegment<double>( cast );*/
     return new slowmakesubsegment( superset );
 }
 
@@ -1912,7 +1990,6 @@ public:
     }
     bool ended() override
     {
-
         return posssv+1 >= numberofsubsets && subsetsize >= supersetsize;
         // return (subsetsize >= supersetsize-1) && (possubsetsv >= numberofsubsets-1);
     }
@@ -1967,6 +2044,8 @@ public:
     setitrpowerset(setitr* setin)
         : supersetitr{setin}, inprocesssupersetitr(), subsetmaker{getsubsetmaker(setin)}
     {
+        generative = true;
+        supersetitr->usecount++;
         t = mtset;
         if (supersetitr) {
             supersetsize = supersetitr->getsize();
@@ -1978,7 +2057,7 @@ public:
         // inprocesssupersetitr.totality.resize(0);
         // inprocesssupersetpos = inprocesssupersetitr.getitrpos();
         // subsetitr.setsuperset(inprocesssupersetpos);
-        supersetpos = supersetitr->getitrpos();
+        supersetpos = supersetitr->getitrpos(false);
 
         // ssvs.resize(supersetsize+1);
         // for (int i = 0; i <= supersetsize; ++i)
@@ -1993,18 +2072,20 @@ public:
     }
     setitrpowerset() : supersetitr{nullptr}, inprocesssupersetitr()
     {
+        generative = true;
         t = mtset;
         supersetsize = 0;
         maxint = -1;
+        supersetpos = nullptr;
         // inprocesssupersetpos = inprocesssupersetitr.getitrpos();
         // subsetitr.setsuperset(inprocesssupersetpos);
     }
-    ~setitrpowerset()
+    ~setitrpowerset() override
     {
+        if (supersetitr)
+            supersetitr->usecount--;
         delete supersetpos;
         delete subsetmaker;
-        // for (auto s : totality)
-            // delete s.seti;
     }
 };
 
@@ -2074,7 +2155,7 @@ public:
         numberoftuples = supersetitr->getsize();
         currentchoice.resize(numberoftuples);
         respectivesizes.resize(numberoftuples);
-        itrpos* itr = supersetitr->getitrpos();
+        itrpos* itr = supersetitr->getitrpos(false);
         int i = 0;
         sz = itr->ended() ? 0 : 1;
         while (!itr->ended() && sz > 0)
@@ -2162,7 +2243,7 @@ public:
         numberoftuples = supersetitr->getsize();
         currentchoice.resize(numberoftuples);
         respectivesizes.resize(numberoftuples);
-        itrpos* itr = supersetitr->getitrpos();
+        itrpos* itr = supersetitr->getitrpos(false);
         int i = 0;
         sz = 1;
         while (!itr->ended())
@@ -2380,9 +2461,10 @@ public:
         // std::cout << setA->pos << std::endl;
         return r;
     }
-    setitrsizedsubset(setitr* Ain, int sizein ) : setA{Ain ? Ain->getitrpos() : nullptr}, size{sizein},
+    setitrsizedsubset(setitr* Ain, int sizein ) : setA{Ain ? Ain->getitrpos(false) : nullptr}, size{sizein},
         supersetsize{Ain ? Ain->getsize() : 0}, subsetmaker{getsubsetmaker(Ain)}
     {
+        generative = true;
         if (Ain)
             maxint = subsetmaker->getmaxint();
         // if (maxint+1 > setA->getsize())
@@ -2460,7 +2542,12 @@ public:
         for (int i = 0; i < supersetsize; ++i)
             sequence[i] = 0;
         endedvar = supersetsize == 0;
+        // for (auto t : totality)
+            // delete t.seti;
         totality.clear();
+        // for (auto s : subsets)
+            // delete s;
+        subsets.clear();
     }
     bool ended() override
     {
@@ -2515,8 +2602,11 @@ public:
         return v;
     }
 
-    setitrsetpartitions(setitr* Ain ) : setA{Ain ? Ain->getitrpos() : nullptr}, subsetmaker{Ain ? getsubsetmaker(Ain) : nullptr}
+    setitrsetpartitions(setitr* Ain ) : setA{Ain ? Ain->getitrpos(false) : nullptr},
+    subsetmaker{Ain ? getsubsetmaker(Ain) : nullptr}
     {
+        generative = true;
+        setA->parent->usecount++;
         if (Ain == this)
             std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
         if (setA)
@@ -2524,18 +2614,19 @@ public:
         maxint = subsetmaker->getmaxint();
     }
 
-    ~setitrsetpartitions() override
-    {
 
+    ~setitrsetpartitions()
+    {
+        setA->parent->usecount--;
         delete setA;
-        for (auto s : subsets)
-        {
-            delete s;
-        }
+        // for (auto s : subsets)
+        // {
+            // delete s;
+        // }
+        // subsets.clear();
         delete subsetmaker;
-    for (auto t : totality) // this is handled by ~setitr() above
-        delete t.seti;
-    //   setitr::~setitr();
+        // for (auto t : totality) // this is handled by ~setitr() above
+            // delete t.seti;
     }
 };
 
@@ -2576,6 +2667,7 @@ class Permset : public set
 {
     setitrmodeone* res {};
 public:
+
     setitr* takemeas(const int idx, const params& ps ) override
     {
         // if (res)
@@ -2584,7 +2676,7 @@ public:
 
         if (ps.size() == 1)
         {
-            auto itr = ps[0].seti->getitrpos();
+            auto itr = ps[0].seti->getitrpos(false);
             std::vector<valms> v {};
             bool allint = true;
             int maxint = -1;
@@ -2624,6 +2716,7 @@ public:
             }
 
             res = new setitrmodeone(totalitylocal);
+            res->generative = true;
             return res;
         }
         std::cout << "Error in Permset::takemeas\n";
@@ -2640,9 +2733,9 @@ public:
     }
     ~Permset()
     {
-        if (res)
-            for (auto v : res->totality)
-                delete v.seti;
+        // if (res)
+            // for (auto v : res->totality)
+                // delete v.seti;
     }
 };
 
@@ -2723,6 +2816,7 @@ public:
             totalitylocal.push_back(v);
         }
         res = new setitrmodeone(totalitylocal);
+        res->generative = true;
         return res;
     }
 
@@ -2735,9 +2829,9 @@ public:
     Automset( mrecords* recin ) : set(recin,"Automs", "Set of automorphism tuples") {}
     ~Automset()
     {
-        if (res)
-            for (auto v : res->totality)
-                delete v.seti;
+     //   if (res)
+       //     for (auto v : res->totality)
+         //       delete v.seti;
     }
 };
 
@@ -2750,6 +2844,7 @@ public:
         auto initialsegmentmaker = getsubsegmentmaker(ps[0].seti);
         auto res = initialsegmentmaker->makesubsegment(0,ps[1].v.iv);
         delete initialsegmentmaker;
+        // claimsetitr(res);
         return res;
     }
     Stuple( mrecords* recin ) : set(recin,"Sp", "Tuple initial segment")
@@ -2917,26 +3012,16 @@ class Setpartition : public set
 public:
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-        // if (ps.size() == 1)
-        // {
-            auto setA = ps[0].seti;
-            auto f = new setitrsetpartitions(setA);
-            return f;
-        // }
-        // std::cout << "Error in Sizedsubset::takemeas\n";
-        // return nullptr;
+        auto setA = ps[0].seti;
+        auto f = new setitrsetpartitions(setA);
+        return f;
     }
 
     setitr* takemeas(const int idx, const params& ps ) override
     {
-        // if (ps.size() == 1)
-        // {
-            auto setA = ps[0].seti;
-            auto f = new setitrsetpartitions(setA);
-            return f;
-        // }
-        // std::cout << "Error in Sizedsubset::takemeas\n";
-        // return nullptr;
+        auto setA = ps[0].seti;
+        auto f = new setitrsetpartitions(setA);
+        return f;
     }
 
     Setpartition( mrecords* recin ) : set(recin,"Setpartition", "Set partitions")
@@ -2946,10 +3031,7 @@ public:
         nps.push_back(std::pair{"set",v});
         bindnamedparams();
     }
-    ~Setpartition()
-    {
-        //        delete f;
-    }
+    ~Setpartition() {}
 };
 
 /* TO DO
@@ -2989,7 +3071,7 @@ public:
 
     bool takemeas(neighborstype* ns, const params& ps ) override
     {
-        itrpos* itr = ps[0].seti->getitrpos();
+        itrpos* itr = ps[0].seti->getitrpos(false);
         std::string op = *ps[1].v.rv;
         formulaoperator fo = formulaoperator::fomeet;
         bool found = false;
@@ -3046,6 +3128,7 @@ public:
             delete abstractsetops;
             ++j;
         }
+        delete itr;
         return res;
     }
     bool takemeas( const int idx, const params& ps ) {
@@ -3248,7 +3331,7 @@ public:
         std::vector<valms> tot {};
         for (int i = 0; i < dim; )
         {
-            auto itr = verticesset->getitrpos();
+            auto itr = verticesset->getitrpos(false);
             setitrsubset* component = new setitrsubset(itr);
             memset(component->itrint->elts,0, sizeof(bool)*dim);
             component->itrint->elts[i] = true;
@@ -3262,6 +3345,7 @@ public:
             ++i;
             while (vertices[i] && i < dim)
                 ++i;
+            delete itr;
         }
         delete vertices;
         return new setitrmodeone(tot);
@@ -3285,7 +3369,7 @@ public:
         int dim = ns->g->dim;
         auto gtemp = new graphtype(dim);
         copygraph(ns->g,gtemp);
-        auto itr = ps[0].seti->getitrpos();
+        auto itr = ps[0].seti->getitrpos(false);
         bool* negvertices = new bool[dim];
         // memset(negvertices,true,sizeof(bool)*dim);
         for (int i = 0; i < dim; ++i)
@@ -3302,6 +3386,7 @@ public:
                 }
             }
         }
+        delete itr;
         auto out = new setitrint2dsymmetric( gtemp->dim, gtemp->adjacencymatrix );
         // auto out = new setitredges(gtemp);
         return out;
@@ -3325,8 +3410,8 @@ class GraphonVEgmeas : public gmeas
 public:
     neighborstype* takemeas(const int idx, const params& ps ) override
     {
-        auto Upos = ps[0].seti->getitrpos();
-        auto Fpos = ps[1].seti->getitrpos();
+        auto Upos = ps[0].seti->getitrpos(false);
+        auto Fpos = ps[1].seti->getitrpos(false);
         int dim = Upos->getsize();
         auto gout = new graphtype(dim);
         int i = 0;
@@ -3341,7 +3426,7 @@ public:
         delete vlabel;
         while (!Fpos->ended())
         {
-            auto pairitr = Fpos->getnext().seti->getitrpos();
+            auto pairitr = Fpos->getnext().seti->getitrpos(false);
             if (pairitr->getsize() != 2)
                 std::cout << "Error non edge in set passed to GraphonVEg\n";
             else
@@ -3356,6 +3441,8 @@ public:
             }
             delete pairitr;
         }
+        delete Upos;
+        delete Fpos;
         neighborstype* out = new neighborstype(gout);
         return out;
     }
@@ -3442,7 +3529,7 @@ class SubgraphonUgmeas : public gmeas
 public:
     neighborstype* takemeas(neighborstype* ns, const params& ps ) override
     {
-        auto Upos = ps[0].seti->getitrpos();
+        auto Upos = ps[0].seti->getitrpos(false);
         std::vector<valms> vv {};
         while (!Upos->ended())
             vv.push_back(Upos->getnext());
@@ -3451,6 +3538,7 @@ public:
         std::vector<vertextype> vout;
         inducedsubgraphvertices(*g,vv,vout,gout);
         inducedsubgraphedges(*g,vout, gout);
+        delete Upos;
         return new neighborstype(gout);
     }
     neighborstype* takemeas(const int idx, const params& ps ) override
@@ -3698,7 +3786,7 @@ public:
 
     setitr* takemeas(neighborstype* ns, const params& ps) override
     {
-        itrpos* vsitr = ps[2].seti->getitrpos();
+        itrpos* vsitr = ps[2].seti->getitrpos(false);
         std::vector<vertextype> vs {};
         vs.push_back(ps[0].v.iv);
         vs.push_back(ps[1].v.iv);
@@ -3706,6 +3794,7 @@ public:
             vs.push_back(vsitr->getnext().v.iv);
         auto subns = new neighborstype(findedgesgivenvertexset(ns->g,vs));
 
+        delete vsitr;
         auto res = new setitrpaths(subns->g,subns,ps[0].v.iv,ps[1].v.iv);
         return res;
     }
