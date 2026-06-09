@@ -195,6 +195,9 @@ bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2);
 bool existsiso2( const int* m1, const int* m2, const graphtype* g1, const neighbors* ns1, const graphtype* g2, const neighbors* ns2 );
 // the only difference being that the latter has a different input set, and is more general
 
+bool existsiso3(const int* m1, const int* m2, const graphtype* g1, neighbors* ns1, const graphtype* g2, neighbors* ns2 );
+// used for debugging fingerprints, does same as existsiso2 except internally uses enumisomorphismscore instead of FPcmp
+
 void enumsizedsubsets(int sizestart, int sizeend, int* seq, int start, int stop, std::vector<int>* res);
 
 bool embeds( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2, const int mincnt );
@@ -233,9 +236,9 @@ bool ledgeconnectedfn( graphtype* g, neighborstype* ns, const int k );
 
 //bool areisomorphic( graphtype g1, graphtype g2, neighbors ns1, neighbors ns2 );
 
-void osfingerprint( std::ostream &os, neighbors* ns, FP* fps, int fpscnt );
+void osfingerprint( std::ostream &os, const neighbors* ns, const FP* fps, const int fpscnt );
 
-void osfingerprintminimal( std::ostream &os, neighbors* ns, FP* fps, int fpscnt );
+void osfingerprintminimal( std::ostream &os, const neighbors* ns, const FP* fps, const int fpscnt );
 
 
 void osadjacencymatrix( std::ostream &os, const graphtype* g );

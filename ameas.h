@@ -1377,7 +1377,7 @@ inline mtflatvarianttype translatemttopython( const valms& v ) {
             break;
         }
         default: {
-            out = 0;
+            out = 0.0;
         }
     }
     return out;

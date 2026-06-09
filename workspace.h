@@ -31,6 +31,7 @@
 #define VERBOSE_MANTELSTHEOREM "Mantel"
 #define VERBOSE_FINGERPRINT "Fp"
 #define VERBOSE_SAMPLERANDOMMATCHING "srm"
+#define VERBOSE_COMPAREMATCHING "cmp"
 #define VERBOSE_FPMINIMAL "FpMin"
 #define VERBOSE_FPNONE "fpnone"
 #define VERBOSE_APPLYCRITERION "crit"
@@ -1107,13 +1108,13 @@ public:
 
 };
 
-class samplerandommatchinggraphsitem : public workitems {
+class samplematchinggraphsitem : public workitems {
 public:
     double percent = -1;
     int cnt = 0;
     int outof = 0;
     //abstractsubobjectitem* asoi {};
-    samplerandommatchinggraphsitem() : workitems() {
+    samplematchinggraphsitem() : workitems() {
         classname = "SAMPLEGRAPHS";
         verbositylevel = VERBOSE_SAMPLERANDOMMATCHING;
     }
@@ -1129,6 +1130,28 @@ public:
 
 };
 
+
+class comparegraphsitem : public workitems {
+public:
+    std::vector<std::pair<int,int>> matchinggraphs {};
+    std::vector<std::string> gnames;
+
+    comparegraphsitem() : workitems() {
+        classname = "COMPAREGRAPHS";
+        verbositylevel = VERBOSE_COMPAREMATCHING;
+    }
+
+    bool ositem( std::ostream& os, std::string verbositylevel ) override {
+        workitems::ositem( os, verbositylevel );
+        os << "Matching graphs:\n";
+        for (int i = 0; i < this->matchinggraphs.size(); ++i)
+        {
+            os << gnames[matchinggraphs[i].first] << " ~ " << gnames[matchinggraphs[i].second] << "\n";
+        }
+        return true;
+    }
+
+};
 
 
 

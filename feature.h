@@ -1226,6 +1226,26 @@ public:
 
 
 inline int partition( std::vector<int> &arr, int start, int end, std::vector<neighbors*>* nslist, std::vector<FP*>* fpslist ) {
+
+
+
+    int pivot = arr[end]; // Choosing the last element as pivot
+    int i = start - 1;       // Index of the smaller element
+
+    for (int j = start; j < end; j++) {
+        // If current element is smaller than or equal to the pivot
+        if (FPcmp((*nslist)[arr[j]],(*nslist)[pivot],(*fpslist)[arr[j]],(*fpslist)[pivot]) >= 0) {
+            i++;
+            std::swap(arr[i], arr[j]);
+            // GeeksforGeeks reference: https://www.geeksforgeeks.org/dsa/quick-sort-algorithm/
+        }
+    }
+    // Place the pivot in its correct position
+    std::swap(arr[i + 1], arr[end]);
+    return i + 1; // Return the partition index
+
+
+    /*
     int pivot = arr[start];
     int count = 0;
     for (int i = start+1;i <= end; i++) {
@@ -1251,6 +1271,7 @@ inline int partition( std::vector<int> &arr, int start, int end, std::vector<nei
         }
     }
     return pivotIndex;
+    */
 }
 
 inline void quickSort( std::vector<int> &arr, int start, int end,std::vector<neighbors*>* nslist, std::vector<FP*>* fpslist ) {
@@ -4871,29 +4892,29 @@ public:
 
 
 
-class samplerandomgraphsfeature : public abstractrandomgraphsfeature {
+class samplegraphsfeature : public feature {
 public:
     double percent = -1;
     std::string cmdlineoption() {
         return "R";
     }
     std::string cmdlineoptionlong() {
-        return "samplerandomgraphsforpairwiseequiv";
+        return "samplegraphsforpairwiseequiv";
     }
     void listoptions() override {
-        abstractrandomgraphsfeature::listoptions();
+        feature::listoptions();
 
         *_os << "\t" << "all: \t\t\t\t sample the graphs on the workspace pairwise for isomorphism\n";
         *_os << "\t" << "sub: \t\t\t\t sample the subgraphs on the workspace pairwise for isomporphism\n";
         *_os << "\t" << "cnt=<n>: \t\t\t sample the last n graphs on the workspace pairwise for isomporphism\n";
-        *_os << "\t" << "<outof>: \t\t\t how many samples to take\n";
+        *_os << "\t" << "c=<outof>: \t\t\t how many samples to take\n";
     }
 
-    samplerandomgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractrandomgraphsfeature( is, os, ws) {}
+    samplegraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
 
-    enum samplerandomgraphsmodes {small, smsub, smcnt };
+    enum samplegraphsmodes {small, smsub, smcnt };
 
-    int sampleobjectsrandom( std::vector<int>* items, samplerandomgraphsmodes sm, const int cnt)
+    int sampleobjectsrandom( std::vector<int>* items, samplegraphsmodes sm, const int cnt)
     {
         int res = 0;
         int sz = items->size();
@@ -4977,7 +4998,7 @@ public:
 
     void execute(std::vector<std::string> args) override {
 
-        samplerandomgraphsmodes sm = small;
+        samplegraphsmodes sm = small;
         int cnt = 1;
         int outof = 0;
 
@@ -5060,7 +5081,7 @@ public:
             const int startidx = int(m*section);
             const int stopidx = int((m+1.0)*section);
 
-            t[m] = std::async(&samplerandomgraphsfeature::sampleobjectsrandom,this,&items,sm,stopidx-startidx);
+            t[m] = std::async(&samplegraphsfeature::sampleobjectsrandom,this,&items,sm,stopidx-startidx);
         }
         for (int m = 0; m < thread_count; ++m)
         {
@@ -5080,7 +5101,7 @@ public:
 
 
 
-        auto wi = new samplerandommatchinggraphsitem;
+        auto wi = new samplematchinggraphsitem;
         wi->cnt = cnt2;
         wi->outof = outof;
         wi->name = _ws->getuniquename(wi->classname);
@@ -5091,6 +5112,212 @@ public:
     }
 
 };
+
+
+
+
+
+class comparegraphsfeature : public feature {
+public:
+    double percent = -1;
+    std::string cmdlineoption() {
+        return "C";
+    }
+    std::string cmdlineoptionlong() {
+        return "comparepairwiseequiv";
+    }
+    void listoptions() override {
+        feature::listoptions();
+
+        *_os << "\t" << "all: \t\t\t\t compare all graphs on the workspace pairwise for isomorphism\n";
+    }
+
+    comparegraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
+
+    enum comparegraphsmodes {cmpall, cmpsub, cmpcnt };
+
+
+    void compareobjects( std::vector<int>* items, const comparegraphsmodes mode, const int startidx, const int stopidx,
+        std::vector<std::pair<int,int>>* matchinggraphs )
+    {
+        int sz = items->size();
+
+        if (mode == cmpsub)
+        {
+            for (int i1 = startidx; i1 < stopidx; ++i1)
+                for (int i2 = i1+1; i2 < sz; ++i2)
+                {
+                    auto w1 = _ws->items[(*items)[i1]];
+                    auto w2 = _ws->items[(*items)[i2]];
+                    if (abstractsubobjectitem* a1 = dynamic_cast<abstractsubobjectitem*>(w1))
+                        if (abstractsubobjectitem* a2 = dynamic_cast<abstractsubobjectitem*>(w2)) {
+                            if (a1->intvertices.size() == a2->intvertices.size()) {
+                                if (!a1->m) {
+                                    int dim = a1->g->dim;
+                                    a1->m = (int*)malloc(dim*sizeof(int));
+                                    memset(a1->m,0,dim*sizeof(int));
+                                    for (int i = 0; i < a1->intvertices.size(); ++i) {
+                                        for (int j = 0; j < dim; ++j) {
+                                            if (a1->intvertices[i] == j)
+                                                a1->m[j] = a2->intvertices[i] + 1;
+                                        }
+                                    }
+                                }
+                                if (!a2->m) {
+                                    int dim = a2->g->dim;
+                                    a2->m = (int*)malloc(dim*sizeof(int));
+                                    memset(a2->m,0,dim*sizeof(int));
+                                    for (int i = 0; i < a2->intvertices.size(); ++i) {
+                                        for (int j = 0; j < dim; ++j) {
+                                            if (a2->intvertices[i] == j)
+                                                a2->m[j] = a1->intvertices[i] + 1;
+                                        }
+                                    }
+                                }
+                                // if (a1->intvertices.size() == a2->intvertices.size()) {
+                                // for (int i = 0; i < a1->intvertices.size(); ++i)
+                                // m.push_back( {a1->intvertices[i],a2->intvertices[i]});
+                                if (existsiso2( a1->m, a2->m, a1->g, a1->ns, a2->g, a2->ns ))
+                                    matchinggraphs->push_back(std::pair<int,int>{i1,i2});
+
+                            }
+                        }
+                }
+            }
+        if (mode == cmpall || mode == cmpcnt)
+        {
+            for (int i1 = startidx; i1 < stopidx; ++i1)
+                for (int i2 = i1+1; i2 < sz; ++i2)
+                {
+                    auto w1 = _ws->items[(*items)[i1]];
+                    auto w2 = _ws->items[(*items)[i2]];
+                    if (graphitem* a1 = dynamic_cast<graphitem*>(w1))
+                        if (graphitem* a2 = dynamic_cast<graphitem*>(w2))
+                        {
+                            // the below can be replaced at small time cost with existsiso3
+                            if (existsiso2( nullptr, nullptr, a1->g, a1->ns, a2->g, a2->ns ))
+                                matchinggraphs->push_back(std::pair<int,int>{i1,i2});
+                        } else
+                        {
+                            std::cout << "Dynamic cast error \n";
+                        }
+                    else
+                    {
+                        std::cout << "Dynamic cast error \n";
+                    }
+
+                }
+
+        }
+    };
+
+
+    void execute(std::vector<std::string> args) override {
+
+        comparegraphsmodes mode = cmpall;
+        int cnt = 1;
+
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
+        for (int i = 0; i < parsedargs.size(); ++i)
+        {
+            if (parsedargs[i].first == "all" || (parsedargs[i].first == "default" && parsedargs[i].second == "all")) {
+                mode = cmpall;
+                continue;
+            }
+            if (parsedargs[i].first == "sub" || (parsedargs[i].first == "default" && parsedargs[i].second == "sub")) {
+                mode = cmpsub;
+                continue;
+            }
+
+        }
+
+        std::vector<int> items {};
+        if (mode == cmpall)
+        {
+            for (int i = 0; i < _ws->items.size(); ++i)
+            {
+                if (_ws->items[i]->classname == "GRAPH")
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[i]))
+                        items.push_back(i); // default to working with all graphitems
+            }
+        }
+        if (mode == cmpsub) {
+            for (int i = 0; i < _ws->items.size(); ++i)
+            {
+                if (_ws->items[i]->classname == "SUBOBJECT")
+                    if (abstractsubobjectitem* asoi = dynamic_cast<abstractsubobjectitem*>(_ws->items[i]))
+                        items.push_back(i); // default to working with all graphitems
+            }
+        }
+        if (mode == cmpcnt)
+        {
+            int j = _ws->items.size();
+            int i = j-1;
+            int c = 0;
+            while (c < cnt && i >= 0) {
+                if (_ws->items[i]->classname == "GRAPH")
+                {
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[i]))
+                        items.push_back(i); // default to working with all graphitems
+                    ++c;
+                }
+                --i;
+            }
+        }
+
+        // unsigned const thread_count = std::thread::hardware_concurrency();
+        //unsigned const thread_count = 1;
+
+        int cnt2 = 0;
+        std::vector<std::vector<std::pair<int,int>>> matchinggraphss;
+        matchinggraphss.resize(thread_count);
+        const double section = double(items.size()) / double(thread_count);
+        std::vector<std::future<void>> t;
+        t.resize(thread_count);
+        for (int m = 0; m < thread_count; ++m) {
+            const int startidx = int(m*section);
+            const int stopidx = int((m+1.0)*section);
+            matchinggraphss[m].clear();
+
+            t[m] = std::async(&comparegraphsfeature::compareobjects,this,&items,mode,startidx,stopidx,&(matchinggraphss[m]));
+        }
+        for (int m = 0; m < thread_count; ++m)
+        {
+            t[m].get();
+        }
+
+
+
+        // int cnt = samplematchingrandomgraphs(rgs[rgsidx],dim,edgecnt, outof);
+            // --- yet a third functionality: randomly range over connected graphs (however, the algorithm should be checked for the right sense of "randomness"
+            // note the simple check of starting with a vertex, recursively obtaining sets of neighbors, then checking that all
+            // vertices are obtained, is rather efficient too.
+            // Note also this definition of "randomness" is not correct: for instance, on a graph on three vertices, it doesn't run all the way
+            //  up to and including three edges; it stops as soon as the graph is connected, i.e. at two vertices.
+
+
+
+
+        auto wi = new comparegraphsitem;
+        wi->matchinggraphs.clear();
+        for (int i = 0; i < thread_count; ++i)
+        {
+            for (int j = 0; j < matchinggraphss[i].size(); ++j)
+            {
+                wi->matchinggraphs.push_back(matchinggraphss[i][j]);
+            }
+        }
+        wi->gnames.resize(items.size());
+        for (int i = 0; i < items.size(); ++i)
+            wi->gnames[i] = _ws->items[items[i]]->name;
+
+        wi->name = _ws->getuniquename(wi->classname);
+        _ws->items.push_back(wi);
+
+    }
+
+};
+
 
 
 
