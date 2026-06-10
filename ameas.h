@@ -3872,26 +3872,16 @@ public:
 class Cyclesvset : public set
 {
 public:
-
-    setitr* takemeas(const int idx, const params& ps) override
+    setitr* takemeas(neighborstype* ns, const params& ps) override
     {
-/*        if (ps.size() != 1)
-        {
-            std::cout << "Incorrect number of parameters to Cyclesvset\n";
-            exit(1);
-        }
-        if (ps[0].t != mtdiscrete)
-        {
-            std::cout << "Incorrect parameter types passed to Cyclesvset\n";
-            exit(1);
-        }
-*/
-        auto g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
-        auto res = new setitrcyclesv(g,ns,ps[0].v.iv);
+        auto res = new setitrcyclesv(ns->g,ns,ps[0].v.iv);
         return res;
     }
-
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
     Cyclesvset( mrecords* recin ) : set(recin,"Cyclesvs", "Cycles from a vertex")
     {
         valms v {};
@@ -3906,21 +3896,53 @@ class Cyclesset : public set
 {
 public:
 
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        auto res = new setitrcycles(ns->g,ns);
+        return res;
+    }
+
     setitr* takemeas(const int idx, const params& ps) override
     {
-/*        if (ps.size() != 0)
-        {
-            std::cout << "Incorrect number of parameters to Cycless\n";
-            exit(1);
-        }
-*/
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Cyclesset( mrecords* recin ) : set(recin,"Cycless", "All cycles") {}
+
+};
+
+
+class Complementgmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto gcomplement = graphcomplement(ns->g,ns);
+        auto res = new neighborstype(gcomplement);
+        return res;
+    }
+    neighborstype* takemeas(const int idx, const params& ps) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        this->takemeas(ns,ps);
+    }
+    Complementgmeas( mrecords* recin ) : gmeas(recin, "Complementg", "Complement of a graph") {}
+};
+
+class nCyclesset : public set
+{
+public:
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
         auto g = (*rec->gptrs)[idx];
         neighborstype* ns = (*rec->nsptrs)[idx];
         auto res = new setitrcycles(g,ns);
         return res;
     }
 
-    Cyclesset( mrecords* recin ) : set(recin,"Cycless", "All cycles") {}
+    nCyclesset( mrecords* recin ) : set(recin,"nCycless", "All non-cycles") {}
 
 };
 

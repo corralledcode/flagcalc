@@ -74,7 +74,17 @@ int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int 
         //osfingerprint(std::cout,ns6,fps6,g6.dim);
         //if (FPcmp(ns5,ns6,&fpstmp5,&fpstmp6) == 0) {
 
-        if (FPcmp(ns5,ns6,fps5,fps6) == 0) {
+        FP* parentfps6 = new FP;
+        FP* parentfps5 = new FP;
+        parentfps6->ns = fps6;
+        parentfps6->nscnt = ns6->g->dim;
+        parentfps6->invert = true;
+        parentfps6->parent = nullptr;
+        parentfps5->ns = fps5;
+        parentfps5->nscnt = ns5->g->dim;
+        parentfps5->invert = true;
+        parentfps5->parent = nullptr;
+        if (FPcmp(ns5,ns6,parentfps5,parentfps6) == 0) {
             //std::cout << "Fingerprints MATCH\n";
             cnt++;
         } else {

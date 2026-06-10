@@ -1484,8 +1484,19 @@ int edgecnt( const graphtype* g ) {
 }
 
 
-bool existsisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, const FP* fp2) {
-    return (FPcmp(ns1,ns2,fp1,fp2) == 0 ? true : false );
+bool existsisocore( const neighbors* ns1, const neighbors* ns2, FP* fp1, FP* fp2) {
+    FP* parentfps1 = new FP;
+    FP* parentfps2 = new FP;
+    parentfps1->ns = fp1;
+    parentfps1->nscnt = ns1->g->dim;
+    parentfps1->invert = true;
+    parentfps1->parent = nullptr;
+    parentfps2->ns = fp2;
+    parentfps2->nscnt = ns2->g->dim;
+    parentfps2->invert = true;
+    parentfps2->parent = nullptr;
+
+    return (FPcmp(ns1,ns2,parentfps1,parentfps2) == 0 ? true : false );
 
 }
 
@@ -4512,4 +4523,19 @@ void connectedpartition(graphtype *g, neighborstype *ns, std::vector<bool*>& out
             changed = true;
         }
     }
+}
+
+graphtype* graphcomplement( const graphtype* g, const neighborstype* ns )
+{
+    auto res = new graphtype(g->dim);
+    for (int i = 0; i < g->dim; ++i)
+    {
+        res->adjacencymatrix[i*g->dim + i] = false;
+        for (int j = i+1; j < g->dim; ++j)
+        {
+            res->adjacencymatrix[i*g->dim+j] = !g->adjacencymatrix[i*g->dim+j];
+            res->adjacencymatrix[j*g->dim+i] = !g->adjacencymatrix[j*g->dim+i];
+        }
+    }
+    return res;
 }
