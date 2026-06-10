@@ -43,6 +43,8 @@
 #define VERBOSE_MEASVERBOSE "allmeas"
 #define VERBOSE_TALLYVERBOSE "alltally"
 
+#define VERBOSE_DONTLISTORDEREDFINGERPRINTS "nofpseq"
+
 #define VERBOSE_APPLYSTRING "strmeas"
 #define VERBOSE_APPLYGRAPH "measg"
 #define VERBOSE_RANDOMSUMMARY "randomizer"
@@ -392,23 +394,26 @@ public:
             }
         }
 
-        os << "Ordered, with pairwise results: ";
-        for (int n = 0; n < sorted.size(); ++n) {
-            os << gnames[sorted[n]] << " ";
-            if (n < sorted.size()-1) {
-                if (res[n] == 1) {
-                    os << "< ";
-                } else
-                    if (res[n] == -1) {
-                        os << "> (error) ";
+        if (!verbositycmdlineincludes(verbositylevel,VERBOSE_DONTLISTORDEREDFINGERPRINTS))
+        {
+            os << "Ordered, with pairwise results: ";
+            for (int n = 0; n < sorted.size(); ++n) {
+                os << gnames[sorted[n]] << " ";
+                if (n < sorted.size()-1) {
+                    if (res[n] == 1) {
+                        os << "< ";
                     } else
-                        os << "== ";
+                        if (res[n] == -1) {
+                            os << "> (error) ";
+                        } else
+                            os << "== ";
+                }
             }
+            if (sorted.size()>0)
+                os << "\b\n";
+            else
+                os << "<none>\n";
         }
-        if (sorted.size()>0)
-            os << "\b\n";
-        else
-            os << "<none>\n";
         if (fingerprintsmatch) {
             os << "Fingerprints MATCH: ";
         } else {
@@ -418,7 +423,7 @@ public:
                 os << "Some fingerprints MATCH and some DON'T MATCH: ";
             }
         }
-        os << overallmatchcount << " adjacent pairs out of " << sorted.size()-1 << " match\n";
+        os << overallmatchcount << " adjacent pairs out of " << sorted.size()-1 << " match; " << sorted.size() - overallmatchcount << " unique fp classes\n";
         return true;
     }
 };

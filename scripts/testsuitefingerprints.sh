@@ -16,15 +16,20 @@ $PTH/flagcalc -r 5 p=0.3 3000 -a s1="conn1c" all -f passed -v cmp rt fp Fp fpnon
 $PTH/flagcalc -r 8 p=0.5 30 -a s1="conn1c" all -C passed -v cmp rt fp Fp fpnone i=minimal3.cfg
 
 # not a new feature, just not used much elsewhere: "sorted" to check conn1c once per fingerprint-equiv-class
-$PTH/flagcalc -r 5 p=0.5 3000 -f all -a s1="conn1c" sorted -v crit rt min
+$PTH/flagcalc -r 5 p=0.5 3000 -f all -a s1="conn1c" sorted -v crit rt min Fp fp fpnone nofpseq
 
 # some fun with Kuratowski's theorem on graph planarity
 $PTH/flagcalc -r 7 p=0.75 3000 -f all -a s1="NOT (hasminorc(\"abcde\") OR hasminorc(\"abc=def\"))" sorted \
-s1="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" sorted -v crit rt min
+s1="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" sorted -v crit rt min Fp fp fpnone nofpseq
 
 # more elementary checks
-$PTH/flagcalc -r 8 p=0.5 30000 -f all -a s1="embedsc(\"abc\") IFF NOT cr1" sorted -v crit rt min
+$PTH/flagcalc -r 8 p=0.5 30000 -f all -a s1="embedsc(\"abc\") IFF NOT cr1" sorted -v crit rt min Fp fp fpnone nofpseq
 
 # more elementary checks
-$PTH/flagcalc -r 8 p=0.5 30000 -f all -a s1="embedsc(\"abc\") IFF NOT cr1" all -a s1="embedsc(\"abc\") IFF NOT cr1" sorted -v crit rt min
+$PTH/flagcalc -r 8 p=0.5 30000 -f all -a s1="embedsc(\"abc\") IFF NOT cr1" all -a s1="embedsc(\"abc\") IFF NOT cr1" sorted -v crit rt min Fp fp fpnone nofpseq
 
+# 1044 graphs on 7 vertices; 853 of them connected (source: https://users.cecs.anu.edu.au/~bdm/data/graphs.html)
+$PTH/flagcalc -r 7 p=0.5 25000 -a s=conn1c all -f passed -v fp Fp fpnone rt crit nofpseq min
+
+# 11117 connected graphs on 8 vertices, according to internet source above
+$PTH/flagcalc -r 8 p=0.5 10000 -a s=conn1c all -f passed -v fp Fp fpnone rt crit min nofpseq
