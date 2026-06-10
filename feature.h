@@ -888,7 +888,7 @@ public:
                 bool found = false;
                 for (auto p : parsedargs2)
                 {
-                    if (p.first == "passed")
+                    if (p.first == CMDLINE_PASSED)
                     {
                         passed = true;
                         passedargs = p.second;
@@ -911,6 +911,7 @@ public:
                 sortedbool = false;
                 continue;
             }
+
             if (cmdlineoptions[n].first == "default") {
                 ofname = cmdlineoptions[n].second;
                 continue;
@@ -1296,7 +1297,8 @@ public:
 
     void listoptions() override {
         feature::listoptions();
-        *_os << "\t" << "\"all\": \t\t computes fingerprints and sorts ALL graphs found on the workspace\n";
+        *_os << "\t" << "\""<<CMDLINE_ALL<<"\": \t\t computes fingerprints and sorts ALL graphs found on the workspace\n";
+        *_os << "\t" << "\"" << CMDLINE_PASSED << "\": \t\t computes fingerprints and sorts graphs found on the workspace that passed previous querying\n";
         *_os << "\t" << "\"c=<n>\": \t (not implemented yet) computes fingerprints for the last n graphs on the workspace\n";
     }
 
@@ -1305,6 +1307,8 @@ public:
 
 
         bool takeallgraphitems = true;
+        bool takecountgraphitems = false;
+        bool takepassedgraphitems = false;
         int numofitemstotake = 0;
 
         if (args.size() > 1) {
@@ -1317,7 +1321,40 @@ public:
             }
         }
 
-        if (!takeallgraphitems) {
+        if (args.size() > 1) {
+            if (args[1] == CMDLINE_PASSED)
+            {
+                takepassedgraphitems = true;
+                takeallgraphitems = false;
+            }
+        }
+
+        if (takepassedgraphitems)
+        {
+            for (int idx = 0; idx < _ws->items.size(); ++idx)
+            {
+                if (_ws->items[idx]->classname == "GRAPH")
+                {
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[idx]))
+                    {
+                        if (takepassedgraphitems)
+                        {
+                            bool accept = true; // default to logical AND
+                            accept = (gi->boolitems.size()>0) && gi->boolitems[gi->boolitems.size()-1]->value;
+                            if (accept)
+                            {
+                                items.push_back(idx);
+                            }
+                        }
+                    }
+
+
+                    // if (_ws->items[idx]->
+                }
+            }
+        }
+
+        if (takecountgraphitems) {
             int idx = _ws->items.size();
             while (idx > 0 && (takeallgraphitems || numofitemstotake > 0)) {
                 idx--;
@@ -1329,7 +1366,10 @@ public:
                     //std::cout << idx << ": " << _ws->items[idx]->classname << "\n";
                 }
             }
-        } else {
+        }
+
+        if (takeallgraphitems)
+        {
             for (int n = 0; n < _ws->items.size(); ++n) {
                 if (_ws->items[n]->classname == "GRAPH") {
                     items.push_back(n);
@@ -5128,20 +5168,21 @@ public:
     }
     void listoptions() override {
         feature::listoptions();
-
-        *_os << "\t" << "all: \t\t\t\t compare all graphs on the workspace pairwise for isomorphism\n";
+        *_os << "\t" << "\""<<CMDLINE_ALL<< "\": \t\t\t\t compare all graphs on the workspace pairwise for isomorphism\n";
+        *_os << "\t" << "\""<<CMDLINE_PASSED<< "\": \t\t\t\t compare all passed graphs on the workspace pairwise for isomorphism\n";
     }
 
     comparegraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {}
 
-    enum comparegraphsmodes {cmpall, cmpsub, cmpcnt };
+    enum comparegraphsmodes {cmpall, cmppassed, cmpsub, cmpcnt };
 
 
-    void compareobjects( std::vector<int>* items, const comparegraphsmodes mode, const int startidx, const int stopidx,
+    void compareobjects( std::vector<std::pair<graphitem*,int>>* items, const comparegraphsmodes mode, const int startidx, const int stopidx,
         std::vector<std::pair<int,int>>* matchinggraphs )
     {
         int sz = items->size();
 
+        /*
         if (mode == cmpsub)
         {
             for (int i1 = startidx; i1 < stopidx; ++i1)
@@ -5184,32 +5225,24 @@ public:
                         }
                 }
             }
-        if (mode == cmpall || mode == cmpcnt)
+            */
+        if (mode == cmpall || mode == cmpcnt || mode == cmppassed)
         {
             for (int i1 = startidx; i1 < stopidx; ++i1)
+            {
+                auto a1 = (*items)[i1].first;
                 for (int i2 = i1+1; i2 < sz; ++i2)
                 {
-                    auto w1 = _ws->items[(*items)[i1]];
-                    auto w2 = _ws->items[(*items)[i2]];
-                    if (graphitem* a1 = dynamic_cast<graphitem*>(w1))
-                        if (graphitem* a2 = dynamic_cast<graphitem*>(w2))
-                        {
-                            // the below can be replaced at small time cost with existsiso3
-                            if (existsiso2( nullptr, nullptr, a1->g, a1->ns, a2->g, a2->ns ))
-                                matchinggraphs->push_back(std::pair<int,int>{i1,i2});
-                        } else
-                        {
-                            std::cout << "Dynamic cast error \n";
-                        }
-                    else
-                    {
-                        std::cout << "Dynamic cast error \n";
-                    }
-
+                    auto a2 = (*items)[i2].first;
+                    // the below can be replaced at small time cost with existsiso3
+                    if (existsiso2( nullptr, nullptr, a1->g, a1->ns, a2->g, a2->ns ))
+                        matchinggraphs->push_back(std::pair<int,int>{i1,i2});
                 }
+            }
+
 
         }
-    };
+    }
 
 
     void execute(std::vector<std::string> args) override {
@@ -5220,8 +5253,12 @@ public:
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
         for (int i = 0; i < parsedargs.size(); ++i)
         {
-            if (parsedargs[i].first == "all" || (parsedargs[i].first == "default" && parsedargs[i].second == "all")) {
+            if (parsedargs[i].first == CMDLINE_ALL || (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_ALL)) {
                 mode = cmpall;
+                continue;
+            }
+            if (parsedargs[i].first == CMDLINE_PASSED || (parsedargs[i].first == "default" && parsedargs[i].second == CMDLINE_PASSED)) {
+                mode = cmppassed;
                 continue;
             }
             if (parsedargs[i].first == "sub" || (parsedargs[i].first == "default" && parsedargs[i].second == "sub")) {
@@ -5231,14 +5268,14 @@ public:
 
         }
 
-        std::vector<int> items {};
+        std::vector<std::pair<graphitem*,int>> items {};
         if (mode == cmpall)
         {
             for (int i = 0; i < _ws->items.size(); ++i)
             {
                 if (_ws->items[i]->classname == "GRAPH")
                     if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[i]))
-                        items.push_back(i); // default to working with all graphitems
+                        items.push_back({gi,i}); // default to working with all graphitems
             }
         }
         if (mode == cmpsub) {
@@ -5246,7 +5283,7 @@ public:
             {
                 if (_ws->items[i]->classname == "SUBOBJECT")
                     if (abstractsubobjectitem* asoi = dynamic_cast<abstractsubobjectitem*>(_ws->items[i]))
-                        items.push_back(i); // default to working with all graphitems
+                        items.push_back({asoi,i}); // default to working with all graphitems
             }
         }
         if (mode == cmpcnt)
@@ -5258,10 +5295,24 @@ public:
                 if (_ws->items[i]->classname == "GRAPH")
                 {
                     if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[i]))
-                        items.push_back(i); // default to working with all graphitems
+                        items.push_back({gi,i}); // default to working with all graphitems
                     ++c;
                 }
                 --i;
+            }
+        }
+        if (mode == cmppassed)
+        {
+            int j = _ws->items.size();
+            int i = 0;
+            while (i < j) {
+                if (_ws->items[i]->classname == "GRAPH")
+                {
+                    if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[i]))
+                        if (gi->boolitems.size() > 0 && gi->boolitems[gi->boolitems.size()-1]->value)
+                            items.push_back({gi,i}); // default to working with passed graphitems
+                }
+                ++i;
             }
         }
 
@@ -5304,12 +5355,14 @@ public:
         {
             for (int j = 0; j < matchinggraphss[i].size(); ++j)
             {
-                wi->matchinggraphs.push_back(matchinggraphss[i][j]);
+                auto first = matchinggraphss[i][j].first;
+                auto second = matchinggraphss[i][j].second;
+                wi->matchinggraphs.push_back({first,second});
             }
         }
         wi->gnames.resize(items.size());
         for (int i = 0; i < items.size(); ++i)
-            wi->gnames[i] = _ws->items[items[i]]->name;
+            wi->gnames[i] = _ws->items[items[i].second]->name;
 
         wi->name = _ws->getuniquename(wi->classname);
         _ws->items.push_back(wi);

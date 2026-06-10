@@ -1,0 +1,7 @@
+FORALL (n IN dimm-1, 
+    FORALL (vstart IN V, vstop IN V, vstart != vstop, 
+        FORALL (w IN nWalkss(vstart,vstop,n), 
+            w ELT Pathss(vstart,vstop) IFF 
+                FORALL (i IN st(w), j IN st(w), i != j, w[i] != w[j]))))
+
+END

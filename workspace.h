@@ -53,6 +53,7 @@
 #define VERBOSE_FORDB "db"
 
 #define CMDLINE_ALL "all"
+#define CMDLINE_PASSED "passed"
 #define CMDLINE_ENUMISOSSORTED "sorted"
 #define CMDLINE_ENUMISOSSORTEDVERIFY "sortedverify"
 #define CMDLINE_SUBOBJECTS "sub"
