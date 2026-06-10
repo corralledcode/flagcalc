@@ -63,6 +63,7 @@ namespace py = pybind11;
 // please don't use entire line delimiter for comments until rewriting readfromfile to include newlines;
 // as it stands, using the entirelinedelimiter comments until the END line is reached
 
+#define QUICKSORTTHREADED_THRESHOLD 10000
 
 
 class feature {
@@ -1286,6 +1287,57 @@ inline void quickSort( std::vector<int> &arr, int start, int end,std::vector<nei
     quickSort(arr, p+1, end,nslist,fpslist);
 }
 
+
+
+inline int threaded_partition( std::vector<int> &arr, int start, int end, std::vector<neighbors*>* nslist, std::vector<FP*>* fpslist ) {
+
+
+
+    int pivot = arr[end]; // Choosing the last element as pivot
+    int i = start - 1;       // Index of the smaller element
+
+    for (int j = start; j < end; j++) {
+        // If current element is smaller than or equal to the pivot
+        if (FPcmp((*nslist)[arr[j]],(*nslist)[pivot],(*fpslist)[arr[j]],(*fpslist)[pivot]) >= 0) {
+            i++;
+            std::swap(arr[i], arr[j]);
+            // GeeksforGeeks reference: https://www.geeksforgeeks.org/dsa/quick-sort-algorithm/
+        }
+    }
+    // Place the pivot in its correct position
+    std::swap(arr[i + 1], arr[end]);
+    return i + 1; // Return the partition index
+
+}
+
+inline void threaded_quickSort( std::vector<int> &arr, int start, int end,std::vector<neighbors*>* nslist, std::vector<FP*>* fpslist ) {
+
+    if (start >= end)
+        return;
+
+    // Fall back to standard sequential sort for smaller sub-arrays
+    if (end - start < QUICKSORTTHREADED_THRESHOLD) {
+        quickSort(arr,start,end,nslist,fpslist);
+        return;
+    }
+
+    int p = partition(arr,start,end,nslist,fpslist);
+
+    // Spawn a background task for the left partition
+    std::future<void> left_side = std::async(std::launch::async, [&]() {
+        threaded_quickSort(arr, start, p-1,nslist,fpslist);
+    });
+
+    // Process the right partition concurrently on the current thread
+    threaded_quickSort(arr, p+1, end,nslist,fpslist);
+
+    // Wait for the background task to complete before returning
+    left_side.wait();
+}
+
+
+
+
 class cmpfingerprintsfeature: public feature {
 public:
     std::string cmdlineoption() { return "f"; }
@@ -1463,7 +1515,7 @@ public:
         res.resize(items.size());
 
 #ifdef QUICKSORT
-        quickSort( wi->sorted,0,wi->sorted.size()-1, &wi->nslist, &wi->fpslist);
+        threaded_quickSort( wi->sorted,0,wi->sorted.size()-1, &wi->nslist, &wi->fpslist);
 
         for (int i = 0; i < items.size()-1; ++i) {
             res[i] = FPcmp(wi->nslist[wi->sorted[i]],wi->nslist[wi->sorted[i+1]],wi->fpslist[wi->sorted[i]],wi->fpslist[wi->sorted[i+1]]);
