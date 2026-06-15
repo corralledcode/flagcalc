@@ -2,7 +2,7 @@
 // Created by peterglenn on 12/12/25.
 //
 
-#include "config.h"
+// #include "config.h"
 
 #ifdef FLAGCALC_CUDA
 

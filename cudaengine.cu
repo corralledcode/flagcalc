@@ -2,16 +2,18 @@
 // Created by peterglenn on 5/12/25.
 //
 
-#include "config.h"
+// #include "config.h"
 
 #ifdef FLAGCALC_CUDA
 
 #include "cudaengine.cuh"
 #include "cudafn.cu"
+#include "cuda.cu"
 #include <chrono>
 // #include "cudagraph.cuh"
 
 #include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 
 
 __global__ void wrapCUDAeval( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cecs, const CUDAfcptr start, const unsigned int sz )

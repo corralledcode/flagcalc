@@ -15,7 +15,7 @@
 #include <regex>
 
 #include "graphio.h"
-#include "config.h"
+// #include "config.h"
 // #include "graphs.h" already included by graphio.h
 
 #define ABSCUTOFF 0.000001

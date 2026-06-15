@@ -8,7 +8,7 @@
 #define KNMAXCLIQUESIZE 12
 
 
-#include "config.h"
+// #include "config.h"
 #include <cstring>
 #include <functional>
 #include <stdexcept>
@@ -22,7 +22,9 @@
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 #endif
+#ifdef FLAGCALC_CUDA
 #include "cuda.cuh"
+#endif
 #include "graphio.h"
 #include "math.h"
 #include "graphs.h"

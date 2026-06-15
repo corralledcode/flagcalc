@@ -5,7 +5,7 @@
 #ifndef CUDA_CUH
 #define CUDA_CUH
 
-#include "config.h"
+// #include "config.h"
 
 #ifdef FLAGCALC_CUDA
 
@@ -16,6 +16,7 @@
 #define GPUQUANTFASTDIM 3
 // #define CUDAFORCOMPUTENEIGHBORSLIST
 // #define CUDAFORCOMPUTENEIGHBORSLISTENMASSE
+
 
 
 struct CUDAvalms;
@@ -390,7 +391,6 @@ unsigned int CUDAprognosticatespaceneeded( CUDAdataspaces& Cdss, CUDAfcptr& fcto
 
 void flattenformulaclassforCUDA( const formulaclass* fc, CUDAdataspaces& Cdss );
 
-__device__ CUDAvalms CUDAevalinternal( CUDAextendedcontext& Cec, const CUDAfcptr Cfcin );
 
 
 
@@ -607,124 +607,6 @@ inline bool operator==(const valms& a1, const CUDAvalms& a2)
     }
 }
 
-__device__ inline bool CUDAto_mtbool( const CUDAvalms v )
-{
-    switch (v.t)
-    {
-    case mtbool:
-            return v.v.bv;
-    case mtdiscrete:
-            return v.v.iv ? true : false;
-    case mtcontinuous:
-            return v.v.dv ? true : false;
-    default:
-        // std::cout << "Not yet implemented to_mtbool type\n";
-        return false;
-    }
-}
-
-__device__ inline LONGINT CUDAto_mtdiscrete( const CUDAvalms v )
-{
-    switch (v.t)
-    {
-    case mtbool:
-        return v.v.bv ? 1 : 0;
-    case mtdiscrete:
-        return v.v.iv;
-    case mtcontinuous:
-        return (int)v.v.dv;
-    default:
-        // std::cout << "Not yet implemented to_mtbool type\n";
-        return 0;
-    }
-}
-
-__device__ inline double CUDAto_mtcontinuous( const CUDAvalms v )
-{
-    switch (v.t)
-    {
-    case mtbool:
-        return (double)(v.v.bv ? 1 : 0);
-    case mtdiscrete:
-        return (double)v.v.iv;
-    case mtcontinuous:
-        return v.v.dv;
-    default:
-        // std::cout << "Not yet implemented to_mtbool type\n";
-        return 0;
-    }
-}
-
-__device__ inline CUDAseti newset( const CUDAextendedcontext& Cec, const CUDAvalsptr& Cvptr, const measuretype& mt, const unsigned int& sz, void* data )
-{
-    memcpy(((void**)&Cec.CUDAvalsarray)[Cvptr],data,sz);
-    CUDAseti res;
-    res.ptr = Cvptr;
-    res.sz = sz;
-    res.st = mt;
-    delete data;
-    return res;
-}
-
-__device__ inline CUDAseti CUDAto_mtset( const CUDAextendedcontext& Cec, const CUDAvalsptr& Cvptr, const measuretype& mt, const unsigned int& sz, const CUDAvalms& v )
-{
-    switch (v.t)
-    {
-    case mttuple:
-    case mtset:
-        return v.v.seti;
-    case mtdiscrete:
-        {
-            bool* data = new bool[v.v.iv+1];
-            memset(data, false, (v.v.iv+1)*sizeof(bool));
-            data[v.v.iv] = true;
-            return newset(Cec,Cvptr,v.t,v.v.iv+1,data);
-        }
-    case mtcontinuous:
-        {
-            double* data = new double[1];
-            data[0] = v.v.dv;
-            return newset(Cec,Cvptr,v.t,1,data);
-        }
-    case mtbool:
-        {
-            bool* data = new bool[1];
-            data[0] = v.v.bv;
-            return newset(Cec,Cvptr,v.t,1,data);
-        }
-    default:
-        return newset(Cec,Cvptr,v.t,0,nullptr);
-    }
-}
-
-__device__ inline CUDAvalms CUDAvalmsto_specified( const CUDAextendedcontext& Cec, const CUDAvalms v, const measuretype mt )
-{
-    CUDAvalms res;
-    res.t = mt;
-    switch (mt)
-    {
-        case mtdiscrete: {res.v.iv = CUDAto_mtdiscrete(v); break;}
-        case mtcontinuous: {res.v.dv = CUDAto_mtcontinuous(v); break;}
-        case mtbool: {res.v.bv = CUDAto_mtbool(v); break;}
-        case mtset:
-        case mttuple: {res.v.seti = CUDAto_mtset(Cec,v.v.seti.ptr,v.v.seti.st,v.v.seti.sz,v); break;}
-    }
-    return res;
-}
-
-__device__ inline CUDAvalms CUDAlookupnamedvariable(const CUDAextendedcontext& Cec, const CUDAnamedvariableptr& Cnvptr, unsigned int count, const measuretype& mt)
-{
-    CUDAvalms res;
-    CUDAnamedvariableptr ptr = Cnvptr;
-    while (count > 0)
-    {
-        count--;
-        ptr = Cec.namedvararray[ptr].next;
-    }
-    res.t = mt;
-    res = CUDAvalmsto_specified(Cec,Cec.namedvararray[ptr].ufc.v,mt);
-    return res;
-}
 
 #endif // FLAGCALC_CUDA
 

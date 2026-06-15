@@ -5,7 +5,7 @@
 #ifndef FEATURE_H
 #define FEATURE_H
 
-#include "config.h"
+// #include "config.h"
 
 #ifdef FLAGCALC_CUDA
 #include "cudameas.cu"
@@ -27,7 +27,7 @@
 #include "thread_pool.cpp"
 #include "ameas.h"
 #include "cudaengine.cuh"
-#include "meas.cu"
+#include "meas.cpp"
 
 #ifdef FLAGCALCWITHPYTHON
 #include <pybind11/embed.h>
@@ -36,7 +36,7 @@
 namespace py = pybind11;
 #endif
 
-#include "probsub.cu"
+#include "probsub.cpp"
 #include "math.h"
 
 //default is to enumisomorphisms
