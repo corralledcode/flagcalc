@@ -1775,7 +1775,7 @@ public:
                 }
 
                 eqclass.push_back(0);
-                for (int m = 0; m < items.size()-1; ++m) {
+                for (int m = 0; m+1 < items.size(); ++m) {
                     auto gi = (graphitem*)_ws->items[items[m]];
                     bool found = false;
                     for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
@@ -1802,7 +1802,7 @@ public:
                 std::vector<std::future<std::vector<graphmorphism>*>> t {};
                 t.resize(items.size());
                 int eqclassidx = 1;
-                for (int m = 0; m < items.size()-1; ++m) {
+                for (int m = 0; m+1 < items.size(); ++m) {
                     if ((m+1) != eqclass[eqclassidx]) {
                         t[m] = std::async(&enumisomorphismscore,nslist[m],nslist[m+1],fpslist[m],fpslist[m+1]);
                     } else
@@ -2096,6 +2096,9 @@ public:
         auto (Epathss) = setfactory<Epathsset>;
         auto (Mapss) = setfactory<Mapsset>;
         auto (Gpathss) = setfactory<Gpathsset>;
+#ifdef FLAGCALC_CUDA
+        auto (CUDAConncs) = setfactory<CUDAConnset>;
+#endif
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -2127,6 +2130,9 @@ public:
         stsfactory.push_back(Pathsusingvsets);
         stsfactory.push_back(Mapss);
         stsfactory.push_back(Gpathss);
+#ifdef FLAGCALC_CUDA
+        stsfactory.push_back(CUDAConncs);
+#endif
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));

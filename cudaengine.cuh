@@ -27,6 +27,9 @@ void CUDAcomputeneighborslistenmassewrapper( std::vector<graphtype*>& gs, std::v
 
 void CUDAverticesconnectedmatrixwrapper( const graphtype* g, const neighborstype* ns, bool* out );
 
+void find_connected_components(const std::vector<int>& h_src, const std::vector<int>& h_dst, int num_vertices,
+    std::vector<int>& h_parent);
+
 #endif // FLAGCALC_CUDA
 
 #endif //CUDAENGINE_CUH

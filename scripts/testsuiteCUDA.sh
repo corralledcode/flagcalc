@@ -25,7 +25,7 @@ $PTH/flagcalc -d massivegraph.dat -a a="GPU SUM (v IN V, w IN V, 1, (log(v+1) + 
 
 $PTH/flagcalc -d f="abc def ghi jkl mno pqr stu vwx yz" -a p="nwalksbetweenp(30)" all -a p="CUDAnwalksbetweenp(30)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d massivegraph.dat -a p="nwalksbetweenp(30)" all -a p="CUDAnwalksbetweenp(30)" all -v i=minimal3.cfg
-$PTH/flagcalc -d massivegraph.dat -a p="nwalksbetweenp(30) == CUDAnwalksbetweenp(30)" all -v i=minimal3.cfg
+$PTH/flagcalc -d massivegraph.dat -a s="nwalksbetweenp(30) == CUDAnwalksbetweenp(30)" all -v i=minimal3.cfg
 
 $PTH/flagcalc -d f="a b c d e f g h i j" -a s="GPU EXISTS (u IN Ps(V), 1, 9 <= st(u))" all -v i=minimal3.cfg
 
@@ -99,3 +99,14 @@ $PTH/flagcalc -d f="-abcd -efghi -ijkl -mnop -qrst -uvwx yz" -a p="GPU TUPLE (v1
 # 0:46 5/14/2025
 
 $PTH/flagcalc -d f="-abc -defgd ah" -a p="TUPLE (v1 IN V, TUPLE( v2 IN V, connvc(v1,v2)))" -a p="Connv" -v set allsets i=minimal3.cfg
+
+$PTH/flagcalc -r 1000 p=0.0075 1 -a a="NAMING (C AS CUDAConnv, AVERAGE (u IN V, v IN V, (C[u])[v]))" all -a a="NAMING (C AS Connv, AVERAGE (u IN V, v IN V, (C[u])[v]))" all -a s=conn1c all
+$PTH/flagcalc -r 1000 p=0.0075 1 -a p="CUDAConnv" all -a p="Connv" all -a p="NAMING (C AS CUDAnwalksbetweenp(dimm), TUPLE (u IN V, TUPLE (v IN V, ((C[u])[v] > 0) ? 1 : 0)))" all -a s=conn1c all -v i=minimal3.cfg
+$PTH/flagcalc -r 1000 p=0.0075 1 -a p="CUDAConnv" all -a p="Connv" all -a s=conn1c all -v i=minimal3.cfg
+$PTH/flagcalc -r 1000 p=0.0075 1 -a p="CUDAConnv" all -a p="CUDAnwalksbetweenp(dimm)" all -a s=conn1c all -v i=minimal3.cfg
+$PTH/flagcalc -r 1000 p=0.0075 1 -a s="CUDAConnv == NAMING (C AS CUDAnwalksbetweenp(dimm), TUPLE (u IN V, TUPLE (v IN V, ((C[u])[v] > 0) ? 1 : 0)))" all -a s=conn1c all -v i=minimal3.cfg
+
+$PTH/flagcalc -r 12 p=0.125 1 -a e="CUDAConns" all -v allsets set i=minimal3.cfg
+$PTH/flagcalc -r 300 p=0.0075 15 -a e="CUDAConns" all -a e="Connc" all -v i=minimal3.cfg
+$PTH/flagcalc -r 300 p=0.0075 5 -a s="CUDAConns == Connc" all -a z="st(Connc)" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10000 p=0.0000075 3 -a e="CUDAConns" all -a e="Connc" all -v i=minimal3.cfg

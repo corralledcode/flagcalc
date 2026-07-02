@@ -289,6 +289,8 @@ void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const neighbors
 
 void connectedpartition(graphtype *g, neighborstype *ns, std::vector<bool*>& outv);
 
+void CUDAconnectedpartition( const graphtype* g, const neighborstype* ns, std::vector<bool*>& outv );
+
 graphtype* graphcomplement( const graphtype* g, const neighborstype* ns );
 
 

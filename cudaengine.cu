@@ -272,7 +272,7 @@ void CUDAevalwithcriterion( bool* crit, CUDAvalms* out, CUDAextendedcontext* Cec
     cudaMalloc((void**)&d_out, sz*sizeof(CUDAvalms));
     cudaMalloc((void**)&d_crit, sz*sizeof(bool));
 
-    int blockSize = 1024;
+    int blockSize = 64;
     int numBlocks = (sz + blockSize - 1) / blockSize;
 
 
@@ -660,7 +660,7 @@ void CUDAverticesconnectedmatrixwrapper( const graphtype* g, const neighborstype
 
     cudaMemcpy(d_out,out,dim*dim*sizeof(bool),cudaMemcpyHostToDevice);
 
-    int blockSize = 1024;
+    int blockSize = 256;
     int numBlocks = (sz + blockSize - 1) / blockSize;
 
 #ifdef CUDADEBUG2

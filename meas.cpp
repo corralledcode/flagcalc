@@ -3318,8 +3318,10 @@ public:
     }
 };
 
+
+
 class Connmatrix : public set
-{
+{ // this is apparently duplicate of Connv, and this implementation is 25% faster on one test run
 public:
     Connmatrix( mrecords* recin ) :
         set( recin, "Connmatrix", "Matrix of vertex connectedness") {};
@@ -3347,6 +3349,8 @@ public:
         for (int i = 0; i < dim; ++i)
             tuples[i] = new setitrtuple<bool>(dim,matrix[i]);
         auto res = new setitrtuple2d<bool>(tuples);
+        for (int i = 0; i < outv.size(); ++i)
+            free(outv[i]);
 
         return res;
     }

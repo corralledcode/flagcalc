@@ -210,10 +210,109 @@ __global__ inline void CUDAverticesconnectedmatrix( bool* out, bool* adj, const 
     {
         int cnt = 0;
         for (int i = 0; i < dim && !cnt; ++i)
-            cnt += out[row*dim + i] && adj[i*dim + col];
+            cnt = out[row*dim + i] && adj[i*dim + col];
         out[row*dim + col] = out[row*dim + col] || cnt;
     }
 }
+
+
+
+
+// Step 1: Hooking - representative parents of adjacent vertices are linked together (this is the Shiloach-Vishkin algorithm)
+__global__ void cc_hook(const int* src, const int* dst, int* parent, int num_edges, bool* d_changed) {
+    int edge_id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (edge_id < num_edges) {
+        int u = src[edge_id];
+        int v = dst[edge_id];
+
+        int p_u = parent[u];
+        int p_v = parent[v];
+
+        // Hook the higher component ID to the lower component ID to avoid cycles
+        if (p_u < p_v) {
+            atomicMin(&parent[p_v], p_u);
+            *d_changed = true;
+        } else if (p_v < p_u) {
+            atomicMin(&parent[p_u], p_v);
+            *d_changed = true;
+        }
+    }
+}
+
+// Step 2: Pointer Jumping - Shortens the paths to the root component representative (this is the Shiloach-Vishkin algorithm)
+__global__ void cc_pointer_jump(int* parent, int num_vertices) {
+    int v = blockIdx.x * blockDim.x + threadIdx.x;
+    if (v < num_vertices) {
+        int p = parent[v];
+        // Jump directly to the grandparent
+        while (p != parent[p]) {
+            p = parent[p];
+        }
+        parent[v] = p;
+    }
+}
+
+
+
+// Host Driver Function (this is the Shiloach-Vishkin algorithm)
+void find_connected_components(const std::vector<int>& h_src, const std::vector<int>& h_dst, int num_vertices,
+    std::vector<int>& h_parent) {
+    int num_edges = h_src.size();
+
+    // Allocate Device Memory
+    int *d_src, *d_dst, *d_parent;
+    bool *d_changed;
+    cudaMalloc(&d_src, num_edges * sizeof(int));
+    cudaMalloc(&d_dst, num_edges * sizeof(int));
+    cudaMalloc(&d_parent, num_vertices * sizeof(int));
+    cudaMalloc(&d_changed, sizeof(bool));
+
+    // Initialize Parent array where every node is its own parent: parent[i] = i
+    // std::vector<int> h_parent(num_vertices);
+    h_parent.resize(num_vertices);
+    for (int i = 0; i < num_vertices; ++i) h_parent[i] = i;
+
+    // Copy Data to Device
+    cudaMemcpy(d_src, h_src.data(), num_edges * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_dst, h_dst.data(), num_edges * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_parent, h_parent.data(), num_vertices * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Execution Configuration
+    int threads_per_block = 256;
+    int edge_blocks = (num_edges + threads_per_block - 1) / threads_per_block;
+    int vertex_blocks = (num_vertices + threads_per_block - 1) / threads_per_block;
+
+    bool h_changed = true;
+
+    // Main Iteration Loop
+    while (h_changed) {
+        h_changed = false;
+        cudaMemcpy(d_changed, &h_changed, sizeof(bool), cudaMemcpyHostToDevice);
+
+        // Run Hooking Kernel over all edges
+        cc_hook<<<edge_blocks, threads_per_block>>>(d_src, d_dst, d_parent, num_edges, d_changed);
+        cudaDeviceSynchronize();
+
+        // Run Pointer Jumping Kernel over all vertices
+        cc_pointer_jump<<<vertex_blocks, threads_per_block>>>(d_parent, num_vertices);
+        cudaDeviceSynchronize();
+
+        // Check if any parents were modified during this iteration
+        cudaMemcpy(&h_changed, d_changed, sizeof(bool), cudaMemcpyDeviceToHost);
+    }
+
+    // Retrieve Final Component IDs
+    cudaMemcpy(h_parent.data(), d_parent, num_vertices * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Clean up
+    cudaFree(d_src); cudaFree(d_dst); cudaFree(d_parent); cudaFree(d_changed);
+}
+
+
+
+
+
+
 
 #endif // ENABLE_CUDA
 

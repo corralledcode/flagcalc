@@ -22,6 +22,93 @@ inline void CUDAverticesconnectedmatrix( bool* out, const graphtype* g, const ne
     CUDAverticesconnectedmatrixwrapper(g,ns,out);
 }
 
+inline void CUDAverticesconnectedmatrixoptimized( bool* out, const graphtype* g, const neighborstype* ns )
+{
+
+    // const int dim = g->dim;
+    // auto out = (bool*)malloc(dim*dim*sizeof(bool));
+    // memcpy(out,g->adjacencymatrix,dim*dim*sizeof(bool));
+    // for (int i = 0; i < dim; ++i)
+        // out[i*dim + i] = true;
+    // CUDAverticesconnectedmatrixwrapper(g,ns,out);
+}
+
+inline void CUDAconnectedpartition( const graphtype* g, const neighborstype* ns, std::vector<bool*>& outv )
+{
+    int num_vertices = g->dim;
+    std::vector<int> src {};
+    std::vector<int> dst {};
+    for (int i = 0; i < num_vertices; ++i)
+        for (int j = 0; j < num_vertices; ++j)
+            if (g->adjacencymatrix[i*num_vertices+j])
+            {
+                src.push_back(i);
+                dst.push_back(j);
+            }
+
+    std::vector<int> parent;
+    find_connected_components(src, dst, num_vertices, parent);
+
+/* Commented out at least six times slower than what follows the comment
+    std::vector<bool> used;
+    used.resize(num_vertices);
+    outv.resize(num_vertices);
+    for (int i = 0; i < num_vertices; ++i)
+    {
+        used[i] = false;
+        // outv[i] = new bool[num_vertices];
+        // memset(outv[i],false,num_vertices*sizeof(bool));
+    }
+    for (int i = 0; i < num_vertices; ++i)
+    {
+        if (!used[parent[i]])
+        {
+            outv[parent[i]] = new bool[num_vertices];
+            memset(outv[parent[i]],false,num_vertices*sizeof(bool));
+            used[parent[i]] = true;
+        }
+        outv[parent[i]][i] = true;
+    }
+    for (int i = 0; i < outv.size(); )
+    {
+        if (!used[i])
+        {
+            outv.erase(outv.begin()+i);
+            used.erase(used.begin()+i);
+        } else
+            ++i;
+    }
+    */
+
+
+    std::vector<int> lookup;
+    lookup.resize(num_vertices);
+    for (int i = 0; i < num_vertices; ++i)
+        lookup[i] = -1;
+    int j = 0;
+    for (int i = 0; i < num_vertices; ++i)
+    {
+        if (lookup[parent[i]] == -1)
+        {
+            lookup[parent[i]] = j;
+            ++j;
+        }
+    }
+
+    outv.resize(j);
+
+    for (int i = 0; i < j; ++i)
+    {
+        outv[i] = new bool[num_vertices];
+        memset(outv[i],false,sizeof(bool)*num_vertices);
+
+        // std::cout << "vertex " << i << ": parent " << parent[i] << std::endl;
+    }
+    for (int i = 0; i < num_vertices; ++i)
+        outv[lookup[parent[i]]][i] = true;
+
+}
+
 
 class CUDAnwalksbetweentuple : public set
 {
@@ -80,5 +167,37 @@ public:
         return takemeas(ns,ps);
     }
 };
+
+class CUDAConnset : public set
+{
+public:
+    CUDAConnset( mrecords* recin ) :
+        set( recin, "CUDAConns", "Set of connected components") {};
+    setitr* takemeas( neighborstype* ns, const params& ps) override
+    {
+        graphtype* g = ns->g;
+        const int dim = g->dim;
+
+        std::vector<bool*> outv;
+
+        CUDAconnectedpartition(g,ns,outv);
+
+        std::vector<valms> res {};
+        for (auto elt : outv)
+        {
+            valms v;
+            v.t = mtset;
+            v.seti = new setitrint(g->dim-1,elt);
+            res.push_back(v);
+        }
+        return new setitrmodeone(res);
+    }
+    setitr* takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+
 
 #endif // FLAGCALC_CUDA
