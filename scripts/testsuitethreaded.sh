@@ -26,10 +26,17 @@ $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="abcd=efghi" -a s="
 
 $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="abcd=efghi" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF EXISTS (s IN Setpartition(V), FORALL (u IN V, v IN V, connvc(u,v) IFF EXISTS (t IN s, u ELT t AND v ELT t)) AND edgecm == SUM (a IN s, st(a)*(st(a)-1)/2))" all -v i=minimal3.cfg
 
+$PTH/flagcalc -d f="ab cde" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (c AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN c, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
+
 # four out of four
 # 7 seconds versus 1.5 seconds based on placement of THREADED
-$PTH/flagcalc -d f="ab cde" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (c AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN c, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
 $PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="defg=hijk" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), NAMING (c AS BIGCUPD (e IN p, SET (a IN e, b IN e, a != b, {a,b})), THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN c, {r[g[0]],r[g[1]]})  == E)))" all -v i=minimal3.cfg
+
+$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="defg=hijk" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), BIGCUPD (e IN p, SET (a IN e, b IN e, a < b, {a,b})) == E)" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="defg=hijk" -a isp="../scripts/storedprocedures.dat" s="EachComponentComplete IFF FORALL (c IN Connc, FORALL (u IN c, v IN c, u < v, ac(u,v)))" all -v i=minimal3.cfg
+
+# the crown goes to the direct run, 0.01 seconds, four out of four
+$PTH/flagcalc -d f="ab cde" f="abcd efg hi" f="abc -defgd" f="defg=hijk" -a isp="../scripts/storedprocedures.dat" s="NAMING (p AS PARTITION (u, v IN V, connvc(u,v)), BIGCUPD (e IN p, SET (a IN e, b IN e, a < b, {a,b})) == E) IFF FORALL (c IN Connc, FORALL (u IN c, v IN c, u < v, ac(u,v)))" all -v i=minimal3.cfg
 
 
 $PTH/flagcalc -d f="abcd efg hi" -a s="THREADED EXISTS (r IN Perms(NN(dimm)), SET (g IN E, {r[g[0]],r[g[1]]})  == E)" all -v i=minimal3.cfg

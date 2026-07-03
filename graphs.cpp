@@ -250,16 +250,24 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
     if (ns1->g->dim != ns2->g->dim)
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
 
-    if (w1->nscnt == 0) {
+    if (vertices.size() == 0)
+    {
+        vertices.resize(ns1->g->dim);
+        for (int i = 0; i < ns1->g->dim; i++)
+            vertices[i] = -1;
+    } else
+    // if (w1->nscnt == 0)
+    {
         // std::vector<vertextype> missingvertices {};
         // auto foundvertices = new bool[ns1->g->dim];
         // memset(foundvertices,false,sizeof(bool)*ns1->g->dim);
         bool embeds = true;
-        for (int i = 0; embeds && i < vertices.size(); i++) {
+        bool missingvertex = false;
+        for (int i = 0; !missingvertex && embeds && i < vertices.size(); i++) {
             // std::cout << "vertex " << i << " maps to " << vertices[i] << std::endl;
             if (vertices[i] != -1) {
                 // foundvertices[vertices[i]] = true;
-                for (int j = i+1; embeds && j < vertices.size(); j++) {
+                for (int j = i+1; !missingvertex && embeds && j < vertices.size(); j++) {
                     // std::cout << "i == " << i << ", j == " << j << std::endl;
                     // auto b1 = ns1->g->adjacencymatrix[i*ns1->g->dim + j];
                     // auto b2 = ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]];
@@ -267,9 +275,12 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
                     if (vertices[j] != -1)
                         embeds = embeds && (!ns1->g->adjacencymatrix[i*ns1->g->dim + j]
                             || ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]]);
+                    else
+                        missingvertex = true;
                 }
             } else {
                 // missingvertices.push_back(i);
+                missingvertex = true;
             }
         }
         /*
@@ -290,7 +301,10 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
         }
 */
         // delete foundvertices;
-        return embeds ? 0 : -1;
+        if (!missingvertex)
+            return embeds ? 0 : -1;
+        if (w1->nscnt == 0)
+            return 0;
     }
     if (w1->nscnt > w2->nscnt)
         return -1;
@@ -307,18 +321,24 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
     auto perms2 = getpermutations(maxidx);
 
     int res = -1;
+    auto fixedvertices = vertices;
     for (int i = 0; res != 0 && i < perms2.size(); i++) {
         res = 0;
+        vertices = fixedvertices;
         for (int k = 0; k < w1->nscnt; k++) {
-            if (w1->ns[k].v + 1 > vertices.size()) {
+            /*
+            if (w1->ns[k].v >= vertices.size()) {
                 auto oldsz = vertices.size();
                 vertices.resize(w1->ns[k].v+1);
                 for (int l = oldsz; l < vertices.size(); ++l)
                     vertices[l] = -1;
-            }
-            vertices[w1->ns[k].v] = w2->ns[perms2[i][k]].v;
+            }*/
+            if (vertices[w1->ns[k].v] == -1)
+                vertices[w1->ns[k].v] = w2->ns[perms2[i][k]].v;
         }
+        auto fixedvertices2 = vertices;
         for (int j = 0; res == 0 && j < w1->nscnt; ++j) {
+            vertices = fixedvertices2;
             res = FPgenerouscmp(ns1,ns2,&w1->ns[j],&w2->ns[perms2[i][j]],vertices);
         }
     }
@@ -479,7 +499,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt, const bool usein
         sizeofinverteddegree[d] = 0;
         //std::cout << "d == " << d << " \n";
         for (int vidx = 0; vidx < fpscnt; ++vidx) {
-            invert = ns->degrees[fps[vidx].v] > halfdegree;
+            invert = ns->degrees[fps[vidx].v] > halfdegree && useinvert;
             fps[vidx].invert = invert;
             int deg = invert ? dim - ns->degrees[fps[vidx].v] - 1  : ns->degrees[fps[vidx].v];
             if (deg == d) {
@@ -642,6 +662,26 @@ FP* startfingerprint( const neighborstype& ns, bool useinvert ) {
         fp[j].parent = nullptr;
         fp[j].invert = useinvert ? ns.degrees[j] >=(dim+1)/2 : false;
     }
+
+    if (!useinvert)
+    {
+        FP* fpsorted = (FP*)malloc(dim*sizeof(FP));
+        int pos = 0;
+        for (int d = dim - 1; d >= 0; --d)
+        {
+            for (int v = 0; v < dim; ++v)
+            {
+                if (ns.degrees[v] == d)
+                {
+                    fpsorted[pos] = fp[v];
+                    pos++;
+                }
+            }
+        }
+        delete fp;
+        return fpsorted;
+    }
+
     return fp;
 
 }
@@ -1496,13 +1536,30 @@ bool existsisocore( const neighbors* ns1, const neighbors* ns2, FP* fp1, FP* fp2
     parentfps2->invert = true;
     parentfps2->parent = nullptr;
 
-    return (FPcmp(ns1,ns2,parentfps1,parentfps2) == 0 ? true : false );
+    auto res = (FPcmp(ns1,ns2,parentfps1,parentfps2) == 0 ? true : false );
+    delete parentfps1;
+    delete parentfps2;
+    return res;
 
 }
 
-bool existsgenerousisocore( const neighbors* ns1, const neighbors* ns2, const FP* fp1, const FP* fp2) {
+bool existsgenerousisocore( const neighbors* ns1, const neighbors* ns2, FP* fp1, FP* fp2) {
     std::vector<vertextype> vertices {};
-    auto res= FPgenerouscmp(ns1,ns2,fp1,fp2,vertices) == 0 ? true : false;
+
+    FP* parentfps1 = new FP;
+    FP* parentfps2 = new FP;
+    parentfps1->ns = fp1;
+    parentfps1->nscnt = ns1->g->dim;
+    parentfps1->invert = false;
+    parentfps1->parent = nullptr;
+    parentfps2->ns = fp2;
+    parentfps2->nscnt = ns2->g->dim;
+    parentfps2->invert = false;
+    parentfps2->parent = nullptr;
+
+    auto res= FPgenerouscmp(ns1,ns2,parentfps1,parentfps2,vertices) == 0 ? true : false;
+    delete parentfps1;
+    delete parentfps2;
     return res;
 }
 
@@ -1597,7 +1654,7 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
                  all = !g1->adjacencymatrix[perm[i][j]*g1->dim + perm[i][k]] ||
                      g2->adjacencymatrix[j*g2->dim + k];
      }
-     return all;*/
+     return all; */
 
     // ------
 

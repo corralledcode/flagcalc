@@ -111,6 +111,12 @@ THREADED EXISTS (s IN Setpartition(V), FORALL (t IN s, u IN V, v IN V, u != v, (
 
 END
 
+mtbool EachComponentCompleteFast
+
+FORALL (c IN Connc, FORALL (u IN c, v IN c, u < v, ac(u,v)))
+
+END
+
 mtbool massivecomputation( mtset x, mtset y )
 
 (((x SETXOR y) CUP x CUP y CUP x CUP y CUP x CUP y) CAP x CAP y CAP x CAP y CAP y CAP x CAP x CAP
