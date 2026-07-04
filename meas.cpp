@@ -1398,9 +1398,8 @@ inline int legacyrecursecircumferencemeas( int* path, int pathsize, const grapht
 class circumferencemeas: public meas {
 public:
     circumferencemeas(mrecords* recin) : meas(recin, "circm","Graph circumference") {}
-    double takemeas( const int idx, const params& ps ) {
-        graphtype* g = (*rec->gptrs)[idx];
-        neighborstype* ns = (*rec->nsptrs)[idx];
+    double takemeas( neighborstype* ns, const params& ps ) {
+        graphtype* g = ns->g;
 
         int breaksize = -1; // by default compute the largest circumference possible
         if (ps.size() > 0)
@@ -1416,6 +1415,11 @@ public:
         auto res = recursecircumferencemeas(nullptr,0,visited,g,ns,breaksize);
         delete visited;
         return res;
+    }
+    double takemeas( const int idx, const params& ps ) override {
+
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas( ns, ps );
     }
 };
 

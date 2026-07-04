@@ -3365,6 +3365,40 @@ class Maxconnectedgmeas : public gmeas
 
 };
 
+class Closuregmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override {
+        int dim = ns->dim;
+        auto gout = new graphtype(dim);
+        copygraph(ns->g,gout);
+        auto nsout = new neighborstype(gout);
+        bool changed = true;
+        while (changed)
+        {
+            changed = false;
+            for (int i = 0; i < dim; ++i)
+                for (int j = i+1; j < dim; ++j)
+                    if (!gout->adjacencymatrix[i*dim + j] && nsout->degrees[i] + nsout->degrees[j] >= dim)
+                    {
+                        gout->adjacencymatrix[i*dim+j] = true;
+                        gout->adjacencymatrix[j*dim+i] = true;
+                        changed = true;
+                    }
+            if (changed)
+                nsout->computeneighborslist();
+        }
+        return nsout;
+    }
+
+    neighborstype* takemeas(const int idx, const params& ps ) override {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Closuregmeas( mrecords* recin ) : gmeas(recin,"Closureg", "closure of the graph") {}
+};
+
 class Edgesset : public set {
 public:
     setitr* takemeas(neighborstype* ns, const params& ps ) override {

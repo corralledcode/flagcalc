@@ -183,7 +183,7 @@ $PTH/flagcalc -r 10 40 25 -a s1="dm >= 8" s2="hastopologicalminorc4(\"abc\")" al
 $PTH/flagcalc -r 9 p=0.4 1000 -a s1="hastopologicalminorc4(\"abcde\")" s2="hasminorc(\"abcde\")" all -v i=minimal3.cfg
 
 # check for some having a topological minor of K_5 but not a minor of K_5
-$PTH/flagcalc -r 8 p=0.4 100 -a s1="hasminorc(\"abcde\")" s2="NOT hastopologicalminorc4(\"abcde\")" s3="NOT hastopologicalminorc(\"abcde\")" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 p=0.4 100 -a s1="hasminorc(\"abcde\")" s2="NOT hastopologicalminorc4(\"abcde\")" s2="NOT hastopologicalminorc(\"abcde\")" all -v i=minimal3.cfg
 
 # Hadwiger's conjecture (Diestel p. 184) (easy for r=3, r=4; four-color theorem for r=5, r=6; unknown for r >= 7)
 $PTH/flagcalc -r 8 p=0.4 100 -a s1="Chit >= 3" s2="hasminorc(\"abc\")" all -v i=minimal3.cfg

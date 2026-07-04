@@ -2182,11 +2182,13 @@ public:
         auto (SubgraphonUg) = graphfactory<SubgraphonUgmeas>;
         auto (Gg) = graphfactory<Ggmeas>;
         auto (Complementg) = graphfactory<Complementgmeas>;
+        auto (Closureg) = graphfactory<Closuregmeas>;
 
         gmsfactory.push_back(GraphonVEg);
         gmsfactory.push_back(SubgraphonUg);
         gmsfactory.push_back(Gg);
         gmsfactory.push_back(Complementg);
+        gmsfactory.push_back(Closureg);
 
         for (int n = 0; n < gmsfactory.size(); ++n) {
             gms.push_back((*gmsfactory[n])(&rec));
