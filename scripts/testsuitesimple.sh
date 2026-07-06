@@ -10,6 +10,9 @@ $PTH/flagcalc -r 8 p=0.5 100 -a s="embedsgenerousc(\"-abcdefgha\") IFF EXISTS (c
 $PTH/flagcalc -r 8 p=0.5 100 -a s="circm == dimm" all -v i=minimal3.cfg
 $PTH/flagcalc -r 8 p=0.5 100 -a s="circm == dimm IFF EXISTS (c IN Cycless(0), st(c) == dimm)" all -v i=minimal3.cfg
 
+# ... a fifth way...
+$PTH/flagcalc -r 8 p=0.5 100 -a s="EXISTS (S IN Sizedsubset(E,dimm), FORALL (s IN Ps(S), NAMING (sz AS st(s), 0 < sz AND sz < dimm), EXISTS (v IN V, EXISTS (e IN s, v ELT e) AND NOT EXISTSN (2, e IN s, v ELT e))) AND FORALL (e IN S, NOT EXISTSN (4, e2 IN S, e MEET e2))) IFF circm == dimm" all -v i=minimal3.cfg
+
 # ... Some theorems on Hamiltonian cycles:
 # ... Dirac's Theorem (1952)
 $PTH/flagcalc -r 8 p=0.5 100 -a s="circm == dimm IF deltam >= dimm/2" all -v i=minimal3.cfg
@@ -27,3 +30,4 @@ $PTH/flagcalc -r 12 p=0.5 10 -a isp="../scripts/planarity.dat" s1="kconnc(4)" s2
 # ... Vertex cut rule
 $PTH/flagcalc -r 8 p=0.5 100 -a s1="circm == dimm" s2="FORALL (s IN Ps(V), st(s) > 0, connm( SubgraphonUg( V SETMINUS s ) ) <= st(s))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 12 p=0.5 100 -a s1="circm == dimm" s2="FORALL (s IN Ps(V), st(s) > 0, connm( SubgraphonUg( V SETMINUS s ) ) <= st(s))" all -v i=minimal3.cfg
+

@@ -1940,7 +1940,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
         }
         // if (res.t == mtset || res.t == mttuple)
-            // res.seti->usecount++;
+            // res.seti->usecount++;  // handles by "claimset" elsewhere
         return res;
     }
 
@@ -2740,10 +2740,17 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             valms c = to_mtbool(evalinternal(*qm.criterion, context));
                             if (c.v.bv) {
                                 res = evalinternal(*fc.fcright, context);
+                                claimset(res);
                                 found = true;
                             }
                             qm.multipleadvance();
                         }
+                        if (!found)
+                        {
+                            res.t = mtbool;
+                            res.v.bv = false;
+                        }
+
                         break;
                     }
                 case formulaoperator::foqexistsnunique:
@@ -3066,9 +3073,16 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             bool found = false;
                             while (!qm.ended() && !found) {
                                 res = evalinternal(*fc.fcright, context);
+                                claimset(res);
                                 found = true;
                                 qm.multipleadvance();
                             }
+                            if (!found)
+                            {
+                                res.t = mtbool;
+                                res.v.bv = false;
+                            }
+
                             break;
                         }
                     case formulaoperator::foqexistsunique:
