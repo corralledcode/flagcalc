@@ -3683,6 +3683,92 @@ void osedges( std::ostream &os, const graphtype* g) {
     delete labelssize;
 }
 
+void oscolumnsinternal( const int colcnt, std::ostream &os, const std::vector<std::vector<std::string>>& cols)
+{
+    std::vector<size_t> colwidth;
+    colwidth.resize(colcnt);
+    size_t rowcnt = 0;
+    for (int i = 0; i < colcnt; ++i)
+    {
+        rowcnt = std::max(rowcnt,cols[i].size());
+        colwidth[i] = 1;
+        for (auto s : cols[i])
+            colwidth[i] = std::max( colwidth[i], s.length());
+    }
+    std::vector<std::string> rows {};
+    rows.resize(rowcnt);
+    for (int i = 0; i < rowcnt; ++i)
+    {
+        rows[i] = "";
+        for (int j = 0; j < colcnt; ++j)
+        {
+            if (cols[j].size() > i)
+            {
+                rows[i] += cols[j][i];
+
+                for (int k = 0; k < colwidth[j] - cols[j][i].length(); ++k)
+                    rows[i] += " ";
+            } else
+            {
+                for (int k = 0; k < colwidth[j] - 4; ++k)
+                    rows[i] += " ";
+            }
+            if (j + 1 < colcnt)
+                rows[i] += "  | ";
+        }
+    }
+
+    for (int i = 0; i < rowcnt; ++i)
+    {
+        os << rows[i] << "\n";
+    }
+}
+
+void oscolumns( const int colcnt, std::ostream &os, const std::vector<std::string>& cols)
+{
+    std::vector<std::vector<std::string>> newcols;
+    newcols.resize(colcnt);
+    for (int i = 0; i < colcnt; ++i)
+    {
+        std::string s = cols[i];
+        std::string line {};
+        for (auto c : s)
+        {
+            if (c == '\n')
+            {
+                newcols[i].push_back(line);
+                line.clear();
+            } else
+            {
+                line.push_back(c);
+            }
+        }
+        if (line.size() > 0)
+        {
+            newcols[i].push_back(line);
+            line.clear();
+        }
+    }
+    oscolumnsinternal( colcnt, os, newcols);
+}
+
+
+void osamedgesneighbors( std::ostream &os, const graphtype* g, const neighborstype* ns )
+{
+    std::ostringstream ossam;
+    std::ostringstream ossedges;
+    std::ostringstream ossneighbors;
+    osadjacencymatrix(ossam,g);
+    osedges(ossedges,g);
+    osneighbors(ossneighbors,ns);
+    std::vector<std::string> rows {};
+    rows.push_back(ossam.str());
+    rows.push_back(ossedges.str());
+    rows.push_back(ossneighbors.str());
+    oscolumns(3,os, rows);
+}
+
+
 void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g2, const std::vector<graphmorphism>* maps ) {
     int* labelssize1 = new int[g1->dim];
     int maxlabelsize1 = 0;

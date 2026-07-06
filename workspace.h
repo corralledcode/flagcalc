@@ -54,6 +54,8 @@
 
 #define VERBOSE_FORDB "db"
 
+#define VERBOSE_LISTGRAPHSPASSED "passed"
+
 #define CMDLINE_ALL "all"
 #define CMDLINE_PASSED "passed"
 #define CMDLINE_ENUMISOSSORTED "sorted"
@@ -475,7 +477,6 @@ public:
             }
         }
 
-
         std::vector<std::pair<Tc,int>> count = {};
         count.clear();
         count.resize(0);
@@ -486,6 +487,18 @@ public:
                 os << gnames[n]<<", number " << n+1 << " out of " << sorted.size();
                 os << ": " << res[n] << "\n";
             }
+            if (verbositycmdlineincludes(verbositylevel, VERBOSE_LISTGRAPHSPASSED))
+            {
+                if (this->meas[n] != 0)
+                {
+                    os << this->gnames[n] << ":\n";
+                    osadjacencymatrix(os,this->glist[n]);
+                    osedges(os,this->glist[n]);  // duplicates osneighbors
+                    osneighbors(os,this->nslist[n]);
+                    os << "\n";
+                }
+            }
+
             bool found = false;
             for (int i = 0; !found && (i < count.size()); ++i)
                 if (count[i].first == res[n]) {
@@ -605,6 +618,7 @@ public:
 template<typename Tc>
 class checkbooleanitem : public chkmeasaitem<Tc> {
 public:
+    bool last = false;
     checkbooleanitem(pameas<Tc>& pamin ) : chkmeasaitem<Tc>(pamin) {
         this->classname = "APPLYBOOLEANCRITERION";
         this->verbositylevel = VERBOSE_APPLYCRITERION;
@@ -633,6 +647,7 @@ public:
                 if (this->parentbool[i])
                 {
                      os << this->gnames[i] << ": " << this->meas[i] << "\n";
+
                    // min = this->meas[i] < min ? this->meas[i] : min;
                     // sum += this->meas[i];
                     // max = this->meas[i] > max ? this->meas[i] : max;
@@ -641,6 +656,16 @@ public:
             }
         }
 
+        if (last && verbositycmdlineincludes(verbositylevel,VERBOSE_LISTGRAPHSPASSED))
+        {
+            for (int i = 0; i < this->res.size(); ++i )
+            {
+                if (this->parentbool[i] && this->meas[i]) {
+                    os << this->gnames[i] << ": result == " << this->meas[i] << "\n";
+                    osamedgesneighbors(os,this->glist[i],this->nslist[i]);
+                }
+            }
+        }
 
 
         std::vector<std::pair<Tc,int>> count = {};

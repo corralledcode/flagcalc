@@ -4241,14 +4241,12 @@ public:
                             {
                                 gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
                                 wi->gnames[m] = gi->name;
+                                wi->last = k+1 == iter.size();
                             }
                             else
                             {
                                 std::cout << "Dynamic cast error to graphitem*\n";
                             }
-
-
-
                         } else
                         {
                             // auto gi = (graphitem*)_ws->items[items[eqclass[m]]];
@@ -4256,6 +4254,7 @@ public:
                             {
                                 gi->boolitems.push_back(new ameasoutcome<bool>(alookup.a.cs,gi,threadbool[m]));
                                 wi->gnames[m] = gi->name;
+                                wi->last = k+1 == iter.size();
                             }
                             else
                             {

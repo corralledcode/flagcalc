@@ -45,7 +45,6 @@ using graphtype = labelledgraph<std::string>;
 
 void osadjacencymatrix( std::ostream &os, const graphtype* g );
 
-
 class neighbors {
 public:
     graphtype* g;
@@ -246,6 +245,8 @@ void osadjacencymatrix( std::ostream &os, const graphtype* g );
 void osneighbors( std::ostream &os, const neighbors* ns );
 
 void osedges( std::ostream &os, const graphtype* g );
+
+void osamedgesneighbors( std::ostream &os, const graphtype* g, const neighborstype* ns );
 
 void osgraphmorphisms( std::ostream &os, const graphtype* g1, const graphtype* g2, const std::vector<graphmorphism>* maps );
 
