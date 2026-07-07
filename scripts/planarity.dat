@@ -44,6 +44,11 @@ vsetplanar ( V )
 
 END
 
+mtbool planarquick
+
+NOT (hastopologicalminorc4("abc=def") OR hastopologicalminorc4("abcde"))
+
+END
 
 mtbool vsetcriticalnonplanar( mtset vs )
 

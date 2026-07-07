@@ -680,29 +680,33 @@ public:
                 }
             }
 
-            // 1. Obtain a random seed from the hardware
-            std::random_device rd;
-
-            // 2. Initialize the standard mersenne_twister_engine with the seed
-            std::mt19937 gen(rd());
-
-            // 3. Define the inclusive range [0, n]
-            std::uniform_int_distribution<int> distrib(1, cnt);
-
-            // 4. Generate the random number
-            int random_num = distrib(gen);
-
-            cnt = 0;
-            int i;
-            for (i = 0; i < this->res.size() && cnt < random_num; ++i )
+            if (cnt > 0)
             {
-                if (this->parentbool[i] && this->meas[i])
+
+                // 1. Obtain a random seed from the hardware
+                std::random_device rd;
+
+                // 2. Initialize the standard mersenne_twister_engine with the seed
+                std::mt19937 gen(rd());
+
+                // 3. Define the inclusive range [0, n]
+                std::uniform_int_distribution<int> distrib(1, cnt);
+
+                // 4. Generate the random number
+                int random_num = distrib(gen);
+                cnt = 0;
+                int i;
+
+                for (i = 0; i < this->res.size() && cnt < random_num; ++i )
                 {
-                    cnt++;
+                    if (this->parentbool[i] && this->meas[i])
+                    {
+                        cnt++;
+                    }
                 }
+                os << this->gnames[i-1] << ": result == " << this->meas[i-1] << "\n";
+                osamedgesneighbors(os,this->glist[i-1],this->nslist[i-1]);
             }
-            os << this->gnames[i-1] << ": result == " << this->meas[i-1] << "\n";
-            osamedgesneighbors(os,this->glist[i-1],this->nslist[i-1]);
         }
 
         std::vector<std::pair<Tc,int>> count = {};
