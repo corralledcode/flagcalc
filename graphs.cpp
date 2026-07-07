@@ -3691,9 +3691,15 @@ void oscolumnsinternal( const int colcnt, std::ostream &os, const std::vector<st
     for (int i = 0; i < colcnt; ++i)
     {
         rowcnt = std::max(rowcnt,cols[i].size());
-        colwidth[i] = 1;
+        colwidth[i] = 0;
         for (auto s : cols[i])
-            colwidth[i] = std::max( colwidth[i], s.length());
+        {
+            auto width = s.length();
+            // for (auto c : s)
+                // if (c == '\b')
+                    // width = std::max(width,size_t(1)) - 1;
+            colwidth[i] = std::max( colwidth[i], width );
+        }
     }
     std::vector<std::string> rows {};
     rows.resize(rowcnt);
@@ -3706,11 +3712,11 @@ void oscolumnsinternal( const int colcnt, std::ostream &os, const std::vector<st
             {
                 rows[i] += cols[j][i];
 
-                for (int k = 0; k < colwidth[j] - cols[j][i].length(); ++k)
+                for (int k = 0; k + cols[j][i].length() < colwidth[j]; ++k)
                     rows[i] += " ";
             } else
             {
-                for (int k = 0; k < colwidth[j] - 4; ++k)
+                for (int k = 0; k < colwidth[j]; ++k)
                     rows[i] += " ";
             }
             if (j + 1 < colcnt)
@@ -3740,7 +3746,12 @@ void oscolumns( const int colcnt, std::ostream &os, const std::vector<std::strin
                 line.clear();
             } else
             {
-                line.push_back(c);
+                if (c == '\b')
+                {
+                    if (line.length() > 0)
+                        line.resize(line.length()-1);
+                } else
+                    line.push_back(c);
             }
         }
         if (line.size() > 0)
