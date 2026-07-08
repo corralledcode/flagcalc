@@ -3056,9 +3056,9 @@ inline void mtconverttostring( const valms& vin, std::string*& vout )
         case mtbool: *vout = vin.v.bv ? "true" : "false" ; break;
         case mtdiscrete: *vout = std::to_string(vin.v.iv); break;
         case mtcontinuous: *vout = std::to_string(vin.v.dv); break;
-        case mtset:
-        case mttuple: *vout = "{ SET of size " + std::to_string(vin.seti->getsize()) + "}";
-        case mtstring: *vout = "< TUPLE of size " + std::to_string(vin.seti->getsize()) + ">";
+        case mtset: *vout = "{ SET of size " + std::to_string(vin.seti->getsize()) + "}"; break;
+        case mttuple: *vout = "< TUPLE of size " + std::to_string(vin.seti->getsize()) + ">"; break;
+        case mtstring: *vout = *vin.v.rv; break;
         case mtgraph: {
             std::stringstream ss {};
             osmachinereadablegraph(ss,vin.v.nsv->g);

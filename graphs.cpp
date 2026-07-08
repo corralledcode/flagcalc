@@ -303,8 +303,8 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
         // delete foundvertices;
         if (!missingvertex)
             return embeds ? 0 : -1;
-        if (w1->nscnt == 0)
-            return 0;
+        // if (w1->nscnt == 0)
+            // return 0;
     }
     if (w1->nscnt > w2->nscnt)
         return -1;
@@ -336,9 +336,9 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
             if (vertices[w1->ns[k].v] == -1)
                 vertices[w1->ns[k].v] = w2->ns[perms2[i][k]].v;
         }
-        auto fixedvertices2 = vertices;
+        // auto fixedvertices2 = vertices;
         for (int j = 0; res == 0 && j < w1->nscnt; ++j) {
-            vertices = fixedvertices2;
+            // vertices = fixedvertices2;
             res = FPgenerouscmp(ns1,ns2,&w1->ns[j],&w2->ns[perms2[i][j]],vertices);
         }
     }
@@ -433,7 +433,7 @@ void sortneighbors( const neighbors* ns, FP* fps, int fpscnt ) {
     bool changed = true;
     while (changed) {
         changed = false;
-        for (int n = 0; n < (fpscnt-1); ++n) {
+        for (int n = 0; n + 1 < fpscnt; ++n) {
             if (FPcmp(ns,ns,&(fps[n]),&(fps[n+1])) == -1) {
                 //std::cout << "...reversing two... n == " << n << "\n";
                 //std::cout << "Before swap: fps[n].v ==" << fps[n].v << ", fps[n+1].v == " << fps[n+1].v << "\n";
@@ -651,10 +651,7 @@ void takefingerprint( const neighbors* ns, FP* fps, int fpscnt, const bool usein
 
 FP* startfingerprint( const neighborstype& ns, bool useinvert ) {
     int dim = ns.dim;
-
-
     FP* fp = (FP*)malloc(dim*sizeof(FP));
-
     for (int j = 0; j < dim; ++j) {
         fp[j].v=j;
         fp[j].ns = nullptr;
@@ -663,6 +660,7 @@ FP* startfingerprint( const neighborstype& ns, bool useinvert ) {
         fp[j].invert = useinvert ? ns.degrees[j] >=(dim+1)/2 : false;
     }
 
+    /*
     if (!useinvert)
     {
         FP* fpsorted = (FP*)malloc(dim*sizeof(FP));
@@ -680,7 +678,8 @@ FP* startfingerprint( const neighborstype& ns, bool useinvert ) {
         }
         delete fp;
         return fpsorted;
-    }
+    }*/
+    sortneighbors( &ns, fp, dim );
 
     return fp;
 
@@ -2108,6 +2107,8 @@ bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, co
     int dim2 = g2->dim;
     if (dim2 < dim1)
         return false;
+    if (dim1 == 0)
+        return true;
 
     int cnt = 0;
     auto gtemp = new graphtype(dim1);

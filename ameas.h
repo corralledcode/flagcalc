@@ -789,8 +789,10 @@ public:
     virtual void clear() {
         for (int i = 0; i < sz; ++i)
             delete efv[i];
+        efv.clear();
         for (int i = 0; i < msz; ++i)
             delete literals[i];
+        literals.clear();
         // for (int i = 0; i < setrecs.res.size(); ++i)
             // delete setrecs.res[i];
         // setrecs.res.clear();
@@ -798,6 +800,9 @@ public:
             // delete tuplerecs.res[i];
         // tuplerecs.res.clear();
         // ...
+        setsize(0);
+        setmsize(0);
+        m.clear();
     }
 
     ~mrecords()
@@ -2690,7 +2695,12 @@ public:
                     // maxint = maxint < v[v.size()-1].v.iv ? v[v.size()-1].v.iv : maxint;
             }
             delete itr;
-            std::vector<std::vector<int>> ps = getpermutations(v.size());
+            std::vector<std::vector<int>> ps;
+            if (v.size() == 0)
+                ps.clear();
+            else
+                ps = getpermutations(v.size());
+
             std::vector<valms> totalitylocal {};
             if (true) // (!allint)
                 for (auto p : ps)
@@ -3460,16 +3470,34 @@ public:
         }
         memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
         delete vlabel;
+        vertextype v1, v2;
+        std::string* vout1 = new std::string;
+        std::string* vout2 = new std::string;
         while (!Fpos->ended())
         {
             auto pairitr = Fpos->getnext().seti->getitrpos(false);
             if (pairitr->getsize() != 2)
-                std::cout << "Error non edge in set passed to GraphonVEg\n";
+                std::cout << "Error non edge in set passed to GraphonVEg: set size is " << pairitr->getsize() << ", not 2\n";
             else
             {
-                auto v1 = pairitr->getnext().v.iv;
-                auto v2 = pairitr->getnext().v.iv;
-                if (v1 < dim && v2 < dim)
+                auto v1label = pairitr->getnext();
+                auto v2label = pairitr->getnext();
+                v1 = -1;
+                v2 = -1;
+                mtconverttostring(v1label,vout1);
+                mtconverttostring(v2label,vout2);
+                for (int i = 0; i < dim; ++i)
+                {
+                    if (gout->vertexlabels[i] == *vout1)
+                    {
+                        v1 = i;
+                    } else
+                        if (gout->vertexlabels[i] == *vout2)
+                        {
+                            v2 = i;
+                        }
+                }
+                if (0 <= v1 && v1 < dim && 0 <= v2 && v2 < dim)
                 {
                     gout->adjacencymatrix[v1*dim + v2] = true;
                     gout->adjacencymatrix[v2*dim + v1] = true;
@@ -3477,6 +3505,8 @@ public:
             }
             delete pairitr;
         }
+        delete vout1;
+        delete vout2;
         delete Upos;
         delete Fpos;
         neighborstype* out = new neighborstype(gout);
@@ -3560,6 +3590,66 @@ inline void inducedsubgraphvertices( const graphtype& g, const std::vector<valms
     }
 }
 
+inline void subgraphvertices( const graphtype& g, const std::vector<valms>& vv,
+    std::vector<vertextype>& vout, graphtype* gout ) {
+
+    int dimg = g.dim;
+    int dim = vv.size();
+    if (dim > 1)
+    {
+        int* vmap = (int*)(malloc(dim*sizeof(int)));
+        int i = 0;
+        bool labelled = g.vertexlabels.size() == dimg;
+        if (labelled)
+            gout->vertexlabels.resize(dim);
+        for (auto v : vv)
+        {
+            if (v.t == mtstring && labelled)
+            {
+                for (int k = 0; k < dimg; ++k)
+                    if (g.vertexlabels[k] == *v.v.rv)
+                    {
+                        vmap[i] = k;
+                        gout->vertexlabels[i] = *v.v.rv;
+                        break;
+                    }
+            } else
+            {
+                LONGINT vidx;
+                mtconverttodiscrete(v,vidx);
+                vmap[i] = vidx;
+                if (labelled)
+                    gout->vertexlabels[i] = g.vertexlabels[vidx];
+            }
+            ++i;
+        }
+        vout.clear();
+        for (int i = 0; i < dim; ++i)
+            vout.push_back(vmap[i]);
+        delete vmap;
+    } else {
+        gout->adjacencymatrix[0] = false;;
+        vout.clear();
+    }
+}
+
+inline void subgraphedges( const graphtype& g, const std::vector<vertextype>& vmap, std::vector<std::pair<int,int>>& eout, const graphtype* gout) {
+    auto dim = gout->dim;
+    auto dimg = g.dim;
+    memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
+    std::vector<vertextype> vinv;
+    vinv.resize(dimg);
+    for (int i = 0; i < vmap.size(); ++i)
+        vinv[vmap[i]] = i;
+    for (int k = 0; k < eout.size(); ++k)
+    {
+        gout->adjacencymatrix[vinv[eout[k].first]*dim + vinv[eout[k].second]] = true; // g.adjacencymatrix[eout[k].first*dim + eout[k].second];
+        gout->adjacencymatrix[vinv[eout[k].second]*dim + vinv[eout[k].first]] = true; // g.adjacencymatrix[eout[k].second*dim + eout[k].first];
+    }
+
+}
+
+
 class SubgraphonUgmeas : public gmeas
 {
 public:
@@ -3590,6 +3680,55 @@ public:
         bindnamedparams();
     }
 };
+
+class SubgraphonVEgmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto Vpos = ps[0].seti->getitrpos(false);
+        auto Epos = ps[1].seti->getitrpos(false);
+        std::vector<valms> vv {};
+        while (!Vpos->ended())
+            vv.push_back(Vpos->getnext());
+        std::vector<std::pair<vertextype,vertextype>> ee {};
+        while (!Epos->ended())
+        {
+            auto pairitr = Epos->getnext().seti->getitrpos(false);
+            if (pairitr->getsize() != 2)
+                std::cout << "Error non edge in set passed to SubgraphonVEg\n";
+            else
+            {
+                ee.push_back({pairitr->getnext().v.iv, pairitr->getnext().v.iv});
+            }
+            delete pairitr;
+        }
+        auto g = ns->g;
+        graphtype* gout = new graphtype(vv.size());
+        std::vector<vertextype> vout;
+        subgraphvertices(*g,vv,vout,gout);
+        subgraphedges(*g,vout,ee, gout);
+        delete Vpos;
+        delete Epos;
+        return new neighborstype(gout);
+    }
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    SubgraphonVEgmeas( mrecords* recin ) : gmeas(recin,"SubgraphonVEg", "Subgraph on given vertices and edges")
+    {
+        valms v1;
+        v1.t = mtset;
+        nps.push_back(std::pair{"H",v1});
+        valms v2;
+        v2.t = mtset;
+        nps.push_back(std::pair{"F",v2});
+        bindnamedparams();
+    }
+};
+
 
 class Gpathsset : public set
 {

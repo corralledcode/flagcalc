@@ -2183,12 +2183,14 @@ public:
         auto (Gg) = graphfactory<Ggmeas>;
         auto (Complementg) = graphfactory<Complementgmeas>;
         auto (Closureg) = graphfactory<Closuregmeas>;
+        auto (SubgraphonVEg) = graphfactory<SubgraphonVEgmeas>;
 
         gmsfactory.push_back(GraphonVEg);
         gmsfactory.push_back(SubgraphonUg);
         gmsfactory.push_back(Gg);
         gmsfactory.push_back(Complementg);
         gmsfactory.push_back(Closureg);
+        gmsfactory.push_back(SubgraphonVEg);
 
         for (int n = 0; n < gmsfactory.size(); ++n) {
             gms.push_back((*gmsfactory[n])(&rec));
@@ -3123,6 +3125,7 @@ public:
 
     void clear()
     {
+        rec.clear();
         iter.clear();
         litnumps.clear();
         littypes.clear();
@@ -3209,8 +3212,9 @@ public:
         bool ormode = false;
         bool takeallsubitems = false;
 
-        sentences.clear();
-        formulae.clear();
+        clear();
+        // sentences.clear();
+        // formulae.clear();
 
         std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 

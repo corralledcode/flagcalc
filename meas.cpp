@@ -363,6 +363,8 @@ public:
         neighbors* flagns = ps[0].v.nsv;
 
         int dim = flagns->g->dim;
+        if (dim == 0)
+            return true;
         /*
         FP* fp = (FP*)malloc(dim*sizeof(FP));
         for (int j = 0; j < dim; ++j) {
