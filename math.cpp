@@ -4738,6 +4738,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     std::cout << "Error in evalformula::eval comparing tuple type to non-tuple type\n";
                 }
             break;
+        case mtgraph:
+            if (resright.t == mtgraph)
+            {
+                res.v.bv = graphsequal(resleft.v.nsv->g,resright.v.nsv->g);
+            } else
+                std::cout << "Error in evalformula::eval comparing graph type to non-graph type\n";
+            break;
+
         }
 
         return res;
