@@ -3595,7 +3595,7 @@ inline void subgraphvertices( const graphtype& g, const std::vector<valms>& vv,
 
     int dimg = g.dim;
     int dim = vv.size();
-    if (dim > 1)
+    if (dim >= 1)
     {
         int* vmap = (int*)(malloc(dim*sizeof(int)));
         int i = 0;
@@ -3628,7 +3628,7 @@ inline void subgraphvertices( const graphtype& g, const std::vector<valms>& vv,
             vout.push_back(vmap[i]);
         delete vmap;
     } else {
-        gout->adjacencymatrix[0] = false;;
+        gout->adjacencymatrix = nullptr;
         vout.clear();
     }
 }
@@ -4100,7 +4100,7 @@ public:
     neighborstype* takemeas(const int idx, const params& ps) override
     {
         auto ns = (*rec->nsptrs)[idx];
-        this->takemeas(ns,ps);
+        return this->takemeas(ns,ps);
     }
     Complementgmeas( mrecords* recin ) : gmeas(recin, "Complementg", "Complement of a graph") {}
 };

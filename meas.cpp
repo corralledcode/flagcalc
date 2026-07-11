@@ -375,12 +375,15 @@ public:
             fp[j].invert = false; // flagns->degrees[j] >= int((dim+1)/2);
         }*/
 
-        FP* fp = startfingerprint(*flagns, false);
 
-        takefingerprint(flagns,fp,flagns->g->dim, false);
+        auto r = negated != embedsgenerous(flagns,ns);
+
+        return r;
+
+        /*
         auto r = negated != (embedsgenerousquick(flagns, fp, ns, 1));
         freefps(fp,dim);
-        return r;
+        return r;*/
     }
     bool takemeas( const int idx, const params& ps ) override {
         auto ns = (*rec->nsptrs)[idx];
@@ -420,7 +423,7 @@ public:
 
         FP* fp = startfingerprint(*flagns);
 
-        takefingerprint(flagns,fp,flagns->g->dim);
+        // takefingerprint(flagns,fp,flagns->g->dim);
         auto r = negated != (embedsquick(flagns, fp, ns, 1));
         freefps(fp,flagns->dim);
         return r;

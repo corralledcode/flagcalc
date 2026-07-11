@@ -206,6 +206,8 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
 bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt );
 // i.e. non-induced (preserving adjacency but not necessarily non-adjacency
 
+bool embedsgenerous( const neighbors* ns1, const neighbors* ns2 );
+
 bool hastopologicalminorquick( const neighbors* ns1, const neighbors* ns2, const int mincnt );
 
 bool hastopologicalminorquick2( const neighbors* childns, const neighbors* parentns, const int mincnt );

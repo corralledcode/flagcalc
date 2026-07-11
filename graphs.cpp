@@ -242,10 +242,35 @@ int FPcmpextends( const vertextype* m1, const vertextype* m2, const neighbors* n
     return res * multiplier;
 }
 
+int FPgenerouscmpbase(const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2, std::vector<vertextype>& vertices )
+{
+    bool embeds = true;
+    bool missingvertex = false;
+    for (int i = 0; !missingvertex && embeds && i < vertices.size(); i++) {
+        if (vertices[i] != -1) {
+            for (int j = i+1; !missingvertex && embeds && j < vertices.size(); j++) {
+                if (vertices[j] != -1)
+                    embeds = embeds && (!ns1->g->adjacencymatrix[i*ns1->g->dim + j]
+                        || ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]]);
+                else
+                    missingvertex = true;
+            }
+        } else {
+            missingvertex = true;
+        }
+    }
+    if (!missingvertex)
+        return embeds ? 0 : -1;
+    if (w1->nscnt == 0)
+        return 0;
+    return -1;
+}
 
-int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2, std::vector<vertextype>& vertices ) {
+/*
+int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, const FP* w2, std::vector<vertextype>& vertices, int pos = 0, int idx = 0 ) {
     // acts without consideration of self or parents; looks only downwards
     // does ns2 have every edge that ns1 has?
+
 
     if (ns1->g->dim != ns2->g->dim)
         return ns1->g->dim < ns2->g->dim ? 1 : -1;
@@ -256,56 +281,13 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
         for (int i = 0; i < ns1->g->dim; i++)
             vertices[i] = -1;
     } else
-    // if (w1->nscnt == 0)
-    {
-        // std::vector<vertextype> missingvertices {};
-        // auto foundvertices = new bool[ns1->g->dim];
-        // memset(foundvertices,false,sizeof(bool)*ns1->g->dim);
-        bool embeds = true;
-        bool missingvertex = false;
-        for (int i = 0; !missingvertex && embeds && i < vertices.size(); i++) {
-            // std::cout << "vertex " << i << " maps to " << vertices[i] << std::endl;
-            if (vertices[i] != -1) {
-                // foundvertices[vertices[i]] = true;
-                for (int j = i+1; !missingvertex && embeds && j < vertices.size(); j++) {
-                    // std::cout << "i == " << i << ", j == " << j << std::endl;
-                    // auto b1 = ns1->g->adjacencymatrix[i*ns1->g->dim + j];
-                    // auto b2 = ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]];
-                    // std::cout << "b1 " << b1 << " b2 " << b2 << std::endl;
-                    if (vertices[j] != -1)
-                        embeds = embeds && (!ns1->g->adjacencymatrix[i*ns1->g->dim + j]
-                            || ns2->g->adjacencymatrix[vertices[i]*ns2->g->dim + vertices[j]]);
-                    else
-                        missingvertex = true;
-                }
-            } else {
-                // missingvertices.push_back(i);
-                missingvertex = true;
-            }
-        }
-        /*
-        if (embeds && missingvertices.size() > 0) {
-            auto perms = getpermutations(missingvertices.size());
-            std::vector<vertextype> missingvertices2 {};
-            for (int k = 0; k < missingvertices.size(); k++)
-                if (!foundvertices[k])
-                    missingvertices2.push_back(k);
-            if (missingvertices.size() != missingvertices2.size()) {
-                std::cout << "Error in FPgenerouscmp\n";
-            }
-            for (int i = 0; embeds && i < missingvertices.size(); i++) {
-                for (int j = i+1; embeds && j < missingvertices.size(); j++)
-                    embeds = embeds && (!ns1->g->adjacencymatrix[missingvertices[i]*ns1->g->dim + missingvertices[j]]
-                        || ns2->g->adjacencymatrix[missingvertices2[i]*ns2->g->dim + missingvertices2[j]]);
-            }
-        }
-*/
-        // delete foundvertices;
-        if (!missingvertex)
-            return embeds ? 0 : -1;
-        // if (w1->nscnt == 0)
-            // return 0;
-    }
+        if (pos >= w1->nscnt)
+            if (FPgenerouscmpbase(ns1, ns2, w1, w2, vertices) == 0)
+                return 0;
+            else
+                return -1;
+
+
     if (w1->nscnt > w2->nscnt)
         return -1;
 
@@ -314,10 +296,33 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
     if (minimal > ns2->degrees[w2->ns[w1->nscnt-1].v])
         return -1;
 
+    /*
     int maxidx;
     for (maxidx = w2->nscnt - 1; maxidx >= 0 && ns2->degrees[w2->ns[maxidx].v] < minimal; --maxidx)
         ;
     maxidx++;
+
+
+    int res = -1;
+    auto verticesbackup = vertices;
+/*
+    for (int i = idx; res != 0 && pos < w1->nscnt; i++)
+    {
+        vertices[w1->ns[pos].v] = w2->ns[i].v;
+        res = FPgenerouscmp(ns1,ns2,&w1->ns[pos],&w2->ns[i],vertices) == 0)
+        res = FPgenerouscmp(ns1,ns2,w1,w2,vertices,pos+1,0);
+        if (res != 0)
+        {
+            res = FPgenerouscmp(ns1,ns2,w1,w2,vertices,pos,i+1);
+        }
+        if (res != 0)
+        {
+            res = FPgenerouscmp(ns1,ns2,&w1->ns[pos++],&w2->ns[i],vertices);
+        }
+    }
+
+
+    /*
     auto perms2 = getpermutations(maxidx);
 
     int res = -1;
@@ -326,13 +331,7 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
         res = 0;
         vertices = fixedvertices;
         for (int k = 0; k < w1->nscnt; k++) {
-            /*
-            if (w1->ns[k].v >= vertices.size()) {
-                auto oldsz = vertices.size();
-                vertices.resize(w1->ns[k].v+1);
-                for (int l = oldsz; l < vertices.size(); ++l)
-                    vertices[l] = -1;
-            }*/
+
             if (vertices[w1->ns[k].v] == -1)
                 vertices[w1->ns[k].v] = w2->ns[perms2[i][k]].v;
         }
@@ -345,6 +344,7 @@ int FPgenerouscmp( const neighbors* ns1, const neighbors* ns2, const FP* w1, con
 
     return res;
 }
+*/
 
 inline int partition2( std::vector<int> &arr, int start, int end, const neighbors* ns, FP* fpslist ) {
     int pivot = arr[start];
@@ -679,6 +679,7 @@ FP* startfingerprint( const neighborstype& ns, bool useinvert ) {
         delete fp;
         return fpsorted;
     }*/
+    takefingerprint( &ns, fp, dim, useinvert );
     sortneighbors( &ns, fp, dim );
 
     return fp;
@@ -1542,6 +1543,7 @@ bool existsisocore( const neighbors* ns1, const neighbors* ns2, FP* fp1, FP* fp2
 
 }
 
+/* replaced by embedsgenerous
 bool existsgenerousisocore( const neighbors* ns1, const neighbors* ns2, FP* fp1, FP* fp2) {
     std::vector<vertextype> vertices {};
 
@@ -1560,7 +1562,7 @@ bool existsgenerousisocore( const neighbors* ns1, const neighbors* ns2, FP* fp1,
     delete parentfps1;
     delete parentfps2;
     return res;
-}
+}*/
 
 
 bool existsiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2) {
@@ -1643,6 +1645,9 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
     if (g1->dim != g2->dim) // || ns1->maxdegree != ns2->maxdegree)
         return false;
 
+    bool res = embedsgenerous(ns1,ns2);
+    return res;
+
      /* BELOW CODE WORKS, BUT ENDEAVORING FOR FASTER CODE USING FINGERPRINTS... TESTING THE WORKING FINGERPRINT CODE AROUND FPgenerouscmp
      auto perm = getpermutations(g1->dim);
      bool all = false;
@@ -1658,7 +1663,7 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
     // ------
 
     // to do: save time in most cases by checking that ns1 matches ns2
-
+/*
     int dim = g1->dim;
 
     bool responsibletofree = false;
@@ -1674,7 +1679,7 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
             fps1ptr[n].parent = nullptr;
             fps1ptr[n].invert = false; // ns1->degrees[n] >= int((dim+1)/2);
         }
-        */
+
         FP* fps1ptr = startfingerprint(*ns1,false);
 
         takefingerprint(ns1,fps1ptr,dim, false);
@@ -1699,7 +1704,7 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
             fps2ptr[n].nscnt = 0;
             fps2ptr[n].parent = nullptr;
             fps2ptr[n].invert = false; // ns2->degrees[n] >= int((dim+1)/2);
-        }*/
+        }
 
         fps2ptr = startfingerprint(*ns2,false);
 
@@ -1710,6 +1715,7 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
 
     //vertextype del[ns1.maxdegree+2];
     //vertextype del[g1.dim+2];
+
 
     bool res = existsgenerousisocore(ns1,ns2,fps1ptr,fps2ptr);
 
@@ -1723,7 +1729,7 @@ bool existsgenerousiso( const neighbors* ns1, FP* fps1ptr, const neighbors* ns2)
     }
 
     return res;
-
+*/
 }
 
 
@@ -1753,7 +1759,7 @@ bool existsiso2(const int* m1, const int* m2, const graphtype* g1, const neighbo
     }*/
     FP* fps1 = startfingerprint(*ns1,true);
 
-    takefingerprint(ns1,fps1,dim1, true);
+    // takefingerprint(ns1,fps1,dim1, true);
     // osfingerprintminimal(std::cout,ns1, fps1,dim1);
 
     //osfingerprint(std::cout,ns5,fps5,g5.dim);
@@ -1770,7 +1776,7 @@ bool existsiso2(const int* m1, const int* m2, const graphtype* g1, const neighbo
 
     FP* fps2 = startfingerprint(*ns2,true);
 
-    takefingerprint(ns2,fps2,dim2, true);
+    // takefingerprint(ns2,fps2,dim2, true);
     // osfingerprintminimal(std::cout,ns2, fps2,dim2);
 
     /*
@@ -1842,11 +1848,11 @@ bool existsiso3(const int* m1, const int* m2, const graphtype* g1, neighbors* ns
 
     FP* fps1 = startfingerprint(*ns1,true);
 
-    takefingerprint(ns1,fps1,dim1, true);
+    // takefingerprint(ns1,fps1,dim1, true);
 
     FP* fps2 = startfingerprint(*ns2,true);
 
-    takefingerprint(ns2,fps2,dim2, true);
+    // takefingerprint(ns2,fps2,dim2, true);
 
     FP* parentfps1 = new FP;
     FP* parentfps2 = new FP;
@@ -2101,7 +2107,7 @@ bool embedsquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int 
     return resbool;
 }
 bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, const int mincnt ) {
-    //graphtype* g1 = ns1->g;
+    graphtype* g1 = ns1->g;
     graphtype* g2 = ns2->g;
     int dim1 = ns1->g->dim;
     int dim2 = g2->dim;
@@ -2109,6 +2115,23 @@ bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, co
         return false;
     if (dim1 == 0)
         return true;
+
+    /* WAY too repetitive (slow):
+    auto perms = getpermutations(dim2);
+    bool embeds = false;
+    for (int p = 0; !embeds && p < perms.size(); ++p)
+    {
+        embeds = true;
+        for (int i = 0; embeds && i < dim1; ++i)
+        {
+            for (int j = i+1; embeds && j < dim1; ++j)
+                embeds = embeds && !g1->adjacencymatrix[i*dim1+j]
+                        || g2->adjacencymatrix[perms[p][i]*dim2+perms[p][j]];
+        }
+    }
+    return embeds; */
+
+
 
     int cnt = 0;
     auto gtemp = new graphtype(dim1);
@@ -2128,6 +2151,203 @@ bool embedsgenerousquick( const neighbors* ns1, FP* fp, const neighbors* ns2, co
     //free(subsets);
     return resbool;
 }
+
+bool embedsgenerousbase( const neighbors* ns1, const neighbors* ns2, const std::vector<vertextype>& vertices )
+{
+    bool embeds = true;
+    int dim1 = ns1->g->dim;
+    int dim2 = ns2->g->dim;
+    for (int i = 0; embeds && i < dim1; ++i)
+    {
+        for (int j = i+1; embeds && j < dim1; ++j)
+        {
+            embeds = embeds && (!ns1->g->adjacencymatrix[i*dim1 + j] || ns2->g->adjacencymatrix[vertices[i]*dim2 + vertices[j]]);
+        }
+    }
+    for (int n = 0; n < vertices.size(); ++n)
+        if (vertices[n] == -1)
+            std::cout << "Incomplete\n";
+        // std::cout << n << ": " << vertices[n] << "\n";
+    return embeds;
+}
+
+bool embedsgenerousinternal( const neighbors* ns1, const neighbors* ns2, FP* fp1, FP* fp2,
+    std::vector<vertextype>& vertices, std::vector<vertextype>& verticesback, int& missingvertices, int pos1, int pos2 )
+{
+    if (missingvertices <= 0)
+        return embedsgenerousbase(ns1,ns2,vertices);
+
+    // std::cout << pos1 << " " << pos2 << "\n";
+    while (pos1 < fp1->nscnt && vertices[fp1->ns[pos1].v] != -1)
+        pos1++;
+    if (pos1 >= fp1->nscnt)
+        return true;
+
+    while (pos2 < fp2->nscnt && (ns2->degrees[fp2->ns[pos2].v] < ns1->degrees[fp1->ns[pos1].v]
+        || verticesback[fp2->ns[pos2].v] != -1))
+        pos2++;
+    if (pos2 >= fp2->nscnt || ns2->degrees[fp2->ns[pos2].v] < ns1->degrees[fp1->ns[pos1].v])
+        return false;
+
+
+    bool r = false;
+
+
+    // vertextype oldv2 = vertices[fp1->ns[pos1].v];
+    // vertextype oldv1 = verticesback[fp2->ns[pos2].v];
+    // vertextype oldv3 = -1;
+    // vertextype oldv4 = -1;
+
+    auto verticesbackup = vertices;
+    auto verticesbackbackup = verticesback;
+    auto missingverticesbackup = missingvertices;
+
+
+    if (vertices[fp1->ns[pos1].v] == -1)
+    {
+        missingvertices--;
+    }/*
+    else
+    {
+        oldv4 = verticesback[vertices[fp1->ns[pos1].v]];
+        if (vertices[fp1->ns[pos1].v] != fp2->ns[pos2].v)
+        {
+            verticesback[vertices[fp1->ns[pos1].v]] = -1;
+            vertices[fp1->ns[pos1].v] = -1;
+            missingvertices++;
+        }
+    }*/
+
+    if (verticesback[fp2->ns[pos2].v] == -1)
+    {
+
+    } /* else
+    {
+        oldv3 = vertices[verticesback[fp2->ns[pos2].v]];
+        if (verticesback[fp2->ns[pos2].v] != fp1->ns[pos1].v)
+        {
+            vertices[verticesback[fp2->ns[pos2].v]] = -1;
+            verticesback[vertices[fp1->ns[pos1].v]] = -1;
+            missingvertices++;
+        }
+    } */
+
+    vertices[fp1->ns[pos1].v] = fp2->ns[pos2].v;
+    verticesback[fp2->ns[pos2].v] = fp1->ns[pos1].v;
+
+    r = embedsgenerousinternal( ns1, ns2, &fp1->ns[pos1],&fp2->ns[pos2],vertices,verticesback,missingvertices,0,0);
+    if (!r)
+    {
+        // vertices[fp1->ns[pos1].v] = -1;
+        // verticesback[fp2->ns[pos2].v] = -1;
+        // missingvertices++;
+        // if (verticesback[fp2->ns[pos2].v] != -1)
+        // {
+            // vertices[verticesback[fp2->ns[pos2].v]] = oldv3;
+        // }
+        // if (vertices[fp1->ns[pos1].v] != -1) {
+            // verticesback[vertices[fp1->ns[pos1].v]] = oldv4;
+        // }
+        // vertices[fp1->ns[pos1].v] = oldv2;
+        // verticesback[fp2->ns[pos2].v] = oldv1;
+        // missingvertices = missingverticesbackup;
+
+        vertices = verticesbackup;
+        missingvertices = missingverticesbackup;
+        verticesback = verticesbackbackup;
+
+        r = embedsgenerousinternal( ns1,ns2,fp1,fp2,vertices,verticesback,missingvertices,pos1,++pos2);
+    }
+    else
+    {
+        // auto verticesbackup = vertices;
+        // auto verticesbackbackup = verticesback;
+        // auto missingverticesbackup = missingvertices;
+        auto r2 = embedsgenerousinternal(ns1,ns2,fp1,fp2,vertices,verticesback,missingvertices,++pos1,0);
+
+        // vertices[fp1->ns[pos1].v] = -1;
+        // verticesback[fp2->ns[pos2].v] = -1;
+        // missingvertices++;
+
+        bool r1 = false;
+        if (!r2)
+        {
+
+            --pos1;
+
+            // vertices[fp1->ns[pos1].v] = -1;
+            // verticesback[fp2->ns[pos2].v] = -1;
+            // missingvertices++;
+
+            // if (verticesback[fp2->ns[pos2].v] != -1)
+                // vertices[verticesback[fp2->ns[pos2].v]] = oldv3;
+            // if (vertices[fp1->ns[pos1].v] != -1) {
+                // verticesback[vertices[fp1->ns[pos1].v]] = oldv4;
+            // }
+            // vertices[fp1->ns[pos1].v] = oldv2;
+            // verticesback[fp2->ns[pos2].v] = oldv1;
+            // missingvertices = missingverticesbackup;
+
+            vertices = verticesbackup;
+            missingvertices = missingverticesbackup;
+            verticesback = verticesbackbackup;
+
+
+            r1 = embedsgenerousinternal(ns1,ns2,fp1,fp2,vertices,verticesback,missingvertices,pos1,++pos2);
+            // if (!r1)
+            // {
+                // vertices = verticesbackup;
+                // missingvertices = missingverticesbackup;
+                // verticesback = verticesbackbackup;
+            // }
+
+
+        }
+
+        return r1 || r2;
+    }
+
+    return r;
+}
+
+bool embedsgenerous( const neighbors* ns1, const neighbors* ns2 )
+{
+    // WAY improved above "quick" above
+
+    FP* fp1 = startfingerprint(*ns1, false);
+    // takefingerprint(ns1,fp1,ns1->g->dim, false);
+    FP* fp2 = startfingerprint(*ns2, false);
+    // takefingerprint(ns2,fp2,ns2->g->dim, false);
+
+    FP* parentfps1 = new FP;
+    FP* parentfps2 = new FP;
+    parentfps1->ns = fp1;
+    parentfps1->nscnt = ns1->g->dim;
+    parentfps1->invert = false;
+    parentfps1->parent = nullptr;
+    parentfps2->ns = fp2;
+    parentfps2->nscnt = ns2->g->dim;
+    parentfps2->invert = false;
+    parentfps2->parent = nullptr;
+
+    std::vector<vertextype> vertices {};
+    std::vector<vertextype> verticesback {};
+    for (int i = 0; i < ns1->g->dim; ++i)
+        vertices.push_back(-1);
+    for (int i = 0; i < ns2->g->dim; ++i)
+        verticesback.push_back(-1);
+    auto mv = ns1->g->dim;
+    // osfingerprintminimal(std::cout, ns1, fp1, mv);
+    bool r;
+    r = embedsgenerousinternal( ns1, ns2, parentfps1, parentfps2, vertices, verticesback, mv, 0,0);
+    freefps(fp1,ns1->g->dim);
+    freefps(fp2,ns2->g->dim);
+    delete parentfps1;
+    delete parentfps2;
+    return r;
+}
+
+
 
 
 void partitionintoncomponents( const int& size, const int& n, std::vector<int*>& partitions ) {
@@ -2209,7 +2429,7 @@ bool hastopologicalminorquick2( const neighbors* childns, const neighbors* paren
     if (parentdim == childdim) {
         int newmincnt = mincnt;
         FP* fp = startfingerprint(*childns,false);
-        takefingerprint(childns,fp,childns->g->dim,false);
+        // takefingerprint(childns,fp,childns->g->dim,false);
         if (newmincnt == 1) {
             if (embedsgenerousquick(childns, fp, parentns, 1))
                 return true;
@@ -2316,7 +2536,7 @@ bool hastopologicalminorquick2( const neighbors* childns, const neighbors* paren
             auto minorns = new neighborstype(minorg);
 
             FP* fp = startfingerprint(*childns,false);
-            takefingerprint(childns,fp,childns->g->dim,false);
+            // takefingerprint(childns,fp,childns->g->dim,false);
             int newmincnt = mincnt;
             if (newmincnt == 1) {
                 if (embedsgenerousquick(childns, fp, minorns, 1))
@@ -2493,7 +2713,7 @@ bool hastopologicalminorquick3( const neighbors* childns, const neighbors* paren
     const int subsetscount = subsets.size()/childdim;
 
     FP* childfp = startfingerprint(*childns,false);
-    takefingerprint(childns,childfp,childns->g->dim,false);
+    // takefingerprint(childns,childfp,childns->g->dim,false);
 
     bool res = false;
     for (int s = 0; !res && s < subsetscount; ++s) {
@@ -3053,7 +3273,7 @@ public:
 bool hastopologicalminorquickcore(const neighbors& childns, const neighbors& parentns,
         std::vector<std::pair<vertextype,vertextype>>& edges, int mincnt ) {
     FP* fp = startfingerprint(childns,false);
-    takefingerprint(&childns,fp,childns.g->dim,false);
+    // takefingerprint(&childns,fp,childns.g->dim,false);
     int newmincnt = mincnt;
     if (newmincnt == 1) {
         if (embedsgenerousquick(&childns, fp, &parentns, 1))
@@ -3139,7 +3359,7 @@ bool hastopologicalminorquick4( const neighbors* ns1, const neighbors* ns2, cons
 
     int cnt = 0;
     FP* childfp = startfingerprint(*ns1,false);
-    takefingerprint(ns1,childfp,ns1->g->dim,false);
+    // takefingerprint(ns1,childfp,ns1->g->dim,false);
 
     auto test = new hastopologicalminorquick4test(ns2,ns1,childfp,mincnt);
     bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
@@ -3159,7 +3379,7 @@ bool hasminorquick( const neighbors* ns1, const neighbors* ns2, const int mincnt
 
     int cnt = 0;
     FP* childfp = startfingerprint(*ns1,false);
-    takefingerprint(ns1,childfp,ns1->g->dim,false);
+    // takefingerprint(ns1,childfp,ns1->g->dim,false);
     auto test = new hasminorquicktest(ns2,ns1, childfp, mincnt);
     bool resbool = enumsizedsubsetsquick(0,dim1,nullptr,0,dim2,&cnt,mincnt, test);
 
@@ -3228,7 +3448,8 @@ bool hasminor2core( const neighborstype* parentns,
             }
         }
         minorns->computeneighborslist();
-        res = res && existsgenerousiso(childns,childfp,minorns);
+        // res = res && existsgenerousiso(childns,childfp,minorns);
+        res = res && embedsgenerous(childns,minorns);
     }
     for (auto ns : subnss)
         delete ns;
@@ -3250,7 +3471,13 @@ bool hasminor2( const neighbors* ns1, const neighbors* ns2, const int mincnt ) {
         return false;
 
     FP* childfp = startfingerprint(*ns1,false);
-    takefingerprint(ns1,childfp,ns1->g->dim,false);
+    // takefingerprint(ns1,childfp,ns1->g->dim,false);
+
+    FP* parentchildfp = new FP;
+    parentchildfp->ns = childfp;
+    parentchildfp->nscnt = ns1->g->dim;
+    parentchildfp->invert = false;
+    parentchildfp->parent = nullptr;
 
     std::vector<int*> part {};
     partitionintoncomponents(g2->dim+1,g1->dim+1,part);
@@ -3258,12 +3485,14 @@ bool hasminor2( const neighbors* ns1, const neighbors* ns2, const int mincnt ) {
     bool res = false;
 
     for (int i = 0; !res && i < part.size(); ++i) {
-        res = res || hasminor2core( ns2, part[i], ns1, childfp, mincnt );
+        res = res || hasminor2core( ns2, part[i], ns1, parentchildfp, mincnt );
     }
 
     freefps(childfp,dim1);
     for (auto p : part)
         delete p;
+
+    delete parentchildfp;
 
     return res;
 

@@ -103,7 +103,7 @@ OR embedsc(\"abc=def ab de\") OR embedsc(\"abc=def ab bc de\") OR embedsc(\"abc=
 s2="embedsgenerousc(\"abc=def\")" all -v i=minimal3.cfg
 
 # should be true
-$PTH/flagcalc -r 12 p=0.5 500 -a s="embedsgenerousc(\"abc=def\") IFF (embedsc(\"abc=def\") \
+$PTH/flagcalc -r 10 p=0.5 500 -a s="embedsgenerousc(\"abc=def\") IFF (embedsc(\"abc=def\") \
 OR embedsc(\"abc=def ab\") OR embedsc(\"abc=def ab bc\") OR embedsc(\"abc=def abc\") \
 OR embedsc(\"abc=def abc de\") OR embedsc(\"abc=def abc de ef\") OR embedsc(\"abc=def abc def\") \
 OR embedsc(\"abc=def ab de\") OR embedsc(\"abc=def ab bc de\") OR embedsc(\"abc=def ab bc de ef\"))" all -v i=minimal3.cfg

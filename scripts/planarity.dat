@@ -50,6 +50,13 @@ NOT (hastopologicalminorc4("abc=def") OR hastopologicalminorc4("abcde"))
 
 END
 
+/* Duplicate, renamed */
+mtbool planarnative
+
+NOT (hastopologicalminorc4("abc=def") OR hastopologicalminorc4("abcde"))
+
+END
+
 mtbool vsetcriticalnonplanar( mtset vs )
 
 FORALL (v IN vs, vsetplanar (vs SETMINUS {v})) AND NOT vsetplanar ( vs )

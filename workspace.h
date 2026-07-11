@@ -220,10 +220,7 @@ public:
             os << name << ", dim==" << g->dim << ", edgecount==" << edgecnt(g) << "\n";
         } else {
             if (g != nullptr)
-                osadjacencymatrix(os,g);
-            osedges(os,g);  // duplicates osneighbors
-            if (ns != nullptr)
-                osneighbors(os,ns);
+                osamedgesneighbors(os,g,ns);
         }
         return true;
     }
