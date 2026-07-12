@@ -3538,6 +3538,8 @@ inline neighborstype* pathsubgraphaddedges( graphtype* gout, std::vector<vertext
 inline void inducedsubgraphedges( graphtype& g, std::vector<vertextype> vv, const graphtype* gout) {
     auto dim = gout->dim;
     auto dimg = g.dim;
+    if (dim == 0)
+        return;
     memset(gout->adjacencymatrix,false,dim*dim*sizeof(bool));
     for (int i = 0; i+1 < dim; ++i)
         for (int j = i+1; j < dim; ++j)
@@ -3552,7 +3554,7 @@ inline void inducedsubgraphvertices( const graphtype& g, const std::vector<valms
 
     int dimg = g.dim;
     int dim = vv.size();
-    if (dim > 1)
+    if (dim >= 1)
     {
         int* vmap = (int*)(malloc(dim*sizeof(int)));
         int i = 0;
@@ -3585,7 +3587,6 @@ inline void inducedsubgraphvertices( const graphtype& g, const std::vector<valms
             vout.push_back(vmap[i]);
         delete vmap;
     } else {
-        gout->adjacencymatrix[0] = false;;
         vout.clear();
     }
 }
@@ -3628,7 +3629,6 @@ inline void subgraphvertices( const graphtype& g, const std::vector<valms>& vv,
             vout.push_back(vmap[i]);
         delete vmap;
     } else {
-        gout->adjacencymatrix = nullptr;
         vout.clear();
     }
 }

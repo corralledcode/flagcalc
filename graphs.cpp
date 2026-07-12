@@ -2164,151 +2164,153 @@ bool embedsgenerousbase( const neighbors* ns1, const neighbors* ns2, const std::
             embeds = embeds && (!ns1->g->adjacencymatrix[i*dim1 + j] || ns2->g->adjacencymatrix[vertices[i]*dim2 + vertices[j]]);
         }
     }
-    for (int n = 0; n < vertices.size(); ++n)
-        if (vertices[n] == -1)
-            std::cout << "Incomplete\n";
+    // for (int n = 0; n < vertices.size(); ++n)
+        // if (vertices[n] == -1)
+            // std::cout << "Incomplete\n";
         // std::cout << n << ": " << vertices[n] << "\n";
     return embeds;
 }
 
-bool embedsgenerousinternal( const neighbors* ns1, const neighbors* ns2, FP* fp1, FP* fp2,
-    std::vector<vertextype>& vertices, std::vector<vertextype>& verticesback, int& missingvertices, int pos1, int pos2 )
+// keep a stack of pos1, pos2 pairs
+// repeat until embedsgenerousbase returns true:
+// ...find a missing vertex to fill in as follows:
+// ......v1 = next unassigned pos1.v
+// ......v2 = next unassigned pos2.v: mark CHANGED true
+// ......if pos2 exceeded, undo last vertex assigned; while pos2 exceeded undo last vertex assigned
+// ......if pos1 exceeded, if CHANGED (vertices changed) then repost start of pos stack and start again
+
+// challenge one: sequentially iterate through all pos1, pos2 structs
+// challenge two: progress and regress vertices
+
+// bool getnext( fpstackitem& current, & fpstack, vertices, verticesback )
+// {
+//  while (true)
+//    while vertices(current) assigned and not at end
+//          current = getnext
+//      if not vertices(current) assigned
+//          return true;
+//      else
+//        if at end and changed
+//              current = first;
+//              changed = false;
+//          else (at end and not changed)
+//              return false;
+//
+// }
+
+struct fpstackitem
 {
-    if (missingvertices <= 0)
-        return embedsgenerousbase(ns1,ns2,vertices);
-
-    // std::cout << pos1 << " " << pos2 << "\n";
-    while (pos1 < fp1->nscnt && vertices[fp1->ns[pos1].v] != -1)
-        pos1++;
-    if (pos1 >= fp1->nscnt)
-        return true;
-
-    while (pos2 < fp2->nscnt && (ns2->degrees[fp2->ns[pos2].v] < ns1->degrees[fp1->ns[pos1].v]
-        || verticesback[fp2->ns[pos2].v] != -1))
-        pos2++;
-    if (pos2 >= fp2->nscnt || ns2->degrees[fp2->ns[pos2].v] < ns1->degrees[fp1->ns[pos1].v])
-        return false;
+    int pos1, pos2;
+    FP *fp1, *fp2;
+};
 
 
-    bool r = false;
-
-
-    // vertextype oldv2 = vertices[fp1->ns[pos1].v];
-    // vertextype oldv1 = verticesback[fp2->ns[pos2].v];
-    // vertextype oldv3 = -1;
-    // vertextype oldv4 = -1;
-
-    auto verticesbackup = vertices;
-    auto verticesbackbackup = verticesback;
-    auto missingverticesbackup = missingvertices;
-
-
-    if (vertices[fp1->ns[pos1].v] == -1)
+bool embedsgenerousgetnext( const neighborstype* ns1,
+    const neighborstype* ns2,
+    fpstackitem& current, std::vector<fpstackitem>& fpstack,
+    std::vector<vertextype>& vertices,
+    std::vector<vertextype>& verticesback,
+    int& missingvertexcount,
+    bool& verticeschanged )
+{
+    while (true)
     {
-        missingvertices--;
-    }/*
-    else
-    {
-        oldv4 = verticesback[vertices[fp1->ns[pos1].v]];
-        if (vertices[fp1->ns[pos1].v] != fp2->ns[pos2].v)
+        while (current.pos1 < current.fp1->nscnt && vertices[current.fp1->ns[current.pos1].v] != -1)
+            current.pos1++;
+        if (current.pos1 < current.fp1->nscnt)
         {
-            verticesback[vertices[fp1->ns[pos1].v]] = -1;
-            vertices[fp1->ns[pos1].v] = -1;
-            missingvertices++;
+            while (current.pos2 < current.fp2->nscnt && (verticesback[current.fp2->ns[current.pos2].v] != -1
+                || ns2->degrees[current.fp2->ns[current.pos2].v] < ns1->degrees[current.fp1->ns[current.pos1].v]))
+                current.pos2++;
+            if (current.pos2 < current.fp2->nscnt)
+            {
+                // if (vertices[current.fp1->ns[current.pos1].v] == -1
+                    // && verticesback[current.fp2->ns[current.pos2].v] == -1)
+                // {
+                    return true;
+                // }
+            } else
+                return false;
+
         }
-    }*/
-
-    if (verticesback[fp2->ns[pos2].v] == -1)
-    {
-
-    } /* else
-    {
-        oldv3 = vertices[verticesback[fp2->ns[pos2].v]];
-        if (verticesback[fp2->ns[pos2].v] != fp1->ns[pos1].v)
+        // if at end
+        if (verticeschanged && fpstack.size() > 0)
         {
-            vertices[verticesback[fp2->ns[pos2].v]] = -1;
-            verticesback[vertices[fp1->ns[pos1].v]] = -1;
-            missingvertices++;
-        }
-    } */
-
-    vertices[fp1->ns[pos1].v] = fp2->ns[pos2].v;
-    verticesback[fp2->ns[pos2].v] = fp1->ns[pos1].v;
-
-    r = embedsgenerousinternal( ns1, ns2, &fp1->ns[pos1],&fp2->ns[pos2],vertices,verticesback,missingvertices,0,0);
-    if (!r)
-    {
-        // vertices[fp1->ns[pos1].v] = -1;
-        // verticesback[fp2->ns[pos2].v] = -1;
-        // missingvertices++;
-        // if (verticesback[fp2->ns[pos2].v] != -1)
-        // {
-            // vertices[verticesback[fp2->ns[pos2].v]] = oldv3;
-        // }
-        // if (vertices[fp1->ns[pos1].v] != -1) {
-            // verticesback[vertices[fp1->ns[pos1].v]] = oldv4;
-        // }
-        // vertices[fp1->ns[pos1].v] = oldv2;
-        // verticesback[fp2->ns[pos2].v] = oldv1;
-        // missingvertices = missingverticesbackup;
-
-        vertices = verticesbackup;
-        missingvertices = missingverticesbackup;
-        verticesback = verticesbackbackup;
-
-        r = embedsgenerousinternal( ns1,ns2,fp1,fp2,vertices,verticesback,missingvertices,pos1,++pos2);
+            current = fpstack.front();
+            verticeschanged = false;
+            current.pos1 = 0;
+            current.pos2 = 0;
+            return embedsgenerousgetnext( ns1, ns2, current, fpstack, vertices, verticesback, missingvertexcount, verticeschanged);
+        } else
+            return false; // when fpstack.size == 0 ?
     }
-    else
-    {
-        // auto verticesbackup = vertices;
-        // auto verticesbackbackup = verticesback;
-        // auto missingverticesbackup = missingvertices;
-        auto r2 = embedsgenerousinternal(ns1,ns2,fp1,fp2,vertices,verticesback,missingvertices,++pos1,0);
-
-        // vertices[fp1->ns[pos1].v] = -1;
-        // verticesback[fp2->ns[pos2].v] = -1;
-        // missingvertices++;
-
-        bool r1 = false;
-        if (!r2)
-        {
-
-            --pos1;
-
-            // vertices[fp1->ns[pos1].v] = -1;
-            // verticesback[fp2->ns[pos2].v] = -1;
-            // missingvertices++;
-
-            // if (verticesback[fp2->ns[pos2].v] != -1)
-                // vertices[verticesback[fp2->ns[pos2].v]] = oldv3;
-            // if (vertices[fp1->ns[pos1].v] != -1) {
-                // verticesback[vertices[fp1->ns[pos1].v]] = oldv4;
-            // }
-            // vertices[fp1->ns[pos1].v] = oldv2;
-            // verticesback[fp2->ns[pos2].v] = oldv1;
-            // missingvertices = missingverticesbackup;
-
-            vertices = verticesbackup;
-            missingvertices = missingverticesbackup;
-            verticesback = verticesbackbackup;
-
-
-            r1 = embedsgenerousinternal(ns1,ns2,fp1,fp2,vertices,verticesback,missingvertices,pos1,++pos2);
-            // if (!r1)
-            // {
-                // vertices = verticesbackup;
-                // missingvertices = missingverticesbackup;
-                // verticesback = verticesbackbackup;
-            // }
-
-
-        }
-
-        return r1 || r2;
-    }
-
-    return r;
 }
+
+bool embedsgenerousstack( const neighbors* ns1, const neighbors* ns2,
+    fpstackitem current,
+    std::vector<fpstackitem>& fpstack,
+    std::vector<vertextype>& vertices,
+    std::vector<vertextype>& verticesback,
+    int& missingvertexcount,
+    bool& verticeschanged)
+{
+
+    vertices[current.fp1->ns[current.pos1].v] = current.fp2->ns[current.pos2].v;
+    verticesback[current.fp2->ns[current.pos2].v] = current.fp1->ns[current.pos1].v;
+    missingvertexcount--;
+    verticeschanged = true;
+    if (missingvertexcount <= 0)
+        return embedsgenerousbase(ns1,ns2,vertices);
+    fpstack.push_back(current);
+
+    // bool embedsgenerousstack
+    // {
+    //  assignvertices( current )
+    //  missingvertices--
+    //  changed = true;
+    //  fpstack push back current
+    //  embedsgenerousbase? return true
+    //  current -> child,
+    //  while (not b1 = getnext) or (not b2 = embedsgenerousstack)
+    //      pop back -> child
+    //      unassign vertex
+    //      child.pos2++;
+    //  return b1 and b2
+    // }
+
+    fpstackitem child;
+    child.fp1 = &current.fp1->ns[current.pos1];
+    child.fp2 = &current.fp2->ns[current.pos2];
+    child.pos1 = 0;
+    child.pos2 = 0;
+    bool b1, b2;
+    while (true)
+    {
+        b1 = embedsgenerousgetnext(ns1,ns2,child,fpstack,vertices,verticesback,missingvertexcount,verticeschanged);
+        b2 = b1 && embedsgenerousstack(ns1,ns2,child,fpstack,vertices,verticesback,missingvertexcount,verticeschanged);
+        if (b2)
+            break;
+        if (fpstack.size() == 0)
+            break;
+        if (!b1)
+        {
+            child = fpstack.back();
+            fpstack.pop_back();
+        }
+        vertices[child.fp1->ns[child.pos1].v] = -1;
+        verticesback[child.fp2->ns[child.pos2].v] = -1;
+        missingvertexcount++;
+        child.pos2++;
+
+    }
+    return b2;
+
+
+}
+
+
+
+
 
 bool embedsgenerous( const neighbors* ns1, const neighbors* ns2 )
 {
@@ -2337,9 +2339,19 @@ bool embedsgenerous( const neighbors* ns1, const neighbors* ns2 )
     for (int i = 0; i < ns2->g->dim; ++i)
         verticesback.push_back(-1);
     auto mv = ns1->g->dim;
+    bool verticeschanged = false;
     // osfingerprintminimal(std::cout, ns1, fp1, mv);
     bool r;
-    r = embedsgenerousinternal( ns1, ns2, parentfps1, parentfps2, vertices, verticesback, mv, 0,0);
+    std::vector<fpstackitem> fpstack {};
+    fpstackitem fpsistart;
+    fpsistart.pos1 = 0;
+    fpsistart.pos2 = 0;
+    fpsistart.fp1 = parentfps1;
+    fpsistart.fp2 = parentfps2;
+    r = embedsgenerousgetnext(ns1, ns2, fpsistart, fpstack, vertices, verticesback, mv, verticeschanged);
+    if (r)
+        r = embedsgenerousstack( ns1, ns2, fpsistart, fpstack, vertices, verticesback, mv, verticeschanged);
+    // r = embedsgenerousinternal( ns1, ns2, parentfps1, parentfps2, vertices, verticesback, mv, 0,0);
     freefps(fp1,ns1->g->dim);
     freefps(fp2,ns2->g->dim);
     delete parentfps1;

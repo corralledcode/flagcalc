@@ -364,7 +364,7 @@ public:
 
         int dim = flagns->g->dim;
         if (dim == 0)
-            return true;
+            return !negated;
         /*
         FP* fp = (FP*)malloc(dim*sizeof(FP));
         for (int j = 0; j < dim; ++j) {
