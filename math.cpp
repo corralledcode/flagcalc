@@ -1431,7 +1431,7 @@ public:
                 delete vv[m].seti;
             else if (vv[m].seti->generative && vv[m].seti->usecount <= 0) {
                 vv[m].seti->cleanup();
-                delete vv[m].seti;
+                // delete vv[m].seti;
             }
 
             // else if (vv[k].seti->safetodelete())
