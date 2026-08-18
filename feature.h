@@ -952,7 +952,39 @@ public:
             auto wi = _ws->items[i];
             if (wi->classname == "GRAPH") {
                 if (graphitem* gi = dynamic_cast<graphitem*>(wi))
-                    items.push_back(i); // default to working with all graphitems
+                    if (!passed)
+                        items.push_back(i); // default to working with all graphitems
+                    else
+                    {
+                        bool accept = true; // default to logical AND
+                        if (passedargs.size() == 0)
+                            accept = (gi->boolitems.size()>0) && gi->boolitems[gi->boolitems.size()-1]->value;
+                        for (auto a : passedargs)
+                        {
+                            if (is_number(a))
+                            {
+                                int j = stoi(a);
+                                if (j >= 0 && j < gi->boolitems.size())
+                                    accept = accept && gi->boolitems[j]->value;
+                                else
+                                    if (j < 0 && gi->boolitems.size() + j >= 0)
+                                        accept = accept && gi->boolitems[gi->boolitems.size() + j]->value;
+                            } else
+                            {
+                                for (auto bi : gi->boolitems)
+                                {
+                                    if (bi->name() == a)
+                                        accept = accept && bi->value;
+                                }
+                            }
+
+                        }
+                        if (accept)
+                        {
+                            items.push_back(i);
+                        }
+
+                    }
             }
         }
 
@@ -968,6 +1000,7 @@ public:
             eqclass.push_back(0);
             for (int m = 0; m < items.size()-1; ++m) {
                 if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[m]])) {
+
                     bool found = false;
                     for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
                         if (gi->intitems[r]->name() == "FP") {
@@ -999,11 +1032,12 @@ public:
                 {
                     int eqclasssize;
                     if (i == eqclass.size()-1)
-                        eqclasssize = sortedcnt -eqclass[i];
+                        eqclasssize = sortedcnt -eqclass[i] + 1;
                     else
                         eqclasssize = eqclass[i+1]-eqclass[i];
                     gi->intitems.push_back(new genericgraphoutcome<int>("eqclasssize","Equivalence class size",gi,eqclasssize));
                 }
+/*
                 if (passed)
                 {
                     bool accept = true; // default to logical AND
@@ -1037,10 +1071,12 @@ public:
                     }
                 } else
                 {
+
+                */
                     if (!first)
                         *_os << "\n";
                     gi->osmachinereadablegraph(*_os);
-                }
+                // }
                 first = false;
             } else {
                 std::cout << "Bad cast to graphitem* \n";
