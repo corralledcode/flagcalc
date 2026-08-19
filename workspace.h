@@ -59,6 +59,7 @@
 
 #define CMDLINE_ALL "all"
 #define CMDLINE_PASSED "passed"
+#define CMDLINE_FAILED "failed"
 #define CMDLINE_ENUMISOSSORTED "sorted"
 #define CMDLINE_ENUMISOSSORTEDVERIFY "sortedverify"
 #define CMDLINE_SUBOBJECTS "sub"
@@ -194,6 +195,22 @@ public:
         return tmpname;*/
     }
     workspace() {
+    }
+    void copygraphs(workspace* ws)
+    {
+        namesused = ws->namesused;
+        for (auto graph : ws->items)
+            items.push_back(graph);
+    }
+    void purgegraphs()
+    {
+        std::vector<workitems*> newitems {};
+        for (auto wi : items)
+        {
+            if (wi->classname != "GRAPH")
+                newitems.push_back(wi);
+        }
+        items = newitems;
     }
 };
 

@@ -702,11 +702,13 @@ public:
     }
 
     ~randomgraphsfeature() {
+        /*
         for (int n = 0; n < _ws->items.size(); ++n) {
             _ws->items[n]->freemem();  // figure out if this is a memory leak
             delete _ws->items[n];
         }
         _ws->items.clear();
+        */ // handled by main
     }
 };
 
@@ -1092,6 +1094,122 @@ public:
 
 };
 
+inline int openfcgfileandgetcount(std::ostream* _os, std::string filename)
+{
+    std::ifstream ifs;
+    std::istream* is = &ifs;
+    *_os << "Opening file " << filename << "\n";
+    ifs.open(filename);
+    if (!ifs) {
+        std::cout << "Couldn't open file for reading \n";
+        return 0;
+    }
+    bool done;
+    std::string item;
+    int ENDcnt = 0;
+    done = !(*is >> item);
+    while (!done)
+    {
+        if (item == "END" || item == "###") {
+            ENDcnt++;
+        }
+        done = !(*is >> item);
+    }
+    ifs.close();
+    return ENDcnt / 2;
+}
+
+
+inline void openfcgfileandobtaingraphs(std::ostream* _os, std::ifstream& ifs, std::vector<int>* totake, bool takeall, workspace* _ws, int thread_count)
+{
+    std::istream* is = &ifs;
+    std::ostream* os = _os;
+
+    // unsigned const thread_count = std::thread::hardware_concurrency();
+    std::vector<std::future<bool>> t;
+    t.resize(thread_count);
+
+    std::vector<std::vector<std::string>> items {};
+    items.resize(thread_count);
+
+    std::string item {};
+    int delimetercount = 0;
+
+    std::vector<bool> res {};
+    res.resize(thread_count);
+
+    std::vector<graphitem*> giv {};
+    giv.resize(thread_count);
+
+    std::vector<bool> foundname {};
+    foundname.resize(thread_count);
+
+    std::vector<std::string> name {};
+    name.resize(thread_count);
+
+    int threadidx = 0;
+    int n = 0;
+    int m = 0;
+    bool done = false;
+    while (!done && (takeall || m < totake->size())) {
+        delimetercount = 0;
+
+        threadidx = 0;
+        while ((threadidx < thread_count) && !done && (takeall || m < (*totake).size())) {
+            foundname[threadidx] = false;
+            done = !(*is >> item);
+
+            while (!done) {
+                if (item == "END" || item == "###") {
+                    if( ++delimetercount >= 2 ) {
+                        delimetercount = 0;
+                        done = done || (is == &std::cin);
+                        ++n;
+                        break;
+                    }
+                } else
+                    if (takeall || (*totake)[m] == n)
+                        items[threadidx].push_back(item);
+                if (takeall || (*totake)[m] == n)
+                    if (!foundname[threadidx])
+                        if (int pos = item.find("#name=") != std::string::npos) {
+                            foundname[threadidx] = true;
+                            std::string initial = item.substr(pos+5,item.size()-pos-5);
+                            if (int pos2 = initial.find(" ") != std::string::npos) {
+                                name[threadidx] =  item.substr(pos+5,pos2);
+                            } else
+                                name[threadidx] = item.substr(pos+5,item.size()-pos-5);
+                        }
+
+                done = !(*is >> item);
+            }
+            if (takeall || (*totake)[m] == n-1)
+            {
+                giv[threadidx] = new graphitem();
+                if (foundname[threadidx])
+                    giv[threadidx]->name = name[threadidx];
+                t[threadidx] = std::async(&graphitem::isitemstr,giv[threadidx],items[threadidx]);
+                ++threadidx;
+                ++m;
+            }
+        }
+        for (int m = 0; m < threadidx; ++m) {
+            res[m] = t[m].get();
+            items[m].clear();
+            items[m].resize(0);
+        }
+
+        for (int m = 0; m < threadidx; ++m) {
+            if (res[m]) {
+                if (giv[m]->name == "") {
+                    giv[m]->name = _ws->getuniquename(giv[m]->classname);
+                }
+                _ws->items.push_back(giv[m]);
+            } else
+                delete giv[m];
+        }
+    }
+}
 
 
 class readgraphsfeature : public feature {
@@ -1171,6 +1289,11 @@ public:
             }
 
             // unsigned const thread_count = std::thread::hardware_concurrency();
+
+
+            openfcgfileandobtaingraphs(_os, ifs, nullptr, true, _ws, thread_count);
+
+            /* THE BELOW CUT-AND-PASTED into openfcgfileandobtaingraphs
             std::vector<std::future<bool>> t;
             t.resize(thread_count);
 
@@ -1244,7 +1367,7 @@ public:
                     } else
                         delete giv[m];
                 }
-            }
+            } */
 
 /*
 
@@ -1261,6 +1384,361 @@ public:
     }
 
 };
+
+
+
+class winnowgraphsfeature : public feature
+{
+public:
+    std::string cmdlineoption() { return "w"; }
+    std::string cmdlineoptionlong() { return "winnowgraphs"; }
+    winnowgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
+    }
+
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t" << "passed: \t winnow all but those passing last criterion\n";
+        *_os << "\t" << "failed: \t winnow all but those failing last criterion\n";
+        *_os << "\t" << CMDLINE_ENUMISOSSORTED << ": \t winnow all but one representative from each equivalence class\n";
+        *_os << "\t" << "initial=<int>: \t take the first <int> graphs and discard the rest\n";
+        *_os << "\t" << "final=<int>: \t take the last <int> graphs and discard the rest\n";
+        *_os << "\t" << "cnt=<int>: \t randomly take the first <int> graphs and discard the rest\n";
+        *_os << "\t" << "p=<f>: \t randomly take <decimal> proportion (0 <= f <= 1)\n";
+        *_os << "\t" << "i=<filename>: \t input filename. Can be repeated any number of times\n";
+        *_os << "\t" << "B: \t use Bernoulli distribution (vs exact quantities)\n";
+
+    }
+
+
+
+    void execute(std::vector<std::string> args) override
+    {
+        int initialnumofitemstotake = -1;
+        int finalnumofitemstotake = -1;
+        int numofitemstotake = -1;
+        double proportiontotake = 1.0;
+        bool passedbool = false;
+        bool failedbool = false;
+        bool sortedbool = false;
+        bool Bernbool = false;
+        std::vector<std::string> inputfilenames {};
+
+        std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
+        for (int n = 0; n < cmdlineoptions.size(); ++n)
+        {
+            if (cmdlineoptions[n].first == "p") {
+                double f = stod(cmdlineoptions[n].second);
+                if (0 <= f && f <= 1)
+                    proportiontotake = f;
+                else
+                    proportiontotake = 1.0;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_ENUMISOSSORTED)
+            {
+                sortedbool = true;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_PASSED)
+            {
+                passedbool = true;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_FAILED)
+            {
+                failedbool = true;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "initial")
+            {
+                int k = stoi(cmdlineoptions[n].second);
+                if (k >= 0)
+                {
+                    initialnumofitemstotake = k;
+                    proportiontotake = 0.0;
+                } else
+                    initialnumofitemstotake = -1;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "final")
+            {
+                int k = stoi(cmdlineoptions[n].second);
+                if (k >= 0)
+                {
+                    finalnumofitemstotake = k;
+                    proportiontotake = 0.0;
+                } else
+                    finalnumofitemstotake = -1;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "cnt")
+            {
+                int k = stoi(cmdlineoptions[n].second);
+                if (k >= 0)
+                    numofitemstotake = k;
+                else
+                    numofitemstotake = -1;
+                continue;
+            }
+            if (cmdlineoptions[n].first == "i")
+            {
+                std::string fn = cmdlineoptions[n].second;
+                inputfilenames.push_back(fn);
+                continue;
+            }
+            if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == "B")
+            {
+                Bernbool = true;
+                continue;
+            }
+        }
+
+        // first handle passed and sorted boolean options, i.e. not input files but what's already on the workspace
+
+        std::vector<int> items {};
+        for (int i = 0; i < _ws->items.size(); ++i) {
+            auto wi = _ws->items[i];
+            if (wi->classname == "GRAPH") {
+                if (graphitem* gi = dynamic_cast<graphitem*>(wi))
+                    if (!passedbool)
+                        items.push_back(i); // default to working with all graphitems
+                    else
+                    {
+                        bool accept = true; // default to logical AND
+                        // if (passedargs.size() == 0)
+                            accept = (gi->boolitems.size()>0) && gi->boolitems[gi->boolitems.size()-1]->value;
+                        /*
+                        for (auto a : passedargs)
+                        {
+                            if (is_number(a))
+                            {
+                                int j = stoi(a);
+                                if (j >= 0 && j < gi->boolitems.size())
+                                    accept = accept && gi->boolitems[j]->value;
+                                else
+                                    if (j < 0 && gi->boolitems.size() + j >= 0)
+                                        accept = accept && gi->boolitems[gi->boolitems.size() + j]->value;
+                            } else
+                            {
+                                for (auto bi : gi->boolitems)
+                                {
+                                    if (bi->name() == a)
+                                        accept = accept && bi->value;
+                                }
+                            }
+
+                        }*/
+                        if (accept)
+                        {
+                            items.push_back(i);
+                        }
+
+                    }
+            }
+        }
+
+
+        int sortedcnt = 0;
+        std::vector<int> eqclass {};
+
+        if (sortedbool) {
+            if (items.size()==0) {
+                std::cout << "No graphs to enumerate isomorphisms over\n";
+                return;
+            }
+
+            eqclass.push_back(0);
+            for (int m = 0; m < items.size()-1; ++m) {
+                if (graphitem* gi = dynamic_cast<graphitem*>(_ws->items[items[m]])) {
+
+                    bool found = false;
+                    for (int r = 0; !found && (r < gi->intitems.size()); ++r) {
+                        if (gi->intitems[r]->name() == "FP") {
+                            if (fpoutcome* fpo = dynamic_cast<fpoutcome*>(gi->intitems[r])) {
+                                if (fpo->value == 1) {
+                                    eqclass.push_back(m+1);
+                                }
+                                found = true;
+                                sortedcnt++;
+                            } else {
+                                std::cout << "Bad cast to fpoutcome (checked by dynamic_cast)\n";
+                            }
+                        }
+                    }
+                } else {
+                    std::cout << "Bad cast to graphitem (checked by dynamic_cast)\n";
+                }
+            }
+        } else {
+            for (int m = 0; m < items.size(); ++m) {
+                eqclass.push_back(m);
+            }
+        }
+
+        std::vector<int> graphitems {};
+
+        for (auto i = 0; i < eqclass.size(); ++i)
+            graphitems.push_back(items[eqclass[i]]);
+
+        // ---
+
+        // first count up how many graphs lie in the input files
+        int inputfilessumtotal = 0;
+        std::vector<int> inputfilecounts {};
+        for (int n = 0; n < inputfilenames.size(); ++n)
+        {
+            inputfilecounts.push_back(openfcgfileandgetcount(_os, inputfilenames[n]));
+            inputfilessumtotal += inputfilecounts.back();
+        }
+
+        /* duplicated code now above
+        for (int n = 0; n < _ws->items.size(); ++n)
+        {
+            auto wi = _ws->items[n];
+            if (wi->classname == "GRAPH")
+                if (graphitem* gi = dynamic_cast<graphitem*>(wi))
+                    graphitems.push_back(n);
+        }*/
+
+        int sumtotal = graphitems.size() + inputfilessumtotal;
+
+        // now proceed
+
+        std::vector<int> totakefromws {};
+        std::vector<std::vector<int>> totakefrominputfiles {};
+        totakefrominputfiles.resize(inputfilenames.size());
+        for (int k = 0; k < totakefrominputfiles.size(); ++k)
+            totakefrominputfiles[k].clear();
+
+        if (initialnumofitemstotake >= 0)
+        {
+            int n;
+            for (n = 0; n < initialnumofitemstotake && n < graphitems.size(); ++n)
+            {
+                totakefromws.push_back(graphitems[n]);
+            }
+            for (int k = 0; k < inputfilenames.size(); ++k)
+            {
+                std::vector<int> inputfiletotake {};
+                for (int m = 0; n < initialnumofitemstotake && m < inputfilecounts[k]; ++n, ++m)
+                {
+                    inputfiletotake.push_back(m);
+                }
+                totakefrominputfiles[k] = inputfiletotake;
+            }
+        }
+
+        if (numofitemstotake < 0)
+            numofitemstotake = (int)(proportiontotake * (double)sumtotal);
+        if (initialnumofitemstotake >= 0)
+            numofitemstotake = numofitemstotake - initialnumofitemstotake;
+        if (finalnumofitemstotake >= 0)
+            numofitemstotake = numofitemstotake - finalnumofitemstotake;
+
+
+        if (numofitemstotake > 0)
+        {
+            // std::vector<int> numbers(finalnumofitemstotake >= 0 ? sumtotal - finalnumofitemstotake : sumtotal);
+            // std::iota(numbers.begin(), numbers.end(), initialnumofitemstotake >= 0 ? initialnumofitemstotake : 0);
+
+            // 2. Shuffle the vector randomly
+            std::vector<int> numbers = graphitems;
+
+            int temp = graphitems.size();
+            for (auto k = 0; k < inputfilenames.size(); ++k)
+            {
+                for (auto l = 0; l < inputfilecounts[k]; ++l)
+                    numbers.push_back(temp + l);
+                temp += inputfilecounts[k];
+            }
+
+            temp = initialnumofitemstotake >= 0 ? initialnumofitemstotake : 0;
+            if (temp < numbers.size())
+                numbers.erase(numbers.begin(), numbers.begin() + temp);
+            temp = finalnumofitemstotake >= 0 ? finalnumofitemstotake : 0;
+            if (temp < numbers.size())
+                numbers.erase( numbers.end() - temp, numbers.end() );
+
+            std::vector<int> out {};
+            if (Bernbool)
+            {
+                std::vector<bool> chosen(numbers.size());
+
+                // Set up random number generation
+                std::random_device rd;
+                std::mt19937 gen(rd());
+
+                std::bernoulli_distribution d( (double)(numofitemstotake) / (double)sumtotal );
+
+                // Populate the vector
+                std::generate(chosen.begin(), chosen.end(), [&]() { return d(gen); });
+
+                for (int n = 0; n < chosen.size(); ++n)
+                    if (chosen[n])
+                        out.push_back(numbers[n]);
+            } else
+            {
+                std::random_device rd;
+                std::mt19937 g(rd());
+                std::shuffle(numbers.begin(), numbers.end(), g);
+
+                // 3. Resize to keep only the first k elements
+                numbers.resize(numofitemstotake);
+                std::sort(numbers.begin(),numbers.end());
+                out = numbers;
+            }
+
+            int n;
+            for (n = 0; n < out.size() && !graphitems.empty() && out[n] < graphitems[graphitems.size()-1]; ++n)
+            {
+                totakefromws.push_back(out[n]);
+            }
+            int startnumber = graphitems.size();
+            for (int k = 0; k < inputfilenames.size() && n < out.size(); ++k)
+            {
+                for (; n < out.size() && (out[n] - startnumber) < inputfilecounts[k]; ++n)
+                    totakefrominputfiles[k].push_back(out[n]-startnumber);
+                startnumber += inputfilecounts[k];
+            }
+        }
+
+        if (finalnumofitemstotake >= 0)
+        {
+            int tally = finalnumofitemstotake;
+            for (int k = inputfilenames.size() - 1; k >= 0 && tally > 0; --k)
+            {
+                auto m = inputfilecounts[k] < tally ? 0 : inputfilecounts[k] - tally;
+                for (; m < inputfilecounts[k]; ++m)
+                    totakefrominputfiles[k].push_back(m);
+                tally -= inputfilecounts[k];
+            }
+        }
+
+
+        // now copy the "totake" items into _ws->items, implicitly purging/winnowing
+
+        workspace newws;
+        newws.items.clear();
+
+        for (auto i : totakefromws)
+            newws.items.push_back(_ws->items[i]);
+
+        for (int k = 0; k < inputfilenames.size(); ++k)
+        {
+            std::ifstream ifs;
+            *_os << "Opening file " << inputfilenames[k] << "\n";
+            ifs.open(inputfilenames[k]);
+            if (!ifs) {
+                std::cout << "Couldn't open file for reading \n";
+            } else
+                openfcgfileandobtaingraphs(_os, ifs, &totakefrominputfiles[k], false, &newws, thread_count);
+        }
+
+        _ws->purgegraphs();
+        _ws->copygraphs(&newws);
+    }
+};
+
 
 
 inline int partition( std::vector<int> &arr, int start, int end, std::vector<neighbors*>* nslist, std::vector<FP*>* fpslist ) {
@@ -3240,7 +3718,7 @@ public:
     {
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
 
-        bool takeallgraphitems = false;
+        bool takeallgraphitems = true;
         int numofitemstotake = 1;
         bool sortedbool = false;
         bool sortedverify = false;
@@ -3266,6 +3744,7 @@ public:
 
         for (int i = 0; i < parsedargs.size(); ++i) {
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
+                // please note a change in formalism, no longer requiring "all" but removing eval only one graph functionality
                 takeallgraphitems = true;
                 sortedbool = false;
                 continue;

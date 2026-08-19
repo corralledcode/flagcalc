@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
     auto wg = new writegraphsfeature(&std::cin, &std::cout,ws);
     auto sbg = new populatesubobjectfeature(&std::cin, &std::cout,ws);
     auto pd = new pairwisedisjointrandomfeature(&std::cin,&std::cout, ws);
+    auto wng = new winnowgraphsfeature(&std::cin, &std::cout, ws);
 
 
     std::vector<feature*> featureslist {};
@@ -59,6 +60,7 @@ int main(int argc, char* argv[]) {
     featureslist.push_back(wg);
     featureslist.push_back(sbg);
     featureslist.push_back(pd);
+    featureslist.push_back(wng);
 
     ug->featureslist = featureslist;
     gj->featureslist = featureslist;
