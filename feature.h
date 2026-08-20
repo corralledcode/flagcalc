@@ -1689,7 +1689,7 @@ public:
             }
 
             int n;
-            for (n = 0; n < out.size() && !graphitems.empty() && out[n] < graphitems[graphitems.size()-1]; ++n)
+            for (n = 0; n < out.size() && !graphitems.empty() && out[n] <= graphitems[graphitems.size()-1]; ++n)
             {
                 totakefromws.push_back(out[n]);
             }
