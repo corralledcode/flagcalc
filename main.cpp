@@ -18,6 +18,7 @@
 #include <cstring>
 
 int main(int argc, char* argv[]) {
+
     workspace* ws = new workspace();
 
     auto gj = new threadsfeature(&std::cin,&std::cout,ws);

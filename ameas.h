@@ -13,7 +13,7 @@
 #include <functional>
 #include <stdexcept>
 
-#include "ameas.h"
+// #include "ameas.h"
 
 #ifdef FLAGCALCWITHPYTHON
 #include <pybind11/pybind11.h>
@@ -1414,12 +1414,13 @@ inline py::list translatesetitrtopython( setitr* s ) {
 }
 
 inline py::object callpythonmethod( neighborstype* ns, const params& ps, const py::object& m, const namedparams& nps, const namedparams& ips, const std::string& methodname ) {
-    if (PyGILState_Check()) {
+    /* if (PyGILState_Check()) {
         std::cout << "The current C++ thread holds the GIL." << std::endl;
     } else {
         std::cout << "The current C++ thread does NOT hold the GIL." << std::endl;
-    }
-    py::gil_scoped_release release;
+    } */
+
+    // py::gil_scoped_release release;
 
     auto dim = ns->dim;
     // random internet code that helped diag a bug:
@@ -1568,7 +1569,7 @@ public:
         auto ns = (*rec->nsptrs)[idx];
         return takemeas(ns,ps);
     }
-    pythonuncastmeas( mrecords* recin, py::object m_in, const namedparams& npsin, const namedparams& ipsin, const std::string& methodnamein, const std::string shortnamein = "" )
+    pythonuncastmeas( mrecords* recin, py::object& m_in, const namedparams& npsin, const namedparams& ipsin, const std::string& methodnamein, const std::string shortnamein = "" )
         : uncastmeas( recin,  shortnamein == "" ? "pm" : shortnamein, "Python method " + methodnamein ),
         m{m_in}, ips{ipsin}, methodname{methodnamein} {
         nps = npsin;

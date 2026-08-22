@@ -30,10 +30,11 @@
 #include "meas.cpp"
 
 #ifdef FLAGCALCWITHPYTHON
-#include <pybind11/embed.h>
-#include <pybind11/stl.h>
-#include <pybind11/pybind11.h>
-namespace py = pybind11;
+// below all included in ameas.h
+// #include <pybind11/embed.h>
+// #include <pybind11/stl.h>
+// #include <pybind11/pybind11.h>
+// namespace py = pybind11;
 #endif
 
 #include "probsub.cpp"
@@ -2930,6 +2931,11 @@ void runthreads(const int iidx, const params& ps, thrrecords<T>& r ) {
     const double section = double(r.sz) / double(r.thread_count);
     std::vector<std::future<void>> t;
     t.resize(r.thread_count);
+    if (r.thread_count == 1)
+    {
+        r.threadfetch(0,r.sz,iidx,ps);
+        return;
+    }
     for (int m = 0; m < r.thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
@@ -2948,6 +2954,11 @@ void runthreadspartial(const int iidx, const params& ps, thrrecords<T>& r,
     const double section = double(r.sz) / double(r.thread_count);
     std::vector<std::future<void>> t;
     t.resize(r.thread_count);
+    if (r.thread_count == 1)
+    {
+        r.threadfetchpartial(0,r.sz,iidx,ps,todo);
+        return;
+    }
     for (int m = 0; m < r.thread_count; ++m) {
         const int startidx = int(m*section);
         const int stopidx = int((m+1.0)*section);
@@ -3272,6 +3283,7 @@ protected:
     }
 
 #ifdef FLAGCALCWITHPYTHON
+
     int lookuppythonmethod( const std::string sin, const int roundin )
     {
         for (auto i = 0; i < pythonmethods.size(); ++i)
@@ -3925,6 +3937,7 @@ public:
             if (ccl.t == "ipy") // Python methods from a file
             {
                 std::string filename = parsedargs[i].second;
+                setthread_count( 1 );
 
                 // py::scoped_interpreter guard{}; // won't outlast the scope
 
@@ -4030,11 +4043,11 @@ public:
 
                     py::gil_scoped_release release;
 
-
                 } catch (const py::error_already_set& e) {
                     std::cout << "Error with Python 'ipy' feature:" << e.what() << std::endl;
                     exit(1);
                 }
+
 
             }
 
