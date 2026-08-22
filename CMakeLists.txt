@@ -3,6 +3,7 @@ project(flagcalc LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 option(ENABLE_CUDA "Enable CUDA acceleration" ON) # handled in CMake under settings
+option(ENABLE_PYTHON "Enable Python" ON) # handled in CMake under settings
 
 if (ENABLE_CUDA)
     enable_language(CUDA)

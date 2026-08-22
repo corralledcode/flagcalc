@@ -280,6 +280,8 @@ void cyclesset( graphtype* g, neighborstype* ns, std::vector<std::vector<vertext
 
 int cyclescount( graphtype* g, neighborstype* ns );
 
+std::vector<std::vector<vertextype>> walks( const graphtype* g, const neighborstype* ns, const int n, const vertextype a, const vertextype b );
+
 void copygraph( graphtype* g1, graphtype* g2 );
 
 std::vector<std::vector<int>> getpermutations( const int i );

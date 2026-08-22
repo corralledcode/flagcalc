@@ -5,6 +5,7 @@
 #include "ameas.h"
 #include "graphs.h"
 #include <unordered_set>
+#include <random>
 
 // #include "cudagraph.cuh"
 // #include "cudaengine.cuh"
@@ -143,7 +144,7 @@ public:
                 mincnt = ps[1].v.iv;
                 newps.push_back(ps[1]);
             }
-            if (0<=ksz && ksz <= KNMAXCLIQUESIZE)
+            if (0<=ksz && ksz < KNMAXCLIQUESIZE)
             {
                 return negated != kns[ksz]->takemeas(idx,newps);
             } else {
@@ -802,6 +803,37 @@ public:
     }
     maxdegreetally(mrecords* recin) : tally( recin, "Deltam", "Graph's maximum degree") {}
 };
+
+class randomtally : public tally {
+public:
+    int takemeas( neighborstype* ns, const params& ps ) {
+
+        // 1. Obtain a random seed from the hardware
+        std::random_device rd;
+
+        // 2. Initialize the standard Mersenne Twister engine with the seed
+        std::mt19937 gen(rd());
+
+        // 3. Define the inclusive range [min, max]
+        std::uniform_int_distribution<int> distr(0, ps[0].v.iv - 1);
+
+        // 4. Generate the random number
+        int random_num = distr(gen);
+        return random_num;
+    }
+    int takemeas( const int idx, const params& ps ) {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas( ns, ps );
+    }
+    randomtally(mrecords* recin) : tally( recin, "randomt", "Random integer r, 0 <= r < n")
+    {
+        valms p1;
+        p1.t = measuretype::mtdiscrete;
+        nps.push_back(std::pair{"n",p1});
+        bindnamedparams();
+    }
+};
+
 
 class legacygirthmeas : public meas {
     // "girth" is shortest cycle (Diestel p. 8)

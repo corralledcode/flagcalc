@@ -2546,6 +2546,7 @@ public:
         auto (connt) = tallyfactory<conntally>;
         auto (embedsinducedt) = tallyfactory<embedsinducedtally>;
         auto (embedst) = tallyfactory<embedstally>;
+        auto (randomt) = tallyfactory<randomtally>;
 
         tysfactory.push_back(ms2);
         tysfactory.push_back(ms3);
@@ -2573,6 +2574,7 @@ public:
         tysfactory.push_back(connt);
         tysfactory.push_back(embedsinducedt);
         tysfactory.push_back(embedst);
+        tysfactory.push_back(randomt);
 
         // ...
 
@@ -2613,6 +2615,7 @@ public:
 #ifdef FLAGCALC_CUDA
         auto (CUDAConncs) = setfactory<CUDAConnset>;
 #endif
+        auto (nWalksvs) = setfactory<nWalksvset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -2647,6 +2650,7 @@ public:
 #ifdef FLAGCALC_CUDA
         stsfactory.push_back(CUDAConncs);
 #endif
+        stsfactory.push_back(nWalksvs);
 
         for (int n = 0; n < stsfactory.size(); ++n) {
             sts.push_back((*stsfactory[n])(&rec));
@@ -4018,7 +4022,14 @@ public:
                     // double res = out.cast<double>();
                     // std::cout << " Hi : " << res << std::endl;
 
+                    /* if (PyGILState_Check()) {
+                        std::cout << "The current C++ thread holds the GIL." << std::endl;
+                    } else {
+                        std::cout << "The current C++ thread does NOT hold the GIL." << std::endl;
+                    }*/
+
                     py::gil_scoped_release release;
+
 
                 } catch (const py::error_already_set& e) {
                     std::cout << "Error with Python 'ipy' feature:" << e.what() << std::endl;

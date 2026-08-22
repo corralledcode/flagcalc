@@ -1,6 +1,6 @@
 mtbool Bipartiteviacycles
 
-FORALL (v1 IN V, FORALL (c IN Cyclesvs(v1), st(c) % 2 == 0))
+FORALL (c IN Cycless, st(c) % 2 == 0)
 
 END
 
@@ -211,6 +211,52 @@ NAMING (densityAB AS density(A,B), FORALL (X IN Ps(A), Y IN Ps(B), st(X) >= epsi
 
 END
 
+mtset crossproduct( mtset A, mtset B )
+
+SETD (a IN A, b IN B, <<a,b>>)
+
+END
+
+mtset selfpaired( mtset A )
+
+SET (a IN A, b IN A, a != b, {a,b})
+
+END
+
+
+/* Already coded natively as Mapss: */
+
+mtset Seqs( mtdiscrete n, mtset S )
+
+Choices( ncopies( n, S ) )
+
+END
+
+mttuple ncopies( mtdiscrete n, mtset S )
+
+TUPLE (i IN NN(n), S)
+
+END
+
+mtset nwalkss( mtdiscrete n )
+
+SETD (W IN Maps(n+1,V), FORALL (i IN n, ac(W[i],W[i+1])), W)
+
+END
+
+mtbool Eulertourc
+
+EXISTS (W IN nWalksvs( edgecm, 0, 0 ), FORALL (e IN E, EXISTS (n IN edgecm, e == {W[n],W[n+1]})) AND W[0] == W[edgecm])
+
+END
+
+mtbool Eulertourc2
+
+EXISTS (W IN nWalksvs( edgecm, 0, 0 ), st(SET (n IN edgecm, {W[n],W[n+1]})) == edgecm)
+
+END
+
 
 #include "../scripts/recursion.dat"
 #include "../scripts/planarity.dat"
+#include "../scripts/regular.dat"

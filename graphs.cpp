@@ -4750,6 +4750,49 @@ int cyclescount( graphtype* g, neighborstype* ns )
     return res;
 }
 
+void walksinternal( const graphtype* g, const neighborstype* ns, const int n, std::vector<vertextype>& walkvar,
+    const vertextype b, std::vector<std::vector<vertextype>>& out )
+{
+    if (n == 0) {
+        if (g->adjacencymatrix[b*g->dim + walkvar[walkvar.size()-1]])
+        {
+            auto walkvar2(walkvar);
+            walkvar2.push_back(b);
+            out.push_back(walkvar2);
+        }
+        return;
+    }
+
+    for (int c = 0; c < g->dim; ++c)
+    {
+        if (g->adjacencymatrix[c*g->dim + walkvar[walkvar.size()-1]])
+        {
+            auto walkvar2(walkvar);
+            walkvar2.push_back(c);
+            walksinternal( g, ns, n - 1, walkvar2, b, out);
+        }
+    }
+    return;
+}
+
+
+
+std::vector<std::vector<vertextype>> walks( const graphtype* g, const neighborstype* ns,
+    const int n, const vertextype a, const vertextype b )
+{
+    std::vector<std::vector<vertextype>> out {};
+    if (n > 0 && (n > 1 || a == b))
+    {
+        std::vector<vertextype> walkvar = {a};
+        if (n > 1)
+            walksinternal(g,ns,n-1,walkvar,b,out);
+        else
+            out.push_back(walkvar);
+    }
+    return out;
+}
+
+
 void verticesconnectedlist( const graphtype* g, const neighborstype* ns, vertextype* partitions, int* pindices  )
 {
     int lead = 0;

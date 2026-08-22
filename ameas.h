@@ -5,7 +5,7 @@
 #ifndef AMEAS_H
 #define AMEAS_H
 
-#define KNMAXCLIQUESIZE 12
+#define KNMAXCLIQUESIZE 15
 
 
 // #include "config.h"
@@ -1414,6 +1414,11 @@ inline py::list translatesetitrtopython( setitr* s ) {
 }
 
 inline py::object callpythonmethod( neighborstype* ns, const params& ps, const py::object& m, const namedparams& nps, const namedparams& ips, const std::string& methodname ) {
+    if (PyGILState_Check()) {
+        std::cout << "The current C++ thread holds the GIL." << std::endl;
+    } else {
+        std::cout << "The current C++ thread does NOT hold the GIL." << std::endl;
+    }
     py::gil_scoped_release release;
 
     auto dim = ns->dim;
@@ -2750,6 +2755,115 @@ public:
                 // delete v.seti;
     }
 };
+
+/* BELOW Seqset NOT TESTED AND DUPLICATED ALREADY BY Mapset */
+class Seqset : public set
+{
+public:
+
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        if (ps.size() == 2)
+        {
+            std::vector<valms> v {};
+            valms s = ps[1];
+            auto itr = s.seti->getitrpos(false);
+            while (!itr->ended())
+                itr->getnext();
+            for (auto i = 0; i < ps[0].v.iv; ++i)
+            {
+                valms scopy;
+                scopy.t = mtset;
+                scopy.seti = new setitrmodeone(s.seti->totality);
+                v.push_back(scopy);
+            }
+
+            delete itr;
+            auto sitr = new setitrmodeone(v);
+            auto res = new setitrchoicefunctions(sitr);
+            return res;
+        }
+        std::cout << "Error in Seqset::takemeas\n";
+        exit(1);
+        return nullptr;
+    }
+
+    Seqset( mrecords* recin ) : set(recin,"Seqs", "Set of n-length sequences on S")
+    {
+        valms v1 {};
+        v1.t = mtset;
+        nps.push_back(std::pair{"cnt",v1});
+        valms v2 {};
+        v2.t = mtset;
+        nps.push_back(std::pair{"set",v2});
+        bindnamedparams();
+    }
+    ~Seqset()
+    {
+        // if (res)
+            // for (auto v : res->totality)
+                // delete v.seti;
+    }
+};
+
+
+class nWalksvset : public set
+{
+public:
+
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        if (ps.size() == 3)
+        {
+            std::vector<std::vector<vertextype>> walksvar = walks( ns->g, ns, ps[0].v.iv, ps[1].v.iv, ps[2].v.iv );
+
+            std::vector<valms> walksv {};
+            for (auto w : walksvar)
+            {
+                std::vector<valms> res1 {};
+                std::vector<valms> wv;
+                valms v;
+                v.t = mtdiscrete;
+                for (auto u : w)
+                {
+                    v.v.iv = u;
+                    res1.push_back(v);
+                }
+                valms walkv;
+                walkv.t = mttuple;
+                walkv.seti = new setitrmodeone(res1);
+                walksv.push_back(walkv);
+            }
+            return new setitrmodeone(walksv);
+        }
+        std::cout << "Error in nWalksvset::takemeas\n";
+        exit(1);
+        return nullptr;
+    }
+
+    setitr* takemeas(const int idx, const params& ps ) override
+    {
+        auto ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    nWalksvset( mrecords* recin ) : set(recin,"nWalksvs", "Set of n-length walks starting at first vertex and ending at second")
+    {
+        valms v1 {};
+        v1.t = mtdiscrete;
+        nps.push_back(std::pair{"n",v1});
+        valms v2 {};
+        v2.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v2});
+        valms v3 {};
+        v3.t = mtdiscrete;
+        nps.push_back(std::pair{"v2",v3});
+        bindnamedparams();
+    }
+    ~nWalksvset() {}
+
+};
+
 
 /*
 class Permintset : public set
