@@ -41,8 +41,8 @@ $PTH/flagcalc -r 7 p=0.5 25000 -a s=conn1c all -f passed -v fp Fp fpnone rt crit
 $PTH/flagcalc -r 8 p=0.5 10000 -a s=conn1c all -f passed -v fp Fp fpnone rt crit min nofpseq
 
 # Eulerian graphs, max of 54 on 7 vertices
-$PTH/flagcalc -r 7 p=0.5 50000 -a s="FORALL (v IN V, vdt(v) % 2 == 0)" all -f passed -v fp Fp fpnone rt crit min nofpseq
-$PTH/flagcalc -r 7 p=0.1 20000 -r 7 p=0.5 20000 -r 7 p=0.9 20000 -a s="FORALL (v IN V, vdt(v) % 2 == 0)" all -f passed -v fp Fp fpnone rt crit min nofpseq
+$PTH/flagcalc -r 7 p=0.5 50000 -a s="conn1c AND FORALL (v IN V, vdt(v) % 2 == 0)" all -f passed -v fp Fp fpnone rt crit min nofpseq
+$PTH/flagcalc -r 7 p=0.1 20000 -r 7 p=0.5 20000 -r 7 p=0.9 20000 -a s="conn1c AND FORALL (v IN V, vdt(v) % 2 == 0)" all -f passed -v fp Fp fpnone rt crit min nofpseq
 
 # Connected Eulerian graphs, max of 184 on 8 vertices
 $PTH/flagcalc -r 8 p=0.5 50000 -a s1="FORALL (v IN V, vdt(v) % 2 == 0)" s2=conn1c all -f passed -v fp Fp fpnone rt crit min nofpseq
