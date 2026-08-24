@@ -79,6 +79,11 @@ find_package(Boost CONFIG REQUIRED COMPONENTS regex)
         #        cudameas.cu
 )
 
+if (MSVC)
+    target_compile_options(flagcalc PRIVATE /bigobj)
+    add_compile_definitions(MSVC)
+endif ()
+
 if (ENABLE_CUDA)
     set_source_files_properties(
         main.cpp

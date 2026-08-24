@@ -14,7 +14,12 @@
 //#define THREADPOOL2
 #define THREADED2
 #include <variant>
+#ifdef MSVC
+#include <execution>
+#include <algorithm>
+#else
 #include <pstl/execution_defs.h>
+#endif
 //#define NOTTHREADED2
 
 #ifdef THREADED1
