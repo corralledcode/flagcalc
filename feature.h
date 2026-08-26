@@ -2930,48 +2930,131 @@ public:
 
 };
 
-inline void readfromfile( std::string ifpath, std::string ifname, std::vector<std::string>& out )
+// inline void readfromfileandremovecomments(std::string ifpath, std::string ifname, std::vector<std::string>& out, std::vector<std::string>& pyinclude );
+
+// two Internet-sourced functions:
+inline std::string removeComments(const std::string& inputFilePath) {
+    std::ifstream inFile(inputFilePath, std::ios::binary);
+    if (!inFile.is_open()) {
+        std::cerr << "Error opening file: " << inputFilePath << std::endl;
+        return "";
+    }
+
+    std::ostringstream resultStream;
+    char current, next;
+    bool inString = false;
+    bool inSingleComment = false;
+    bool inMultiComment = false;
+
+    while (inFile.get(current)) {
+        if (inSingleComment) {
+            if (current == '\n' || current == '\r') {
+                inSingleComment = false;
+                resultStream.put(current);
+            }
+            continue;
+        }
+
+        if (inMultiComment) {
+            if (current == '*' && inFile.peek() == '/') {
+                inFile.get(next);
+                inMultiComment = false;
+            }
+            continue;
+        }
+
+        if (inString) {
+            if (current == '\\') {
+                resultStream.put(current);
+                if (inFile.get(next)) resultStream.put(next);
+                continue;
+            }
+            if (current == '"') {
+                inString = false;
+            }
+            resultStream.put(current);
+            continue;
+        }
+
+        if (current == '"') {
+            inString = true;
+            resultStream.put(current);
+        } else if (current == '/' && inFile.peek() == '/') {
+            inFile.get(next);
+            inSingleComment = true;
+        } else if (current == '/' && inFile.peek() == '*') {
+            inFile.get(next);
+            inMultiComment = true;
+        } else {
+            resultStream.put(current);
+        }
+    }
+
+    inFile.close();
+    return resultStream.str();
+}
+
+inline std::vector<std::string> splitIntoLines(const std::string& str) {
+    std::vector<std::string> lines;
+    std::stringstream ss(str);
+    std::string line;
+    while (std::getline(ss, line)) {
+        lines.push_back(line);
+    }
+    return lines;
+}
+
+inline void readfromfile( std::string ifpath, std::string ifname, std::vector<std::string>& out, std::vector<std::string>& pyinclude )
 {
     out.clear();
     ifname = ensure_path(ifname,ifpath);
-    std::cout << "Opening file " << ifname << "\n";
-    std::ifstream infile(ifname);
-    if (infile.good()) {
-        std::ifstream ifs;
-        ifs.open(ifname, std::fstream::in );
-        std::string dat = "";
-        std::string tmp {};
-        while (!ifs.eof()) {
-            ifs >> tmp;
-            bool changed = false;
-            if (tmp == "#include") {
-                ifs >> tmp;
-                if (tmp.size() >= 2 && ((tmp[0] == '\"' && tmp[tmp.size()-1] == '\"') || (tmp[0] == '<' && tmp[tmp.size()-1] == '>'))) {
-                    tmp = tmp.substr(1, tmp.size()-2);
-                }
-                std::vector<std::string> includedout {};
-                readfromfile(ifpath, tmp, includedout);
-                for (auto s : includedout) {
-                    out.push_back(s);
-                }
-                continue;
+    // std::cout << "Opening file " << ifname << "\n";
+    // auto lines = splitIntoLines(removeComments(ifname));
+    auto line = removeComments(ifname);
+    std::istringstream linestream(line);
+    std::string token;
+
+    // Extract whitespace-delimited chunks
+
+    std::string dat = "";
+    std::string tmp {};
+    while (linestream >> tmp) {
+        bool changed = false;
+        if (tmp == "#include") {
+            linestream >> tmp;
+            if (tmp.size() >= 2 && ((tmp[0] == '\"' && tmp[tmp.size()-1] == '\"') || (tmp[0] == '<' && tmp[tmp.size()-1] == '>'))) {
+                tmp = tmp.substr(1, tmp.size()-2);
             }
-            while (!ifs.eof() && tmp != "END" && tmp != "###")
-            {
-                dat += " " + tmp + " ";
-                ifs >> tmp;
-                changed = true;
+            std::vector<std::string> includedout {};
+            readfromfile(ifpath, tmp, includedout, pyinclude);
+            for (auto s : includedout) {
+                out.push_back(s);
             }
-            if (changed)
-                out.push_back(dat);
-            dat = "";
+            continue;
         }
-        ifs.close();
-    } else {
-        std::cout << "Couldn't open file for reading " << ifname << "\n";
+        if (tmp == "#pyinclude") {
+            linestream >> tmp;
+            if (tmp.size() >= 2 && ((tmp[0] == '\"' && tmp[tmp.size()-1] == '\"') || (tmp[0] == '<' && tmp[tmp.size()-1] == '>'))) {
+                tmp = tmp.substr(1, tmp.size()-2);
+            }
+            pyinclude.push_back(tmp);
+            continue;
+        }
+
+        if (tmp != "END" && tmp != "###")
+        {
+            dat += " " + tmp + " ";
+            changed = true;
+            while (linestream >> tmp && tmp != "END" && tmp != "###")
+                dat += " " + tmp + " ";
+        }
+        if (changed)
+            out.push_back(dat);
+        dat = "";
     }
 }
 
+    /*
 inline void removecomments( std::vector<std::string> streamstr, std::vector<std::string>& streamout )
 {
     bool incomment = false;
@@ -3049,16 +3132,16 @@ inline void removecomments( std::vector<std::string> streamstr, std::vector<std:
     }
 
 }
+*/
 
-
-
-inline void readfromfileandremovecomments(std::string ifpath, std::string ifname, std::vector<std::string>& out )
+/*
+inline void readfromfileandremovecomments(std::string ifpath, std::string ifname, std::vector<std::string>& out, std::vector<std::string>& pyinclude )
 {
     std::vector<std::string> streamstr;
-    readfromfile(ifpath, ifname, streamstr);
+    readfromfile(ifpath, ifname, streamstr, pyinclude);
     removecomments(streamstr, out);
 }
-
+*/
 
 
 struct compactcmdline
@@ -3908,6 +3991,136 @@ public:
             gms[n]->listmeasure(_os);
     }
 
+    void addpythonfiles(std::vector<std::string>& pythonfilenames)
+    {
+        if (pythonfilenames.empty())
+            return;
+        auto pythonaddonpath = globalcfg->config[CONFIG_PATHTOPYTHONADDONS];
+
+        setthread_count( 1 );
+
+        // py::scoped_interpreter guard{}; // won't outlast the scope
+
+
+        for (auto filename : pythonfilenames)
+        {
+            try {
+                // Note not usins ensure_path here: ipy=filename by design has no path, other than that in flagcalc.cfg, default ../python
+                if (!is_pyinterpreterstarted)
+                    py::initialize_interpreter();
+                is_pyinterpreterstarted = true;
+                py::module_ sys = py::module_::import("sys");
+                if (pythonaddonpath != "")
+                    sys.attr("path").attr("append")(pythonaddonpath);
+                else
+                    sys.attr("path").attr("append")("../python");
+
+
+                auto pymodule = py::module_::import(filename.c_str());
+
+                /*
+                if (pythonaddonpath != "")
+                    std::cout << "Opening Python file " << pythonaddonpath << "/" << filename << ".py...\n";
+                else
+                    std::cout << "Opening Python file " << "../python/" << filename << ".py...\n";
+                */
+
+                py::list method_list = py::cast<py::list>(py::eval("dir()", pymodule.attr("__dict__")));
+
+                std::vector<std::string> methods = py::cast<std::vector<std::string>>(method_list);
+
+                for (auto d : method_list) {
+
+                    std::regex pattern(R"(__\w+__)");
+                    std::smatch matches;
+
+                    std::string s = py::str(d);
+                    std::regex_search(s, matches, pattern);
+                    if (matches.size() > 0)
+                        continue;
+                    if (py::isinstance<py::module_>(d))
+                        continue; // not working...
+
+                    // std::cout << " - " << std::string(py::str(d)) << "(";
+
+                    try {
+                        py::function callback_ = pymodule.attr(py::str(d));
+                        py::module_ inspect_module = py::module::import("inspect");
+                        py::object signature_obj = inspect_module.attr("signature")(callback_);
+                        py::object parameters_dict = signature_obj.attr("parameters");
+                        // Get the length of the parameters dictionary
+                        auto num_params = py::len(parameters_dict); // num_params is a Py_ssize_t/long
+
+                        pythonmethodstruct pym;
+
+                        pym.name = py::str(d);
+                        pym.m = pymodule;
+                        pym.filename = filename;
+                        // pym.a.t = mtcontinuous;
+                        pym.a.t = mtuncast;
+                        namedparams nps {};
+                        namedparams ips {};
+
+                        // std::cout << "The Python function has " << num_params << " arguments: ";
+                        int i = 0;
+                        int specialargumentcount = 0;
+                        valms u;
+                        u.t = mtuncast;
+                        for (auto v : parameters_dict) {
+                            std::string s = py::str(v);
+                            // std::cout << s << ",";
+                            if (s == "adjmatrix" || s == "dim"
+                                || s == "Edges" || s == "Nonedges"
+                                || s == "Neighborslist" || s == "Nonneighborslist"
+                                || s == "degrees"
+                                || s == "maxdegree") {
+                                valms w;
+                                if (s == "dim" || s == "maxdegree")
+                                    w.t = mtdiscrete;
+                                else if (s == "Neighborslist" || s == "Nonneighborslist"
+                                    || s == "degrees")
+                                    w.t = mttuple;
+                                else
+                                    w.t = mtset;
+                                ++specialargumentcount;
+                                ips.push_back({s,w});
+                                }
+                            if (i >= specialargumentcount)
+                                nps.push_back({s,u});
+                            i++;
+                        }
+                        // std::cout << "\b)\n";
+
+                        pym.nps = nps;
+                        pym.ips = ips;
+                        pym.iidx = -1;
+                        pythonmethods.push_back(pym);
+
+                    } catch ( std::exception& e) { // need to figure out how simply to test for being a function or not
+                        // also need to replace with the specific exception thrown
+                        // std::cout << "\b: Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
+                    }
+                }
+                // py::object out = pymodule.attr("pytest")(3);
+                // double res = out.cast<double>();
+                // std::cout << " Hi : " << res << std::endl;
+
+                /* if (PyGILState_Check()) {
+                    std::cout << "The current C++ thread holds the GIL." << std::endl;
+                } else {
+                    std::cout << "The current C++ thread does NOT hold the GIL." << std::endl;
+                }*/
+
+                py::gil_scoped_release release;
+
+            } catch (const py::error_already_set& e) {
+                std::cout << "Error with Python 'ipy' feature:" << e.what() << std::endl;
+                exit(1);
+            }
+        }
+
+    }
+
     void execute(std::vector<std::string> args) override
     {
         std::vector<int> items {}; // a list of indices within workspace of the graph items to FP and sort
@@ -3934,6 +4147,7 @@ public:
         std::vector<FP*> fpsc {};
         std::vector<int> dimsc {};
         std::vector<neighbors*> nssc {};
+        std::vector<std::string> pythonfilenames {};
 
 
         for (int i = 0; i < parsedargs.size(); ++i) {
@@ -3972,7 +4186,7 @@ public:
             {
                 int n = stoi(parsedargs[i].second);
                 setthread_count( n < std::thread::hardware_concurrency() ? n : std::thread::hardware_concurrency() );
-                std::cout << "Criterion thread count: " << thread_count << "\n";
+                // std::cout << "Criterion thread count: " << thread_count << "\n";
             }
             if (ccl.t == "s")
             {
@@ -4080,162 +4294,50 @@ public:
                 continue;
             }
 
-            if (ccl.t == "isp") // Stored procedures from a file
+            if (ccl.t == "isp" || ccl.t == "ipy")
             {
-                std::vector<std::string> filedata;
-                readfromfileandremovecomments(globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata );
-
-                std::vector<std::vector<std::string>> tmp {};
-                for (auto d : filedata)
+                if (ccl.t == "isp") // Stored procedures from a file
                 {
-                    std::vector<std::string> tmp2;
-                    tmp2.clear();
-                    tmp2.push_back(d);
-                    tmp.push_back(tmp2);
+                    std::vector<std::string> filedata;
+                    readfromfile(globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata, pythonfilenames );
+
+                    std::vector<std::vector<std::string>> tmp {};
+                    for (auto d : filedata)
+                    {
+                        std::vector<std::string> tmp2;
+                        tmp2.clear();
+                        tmp2.push_back(d);
+                        tmp.push_back(tmp2);
+                    }
+
+                    for (auto t : tmp)
+                        for (auto s : t)
+                            addstoredproc(s);
+
+                    // for (auto t : tmp) {
+                    //    for (auto s : t)
+                    //        std::cout << s << ", ";
+                    //    std::cout << std::endl;
+                    // }
+                    // std::cout << std::endl;
+
+                    //                exit(1);
+
+
+                } else // if ccl.t == "ipy"
+                {
+#ifdef FLAGCALCWITHPYTHON
+                    if (ccl.t == "ipy") // Python methods from a file
+                    {
+                        pythonfilenames.push_back(parsedargs[i].second);
+                    }
                 }
-
-                for (auto t : tmp)
-                    for (auto s : t)
-                        addstoredproc(s);
-
-                // for (auto t : tmp) {
-                //    for (auto s : t)
-                //        std::cout << s << ", ";
-                //    std::cout << std::endl;
-                // }
-                // std::cout << std::endl;
-
-//                exit(1);
-
-
+                if (!pythonfilenames.empty())
+                    addpythonfiles(pythonfilenames); // note: may want to account for other options that add to pythonfiles
+                pythonfilenames.clear();
                 continue;
             }
 
-#ifdef FLAGCALCWITHPYTHON
-            if (ccl.t == "ipy") // Python methods from a file
-            {
-                auto pythonaddonpath = globalcfg->config[CONFIG_PATHTOPYTHONADDONS];
-                std::string filename = parsedargs[i].second;
-
-                setthread_count( 1 );
-
-                // py::scoped_interpreter guard{}; // won't outlast the scope
-
-
-                try {
-
-                    if (!is_pyinterpreterstarted)
-                        py::initialize_interpreter();
-                    is_pyinterpreterstarted = true;
-                    py::module_ sys = py::module_::import("sys");
-                    if (pythonaddonpath != "")
-                        sys.attr("path").attr("append")(pythonaddonpath);
-                    else
-                        sys.attr("path").attr("append")("../python");
-
-
-                    auto pymodule = py::module_::import(filename.c_str());
-
-                    if (pythonaddonpath != "")
-                        std::cout << "Opening Python file " << pythonaddonpath << "/" << filename << "...\n";
-                    else
-                        std::cout << "Opening Python file " << "../python/" << filename << "...\n";
-
-                    py::list method_list = py::cast<py::list>(py::eval("dir()", pymodule.attr("__dict__")));
-
-                    std::vector<std::string> methods = py::cast<std::vector<std::string>>(method_list);
-
-                    for (auto d : method_list) {
-
-                        std::regex pattern(R"(__\w+__)");
-                        std::smatch matches;
-
-                        std::string s = py::str(d);
-                        std::regex_search(s, matches, pattern);
-                        if (matches.size() > 0)
-                            continue;
-                        if (py::isinstance<py::module_>(d))
-                            continue; // not working...
-
-                        // std::cout << " - " << std::string(py::str(d)) << "(";
-
-                        try {
-                            py::function callback_ = pymodule.attr(py::str(d));
-                            py::module_ inspect_module = py::module::import("inspect");
-                            py::object signature_obj = inspect_module.attr("signature")(callback_);
-                            py::object parameters_dict = signature_obj.attr("parameters");
-                            // Get the length of the parameters dictionary
-                            auto num_params = py::len(parameters_dict); // num_params is a Py_ssize_t/long
-
-                            pythonmethodstruct pym;
-
-                            pym.name = py::str(d);
-                            pym.m = pymodule;
-                            pym.filename = filename;
-                            // pym.a.t = mtcontinuous;
-                            pym.a.t = mtuncast;
-                            namedparams nps {};
-                            namedparams ips {};
-
-                            // std::cout << "The Python function has " << num_params << " arguments: ";
-                            int i = 0;
-                            int specialargumentcount = 0;
-                            valms u;
-                            u.t = mtuncast;
-                            for (auto v : parameters_dict) {
-                                std::string s = py::str(v);
-                                // std::cout << s << ",";
-                                if (s == "adjmatrix" || s == "dim"
-                                    || s == "Edges" || s == "Nonedges"
-                                    || s == "Neighborslist" || s == "Nonneighborslist"
-                                    || s == "degrees"
-                                    || s == "maxdegree") {
-                                    valms w;
-                                    if (s == "dim" || s == "maxdegree")
-                                        w.t = mtdiscrete;
-                                    else if (s == "Neighborslist" || s == "Nonneighborslist"
-                                        || s == "degrees")
-                                        w.t = mttuple;
-                                    else
-                                        w.t = mtset;
-                                    ++specialargumentcount;
-                                    ips.push_back({s,w});
-                                }
-                                if (i >= specialargumentcount)
-                                    nps.push_back({s,u});
-                                i++;
-                            }
-                            // std::cout << "\b)\n";
-
-                            pym.nps = nps;
-                            pym.ips = ips;
-                            pym.iidx = -1;
-                            pythonmethods.push_back(pym);
-
-                        } catch ( std::exception& e) { // need to figure out how simply to test for being a function or not
-                            // also need to replace with the specific exception thrown
-                            // std::cout << "\b: Ignoring " << py::str(d) << " (probably a module or otherwise not a function in Python)\n";
-                        }
-                    }
-                    // py::object out = pymodule.attr("pytest")(3);
-                    // double res = out.cast<double>();
-                    // std::cout << " Hi : " << res << std::endl;
-
-                    /* if (PyGILState_Check()) {
-                        std::cout << "The current C++ thread holds the GIL." << std::endl;
-                    } else {
-                        std::cout << "The current C++ thread does NOT hold the GIL." << std::endl;
-                    }*/
-
-                    py::gil_scoped_release release;
-
-                } catch (const py::error_already_set& e) {
-                    std::cout << "Error with Python 'ipy' feature:" << e.what() << std::endl;
-                    exit(1);
-                }
-
-
-            }
 
 #endif
 
@@ -4525,7 +4627,7 @@ public:
 
                 std::vector<std::string> filedata;
 
-                readfromfile( globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
+                readfromfile( globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata, pythonfilenames);
 
                 for (auto q : filedata)
                 {
@@ -4560,7 +4662,7 @@ public:
 
                 std::vector<std::string> filedata;
 
-                readfromfile( globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
+                readfromfile( globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata, pythonfilenames);
 
                 for (auto q : filedata)
                 {
@@ -4590,7 +4692,7 @@ public:
             {
 
                 std::vector<std::string> filedata;
-                readfromfile(globalcfg->config[CONFIG_PATHTOGRAPHS], parsedargs[i].second, filedata );
+                readfromfile(globalcfg->config[CONFIG_PATHTOGRAPHS], parsedargs[i].second, filedata, pythonfilenames );
 
                 std::vector<std::vector<std::string>> tmp {};
                 for (auto d : filedata)

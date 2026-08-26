@@ -2,10 +2,9 @@
 # (flagcalc is hosted at Github: https://github.com/corralledcode/flagcalc)
 # The convention is that a minimum of two parameters are required:
 # adjmatrix and dim: adjmatrix is indexed as in [row*dim + col]
-# Moreover, the default return type is only double precision float
-# there is no support for deliberately returning an integer
-# or sets, tuples, graphs, strings, etc., at this time
-# Moreover, since the GIL is in effect in Python 3,
+# The default return type is double precision float
+# and see below for examples of returning a set.
+# Since the GIL is in effect in Python 3,
 # these only work when flagcalc is not threading over several graphs at
 # one time. Moreover, the additional parameters in user-defined methods
 # are either integers or double-precision floats
