@@ -146,7 +146,7 @@ $PTH/flagcalc -r 10 p=0.3 5 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")
 
 # should be partly true partly false (testing adjacent queries for run times)
 $PTH/flagcalc -r 8 p=0.5 150 -a s="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" all -g o=out.dat overwrite all -v i=minimal3.cfg
-$PTH/flagcalc -d out.dat -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/out.dat -a s="hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\")" all -v i=minimal3.cfg
 
 # -d out.dat -a s1="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" s="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" s="NOT (hastopologicalminorc(\"abcde\") OR hastopologicalminorc(\"abc=def\"))" all -v i=minimal3.cfg
 # -d f="ab ac ad ae af be bg cf cg df dg ef fg" -a s1="hasminorc(\"abcde\") OR hasminorc(\"abc=def\")" s="NOT (hastopologicalminorc4(\"abcde\") OR hastopologicalminorc4(\"abc=def\"))" s="NOT (hastopologicalminorc(\"abcde\") OR hastopologicalminorc(\"abc=def\"))" all -v i=minimal3.cfg

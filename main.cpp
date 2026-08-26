@@ -21,6 +21,10 @@ int main(int argc, char* argv[]) {
 
     workspace* ws = new workspace();
 
+    auto cfg = new configfeature(&std::cin,&std::cout,ws);
+    globalcfg = cfg; // global pointer declared in feature.h
+    globalcfg->execute({});
+
     auto gj = new threadsfeature(&std::cin,&std::cout,ws);
     auto ug = new userguidefeature(&std::cin, &std::cout,ws);
     auto rg = new readgraphsfeature(&std::cin, &std::cout,ws);
@@ -43,6 +47,7 @@ int main(int argc, char* argv[]) {
 
 
     std::vector<feature*> featureslist {};
+    featureslist.push_back(cfg);
     featureslist.push_back(gj);
     featureslist.push_back(ug);
     featureslist.push_back(rg);

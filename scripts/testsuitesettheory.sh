@@ -191,13 +191,13 @@ $PTH/flagcalc -r 8 14 100 -g o=out.dat all overwrite -v i=minimal3.cfg
 
 # Now for the next three queries we use that same set of 100 (useful if you want honest numbers, not due to random
 # differences of which graphs were chosen, especially with say 10 instead of 100)
-$PTH/flagcalc -d out.dat -a e="BIGCUPD (v IN V, Cyclesvs(v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d graphout/out.dat -a e="BIGCUPD (v IN V, Cyclesvs(v))" all -v set i=minimal3.cfg
 
 # Wildly slower, but the same output
-$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN V, Cyclesvs(v))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d graphout/out.dat -a e="BIGCUP (v IN V, Cyclesvs(v))" all -v set i=minimal3.cfg
 
 # This is a bit different, and quite verbose (due to "allsets")
-$PTH/flagcalc -d out.dat -a e="BIGCUP (v IN V, BIGCUP (c IN Cyclesvs(v), TupletoSet(c)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d graphout/out.dat -a e="BIGCUP (v IN V, BIGCUP (c IN Cyclesvs(v), TupletoSet(c)))" all -v set allsets i=minimal3.cfg
 
 # This repackages every vertices' set of cycles around it, into sets rather than tuples, and omitting the "D" it has the effect
 # of forgetting the order of the vertices in the cycle. So in a K_4, for example, -abdca is equal to -adbca
@@ -377,22 +377,22 @@ $PTH/flagcalc -r 5 5 300 -a s="FORALL (k IN dimm, FORALL (v1 IN V, FORALL (v2 IN
 
 # Diestel Theorem 3.3.1 (Menger 1927)
 
-$PTH/flagcalc -r 5 5 50 -a isp="../scripts/storedprocedures.dat" s="FORALL (A IN Ps(V), FORALL  (B IN Ps(V), MIN (X IN Ps(V), Separatesc(A,B,X), st(X)) == DisjointABpaths( A, B ) ))" all -v i=minimal3.cfg
-$PTH/flagcalc -r 5 5 50 -a isp="../scripts/storedprocedures.dat" s="FORALL (A IN Ps(V), FORALL  (B IN Ps(V), MinXSeparates(A,B) == DisjointABpaths( A, B ) ))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 50 -a isp="storedprocedures.dat" s="FORALL (A IN Ps(V), FORALL  (B IN Ps(V), MIN (X IN Ps(V), Separatesc(A,B,X), st(X)) == DisjointABpaths( A, B ) ))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 5 5 50 -a isp="storedprocedures.dat" s="FORALL (A IN Ps(V), FORALL  (B IN Ps(V), MinXSeparates(A,B) == DisjointABpaths( A, B ) ))" all -v i=minimal3.cfg
 
 
 # Diestel Theorem 7.4.1 (Regularity lemma), specifically "admits an epsilon-regular partition with partition size k <= M"
 
-# $PTH/flagcalc -r 7 10.5 10 -r 8 14 10 -r 9 18 10 -r 10 22.5 10 -a isp="../scripts/storedprocedures.dat" s="NAMING (eps AS 0.2, NAMING (m AS 3, NAMING (M AS 10, EXISTS (vp IN Setpartition(V), st(vp) > m AND st(vp)-1 <= M AND st(vp[0]) <= eps*dimm AND FORALL (i IN st(vp) - 2, st(vp[i+2]) == st(vp[1]) AND FORALLN (eps*((st(vp)-1)^2)+1, i IN st(vp) - 1, j IN st(vp) - 1, i < j, epsilonregular(eps, vp[i+1],vp[j+1])))))))" all -v i=minimal3.cfg
+# $PTH/flagcalc -r 7 10.5 10 -r 8 14 10 -r 9 18 10 -r 10 22.5 10 -a isp="storedprocedures.dat" s="NAMING (eps AS 0.2, NAMING (m AS 3, NAMING (M AS 10, EXISTS (vp IN Setpartition(V), st(vp) > m AND st(vp)-1 <= M AND st(vp[0]) <= eps*dimm AND FORALL (i IN st(vp) - 2, st(vp[i+2]) == st(vp[1]) AND FORALLN (eps*((st(vp)-1)^2)+1, i IN st(vp) - 1, j IN st(vp) - 1, i < j, epsilonregular(eps, vp[i+1],vp[j+1])))))))" all -v i=minimal3.cfg
 
 
 # Diestel Exercise 1.7 (p 10)
 
-$PTH/flagcalc -r 8 14 1000 -a isp="../scripts/storedprocedures.dat" s="n_0(deltam, girthm) <= dimm" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 1000 -a isp="storedprocedures.dat" s="n_0(deltam, girthm) <= dimm" all -v i=minimal3.cfg
 
 # Diestel Theorem 1.3.4 (Alon et al 2002)
 
-$PTH/flagcalc -r 8 14 100 -a isp="../scripts/storedprocedures.dat" s="NOT isinf(girthm)" s2="FORALL (d IN dm + 1, d >= 2, FORALL (g IN girthm, n_0(d,g) <= dimm ))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 100 -a isp="storedprocedures.dat" s="NOT isinf(girthm)" s2="FORALL (d IN dm + 1, d >= 2, FORALL (g IN girthm, n_0(d,g) <= dimm ))" all -v i=minimal3.cfg
 
 # Diestel Prop 1.4.2 (p. 12)
 
@@ -427,8 +427,8 @@ $PTH/flagcalc -r 10 10 1 -a e="Componentss(Gg(\"abc de fgh ijkl\"))" all -v set 
 
 # Diestel Theorem 3.4.1 (Mader 1978)
 
-# $PTH/flagcalc -r 6 7.5 10 -a isp="../scripts/storedprocedures.dat" a="MAX (H IN Ps(V), M_H(H))" all -v i=minimal3.cfg
-# $PTH/flagcalc -r 6 7.5 10 -a isp="../scripts/storedprocedures.dat" s="\
+# $PTH/flagcalc -r 6 7.5 10 -a isp="storedprocedures.dat" a="MAX (H IN Ps(V), M_H(H))" all -v i=minimal3.cfg
+# $PTH/flagcalc -r 6 7.5 10 -a isp="storedprocedures.dat" s="\
 # FORALL (H IN Ps(V), NAMING (MHH AS M_H(H), NAMING (VminusH AS V SETMINUS H, EXISTS (p IN Setpartition(VminusH), st(p) >= MHH, \
 #  FORALL (s IN p, EXISTS (v1 IN H, EXISTS (v2 IN H, v1 != v2, NAMING (v1v2 AS Pathss(v1,v2), EXISTS (path IN v1v2, path <= (s CUPD {v1,v2}) ))))) ))))" all -v i=minimal3.cfg
 

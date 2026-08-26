@@ -18,7 +18,7 @@ $PTH/flagcalc -r 12 30 100 -g o=out4.dat overwrite all -v i=minimal3.cfg
 
 # read back in what was just output, then test for the graph being 1-connected, and among those that pass, test
 # for it being a forest that is not a tree (i.e. should return 0 out of however many passed the first test
-$PTH/flagcalc -d out4.dat -a s="conn1c" s2="forestc AND NOT treec" all -g o=out5.dat passed overwrite -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/out4.dat -a s="conn1c" s2="forestc AND NOT treec" all -g o=out5.dat passed overwrite -v i=minimal3.cfg
 
 # read in from the three files stated, and fingerprint and output isomorphism classes
 # result should be: GRAPH3 < GRAPH1 < GRAPH1 == GRAPH0 < GRAPH3 == GRAPH2, and 12,8,32,2 automorphism counts
@@ -42,17 +42,17 @@ $PTH/flagcalc -r 10 15 20000 -a s="Deltam > 2" s2="dimm < Deltam/(Deltam-2) * (D
 
 # This starts with the output of the previous query, then loads embeddings.dat and for those that
 # do NOT embed a 3-cycle, a 4-cycle, or a 5-cycle, it checkes their girth and circumference. No real point, just a random query
-$PTH/flagcalc -d out6.dat -a nf="embeddings.dat" m2=girthm m2=circm all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/out6.dat -a nf="embeddings.dat" m2=girthm m2=circm all -v i=minimal3.cfg
 
 # Diestel p. 9
-$PTH/flagcalc -d out6.dat -a is="sentence.dat" s2="radiusm <= diamm AND diamm <= 2*radiusm" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/out6.dat -a is="sentence.dat" s2="radiusm <= diamm AND diamm <= 2*radiusm" all -v i=minimal3.cfg
 
 # This runs three measures (the three found in sentence.dat) against the contents of out4.dat populated by an above query
 # If any are trees, it checks if their diameter is greater than 2. No real point, just a random query
-$PTH/flagcalc -d out4.dat -a ia="sentence.dat" s2="diamc(2)" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/out4.dat -a ia="sentence.dat" s2="diamc(2)" all -v i=minimal3.cfg
 
 # This should return all true, since it feeds cliquem right back into Knc
-$PTH/flagcalc -d out4.dat -a s="Knc(cliquem,1)" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/out4.dat -a s="Knc(cliquem,1)" all -v i=minimal3.cfg
 
 # This is also rather meaningless: the first criterion is that the graph have finite radius (i.e. it be 1-connected)
 # the second criterion asks if it has less than radiusm many connected components:

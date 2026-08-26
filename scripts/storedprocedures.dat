@@ -246,7 +246,7 @@ END
 
 mtbool Eulertourc
 
-EXISTS (W IN nWalksvs( edgecm, 0, 0 ), FORALL (e IN E, EXISTS (n IN edgecm, e == {W[n],W[n+1]})) AND W[0] == W[edgecm])
+EXISTS (W IN nWalksvs( edgecm, 0, 0 ), FORALL (e IN E, EXISTS (n IN edgecm, e == {W[n],W[n+1]})))
 
 END
 
@@ -257,6 +257,6 @@ EXISTS (W IN nWalksvs( edgecm, 0, 0 ), st(SET (n IN edgecm, {W[n],W[n+1]})) == e
 END
 
 
-#include "../scripts/recursion.dat"
-#include "../scripts/planarity.dat"
-#include "../scripts/regular.dat"
+#include "recursion.dat"
+#include "planarity.dat"
+#include "regular.dat"

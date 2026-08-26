@@ -1,0 +1,30 @@
+
+
+mtbool regularofdegree( mtdiscrete d )
+
+FORALL (v IN V, vdt(v) == d)
+
+END
+
+mtbool regular
+
+dimm > 0 AND regularofdegree( vdt(0) )
+
+END
+
+mtbool stronglyregularofparams( mtdiscrete v, mtdiscrete k, mtdiscrete lambda, mtdiscrete mu )
+
+dimm == v AND regularofdegree(k) AND FORALL (v1 IN V, v2 IN V, v1 < v2,
+    NAMING (s AS st(as(v1) CAP as(v2)), (s == lambda AND ac(v1,v2)) OR (s == mu AND NOT ac(v1,v2))))
+
+END
+
+mtbool stronglyregular
+
+dimm >= 2 AND regular AND
+    NAMING (lambda AS ANY (v1 IN V, v2 IN V, v1 < v2 AND ac(v1,v2), st(as(v1) CAP as(v2))),
+    NAMING (mu AS ANY (v1 IN V, v2 IN V, v1 < v2 AND NOT ac(v1,v2), st(as(v1) CAP as(v2))),
+    FORALL (v1 IN V, v2 IN V, v1 < v2,
+        NAMING (s AS st(as(v1) CAP as(v2)), (s == lambda AND ac(v1,v2)) OR (s == mu AND NOT ac(v1,v2))))))
+
+END

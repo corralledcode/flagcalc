@@ -4,8 +4,12 @@
 
 #ifndef FEATURE_H
 #define FEATURE_H
+#include <filesystem>
 
 // #include "config.h"
+
+class configfeature;
+inline configfeature* globalcfg;
 
 #ifdef FLAGCALC_CUDA
 #include "cudameas.cu"
@@ -65,6 +69,8 @@
 // as it stands, using the entirelinedelimiter comments until the END line is reached
 
 #define QUICKSORTTHREADED_THRESHOLD 10000
+
+#define CONFIG_FILENAME "flagcalc.cfg"
 
 
 class feature {
@@ -275,6 +281,131 @@ public:
         }
     };
     userguidefeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
+
+};
+
+inline void trim(std::string& str) {
+    // Find the first non-whitespace character from the beginning
+    auto first = std::find_if_not(str.begin(), str.end(), ::isspace);
+    str.erase(str.begin(), first); // Erase leading whitespace
+
+    // Find the first non-whitespace character from the end (use rbegin/rend)
+    auto last = std::find_if_not(str.rbegin(), str.rend(), ::isspace);
+    str.erase(last.base(), str.end()); // Erase trailing whitespace
+}
+
+namespace fs = std::filesystem;
+
+inline fs::path ensure_path(const fs::path& file_path, const fs::path& default_dir) {
+    // Check if the path has a parent/directory component
+    if (!file_path.has_relative_path() || file_path.filename() == file_path) {
+        // If it's just a filename, combine it with the default directory
+        return default_dir / file_path;
+    }
+    // Otherwise, return the original path
+    return file_path;
+}
+
+
+class configfeature : public feature {
+public:
+    std::map<std::string,std::string> config {};
+    std::string cmdlineoption() override {return "P";};
+    std::string cmdlineoptionlong() { return "config";};
+    void listoptions() override {
+        feature::listoptions();
+        *_os << "\t\ti=<filename>" << " \t\t config file name\n";
+        *_os << "\t\tgp=<filename>" << " \t\t path to graphs\n";
+        *_os << "\t\th=<filename>" << " \t\t header file\n";
+        *_os << "\t\tspp=<filename>" << " \t\t path to stored procedures\n";
+        *_os << "\t\tpp=<filename>" << " \t\t path to Python add-ons\n";
+    }
+    virtual void execute(std::vector<std::string> args) {
+        feature::execute(args);
+        std::vector<std::pair<std::string,std::string>> cmdlineoptions = cmdlineparseiterationtwo(args);
+        std::string configfilename = CONFIG_FILENAME;
+        for (int n = 0; n < cmdlineoptions.size(); ++n) {
+            if (cmdlineoptions[n].first == "i") {
+                std::string configfilename = cmdlineoptions[n].second;
+            }
+        }
+
+        #define CONFIG_FLAGCALCEXECUTABLEPATH "FLAGCALCEXECUTABLEPATH"
+        #define CONFIG_FLAGCALCEXECUTABLENAME "FLAGCALCEXECUTABLENAME"
+        #define CONFIG_FLAGCALCHEADERFILE "FLAGCALCHEADERFILE"
+        #define CONFIG_FLAGCALCINVOKE "FLAGCALCINVOKE"
+        #define CONFIG_FLAGCALCPATHTOGRAPHS"FLAGCALCPATHTOGRAPHS"
+        #define CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES "FLAGCALCPATHTOSTOREDPROCEDURES"
+        #define CONFIG_FLAGCALCPATHTOPYTHONADDONS "FLAGCALCPATHTOPYTHONADDONS"
+        #define CONFIG_FLAGCALCPATHTOGRAPHOUT "FLAGCALCPATHTOGRAPHOUT"
+
+        config.clear();
+        config.insert({CONFIG_FLAGCALCEXECUTABLEPATH,"."});
+        config.insert({CONFIG_FLAGCALCEXECUTABLENAME,"flagcalc"});
+        config.insert({CONFIG_FLAGCALCHEADERFILE,""});
+        config.insert({CONFIG_FLAGCALCINVOKE,""});
+        config.insert({CONFIG_FLAGCALCPATHTOGRAPHS,"./testgraph"});
+        config.insert({CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES,"./scripts"});
+        config.insert({CONFIG_FLAGCALCPATHTOPYTHONADDONS,"./python"});
+        config.insert({CONFIG_FLAGCALCPATHTOGRAPHOUT,"./graphout"});
+
+        std::ifstream configFile(configfilename);
+        if (configFile.is_open()) {
+            std::string line {};
+            while (std::getline(configFile, line)) {
+                size_t pos = line.find("=");
+                if (pos != std::string::npos) {
+                    auto left = line.substr(0,pos);
+                    trim(left);
+                    auto right = line.substr(pos+1);
+                    trim(right);
+                    if (left == CONFIG_FLAGCALCEXECUTABLEPATH) {
+                        config[CONFIG_FLAGCALCEXECUTABLEPATH] = right;
+                    }
+                    if (left == CONFIG_FLAGCALCEXECUTABLENAME) {
+                        config[CONFIG_FLAGCALCEXECUTABLENAME] = right;
+                    }
+                    if (left == CONFIG_FLAGCALCHEADERFILE) {
+                        config[CONFIG_FLAGCALCHEADERFILE] = right;
+                    }
+                    if (left == CONFIG_FLAGCALCINVOKE) {
+                        config[CONFIG_FLAGCALCINVOKE] = right;
+                    }
+                    if (left == CONFIG_FLAGCALCPATHTOGRAPHS) {
+                        config[CONFIG_FLAGCALCPATHTOGRAPHS] = right;
+                    }
+                    if (left == CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES) {
+                        config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES] = right;
+                    }
+                    if (left == CONFIG_FLAGCALCPATHTOPYTHONADDONS) {
+                        config[CONFIG_FLAGCALCPATHTOPYTHONADDONS] = right;
+                    }
+                    if (left == CONFIG_FLAGCALCPATHTOGRAPHOUT) {
+                        config[CONFIG_FLAGCALCPATHTOGRAPHOUT] = right;
+                    }
+                }
+            }
+            configFile.close();
+        }
+
+        for (int n = 0; n < cmdlineoptions.size(); ++n) {
+            if (cmdlineoptions[n].first == "gp") {
+                config[CONFIG_FLAGCALCPATHTOGRAPHS] = cmdlineoptions[n].second;
+            }
+            if (cmdlineoptions[n].first == "h") {
+                config[CONFIG_FLAGCALCHEADERFILE] = cmdlineoptions[n].second;
+            }
+            if (cmdlineoptions[n].first == "spp") {
+                config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES] = cmdlineoptions[n].second;
+            }
+            if (cmdlineoptions[n].first == "pp") {
+                config[CONFIG_FLAGCALCPATHTOPYTHONADDONS] = cmdlineoptions[n].second;
+            }
+        }
+
+
+    }
+    configfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
 
 };
 
@@ -735,7 +866,6 @@ public:
         *_os << "\t" << "\"i=<filename>\": \t input filename (use to prepackage verbosity commands)\n";
         *_os << "\t" << "<verbosityname>: \t any levels can be listed, delimited by spaces;\n";
         *_os << "\t\t\t\t\t\t in addition to what's optionally in the input file\n";
-        // eventually do a loop which calls on each verbosity option to identify itself, e.g.
 
         verbositylevels.clear();
         verbositylevels.push_back(new abstractgraphitem);
@@ -757,6 +887,10 @@ public:
 
         for (int n = 0; n < verbositylevels.size(); ++n)
            verbositylevels[n]->osverbosity(*_os);
+        for (auto vl : verbositylevels)
+        {
+            delete vl;
+        }
 
     }
 
@@ -774,10 +908,6 @@ public:
             args.push_back(VERBOSE_DEFAULT);
             execute(args);
         }
-        for (auto vl : verbositylevels)
-        {
-            delete vl;
-        }
     }
     void execute(std::vector<std::string> args) override {
         std::ofstream ofs;
@@ -788,10 +918,13 @@ public:
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
+                ofname = ensure_path(ofname,globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES]);
                 continue;
             }
             if (cmdlineoptions[n].first == "i") {
                 ifname = cmdlineoptions[n].second;
+                auto path = globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES];
+                ifname = ensure_path(ifname,path);
                 std::ifstream infile(ifname);
                 if (infile.good()) {
                     std::ifstream ifs;
@@ -933,6 +1066,7 @@ public:
             }
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
+                ofname = ensure_path(ofname, globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHOUT]);
                 continue;
             }
             if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_ENUMISOSSORTED) {
@@ -1305,7 +1439,8 @@ public:
             std::istream* is = &std::cin;
             std::ostream* os = _os;
             if ((args.size() > filenameidx) && (args[filenameidx] != "std::cin")) {
-                std::string filename = args[filenameidx];
+                auto path = globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHS];
+                std::string filename = ensure_path(args[filenameidx],path);
                 *_os << "Opening file " << filename << "\n";
                 ifs.open(filename);
                 if (!ifs) {
@@ -1442,6 +1577,7 @@ public:
 
     void execute(std::vector<std::string> args) override
     {
+        auto path = globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHS];
         int initialnumofitemstotake = -1;
         int finalnumofitemstotake = -1;
         int numofitemstotake = -1;
@@ -1512,6 +1648,8 @@ public:
             if (cmdlineoptions[n].first == "i")
             {
                 std::string fn = cmdlineoptions[n].second;
+                fn = ensure_path(fn,path);
+
                 inputfilenames.push_back(fn);
                 continue;
             }
@@ -2345,7 +2483,7 @@ public:
                 std::vector<std::future<std::vector<graphmorphism>*>> t {};
                 t.resize(items.size());
                 int eqclassidx = 1;
-                for (int m = 0; m+1 < items.size(); ++m) {
+                for (int m = 0; m+1 < items.size() && eqclassidx < eqclass.size(); ++m) {
                     if ((m+1) != eqclass[eqclassidx]) {
                         t[m] = std::async(&enumisomorphismscore,nslist[m],nslist[m+1],fpslist[m],fpslist[m+1]);
                     } else
@@ -2354,7 +2492,7 @@ public:
                 std::vector<std::vector<graphmorphism>*> threadgm {};
                 threadgm.resize(items.size());
                 eqclassidx = 1;
-                for (int m = 0; m < items.size()-1; ++m) {
+                for (int m = 0; m+1 < items.size() && eqclassidx < eqclass.size() ; ++m) {
                     //t[m].join();
                     //t[m].detach();
                     if ((m +1) != eqclass[eqclassidx])
@@ -2363,7 +2501,7 @@ public:
                         eqclassidx++;
                 }
                 eqclassidx = 1;
-                for (int j=0; j < items.size()-1; ++j) {
+                for (int j=0; j+1 < items.size() && eqclassidx < eqclass.size(); ++j) {
                     if ((j+1) != eqclass[eqclassidx]) {
                         auto wi = new enumisomorphismsitem;
                         wi->g1 = nslist[j]->g;
@@ -2781,9 +2919,10 @@ public:
 
 };
 
-inline void readfromfile( std::string ifname, std::vector<std::string>& out )
+inline void readfromfile( std::string ifpath, std::string ifname, std::vector<std::string>& out )
 {
     out.clear();
+    ifname = ensure_path(ifname,ifpath);
     std::cout << "Opening file " << ifname << "\n";
     std::ifstream infile(ifname);
     if (infile.good()) {
@@ -2800,7 +2939,7 @@ inline void readfromfile( std::string ifname, std::vector<std::string>& out )
                     tmp = tmp.substr(1, tmp.size()-2);
                 }
                 std::vector<std::string> includedout {};
-                readfromfile(tmp, includedout);
+                readfromfile(ifpath, tmp, includedout);
                 for (auto s : includedout) {
                     out.push_back(s);
                 }
@@ -2902,10 +3041,10 @@ inline void removecomments( std::vector<std::string> streamstr, std::vector<std:
 
 
 
-inline void readfromfileandremovecomments(std::string ifname, std::vector<std::string>& out )
+inline void readfromfileandremovecomments(std::string ifpath, std::string ifname, std::vector<std::string>& out )
 {
     std::vector<std::string> streamstr;
-    readfromfile(ifname, streamstr);
+    readfromfile(ifpath, ifname, streamstr);
     removecomments(streamstr, out);
 }
 
@@ -3933,7 +4072,7 @@ public:
             if (ccl.t == "isp") // Stored procedures from a file
             {
                 std::vector<std::string> filedata;
-                readfromfileandremovecomments(parsedargs[i].second, filedata );
+                readfromfileandremovecomments(globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata );
 
                 std::vector<std::vector<std::string>> tmp {};
                 for (auto d : filedata)
@@ -3964,7 +4103,9 @@ public:
 #ifdef FLAGCALCWITHPYTHON
             if (ccl.t == "ipy") // Python methods from a file
             {
+                auto pythonaddonpath = globalcfg->config[CONFIG_FLAGCALCPATHTOPYTHONADDONS];
                 std::string filename = parsedargs[i].second;
+
                 setthread_count( 1 );
 
                 // py::scoped_interpreter guard{}; // won't outlast the scope
@@ -3976,12 +4117,18 @@ public:
                         py::initialize_interpreter();
                     is_pyinterpreterstarted = true;
                     py::module_ sys = py::module_::import("sys");
-                    sys.attr("path").attr("append")("../python");
+                    if (pythonaddonpath != "")
+                        sys.attr("path").attr("append")(pythonaddonpath);
+                    else
+                        sys.attr("path").attr("append")("../python");
 
 
                     auto pymodule = py::module_::import(filename.c_str());
 
-                    std::cout << "Opening Python file " << filename << "...\n";
+                    if (pythonaddonpath != "")
+                        std::cout << "Opening Python file " << pythonaddonpath << "/" << filename << "...\n";
+                    else
+                        std::cout << "Opening Python file " << "../python/" << filename << "...\n";
 
                     py::list method_list = py::cast<py::list>(py::eval("dir()", pymodule.attr("__dict__")));
 
@@ -4367,7 +4514,7 @@ public:
 
                 std::vector<std::string> filedata;
 
-                readfromfile( parsedargs[i].second, filedata);
+                readfromfile( globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
 
                 for (auto q : filedata)
                 {
@@ -4402,7 +4549,7 @@ public:
 
                 std::vector<std::string> filedata;
 
-                readfromfile( parsedargs[i].second, filedata);
+                readfromfile( globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
 
                 for (auto q : filedata)
                 {
@@ -4432,7 +4579,7 @@ public:
             {
 
                 std::vector<std::string> filedata;
-                readfromfile(parsedargs[i].second, filedata );
+                readfromfile(globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHS], parsedargs[i].second, filedata );
 
                 std::vector<std::vector<std::string>> tmp {};
                 for (auto d : filedata)

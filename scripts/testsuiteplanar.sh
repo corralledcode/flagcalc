@@ -25,28 +25,28 @@ PTH=${PTH:-'../bin'}
 
 # working K_3,3
 
-# $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft), NAMING (lcupr AS (vleft CUPD vright), NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathss(v1,v2), st(p CAP lcupr) == 2,p)), \
-# EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0))))))) " \
-# all -v crit allcrit i=minimal3.cfg
+$PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft), NAMING (lcupr AS (vleft CUPD vright), NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathss(v1,v2), st(p CAP lcupr) == 2,p)), \
+EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0))))))) " \
+all -v crit allcrit i=minimal3.cfg
  
-# working K_5
+# working K_5 (petersen graph has a K_5 minor but not topological minor
 
-# $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,5), NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathss(v1,v2), st(p CAP v) == 2, p)), EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], \
-# NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0)))) " \
-# all -v crit allcrit i=minimal3.cfg
+$PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,5), NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathss(v1,v2), st(p CAP v) == 2, p)), EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], \
+NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0)))) " \
+all -v crit allcrit i=minimal3.cfg
 
 # ...together working
 
-# $PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft), NAMING (lcupr AS (vleft CUPD vright), NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathss(v1,v2), st(p CAP lcupr) == 2,p)), \
-# EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0))))))) \
-# OR EXISTS (v IN Sizedsubset(V,5), NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathss(v1,v2), st(p CAP v) == 2, p)), EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], \
-# FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0)))) " \
-# all -v crit allcrit i=minimal3.cfg
+$PTH/flagcalc -d testplanarshort.dat -a s="EXISTS (v IN Sizedsubset(V,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft), NAMING (lcupr AS (vleft CUPD vright), NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathss(v1,v2), st(p CAP lcupr) == 2,p)), \
+EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0))))))) \
+OR EXISTS (v IN Sizedsubset(V,5), NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathss(v1,v2), st(p CAP v) == 2, p)), EXISTS (ch IN Choices(paths), FORALL (i IN NN(st(ch)), j IN NN(st(ch)), i < j , NAMING (pathi AS (paths[i])[ch[i]], NAMING (pathj AS (paths[j])[ch[j]], \
+FORALL (k IN NN(st(pathi) - 2), l IN NN(st(pathj) - 2), pathi[k+1] != pathj[l+1]))) AND ch[i] >= 0 AND ch[j] >= 0)))) " \
+all -v crit allcrit i=minimal3.cfg
  
 
-$PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="../scripts/planarity.dat" s="planar" all -v crit allcrit i=minimal3.cfg
+$PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="planarity.dat" s="planar" all -a isp="planarity.dat" s="planarnative" all -v crit allcrit i=minimal3.cfg
 
-$PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="../scripts/planarity.dat" s="criticalnonplanar" all -v crit allcrit i=minimal3.cfg
+$PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="planarity.dat" s="criticalnonplanar" all -v crit allcrit i=minimal3.cfg
 
-$PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="../scripts/planarity.dat" s="apexgraph" all -v crit allcrit i=minimal3.cfg
+$PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="planarity.dat" s="apexgraph" all -v crit allcrit i=minimal3.cfg
 
