@@ -3458,7 +3458,7 @@ public:
         std::vector<valms> tot {};
         for (int i = 0; i < dim; )
         {
-            auto itr = verticesset->getitrpos(false);
+            auto itr = verticesset->getitrpos(true);
             setitrsubset* component = new setitrsubset(itr);
             memset(component->itrint->elts,0, sizeof(bool)*dim);
             component->itrint->elts[i] = true;
@@ -3472,7 +3472,7 @@ public:
             ++i;
             while (vertices[i] && i < dim)
                 ++i;
-            delete itr;
+            // delete itr; since it seg faults
         }
         delete vertices;
         return new setitrmodeone(tot);

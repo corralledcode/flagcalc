@@ -388,6 +388,11 @@ public:
         os << cnt << " out of " << total << ": " << (double)cnt / (double)total << "\n";
         return true;
     }
+    void osverbosity(std::ostream& os) override
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << "no suboptions\n";
+    }
 
 
     pairwisedisjointitem() : workitems() {

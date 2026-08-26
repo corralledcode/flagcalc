@@ -372,7 +372,7 @@ public:
     void osverbosity( std::ostream& os )
     {
         workitems::osverbosity(os);
-        os << "\t\t" << VERBOSE_DONTLISTISOS << ": Don't list isomorphisms\n";
+        os << "\t\t" << VERBOSE_DONTLISTISOS << ": Don't list isomorphisms individually\n";
     }
 
 };
@@ -466,9 +466,10 @@ public:
     void osverbosity( std::ostream& os )
     {
         workitems::osverbosity(os);
-        os << "\t\t" << VERBOSE_MINIMAL << ": Suppress " << VERBOSE_FPMINIMAL << ", "<< VERBOSE_FPNONE"\n";
-        os << "\t\t" << VERBOSE_FPMINIMAL << ": Use brief (mainly for debugging) fingerprint outputs\n";
-        os << "\t\t" << VERBOSE_FPNONE << ": List all fingerprints on workspace in order with < or ==\n";
+        os << "\t\t" << VERBOSE_MINIMAL << ": Suppress " << VERBOSE_FPMINIMAL << "\n";
+        os << "\t\t" << VERBOSE_FPMINIMAL << ": Use brief (mainly for debugging) fingerprint outputs of each fingerprint's details\n";
+        os << "\t\t" << VERBOSE_FPNONE << ": Don't list long-winded version of all fingerprints on workspace in order with < or ==\n";
+        os << "\t\t\t" << "(Both of the above refer to the detailed fingerprint list that is mainly only for debugging)\n";
         os << "\t\t" << VERBOSE_DONTLISTORDEREDFINGERPRINTS << ": Don't list fingerprints ordered, only list summary of how many iso classes\n";
     }
 
@@ -1045,6 +1046,12 @@ public:
 
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_SETVERBOSE << ": List sets in detail\n";
+    }
+
 };
 
 template<typename Tm>
@@ -1119,6 +1126,12 @@ public:
 
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_SETVERBOSE << ": List tuples in detail\n";
+    }
+
 };
 
 
@@ -1173,6 +1186,12 @@ public:
 
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_APPLYSTRING << ": List strings\n";
+    }
+
 };
 
 template<typename Tc>
@@ -1198,12 +1217,17 @@ public:
         workitems::ositem(os,verbositylevel);
         for (int n = 0; n < this->res.size(); ++n)
         {
-
             osadjacencymatrix(os, this->res[n]->g);
             os << "\n";
         }
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_APPLYGRAPH << ": List graph variables in detail\n";
+    }
+
 };
 
 

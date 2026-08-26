@@ -432,7 +432,7 @@ $PTH/flagcalc -r 10 10 1 -a e="Componentss(Gg(\"abc de fgh ijkl\"))" all -v set 
 # FORALL (H IN Ps(V), NAMING (MHH AS M_H(H), NAMING (VminusH AS V SETMINUS H, EXISTS (p IN Setpartition(VminusH), st(p) >= MHH, \
 #  FORALL (s IN p, EXISTS (v1 IN H, EXISTS (v2 IN H, v1 != v2, NAMING (v1v2 AS Pathss(v1,v2), EXISTS (path IN v1v2, path <= (s CUPD {v1,v2}) ))))) ))))" all -v i=minimal3.cfg
 
-$PTH/flagcalc -d platonicsolids.dat -a e="NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), SET (c IN C, st(c) == m, c)))" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d platonicsolids.dat -a e="NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), SET (c IN C, st(c) == m, c)))" all -v set i=minimal3.cfg
 
 # intractable: $PTH/flagcalc -d platonicsolids.dat -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), BIGCUP (h IN Setpartition(hs), FORALL (h1 IN h, FORALL (h2 IN h, EXISTS (a IN A, FORALL (v IN V, a(h1(v)) == h2(v))))), h)))))" -v set allsets i=minimal3.cfg
 

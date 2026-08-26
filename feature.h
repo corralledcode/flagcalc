@@ -330,24 +330,24 @@ public:
             }
         }
 
-        #define CONFIG_FLAGCALCEXECUTABLEPATH "FLAGCALCEXECUTABLEPATH"
-        #define CONFIG_FLAGCALCEXECUTABLENAME "FLAGCALCEXECUTABLENAME"
-        #define CONFIG_FLAGCALCHEADERFILE "FLAGCALCHEADERFILE"
-        #define CONFIG_FLAGCALCINVOKE "FLAGCALCINVOKE"
-        #define CONFIG_FLAGCALCPATHTOGRAPHS"FLAGCALCPATHTOGRAPHS"
-        #define CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES "FLAGCALCPATHTOSTOREDPROCEDURES"
-        #define CONFIG_FLAGCALCPATHTOPYTHONADDONS "FLAGCALCPATHTOPYTHONADDONS"
-        #define CONFIG_FLAGCALCPATHTOGRAPHOUT "FLAGCALCPATHTOGRAPHOUT"
+        #define CONFIG_EXECUTABLEPATH "EXECUTABLEPATH"
+        #define CONFIG_EXECUTABLENAME "EXECUTABLENAME"
+        #define CONFIG_HEADERFILE "HEADERFILE"
+        #define CONFIG_INVOKE "INVOKE"
+        #define CONFIG_PATHTOGRAPHS"PATHTOGRAPHS"
+        #define CONFIG_PATHTOSTOREDPROCEDURES "PATHTOSTOREDPROCEDURES"
+        #define CONFIG_PATHTOPYTHONADDONS "PATHTOPYTHONADDONS"
+        #define CONFIG_PATHTOGRAPHOUT "PATHTOGRAPHOUT"
 
         config.clear();
-        config.insert({CONFIG_FLAGCALCEXECUTABLEPATH,"."});
-        config.insert({CONFIG_FLAGCALCEXECUTABLENAME,"flagcalc"});
-        config.insert({CONFIG_FLAGCALCHEADERFILE,""});
-        config.insert({CONFIG_FLAGCALCINVOKE,""});
-        config.insert({CONFIG_FLAGCALCPATHTOGRAPHS,"./testgraph"});
-        config.insert({CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES,"./scripts"});
-        config.insert({CONFIG_FLAGCALCPATHTOPYTHONADDONS,"./python"});
-        config.insert({CONFIG_FLAGCALCPATHTOGRAPHOUT,"./graphout"});
+        config.insert({CONFIG_EXECUTABLEPATH,"."});
+        config.insert({CONFIG_EXECUTABLENAME,"flagcalc"});
+        config.insert({CONFIG_HEADERFILE,""});
+        config.insert({CONFIG_INVOKE,""});
+        config.insert({CONFIG_PATHTOGRAPHS,"./testgraph"});
+        config.insert({CONFIG_PATHTOSTOREDPROCEDURES,"./scripts"});
+        config.insert({CONFIG_PATHTOPYTHONADDONS,"./python"});
+        config.insert({CONFIG_PATHTOGRAPHOUT,"./graphout"});
 
         std::ifstream configFile(configfilename);
         if (configFile.is_open()) {
@@ -359,29 +359,29 @@ public:
                     trim(left);
                     auto right = line.substr(pos+1);
                     trim(right);
-                    if (left == CONFIG_FLAGCALCEXECUTABLEPATH) {
-                        config[CONFIG_FLAGCALCEXECUTABLEPATH] = right;
+                    if (left == CONFIG_EXECUTABLEPATH) {
+                        config[CONFIG_EXECUTABLEPATH] = right;
                     }
-                    if (left == CONFIG_FLAGCALCEXECUTABLENAME) {
-                        config[CONFIG_FLAGCALCEXECUTABLENAME] = right;
+                    if (left == CONFIG_EXECUTABLENAME) {
+                        config[CONFIG_EXECUTABLENAME] = right;
                     }
-                    if (left == CONFIG_FLAGCALCHEADERFILE) {
-                        config[CONFIG_FLAGCALCHEADERFILE] = right;
+                    if (left == CONFIG_HEADERFILE) {
+                        config[CONFIG_HEADERFILE] = right;
                     }
-                    if (left == CONFIG_FLAGCALCINVOKE) {
-                        config[CONFIG_FLAGCALCINVOKE] = right;
+                    if (left == CONFIG_INVOKE) {
+                        config[CONFIG_INVOKE] = right;
                     }
-                    if (left == CONFIG_FLAGCALCPATHTOGRAPHS) {
-                        config[CONFIG_FLAGCALCPATHTOGRAPHS] = right;
+                    if (left == CONFIG_PATHTOGRAPHS) {
+                        config[CONFIG_PATHTOGRAPHS] = right;
                     }
-                    if (left == CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES) {
-                        config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES] = right;
+                    if (left == CONFIG_PATHTOSTOREDPROCEDURES) {
+                        config[CONFIG_PATHTOSTOREDPROCEDURES] = right;
                     }
-                    if (left == CONFIG_FLAGCALCPATHTOPYTHONADDONS) {
-                        config[CONFIG_FLAGCALCPATHTOPYTHONADDONS] = right;
+                    if (left == CONFIG_PATHTOPYTHONADDONS) {
+                        config[CONFIG_PATHTOPYTHONADDONS] = right;
                     }
-                    if (left == CONFIG_FLAGCALCPATHTOGRAPHOUT) {
-                        config[CONFIG_FLAGCALCPATHTOGRAPHOUT] = right;
+                    if (left == CONFIG_PATHTOGRAPHOUT) {
+                        config[CONFIG_PATHTOGRAPHOUT] = right;
                     }
                 }
             }
@@ -390,16 +390,16 @@ public:
 
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
             if (cmdlineoptions[n].first == "gp") {
-                config[CONFIG_FLAGCALCPATHTOGRAPHS] = cmdlineoptions[n].second;
+                config[CONFIG_PATHTOGRAPHS] = cmdlineoptions[n].second;
             }
             if (cmdlineoptions[n].first == "h") {
-                config[CONFIG_FLAGCALCHEADERFILE] = cmdlineoptions[n].second;
+                config[CONFIG_HEADERFILE] = cmdlineoptions[n].second;
             }
             if (cmdlineoptions[n].first == "spp") {
-                config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES] = cmdlineoptions[n].second;
+                config[CONFIG_PATHTOSTOREDPROCEDURES] = cmdlineoptions[n].second;
             }
             if (cmdlineoptions[n].first == "pp") {
-                config[CONFIG_FLAGCALCPATHTOPYTHONADDONS] = cmdlineoptions[n].second;
+                config[CONFIG_PATHTOPYTHONADDONS] = cmdlineoptions[n].second;
             }
         }
 
@@ -868,7 +868,6 @@ public:
         *_os << "\t\t\t\t\t\t in addition to what's optionally in the input file\n";
 
         verbositylevels.clear();
-        verbositylevels.push_back(new abstractgraphitem);
         verbositylevels.push_back(new graphitem);
         verbositylevels.push_back(new abstractsubobjectitem(nullptr,"", ""));
         verbositylevels.push_back(new pairwisedisjointitem);
@@ -881,9 +880,21 @@ public:
         verbositylevels.push_back(new checkbooleanitem<bool>(*pab));
         auto pai = new pameas<int>(nullptr,"","");
         verbositylevels.push_back(new checkdiscreteitem<int>(*pai));
+        auto pas = new pameas<setitr*>(nullptr,"","");
+        verbositylevels.push_back(new checksetitem<setitr*>(*pas));
+        auto pat = new pameas<setitr*>(nullptr,"","");
+        verbositylevels.push_back(new checktupleitem<setitr*>(*pat));
+        auto par = new pameas<std::string*>(nullptr,"","");
+        verbositylevels.push_back(new checkstringitem<std::string*>(*par));
+        auto pag = new pameas<neighborstype*>(nullptr,"","");
+        verbositylevels.push_back(new checkgraphitem<neighborstype*>(*pag));
         delete pad;
         delete pab;
         delete pai;
+        delete pas;
+        delete pat;
+        delete par;
+        delete pag;
 
         for (int n = 0; n < verbositylevels.size(); ++n)
            verbositylevels[n]->osverbosity(*_os);
@@ -918,12 +929,12 @@ public:
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
-                ofname = ensure_path(ofname,globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES]);
+                ofname = ensure_path(ofname,globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES]);
                 continue;
             }
             if (cmdlineoptions[n].first == "i") {
                 ifname = cmdlineoptions[n].second;
-                auto path = globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES];
+                auto path = globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES];
                 ifname = ensure_path(ifname,path);
                 std::ifstream infile(ifname);
                 if (infile.good()) {
@@ -1066,7 +1077,7 @@ public:
             }
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
-                ofname = ensure_path(ofname, globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHOUT]);
+                ofname = ensure_path(ofname, globalcfg->config[CONFIG_PATHTOGRAPHOUT]);
                 continue;
             }
             if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_ENUMISOSSORTED) {
@@ -1439,7 +1450,7 @@ public:
             std::istream* is = &std::cin;
             std::ostream* os = _os;
             if ((args.size() > filenameidx) && (args[filenameidx] != "std::cin")) {
-                auto path = globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHS];
+                auto path = globalcfg->config[CONFIG_PATHTOGRAPHS];
                 std::string filename = ensure_path(args[filenameidx],path);
                 *_os << "Opening file " << filename << "\n";
                 ifs.open(filename);
@@ -1577,7 +1588,7 @@ public:
 
     void execute(std::vector<std::string> args) override
     {
-        auto path = globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHS];
+        auto path = globalcfg->config[CONFIG_PATHTOGRAPHS];
         int initialnumofitemstotake = -1;
         int finalnumofitemstotake = -1;
         int numofitemstotake = -1;
@@ -4072,7 +4083,7 @@ public:
             if (ccl.t == "isp") // Stored procedures from a file
             {
                 std::vector<std::string> filedata;
-                readfromfileandremovecomments(globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata );
+                readfromfileandremovecomments(globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata );
 
                 std::vector<std::vector<std::string>> tmp {};
                 for (auto d : filedata)
@@ -4103,7 +4114,7 @@ public:
 #ifdef FLAGCALCWITHPYTHON
             if (ccl.t == "ipy") // Python methods from a file
             {
-                auto pythonaddonpath = globalcfg->config[CONFIG_FLAGCALCPATHTOPYTHONADDONS];
+                auto pythonaddonpath = globalcfg->config[CONFIG_PATHTOPYTHONADDONS];
                 std::string filename = parsedargs[i].second;
 
                 setthread_count( 1 );
@@ -4514,7 +4525,7 @@ public:
 
                 std::vector<std::string> filedata;
 
-                readfromfile( globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
+                readfromfile( globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
 
                 for (auto q : filedata)
                 {
@@ -4549,7 +4560,7 @@ public:
 
                 std::vector<std::string> filedata;
 
-                readfromfile( globalcfg->config[CONFIG_FLAGCALCPATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
+                readfromfile( globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES], parsedargs[i].second, filedata);
 
                 for (auto q : filedata)
                 {
@@ -4579,7 +4590,7 @@ public:
             {
 
                 std::vector<std::string> filedata;
-                readfromfile(globalcfg->config[CONFIG_FLAGCALCPATHTOGRAPHS], parsedargs[i].second, filedata );
+                readfromfile(globalcfg->config[CONFIG_PATHTOGRAPHS], parsedargs[i].second, filedata );
 
                 std::vector<std::vector<std::string>> tmp {};
                 for (auto d : filedata)
