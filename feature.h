@@ -726,6 +726,8 @@ public:
         return "verbosity";
     }
 
+    std::vector<workitems*> verbositylevels {};
+
     void listoptions() override {
         feature::listoptions();
         *_os << "\t" << "<filename>: \t\t output filename, or \"std::cout\"\n";
@@ -734,8 +736,27 @@ public:
         *_os << "\t" << "<verbosityname>: \t any levels can be listed, delimited by spaces;\n";
         *_os << "\t\t\t\t\t\t in addition to what's optionally in the input file\n";
         // eventually do a loop which calls on each verbosity option to identify itself, e.g.
-        // for (int n = 0; n < crs.size(); ++n)
-        //    crs[n]->listmeasure(_os);
+
+        verbositylevels.clear();
+        verbositylevels.push_back(new abstractgraphitem);
+        verbositylevels.push_back(new graphitem);
+        verbositylevels.push_back(new abstractsubobjectitem(nullptr,"", ""));
+        verbositylevels.push_back(new pairwisedisjointitem);
+        verbositylevels.push_back(new randomgraphsitem(nullptr));
+        verbositylevels.push_back(new enumisomorphismsitem);
+        verbositylevels.push_back(new cmpfingerprintsitem);
+        auto pad = new pameas<double>(nullptr,"","");
+        verbositylevels.push_back(new checkcontinuousitem<double>(*pad));
+        auto pab = new pameas<bool>(nullptr,"","");
+        verbositylevels.push_back(new checkbooleanitem<bool>(*pab));
+        auto pai = new pameas<int>(nullptr,"","");
+        verbositylevels.push_back(new checkdiscreteitem<int>(*pai));
+        delete pad;
+        delete pab;
+        delete pai;
+
+        for (int n = 0; n < verbositylevels.size(); ++n)
+           verbositylevels[n]->osverbosity(*_os);
 
     }
 
@@ -752,6 +773,10 @@ public:
             args.push_back("std::cout");
             args.push_back(VERBOSE_DEFAULT);
             execute(args);
+        }
+        for (auto vl : verbositylevels)
+        {
+            delete vl;
         }
     }
     void execute(std::vector<std::string> args) override {

@@ -165,6 +165,10 @@ public:
         os << classname << " " << name << ":\n";
         return true;
     }
+    virtual void osverbosity( std::ostream& os )
+    {
+        os << "\t" << verbositylevel << ": " << classname << ", detailed suboptions:\n";
+    }
     virtual bool isitem( std::istream& is ) {return true;}
     virtual void freemem() {}
     workitems() {
@@ -240,6 +244,11 @@ public:
                 osamedgesneighbors(os,g,ns);
         }
         return true;
+    }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << "no suboptions\n";
     }
 
     bool isitemstr( std::vector<std::string> streamstr) {
@@ -321,6 +330,11 @@ public:
         os << "\b\b  \n";
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << "no suboptions\n";
+    }
     virtual bool isitem( std::istream& is ) {return true;}
     virtual void freemem() {}
     randomgraphsitem( abstractrandomgraph* rg ) : rg{rg}, workitems() {
@@ -355,6 +369,12 @@ public:
         }
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_DONTLISTISOS << ": Don't list isomorphisms\n";
+    }
+
 };
 
 class cmpfingerprintsitem : public workitems {
@@ -443,6 +463,15 @@ public:
         os << overallmatchcount << " adjacent pairs out of " << sorted.size()-1 << " match; " << sorted.size() - overallmatchcount << " unique fp classes\n";
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_MINIMAL << ": Suppress " << VERBOSE_FPMINIMAL << ", "<< VERBOSE_FPNONE"\n";
+        os << "\t\t" << VERBOSE_FPMINIMAL << ": Use brief (mainly for debugging) fingerprint outputs\n";
+        os << "\t\t" << VERBOSE_FPNONE << ": List all fingerprints on workspace in order with < or ==\n";
+        os << "\t\t" << VERBOSE_DONTLISTORDEREDFINGERPRINTS << ": Don't list fingerprints ordered, only list summary of how many iso classes\n";
+    }
+
 };
 
 template<typename T>
@@ -543,6 +572,14 @@ public:
 
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_CRITVERBOSE << ": List measure/criteria outcome for each graph individually\n";
+        os << "\t\t" << VERBOSE_LISTGRAPHSPASSED << ": List each graph individually that passes criteria\n";
+        os << "\t\t" << VERBOSE_MINIMAL << ": Don't list outcome of criteria/measure individually\n";
+    }
+
 };
 
 
@@ -611,7 +648,6 @@ public:
             }
         }
 
-
         Tm sum = 0;
         int cnt = 0;
         double max = - std::numeric_limits<double>::infinity();
@@ -628,6 +664,12 @@ public:
 
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_MEASVERBOSE << ": List measure outcome for each graph individually\n";
+    }
+
 };
 
 template<typename Tc>
@@ -682,8 +724,22 @@ public:
             }
         }
 
-        if (last && verbositycmdlineincludes(verbositylevel,VERBOSE_LISTGRAPHSANY))
+        std::string text = verbositylevel;
+        std::string anyregex = "(^|\\s)";
+        anyregex.append(VERBOSE_LISTGRAPHSANY);
+        anyregex.append("(\\d*)(\\s|$)");
+        std::regex pattern(anyregex);
+
+        std::smatch match;
+        if (last && std::regex_search(text, match, pattern))
         {
+            std::string int_str = match[2].str();
+
+            // Convert the string to an actual integer
+            int ANYnumber = 1;
+            if (int_str != "")
+                ANYnumber = std::stoi(int_str);
+
             // "ANY" verbosity returns a randomly-chosen exemplar graph among those that pass all criteria
             int cnt = 0;
             for (int i = 0; i < this->res.size(); ++i )
@@ -696,30 +752,36 @@ public:
 
             if (cnt > 0)
             {
+                if (cnt < ANYnumber)
+                    ANYnumber = cnt;
+                // Create a vector with 0, 1, ..., cnt-1
+                std::vector<int> pool(cnt);
+                std::iota(pool.begin(), pool.end(), 0);
 
-                // 1. Obtain a random seed from the hardware
+                // Shuffle the pool randomly
                 std::random_device rd;
-
-                // 2. Initialize the standard mersenne_twister_engine with the seed
                 std::mt19937 gen(rd());
+                std::shuffle(pool.begin(), pool.end(), gen);
 
-                // 3. Define the inclusive range [0, n]
-                std::uniform_int_distribution<int> distrib(1, cnt);
+                // Take the first n elements
+                std::vector<int> result(pool.begin(), pool.begin() + ANYnumber);
+                std::sort(result.begin(), result.end());
 
-                // 4. Generate the random number
-                int random_num = distrib(gen);
                 cnt = 0;
                 int i;
 
-                for (i = 0; i < this->res.size() && cnt < random_num; ++i )
+                for (auto r : result)
                 {
-                    if (this->parentbool[i] && this->meas[i])
+                    for (; i < this->res.size() && cnt < r; ++i )
                     {
-                        cnt++;
+                        if (this->parentbool[i] && this->meas[i])
+                        {
+                            cnt++;
+                        }
                     }
+                    os << this->gnames[i] << ": result == " << this->meas[i] << "\n";
+                    osamedgesneighbors(os,this->glist[i],this->nslist[i]);
                 }
-                os << this->gnames[i-1] << ": result == " << this->meas[i-1] << "\n";
-                osamedgesneighbors(os,this->glist[i-1],this->nslist[i-1]);
             }
         }
 
@@ -753,6 +815,14 @@ public:
 
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_CRITVERBOSE << ": List criteria outcome for each graph individually\n";
+        os << "\t\t" << VERBOSE_LISTGRAPHSPASSED << ": List criteria outcome for each graph individually that passes\n";
+        os << "\t\t" << VERBOSE_LISTGRAPHSANY << ": Randomly choose one passing graph to feature, if possible\n";
+    }
+
 };
 
 
@@ -834,6 +904,12 @@ public:
 
         return true;
     }
+    void osverbosity( std::ostream& os )
+    {
+        workitems::osverbosity(os);
+        os << "\t\t" << VERBOSE_TALLYVERBOSE << ": List tally outcome for each graph individually\n";
+    }
+
 };
 
 
