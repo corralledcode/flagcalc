@@ -2704,7 +2704,7 @@ public:
         auto (ms6) = tallyfactory<maxdegreetally>;
         auto (Knt) = tallyfactory<Kntally>;
         auto (indnt) = tallyfactory<indntally>;
-        auto (cyclet) = tallyfactory<cycletally>;
+        auto (ncyclet) = tallyfactory<ncycletally>;
         auto (kappat) = tallyfactory<kappatally>;
         auto (lambdat) = tallyfactory<lambdatally>;
         auto (vdt) = tallyfactory<vdtally>;
@@ -2732,7 +2732,7 @@ public:
         tysfactory.push_back(ms6);
         tysfactory.push_back(Knt);
         tysfactory.push_back(indnt);
-        tysfactory.push_back(cyclet);
+        tysfactory.push_back(ncyclet);
         tysfactory.push_back(kappat);
         tysfactory.push_back(lambdat);
         tysfactory.push_back(vdt);

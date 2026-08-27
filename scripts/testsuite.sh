@@ -64,7 +64,7 @@ $PTH/flagcalc -r 10 18 100 -a s1="NOT isinf(radiusm)" s2="connc(radiusm)" all -v
 $PTH/flagcalc -r 10 18 100 -a a="radiusm" all -v i=minimal3.cfg
 
 # This is a curious fact, that Google confirms but I forget where in Diestel I saw it... to look up later
-$PTH/flagcalc -r 10 12 50000 -a c=cr1 s2="cyclet(5) <= 2^5" all -v i=minimal3.cfg
+$PTH/flagcalc -r 10 12 50000 -a c=cr1 s2="ncyclet(5) <= 2^5" all -v i=minimal3.cfg
 
 # Diestel 1.3.2: if the negation of forestc is true, then the "s2=" inequality holds
 $PTH/flagcalc -r 12 20 5000 -a nc=forestc s2="girthm <= (2*diamm + 1)" all -v i=minimal3.cfg
@@ -79,7 +79,7 @@ $PTH/flagcalc -r 12 25 50000 -a c=conn1c s2="treec == (edgecm == dimm-1)" all -v
 # the feature -u is only briefly studied but potentially very useful to those studying the three obvious papers
 # on "Flag Algebras", and were coded in effort to understand the steps of these papers
 # Please see the -h output for a rundown of how to use -u.
-$PTH/flagcalc -d testbip12.dat -u GRAPH0 n="" 'r=rs1(5,100000)' -a sub t='cyclet(4)' -v i=minimal3.cfg
+$PTH/flagcalc -d testbip12.dat -u GRAPH0 n="" 'r=rs1(5,100000)' -a sub t='ncyclet(4)' -v i=minimal3.cfg
 
 # This is just checking what minimal3.cfg does to 15 random graphs on 12 vertices, namely, print nothing except runtime
 $PTH/flagcalc -r 12 20 15 -v i=minimal3.cfg

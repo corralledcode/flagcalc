@@ -43,6 +43,8 @@
 #define VERBOSE_MEASVERBOSE "allmeas"
 #define VERBOSE_TALLYVERBOSE "alltally"
 
+#define VERBOSE_SETDEPTH "setdepth"
+
 #define VERBOSE_DONTLISTORDEREDFINGERPRINTS "nofpseq"
 
 #define VERBOSE_APPLYSTRING "strmeas"
@@ -914,18 +916,25 @@ public:
 };
 
 
-inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t, bool alreadyindented = false )
+inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t, const int depth, bool alreadyindented = false )
 {
+    if (depth == 0)
+        return; // depth == -1 means all depth
     if (alreadyindented)
     {
-        os << "\t" << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
+        os << "\t" << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize();
     } else
-        os << pre << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize() << "\n";
+        os << pre << (t == mtset ? "Set" : "Tuple") << " type output, size == " << itr->getsize();
 
+    if (depth == 1)
+    {
+        os << " " << (t == mtset ? "{" : "<") << "...verbosity omitted..." << (t == mtset ? "}" : ">");
+        return;
+    }
+    os << "\n";
 
     os << pre << (t == mtset ? "{" : "<");
     alreadyindented = true;
-
     bool e = itr->ended();
     if (e)
     {
@@ -955,8 +964,10 @@ inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t
                 std::string pre2 = pre + "\t";
                 auto itr2 = v.seti->getitrpos(false);
                 newline = true;
-                osset( os, itr2, pre2, v.t, alreadyindented );
+
+                osset( os, itr2, pre2, v.t, depth-1, alreadyindented );
                 os << (e ? "\n" : ",\n ");
+
                 alreadyindented = false;
                 delete itr2;
                 break;
@@ -1010,6 +1021,26 @@ public:
 
         if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
         {
+
+            int DEPTHnumber = -1;
+
+            std::string text = verbositylevel;
+            std::string anyregex = "(^|\\s)";
+            anyregex.append(VERBOSE_SETDEPTH);
+            anyregex.append("(\\d*)(\\s|$)");
+            std::regex pattern(anyregex);
+
+            std::smatch match;
+            if (std::regex_search(text, match, pattern))
+            {
+                std::string int_str = match[2].str();
+
+                // Convert the string to an actual integer
+                if (int_str != "")
+                    DEPTHnumber = std::stoi(int_str);
+            }
+
+
             for (int i = 0; i < this->res.size(); ++i )
             {
                 if (this->parentbool[i])
@@ -1017,7 +1048,7 @@ public:
                     auto itr = this->meas[i];
                     auto pos = itr->getitrpos(false);
                     std::string pre = "";
-                    osset( os, pos, pre, mtset );
+                    osset( os, pos, pre, mtset, DEPTHnumber );
                     os << "\n";
                     // min = this->meas[i] < min ? this->meas[i] : min;
                     // sum += this->meas[i];
@@ -1050,6 +1081,7 @@ public:
     {
         workitems::osverbosity(os);
         os << "\t\t" << VERBOSE_SETVERBOSE << ": List sets in detail\n";
+        os << "\t\t" << VERBOSE_SETDEPTH << "n: List sets to depth n\n";
     }
 
 };
@@ -1088,13 +1120,33 @@ public:
 
         if (verbositycmdlineincludes(verbositylevel,VERBOSE_SETVERBOSE))
         {
+            int DEPTHnumber = -1;
+
+            std::string text = verbositylevel;
+            std::string anyregex = "(^|\\s)";
+            anyregex.append(VERBOSE_SETDEPTH);
+            anyregex.append("(\\d*)(\\s|$)");
+            std::regex pattern(anyregex);
+
+            std::smatch match;
+            if (std::regex_search(text, match, pattern))
+            {
+                std::string int_str = match[2].str();
+
+                // Convert the string to an actual integer
+                if (int_str != "")
+                    DEPTHnumber = std::stoi(int_str);
+            }
+
+
+
             for (int i = 0; i < this->res.size(); ++i ) {
                 if (this->parentbool[i])
                 {
                     auto itr = this->meas[i];
                     auto pos = itr->getitrpos(false);
                     std::string pre = "";
-                    osset( os, pos, pre, mttuple );
+                    osset( os, pos, pre, mttuple, DEPTHnumber );
                     os << "\n";
                     // min = this->meas[i] < min ? this->meas[i] : min;
                     // sum += this->meas[i];
@@ -1130,6 +1182,7 @@ public:
     {
         workitems::osverbosity(os);
         os << "\t\t" << VERBOSE_SETVERBOSE << ": List tuples in detail\n";
+        os << "\t\t" << VERBOSE_SETDEPTH << "n: List tuples to depth n\n";
     }
 
 };

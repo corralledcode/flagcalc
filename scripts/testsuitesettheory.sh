@@ -115,7 +115,7 @@ $PTH/flagcalc -r 9 10 100 -a s="(EXISTS (r IN Ps(V), EXISTS (l IN Ps(V), (l CUP 
 
 # This is for fun, again, using some arithmetic: the number of cycles of a given length n is equal to the double sum
 # over first vertices, then over each cycle around that vertex, finally taking the summand to be 1/"the size of the cycle".
-$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), cyclet(n)) == SUM (v IN V, SUM (c IN Cyclesvs(v), 1/st(c)))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), ncyclet(n)) == SUM (v IN V, SUM (c IN Cyclesvs(v), 1/st(c)))" all -v i=minimal3.cfg
 
 # This is the handshake lemma
 $PTH/flagcalc -r 12 33 1000 -a s="SUM (v IN V, vdt(v))/2 == edgecm" all -v i=minimal3.cfg
@@ -250,9 +250,9 @@ $PTH/flagcalc -r 4 3 1 -a s="FORALL (s IN Ps(Ps(V)), EXISTS (t IN Ps(V), t ELT s
 
 $PTH/flagcalc -d f="abc" -a e="SET (v IN V, SET (u IN V, SET (t IN V, t)))" all -v set allsets i=minimal3.cfg
 
-$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c[n] ELT e AND c[(n+1)%st(c)] ELT e), e))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 7 10 100 -a s="SUM (n IN NN(dimm+1), ncyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c[n] ELT e AND c[(n+1)%st(c)] ELT e), e))))" all -v i=minimal3.cfg
 
-$PTH/flagcalc -d f="abcde" -a s="SUM (n IN NN(dimm+1), cyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c[n] ELT e AND c[(n+1)%st(c)] ELT e), e))))" all -v i=minimal3.cfg
+$PTH/flagcalc -d f="abcde" -a s="SUM (n IN NN(dimm+1), ncyclet(n)) == st(BIGCUP (v IN V, SET (c IN Cyclesvs(v), SET (e IN E, EXISTS (n IN NN(st(c)), c[n] ELT e AND c[(n+1)%st(c)] ELT e), e))))" all -v i=minimal3.cfg
 
 $PTH/flagcalc -d f="abcde" -a e="{3+2,SUM (v IN V, v), {1}}" all -v set allsets i=minimal3.cfg
 
@@ -432,7 +432,7 @@ $PTH/flagcalc -r 10 10 1 -a e="Componentss(Gg(\"abc de fgh ijkl\"))" all -v set 
 # FORALL (H IN Ps(V), NAMING (MHH AS M_H(H), NAMING (VminusH AS V SETMINUS H, EXISTS (p IN Setpartition(VminusH), st(p) >= MHH, \
 #  FORALL (s IN p, EXISTS (v1 IN H, EXISTS (v2 IN H, v1 != v2, NAMING (v1v2 AS Pathss(v1,v2), EXISTS (path IN v1v2, path <= (s CUPD {v1,v2}) ))))) ))))" all -v i=minimal3.cfg
 
-$PTH/flagcalc -d platonicsolids.dat -a e="NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), SET (c IN C, st(c) == m, c)))" all -v set i=minimal3.cfg
+$PTH/flagcalc -d platonicsolids.dat -a e="NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), SET (c IN C, st(c) == m, c)))" all -v set allsets i=minimal3.cfg setdepth1
 
 # intractable: $PTH/flagcalc -d platonicsolids.dat -a e="NAMING (A AS Automs, NAMING (C AS Cycless, NAMING (m AS MAX (c IN C, st(c)), NAMING (hs AS SET (c IN C, st(c) == m, c), BIGCUP (h IN Setpartition(hs), FORALL (h1 IN h, FORALL (h2 IN h, EXISTS (a IN A, FORALL (v IN V, a(h1(v)) == h2(v))))), h)))))" -v set allsets i=minimal3.cfg
 

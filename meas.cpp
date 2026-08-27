@@ -1034,10 +1034,10 @@ inline int cyclesearch( const graphtype* g, const neighborstype* ns, int* path, 
     return res;
 }
 
-class cycletally : public tally
+class ncycletally : public tally
 {
 public:
-    cycletally( mrecords* recin ) : tally (recin, "cyclet", "Number of cycles of length n")
+    ncycletally( mrecords* recin ) : tally (recin, "ncyclet", "Number of cycles of length n")
     {
         valms p1;
         p1.t = measuretype::mtdiscrete;

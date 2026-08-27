@@ -4232,7 +4232,7 @@ public:
         return res;
     }
 
-    nCyclesset( mrecords* recin ) : set(recin,"nCycless", "All non-cycles") {}
+    nCyclesset( mrecords* recin ) : set(recin,"nCycless", "All cycles of length n") {}
 
 };
 
