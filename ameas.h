@@ -2678,11 +2678,11 @@ public:
 
 class Permset : public set
 {
-    setitrmodeone* res {};
 public:
 
     setitr* takemeas(const int idx, const params& ps ) override
     {
+        setitrmodeone* res {};
         // if (res)
             // for (auto v : res->totality)
                 // delete v.seti;
@@ -4221,7 +4221,7 @@ public:
 };
 
 class nCyclesset : public set
-{
+{ // not yet included, as it is not done
 public:
 
     setitr* takemeas(const int idx, const params& ps) override
