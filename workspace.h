@@ -928,7 +928,7 @@ inline void osset( std::ostream& os, itrpos* itr, std::string pre, measuretype t
 
     if (depth == 1)
     {
-        os << " " << "(...verbosity omitted...)";
+        os << " " << (t == mtset ? "{" : "<") << "...verbosity omitted..." << (t == mtset ? "}" : ">");
         return;
     }
     os << "\n";
