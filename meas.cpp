@@ -16,7 +16,7 @@ class kncrit : public crit
 public:
     const int n;
 
-    bool takemeas( neighborstype* ns, const params& ps) {
+    bool takemeas( neighborstype* ns, const params& ps) override {
         int mincnt;
         if (ps.empty() || ps[0].t != mtdiscrete)
             mincnt = 1;

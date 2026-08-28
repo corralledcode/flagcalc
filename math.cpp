@@ -1899,7 +1899,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 {
     valms res;
     if (fc.fo == formulaoperator::foliteral) {
-        if (fc.v.lit.ps.empty())
+        if (fc.v.lit.ps.empty() && !literals.empty())
         {
             /*
             switch (literals[fc.v.lit.l].t)
@@ -1921,7 +1921,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     break;
                 }
             default:*/
-                res = literals[fc.v.lit.l];
+            res = literals[fc.v.lit.l];
             // }
 
         } else {

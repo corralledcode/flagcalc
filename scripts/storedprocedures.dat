@@ -4,6 +4,20 @@ FORALL (c IN Cycless, st(c) % 2 == 0)
 
 END
 
+mtbool pPartitec( mttuple p )
+
+EXISTS (P IN Setpartition(V), st(P) == st(p), EXISTS (R IN Perms(p), FORALL (i IN st(P), st(P[i]) == R[i] AND
+NAMING (Pi AS P[i], FORALL (j IN Pi, k IN Pi, j < k, NOT ac(j,k))))))
+
+END
+
+mtbool Cc
+
+NAMING (C AS Cycless, st(C[0]) == dimm AND st(C) == 1)
+
+END
+
+
 mtbool Bipartiteviabipcrit
 
 EXISTS (p IN Setpartition(V), st(p) == 2, bipc(p[0],p[1]))
@@ -253,6 +267,12 @@ END
 mtbool Eulertourc2
 
 EXISTS (W IN nWalksvs( edgecm, 0, 0 ), st(SET (n IN edgecm, {W[n],W[n+1]})) == edgecm)
+
+END
+
+mttuple Reversep( mttuple p )
+
+NAMING (n AS st(p), TUPLE (i IN n, p[n-i-1]))
 
 END
 

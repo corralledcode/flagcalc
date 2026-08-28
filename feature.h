@@ -2848,6 +2848,7 @@ public:
         auto (CUDAConnvp) = tuplefactory<CUDAConnvtuple>;
 #endif
         auto (Pathp) = tuplefactory<Pathtuple>;
+        auto (Reversep) = tuplefactory<Reversetuple>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
@@ -2861,6 +2862,7 @@ public:
         ossfactory.push_back(CUDAConnvp);
 #endif
         ossfactory.push_back(Pathp);
+        ossfactory.push_back(Reversep);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));
@@ -2880,6 +2882,10 @@ public:
         auto (Complementg) = graphfactory<Complementgmeas>;
         auto (Closureg) = graphfactory<Closuregmeas>;
         auto (SubgraphonVEg) = graphfactory<SubgraphonVEgmeas>;
+        auto (Kg) = graphfactory<Kgmeas>;
+        auto (Ig) = graphfactory<Igmeas>;
+        auto (Cg) = graphfactory<Cgmeas>;
+        auto (SPartiteg) = graphfactory<pPartitegmeas>;
 
         gmsfactory.push_back(GraphonVEg);
         gmsfactory.push_back(SubgraphonUg);
@@ -2887,6 +2893,10 @@ public:
         gmsfactory.push_back(Complementg);
         gmsfactory.push_back(Closureg);
         gmsfactory.push_back(SubgraphonVEg);
+        gmsfactory.push_back(Kg);
+        gmsfactory.push_back(Ig);
+        gmsfactory.push_back(Cg);
+        gmsfactory.push_back(SPartiteg);
 
         for (int n = 0; n < gmsfactory.size(); ++n) {
             gms.push_back((*gmsfactory[n])(&rec));

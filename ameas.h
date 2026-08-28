@@ -818,7 +818,7 @@ inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalform
 }
 inline evalmformula::evalmformula( mrecords* recin, neighborstype* nsin ) : evalformula(), rec{recin}, ns{nsin}
 {
-
+    thread_count = rec->thread_count;
 }
 
 
@@ -895,24 +895,48 @@ inline valms evalmformula::evalpslit( const int l, namedparams& context, neighbo
 
     }
 
+    if (idx >= 0)
+        switch (r.t)
+        {
+        case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(idx,context,ps);
+            return r;
+        case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(idx,context,ps);
+            return r;
+        case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(idx,context,ps);
+            return r;
+        case measuretype::mtset: r.seti = a.a.ss->takemeas(idx,context,ps);
+            return r;
+        case measuretype::mttuple: r.seti = a.a.os->takemeas(idx,context,ps);
+            return r;
+        case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(idx,context,ps);
+            return r;
+        case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(idx,context,ps);
+            return r;
+        case measuretype::mtuncast: {
+            auto r2 = a.a.uc->takemeas(idx,context,ps);
+            while (r2.t == mtuncast)
+                r2 = *r2.uv;
+            return r2;
+        }
+    }
     switch (r.t)
     {
-    case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(idx,context,ps);
+    case measuretype::mtbool: r.v.bv = a.a.cs->takemeas(ns,context,ps);
         return r;
-    case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(idx,context,ps);
+    case measuretype::mtdiscrete: r.v.iv = a.a.ts->takemeas(ns,context,ps);
         return r;
-    case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(idx,context,ps);
+    case measuretype::mtcontinuous: r.v.dv = a.a.ms->takemeas(ns,context,ps);
         return r;
-    case measuretype::mtset: r.seti = a.a.ss->takemeas(idx,context,ps);
+    case measuretype::mtset: r.seti = a.a.ss->takemeas(ns,context,ps);
         return r;
-    case measuretype::mttuple: r.seti = a.a.os->takemeas(idx,context,ps);
+    case measuretype::mttuple: r.seti = a.a.os->takemeas(ns,context,ps);
         return r;
-    case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(idx,context,ps);
+    case measuretype::mtstring: r.v.rv = a.a.rs->takemeas(ns,context,ps);
         return r;
-    case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(idx,context,ps);
+    case measuretype::mtgraph: r.v.nsv = a.a.gs->takemeas(ns,context,ps);
         return r;
     case measuretype::mtuncast: {
-        auto r2 = a.a.uc->takemeas(idx,context,ps);
+        auto r2 = a.a.uc->takemeas(ns,context,ps);
         while (r2.t == mtuncast)
             r2 = *r2.uv;
         return r2;
@@ -1153,7 +1177,7 @@ public:
         nps = npsin;
         bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps,&global_fnptrs);
-    };
+    }
 
     ~formtally() {
         delete fc;
@@ -1201,7 +1225,7 @@ public:
         nps = npsin;
         bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
-    };
+    }
 
     ~formset() {
         delete fc;
@@ -1762,6 +1786,14 @@ public:
     virtual int getlength() {std::cout << "using abstract virtual method: error\n"; return 0;}
 };
 */
+class abstractmakereverse
+{
+public:
+    virtual setitr* makereverse() {
+        std::cout << "using abstract virtual method: error\n"; return nullptr;};
+    virtual int getlength() {std::cout << "using abstract virtual method: error\n"; return 0;}
+};
+
 
 class fastmakesubset : public abstractmakesubset {
 public:
@@ -1926,6 +1958,68 @@ public:
         delete superset;
     }
 };
+class setitrreverse : public setitr
+{
+public:
+    itrpos* superset {};
+    void setsuperset( itrpos* supersetposin )
+    {
+        superset = supersetposin;
+        reset();
+    }
+    LONGINT getsize() override
+    {
+        return superset->getsize();
+    }
+    valms getnext() override
+    {
+        valms res;
+        if (++pos < totality.size())
+            return totality[pos];
+        if (pos >= getsize()) {
+            std::cout << "indexing beyond reversed tuple\n";
+            res.t = mtbool;
+            res.v.bv = false;
+            return res;
+        }
+        std::cout << "Error reversing tuple\n";
+        res.t = mtbool;
+        res.v.bv = false;
+        return res;
+        return res;
+    }
+    void reset() override
+    {
+        superset->reset();
+        pos = -1;
+        int sz = getsize();
+        totality.resize(sz);
+        for (int i = 0; i < sz; ++i)
+            totality[sz-i-1] = superset->getnext();
+    }
+    bool ended() override
+    {
+        return pos + 1 >= getsize();
+    }
+    setitrreverse(itrpos* supersetin) : superset{supersetin}
+    {
+        superset->parent->usecount++;
+        t = superset->parent->t;
+        pos = -1;
+        totality.resize(0);
+        reset();
+    };
+    setitrreverse() : superset{}
+    {
+        t = mtdiscrete;
+        pos = -1;
+    };
+    ~setitrreverse() override {
+        superset->parent->usecount--;
+        delete superset;
+    }
+};
+
 class slowmakesubsegment : public abstractmakesubsegment {
 public:
     setitr* supertuple;
@@ -1938,6 +2032,19 @@ public:
         return supertuple->getsize();
     }
     slowmakesubsegment( setitr* supertuplein ) : supertuple{supertuplein} {}
+};
+class slowmakereverse : public abstractmakereverse {
+public:
+    setitr* supertuple;
+    setitr* makereverse() {
+        auto out = new setitrreverse( supertuple->getitrpos() );
+        return out;
+    }
+    int getlength() override
+    {
+        return supertuple->getsize();
+    }
+    slowmakereverse( setitr* supertuplein ) : supertuple{supertuplein} {}
 };
 
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
@@ -1961,6 +2068,18 @@ inline abstractmakesubsegment* getsubsegmentmaker( setitr* superset ) {
         return new fastmakesubsegment<double>( cast );*/
     return new slowmakesubsegment( superset );
 }
+
+inline abstractmakereverse* getreversemaker( setitr* superset ) {
+    /*
+    if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
+        return new fastmakesubsegment<int>( cast );
+    if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
+        return new fastmakesubsegment<bool>( cast );
+    if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
+        return new fastmakesubsegment<double>( cast );*/
+    return new slowmakereverse( superset );
+}
+
 
 class setitrpowerset : public setitr
 {
@@ -2741,6 +2860,10 @@ public:
         exit(1);
         return nullptr;;
     }
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        return this->takemeas(-1,ps);
+    }
 
     Permset( mrecords* recin ) : set(recin,"Perms", "Set of permutation tuples")
     {
@@ -3008,6 +3131,27 @@ public:
         nps.push_back(std::pair{"m",v});
         v.t = mtdiscrete;
         nps.push_back(std::pair{"n",v});
+        bindnamedparams();
+    }
+
+};
+
+class Reversetuple : public set
+{
+public:
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        auto s = ps[0].seti;
+        auto reversemaker = getreversemaker(s);
+        auto res = reversemaker->makereverse();
+        delete reversemaker;
+        return res;
+    }
+    Reversetuple( mrecords* recin ) : set(recin,"Reversep", "Reverse tuple")
+    {
+        valms v;
+        v.t = mttuple;
+        nps.push_back(std::pair{"tuple",v});
         bindnamedparams();
     }
 
@@ -3363,7 +3507,7 @@ class Nullset : public set
 class SubgraphsonUset : public set {
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-        //
+        // to do (not yet incorporated into factory
     }
     setitr* takemeas(const int idx, const params& ps ) override
     {
@@ -3382,7 +3526,7 @@ class SubgraphsonUset : public set {
 class SubgraphsonDset : public set {
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
-        //
+        // to do
     }
     setitr* takemeas(const int idx, const params& ps ) override
     {
@@ -3918,6 +4062,144 @@ public:
         bindnamedparams();
     }
 };
+
+class Kgmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto dim = ps[0].v.iv;
+        auto g = new graphtype(dim);
+        for (int i = 0; i < dim; ++i)
+        {
+            g->adjacencymatrix[i*dim + i] = false;
+            for (int j = i+1; j < dim; ++j)
+            {
+                g->adjacencymatrix[i*dim + j] = true;
+                g->adjacencymatrix[j*dim + i] = true;
+            }
+        }
+        auto out = new neighbors(g);
+        return out;
+    }
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
+    Kgmeas( mrecords* recin ) : gmeas(recin,"Kg", "Complete graph on n vertices")
+    {
+        valms v1;
+        v1.t = mtdiscrete;
+        nps.push_back(std::pair{"n",v1});
+        bindnamedparams();
+    }
+};
+
+class Igmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto dim = ps[0].v.iv;
+        auto g = new graphtype(dim);
+        memset(g->adjacencymatrix,false,dim*dim);
+        auto out = new neighbors(g);
+        return out;
+    }
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
+    Igmeas( mrecords* recin ) : gmeas(recin,"Ig", "Independent graph on n vertices")
+    {
+        valms v1;
+        v1.t = mtdiscrete;
+        nps.push_back(std::pair{"n",v1});
+        bindnamedparams();
+    }
+};
+
+class Cgmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto dim = ps[0].v.iv;
+        if (dim < 3)
+        {
+            std::cerr << "Cg: n must be at least 3" << std::endl;
+            dim = 3;
+        }
+        auto g = new graphtype(dim);
+        memset(g->adjacencymatrix,false,dim*dim);
+        for (int i = 0; i+1 < dim; ++i)
+        {
+            g->adjacencymatrix[i*dim + i + 1] = true;
+            g->adjacencymatrix[(i+1)*dim + i] = true;
+        }
+        g->adjacencymatrix[(dim-1)*dim + 0] = true;
+        g->adjacencymatrix[0 + dim-1] = true;
+        auto out = new neighbors(g);
+        return out;
+    }
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
+    Cgmeas( mrecords* recin ) : gmeas(recin,"Cg", "Cyclic graph on n vertices")
+    {
+        valms v1;
+        v1.t = mtdiscrete;
+        nps.push_back(std::pair{"n",v1});
+        bindnamedparams();
+    }
+};
+
+class pPartitegmeas : public gmeas
+{
+public:
+    neighborstype* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        auto pitrpos = ps[0].seti->getitrpos(false);
+
+        std::vector<std::vector<vertextype>> vv {};
+
+        int dim = 0;
+        while (!pitrpos->ended())
+        {
+            auto psize = pitrpos->getnext().v.iv;
+            std::vector<vertextype> v(psize);
+            std::iota(v.begin(), v.end(), dim);
+            vv.push_back(v);
+            dim += psize;
+        }
+        auto g = new graphtype(dim);
+        memset(g->adjacencymatrix,false,dim*dim);
+        for (int i = 0; i < vv.size(); ++i)
+            for (int j = i+1; j < vv.size(); ++j)
+                for (auto v1 : vv[i])
+                    for (auto v2 : vv[j])
+                    {
+                        g->adjacencymatrix[v1*dim + v2] = true;
+                        g->adjacencymatrix[v2*dim + v1] = true;
+                    }
+        auto out = new neighborstype(g);
+        delete pitrpos;
+        return out;
+    }
+    neighborstype* takemeas(const int idx, const params& ps ) override
+    {
+        return takemeas(nullptr,ps);
+    }
+    pPartitegmeas( mrecords* recin ) : gmeas(recin,"pPartiteg", "st(p)-partite graph on p[0],p[1],... vertices")
+    {
+        valms v1;
+        v1.t = mttuple;
+        nps.push_back(std::pair{"p",v1});
+        bindnamedparams();
+    }
+};
+
 
 class TupletoSet : public set
 {
