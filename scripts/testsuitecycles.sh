@@ -36,3 +36,17 @@ $PTH/flagcalc -d graph6.fcg -a isp=storedprocedures.dat s="FORALL (P IN Setparti
 $PTH/flagcalc -r 6 0 1 -a isp=storedprocedures.dat s="FORALL (P IN Setpartition(V), NAMING (PS AS TUPLE (p IN P, st(p)), NAMING (pPg AS pPartiteg(PS), pPartitec(pPg,PS))))" -v i=minimal3.cfg allsets set
 $PTH/flagcalc -r 15 0 1 -a isp=storedprocedures.dat s="FORALL (n IN dimm, n > 2, Cc(Cg(n)))" -v i=minimal3.cfg allsets set
 
+# "IF" works, "IFF" works as in the second line below
+$PTH/flagcalc -r 10 p=0.5 100 -a s="FORALL (C IN Cycless, embedsc(Cg(st(C))) IF FORALL (i IN st(C), j IN st(C), i < j, ac(C[i],C[j]) IMPLIES j - i == 1 OR (j == st(C) - 1 AND i == 0)  ))" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -r 10 p=0.5 100 -a s="FORALL (C IN Cycless, embedsc(SubgraphonUg(C),Cg(st(C))) IFF FORALL (i IN st(C), j IN st(C), i < j, ac(C[i],C[j]) IMPLIES j - i == 1 OR (j == st(C) - 1 AND i == 0)  ))" -v i=minimal3.cfg allsets set
+
+# Now investigating linear algebra
+
+$PTH/flagcalc -r 5 p=0.5 5 -a isp=storedprocedures.dat s="FORALL (F IN Ps(Ps(E)), dimedgesubspace(F) + dimedgesubspace(edgesubspaceortho(F)) == edgecm)" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -d graph6.fcg -a isp=storedprocedures.dat s1="edgecm < 5" s2="FORALL (F IN Sizedsubset(Ps(E),4), dimedgesubspace(F) + dimedgesubspace(edgesubspaceortho(F)) == edgecm)" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -r 6 7.5 5 -a isp=storedprocedures.dat s="dimedgesubspace(edgestandardbasis) == edgecm" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -r 6 7.5 5 -a isp=storedprocedures.dat e="edgestandardbasis" -v i=minimal3.cfg allsets set
+
+$PTH/flagcalc -d f="abc d e f" -a isp=storedprocedures.dat s="FORALL (F IN Ps(Ps(E)), dimedgesubspace(F) + dimedgesubspace(edgesubspaceortho(F)) == edgecm)" z="dimedgesubspace({{},{{0,2}},{{1,2}},{{0,2},{1,2}}})" e="edgesubspaceortho({{},{{0,2}},{{1,2}},{{0,2},{1,2}}})" -v i=minimal3.cfg allsets set alltally
+
+$PTH/flagcalc -d graph5.fcg -a isp=storedprocedures.dat s="cyclomaticnumber == edgecm - dimm + st(Connc)" z="edgecm - dimm + st(Connc)" -v i=minimal3.cfg allsets set
