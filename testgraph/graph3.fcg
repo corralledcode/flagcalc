@@ -1,0 +1,22 @@
+/* #name=Graph1
+ */
+a0 a1 a2 END 
+END
+
+/* #name=Graph2
+ */
+a0 a1 a2 END 
+a0a2 
+END
+
+/* #name=Graph3
+ */
+a0 a1 a2 END 
+a0a2 a1a2 
+END
+
+/* #name=Graph4
+ */
+a0 a1 a2 END 
+a0a1 a0a2 a1a2 END
+

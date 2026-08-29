@@ -1,0 +1,5 @@
+/* #name=Graph1
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 END 
+a0a1 a0a2 a0a3 a1a4 a1a5 a2a6 a2a9 a3a7 a3a8 a4a6 a4a8 a5a7 a5a9 a6a7 a8a9 END
+

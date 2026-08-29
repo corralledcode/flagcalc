@@ -1,0 +1,10 @@
+/* #name=Graph1
+ */
+a0 a1 END 
+END
+
+/* #name=Graph2
+ */
+a0 a1 END 
+a0a1 END
+

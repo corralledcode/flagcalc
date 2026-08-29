@@ -1,0 +1,80 @@
+/* #name=Graph1
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a12 a0a20 a0a21 a1a13 a1a16 a1a21 a2a14 a2a15 a2a21 a3a11 a3a18 a3a20 
+a4a9 a4a10 a4a20 a5a16 a5a18 a5a19 a6a7 a6a14 a6a18 a7a11 a7a15 a8a9 a8a15 
+a8a17 a9a11 a10a12 a10a17 a12a13 a13a19 a14a16 a17a19 a17a21 a18a21 a19a20 
+END
+
+/* #name=Graph2
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a15 a0a20 a0a21 a1a16 a1a19 a1a21 a2a13 a2a14 a2a21 a3a5 a3a17 a3a19 
+a4a6 a4a18 a4a20 a5a6 a5a7 a6a8 a7a10 a7a20 a8a9 a8a19 a9a16 a9a18 a10a15 
+a10a17 a11a12 a11a14 a11a17 a12a13 a12a18 a13a16 a14a15 a17a21 a18a21 a19a20 
+END
+
+/* #name=Graph3
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a15 a0a16 a0a21 a1a14 a1a17 a1a21 a2a13 a2a18 a2a21 a3a4 a3a10 a3a11 
+a4a9 a4a12 a5a6 a5a16 a5a20 a6a15 a6a19 a7a11 a7a17 a7a19 a8a12 a8a18 a8a20 
+a9a14 a9a20 a10a13 a10a19 a11a14 a12a13 a15a17 a16a18 a19a21 a20a21 
+END
+
+/* #name=Graph4
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a5 a0a20 a0a21 a1a4 a1a7 a1a14 a2a3 a2a6 a2a15 a3a10 a3a21 a4a11 a4a20 
+a5a10 a5a11 a6a8 a6a13 a7a9 a7a12 a8a16 a8a21 a9a17 a9a20 a10a19 a11a18 
+a12a13 a12a16 a13a17 a14a16 a14a18 a15a17 a15a19 a16a20 a17a21 a18a19 a18a21 
+a19a20 
+END
+
+/* #name=Graph5
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a9 a0a10 a0a17 a1a2 a1a6 a1a8 a2a5 a2a7 a3a5 a3a11 a3a15 a4a6 a4a12 a4a16 
+a5a13 a6a14 a7a11 a7a14 a8a12 a8a13 a9a16 a9a20 a10a15 a10a21 a11a21 a12a20 
+a13a19 a14a18 a15a19 a16a18 a17a18 a17a19 a18a21 a19a20 a20a21 
+END
+
+/* #name=Graph6
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a1 a0a2 a0a15 a1a6 a1a12 a2a5 a2a11 a3a8 a3a14 a3a16 a4a7 a4a13 a4a17 
+a5a6 a5a10 a6a9 a7a9 a7a12 a8a10 a8a11 a9a20 a10a21 a11a19 a12a18 a13a14 
+a13a20 a14a21 a15a18 a15a19 a16a19 a16a20 a17a18 a17a21 a18a20 a19a21 
+END
+
+/* #name=Graph7
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a1 a0a2 a0a13 a1a4 a1a8 a2a3 a2a7 a3a4 a3a9 a4a10 a5a7 a5a9 a5a18 a6a8 
+a6a10 a6a19 a7a14 a8a15 a9a17 a10a16 a11a12 a11a16 a11a19 a12a17 a12a18 
+a13a14 a13a15 a14a21 a15a20 a16a21 a17a20 a18a21 a19a20 a20a21 
+END
+
+/* #name=Graph8
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a1 a0a2 a0a3 a1a16 a1a21 a2a18 a2a20 a3a17 a3a19 a4a10 a4a12 a4a14 a5a11 
+a5a13 a5a15 a6a9 a6a12 a6a15 a7a8 a7a13 a7a14 a8a10 a8a16 a9a11 a9a16 a10a17 
+a11a18 a12a18 a13a17 a14a20 a15a19 a19a21 a20a21 
+END
+
+/* #name=Graph9
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a1 a0a2 a0a3 a1a16 a1a21 a2a18 a2a20 a3a17 a3a19 a4a8 a4a10 a4a14 a5a9 
+a5a11 a5a15 a6a7 a6a12 a6a15 a7a13 a7a14 a8a13 a8a16 a9a12 a9a16 a10a11 
+a10a17 a11a18 a12a18 a13a17 a14a20 a15a19 a19a21 a20a21 
+END
+
+/* #name=Graph10
+ */
+a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 END 
+a0a1 a0a2 a0a3 a1a18 a1a19 a2a17 a2a21 a3a16 a3a20 a4a8 a4a10 a4a14 a5a9 
+a5a11 a5a15 a6a7 a6a12 a6a15 a7a13 a7a14 a8a9 a8a19 a9a18 a10a13 a10a20 
+a11a12 a11a21 a12a17 a13a16 a14a17 a15a16 a18a21 a19a20 END
+
