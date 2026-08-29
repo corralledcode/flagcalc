@@ -331,7 +331,7 @@ public:
 
             return parent->totality[pos];
         } else {
-            std::cout << "pos == " << pos << " exceeds parent totality size of " << parent->totality.size() << ", ended() == " << this->ended() << "\n";
+            std::cerr << "pos == " << pos << " exceeds parent totality size of " << parent->totality.size() << ", ended() == " << this->ended() << "\n";
             exit(1);
         }
     }

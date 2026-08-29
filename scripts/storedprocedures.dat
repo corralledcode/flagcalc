@@ -270,9 +270,18 @@ EXISTS (W IN nWalksvs( edgecm, 0, 0 ), st(SET (n IN edgecm, {W[n],W[n+1]})) == e
 
 END
 
+
+/* Natively-coded now
 mttuple Reversep( mttuple p )
 
 NAMING (n AS st(p), TUPLE (i IN n, p[n-i-1]))
+
+END
+*/
+
+mtbool chordal
+
+FORALL (c IN Cycless, st(c) > 3, COUNT (v1 IN c, v2 IN c, v1 < v2, ac(v1,v2)) > st(c))
 
 END
 

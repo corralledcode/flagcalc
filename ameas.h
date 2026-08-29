@@ -1221,11 +1221,11 @@ public:
     formset( mrecords* recin , const std::vector<int>& litnumpsin,
         const std::vector<measuretype>& littypesin, const std::vector<std::string>& litnamesin,
         const namedparams& npsin, const std::string& fstr, const std::string shortnamein = "")
-            : set( recin,  shortnamein == "" ? "st" : shortnamein, "Set-valued formula " + fstr ) {
+            : set( recin,  shortnamein == "" ? "ens" : shortnamein, "Set-valued formula " + fstr ) {
         nps = npsin;
         bindnamedparams();
         fc = parseformula(fstr,litnumpsin,littypesin,litnamesin,nps, &global_fnptrs);
-    }
+    } // known bug: -a e=V e=st(V) crashes with error unknown "st", so changed "st" lines above to "ens"
 
     ~formset() {
         delete fc;
@@ -2730,7 +2730,7 @@ public:
                 endedvar = true;
             return totality[pos];
         }
-        std::cout << "setitrsetpartitions: ended\n";
+        std::cerr << "setitrsetpartitions: ended\n";
         valms v;
         v.t = mtset;
         v.seti = new setitrint(-1);
@@ -2743,7 +2743,7 @@ public:
         generative = true;
         setA->parent->usecount++;
         if (Ain == this)
-            std::cout << "Circular reference in setitrsizedsubset(); expect segfault\n";
+            std::cerr << "Circular reference in setitrsetpartitions(); expect segfault\n";
         if (setA)
             reset();
         maxint = subsetmaker->getmaxint();
@@ -2765,6 +2765,194 @@ public:
     }
 };
 
+
+/** From Google Gemini
+ * Recursive backtracking function to partition the set.
+ * @param elements The initial full set of elements.
+ * @param index The current element index being processed.
+ * @param targetPartitions The exact number of subsets required (n).
+ * @param currentPartitions The active structure holding the subsets.
+ */
+inline void getnPartitions(const size_t setsize,
+                   size_t index,
+                   size_t targetPartitions,
+                   std::vector<std::vector<size_t>>& currentPartitions,
+                   std::vector<std::vector<std::vector<size_t>>>& nPartitions) {
+
+    size_t remainingElements = setsize - index;
+    size_t currentSize = currentPartitions.size();
+
+    // Pruning 1: If remaining elements aren't enough to reach target partitions
+    if (currentSize + remainingElements < targetPartitions) return;
+
+    // Pruning 2: If we have already exceeded the target number of partitions
+    if (currentSize > targetPartitions) return;
+
+    // Base Case: All elements are assigned
+    if (index == setsize) {
+        if (currentSize == targetPartitions) {
+            nPartitions.push_back(currentPartitions);
+        }
+        return;
+    }
+
+    // Choice 1: Add the element to each of the existing subsets
+    for (size_t i = 0; i < currentSize; ++i) {
+        currentPartitions[i].push_back(index);
+        getnPartitions(setsize, index + 1, targetPartitions, currentPartitions, nPartitions);
+        currentPartitions[i].pop_back(); // Backtrack
+    }
+
+    // Choice 2: Add the element to a brand new subset
+    if (currentSize < targetPartitions)
+    {
+        std::vector<size_t> singleton {index};
+        currentPartitions.push_back(singleton);
+        getnPartitions(setsize, index + 1, targetPartitions, currentPartitions, nPartitions);
+        currentPartitions.pop_back(); // Backtrack
+    }
+}
+
+class setitrsetnpartitions : public setitr
+{
+protected:
+    itrpos* setA;
+    abstractmakesubset* subsetmaker;
+    int maxint;
+    int supersetsize;
+    int numberofpartitions;
+    bool computed = false;
+    bool endedvar = false;
+    std::vector<setitr*> subsets {};
+    std::vector<int> sequence {};
+public:
+
+    LONGINT getsize() override
+    {
+        supersetsize = setA->getsize();
+        maxint = subsetmaker->getmaxint();
+        return stirling(supersetsize,numberofpartitions);
+    }
+
+    void reset() override
+    {
+        pos = -1;
+        supersetsize = setA->getsize();
+        setA->reset();
+        computed = false;
+        totality.clear();
+        endedvar = supersetsize == 0 || numberofpartitions == 0;
+        sequence.resize(supersetsize);
+        for (int i = 0; i < supersetsize; ++i)
+            sequence[i] = 0;
+        subsets.clear();
+    }
+    bool ended() override
+    {
+        return endedvar;
+    }
+    void codesubsets() {
+        subsets.resize(supersetsize);
+
+        int max = 0;
+        for (int i = 0; i < supersetsize; ++i)
+        {
+            // subsets[i] = new setitrsubset(setA);
+            auto elts = new bool[maxint+1];
+            memset(elts, false, (maxint+1)*sizeof(bool));
+            for (int j = 0; j < supersetsize; ++j)
+            {
+                // elts[j] = sequence[j] == i;
+                elts[subsetmaker->lookupidx(j)] = sequence[j] == i;
+                // subsets[i]->itrint->elts[j] = sequence[j] == i;
+                max = max < sequence[j] ? sequence[j] : max;
+            }
+            subsets[i] = subsetmaker->makesubset(maxint, elts);
+            subsets[i]->reset();
+        }
+        subsets.resize(max+1);
+    }
+
+    valms getnext() override
+    {
+        if (!computed && !endedvar)
+        {
+            std::vector<std::vector<size_t>> currentPartitions {};
+            std::vector<std::vector<std::vector<size_t>>> nPartitions {};
+            getnPartitions(supersetsize, 0,numberofpartitions,currentPartitions,nPartitions);
+            subsets.resize(nPartitions.size());
+            totality.resize(nPartitions.size());
+            for (int p = 0; p < nPartitions.size(); ++p)
+            {
+                for (int i = 0; i < nPartitions[p].size(); ++i)
+                {
+                    for (int j = 0; j < nPartitions[p][i].size(); ++j)
+                    {
+                        sequence[nPartitions[p][i][j]] = i;
+                    }
+
+                }
+                codesubsets();
+
+                std::vector<valms> tot {};
+                for (auto s : subsets)
+                {
+                    valms v;
+                    v.t = mtset;
+                    v.seti = s;
+                    tot.push_back(v);
+                }
+                valms u;
+                u.t = mtset;
+                u.seti = new setitrmodeone(tot);
+                totality[p] = u;
+            }
+
+            computed = true;
+        }
+        if (pos+1 < totality.size())
+        {
+            endedvar = pos+2 >= totality.size();
+            return totality[++pos];
+        }
+        ++pos;
+        std::cerr << "setitrsetnpartitions: ended\n";
+        endedvar = true;
+        valms v;
+        v.t = mtset;
+        v.seti = new setitrint(-1);
+        return v;
+    }
+
+
+
+    setitrsetnpartitions(setitr* Ain, const int numberofpartitionsin ) : setA{Ain ? Ain->getitrpos(false) : nullptr},
+    subsetmaker{Ain ? getsubsetmaker(Ain) : nullptr}, numberofpartitions{numberofpartitionsin}
+    {
+        generative = true;
+        setA->parent->usecount++;
+        if (Ain == this)
+            std::cerr << "Circular reference in setitrsetnpartitions(); expect segfault\n";
+        if (setA)
+            reset();
+        maxint = subsetmaker->getmaxint();
+    }
+
+
+    ~setitrsetnpartitions()
+    {
+        setA->parent->usecount--;
+        delete setA;
+        // for (auto s : subsets)
+        // {
+            // delete s;
+        // }
+        // subsets.clear();
+        delete subsetmaker;
+        // for (auto t : totality) // this is handled by ~setitr() above
+            // delete t.seti;
+    }
+};
 
 
 class Pset : public set
@@ -3370,7 +3558,7 @@ public:
 };
 
 
-class Setpartition : public set
+class Setpartitionset : public set
 {
 public:
     setitr* takemeas(neighborstype* ns, const params& ps ) override
@@ -3387,45 +3575,61 @@ public:
         return f;
     }
 
-    Setpartition( mrecords* recin ) : set(recin,"Setpartition", "Set partitions")
+    Setpartitionset( mrecords* recin ) : set(recin,"Setpartition", "Set partitions")
     {
         valms v;
         v.t = mtset;
         nps.push_back(std::pair{"set",v});
         bindnamedparams();
     }
-    ~Setpartition() {}
+    ~Setpartitionset() {}
 };
 
-/* TO DO
-class Setsizedpartition : public set
+
+class Setnpartitionset : public set
 {
 public:
+    setitr* takemeas(neighborstype* ns, const params& ps ) override
+    {
+        if (ps.size() == 2)
+        {
+            auto setA = ps[0].seti;
+            auto s = ps[1].v.iv;
+            auto f = new setitrsetnpartitions(setA,s);
+            return f;
+        }
+        std::cerr << "Error in Setnpartitionset::takemeas\n";
+        return nullptr;
+    }
+
     setitr* takemeas(const int idx, const params& ps ) override
     {
         if (ps.size() == 2)
         {
             auto setA = ps[0].seti;
             auto s = ps[1].v.iv;
-            auto f = new setitrsetpartitions(setA);
+            auto f = new setitrsetnpartitions(setA,s);
             return f;
         }
-        std::cout << "Error in Sizedsubset::takemeas\n";
+        std::cerr << "Error in Setnpartitionset::takemeas\n";
         return nullptr;
     }
 
-    Setsizedpartition( mrecords* recin ) : set(recin,"Setpartition", "Set partitions")
+    Setnpartitionset( mrecords* recin ) : set(recin,"Setnpartitions", "Partition set into n partitions")
     {
         valms v;
         v.t = mtset;
         nps.push_back(std::pair{"set",v});
+        valms v2;
+        v2.t = mtdiscrete;
+        nps.push_back(std::pair{"size",v2});
         bindnamedparams();
     }
-    ~Setsizedpartition()
+    ~Setnpartitionset()
     {
         //        delete f;
     }
-}; */
+};
 
 class nwisecrit : public crit {
 

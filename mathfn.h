@@ -9,6 +9,7 @@
 
 
 inline int nchoosek( const int n, const int k);
+inline int stirling(int n, int k);
 
 inline int bellNumber(int n);
 

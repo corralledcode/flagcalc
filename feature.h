@@ -2774,7 +2774,7 @@ public:
         auto (Pathsusingvsets) = setfactory<Pathsusingvsetset>;
         auto (Pathsusingesets) = setfactory<Pathsusingesetset>;
         auto (Cyclesvs) = setfactory<Cyclesvset>;
-        auto (Setpartitions) = setfactory<Setpartition>;
+        auto (Setpartitions) = setfactory<Setpartitionset>;
         auto (nEs) = setfactory<nEset>;
         auto (Cycless) = setfactory<Cyclesset>;
         auto (Perms) = setfactory<Permset>;
@@ -2797,6 +2797,7 @@ public:
         auto (CUDAConncs) = setfactory<CUDAConnset>;
 #endif
         auto (nWalksvs) = setfactory<nWalksvset>;
+        auto (Setnpartitions) = setfactory<Setnpartitionset>;
 
         stsfactory.push_back(Vs);
         stsfactory.push_back(Ps);
@@ -2809,6 +2810,7 @@ public:
         stsfactory.push_back(Paths);
         stsfactory.push_back(Cyclesvs);
         stsfactory.push_back(Setpartitions);
+        stsfactory.push_back(Setnpartitions);
         stsfactory.push_back(nEs);
         stsfactory.push_back(Cycless);
         stsfactory.push_back(Perms);

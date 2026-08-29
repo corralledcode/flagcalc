@@ -4721,7 +4721,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 res.v.bv = eval2aryseteq(resleft.seti,resright.seti,fc.fo);
             } else
             {
-                std::cout << "Error in evalformula::eval comparing set type to non-set type\n";
+                std::cerr << "Error in evalformula::eval comparing set type to non-set type\n";
             }
             break;
         case mttuple:
@@ -4735,7 +4735,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 }
                 else
                 {
-                    std::cout << "Error in evalformula::eval comparing tuple type to non-tuple type\n";
+                    std::cerr << "Error in evalformula::eval comparing tuple type to non-tuple type\n";
                 }
             break;
         case mtgraph:
@@ -4743,7 +4743,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             {
                 res.v.bv = graphsequal(resleft.v.nsv->g,resright.v.nsv->g);
             } else
-                std::cout << "Error in evalformula::eval comparing graph type to non-graph type\n";
+                std::cerr << "Error in evalformula::eval comparing graph type to non-graph type\n";
             break;
 
         }
@@ -5117,7 +5117,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                 ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "{") {
                     if (operatorstack.empty()) {
-                        std::cout << "Error mismatched curley braces (loc 1)\n";
+                        std::cerr << "Error mismatched curley braces (loc 1)\n";
                         return output;
                     }
                     output.insert(output.begin(),ostok);
@@ -5126,13 +5126,13 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Error mismatched curley braces (loc 2)\n";
+                        std::cerr << "Error mismatched curley braces (loc 2)\n";
                         return output;
                     }
                 }
             }
             if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "{") {
-                std::cout << "Error mismatched curley braces (loc 3)\n";
+                std::cerr << "Error mismatched curley braces (loc 3)\n";
                 return output;
             }
             operatorstack.resize(operatorstack.size()-1);
@@ -5215,7 +5215,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                 ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "<<") {
                     if (operatorstack.empty()) {
-                        std::cout << "Error mismatched tuple braces (loc 1)\n";
+                        std::cerr << "Error mismatched tuple braces (loc 1)\n";
                         return output;
                     }
                     output.insert(output.begin(),ostok);
@@ -5224,13 +5224,13 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Error mismatched tuple braces (loc 2)\n";
+                        std::cerr << "Error mismatched tuple braces (loc 2)\n";
                         return output;
                     }
                 }
             }
             if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "<<") {
-                std::cout << "Error mismatched tuple braces (loc 3)\n";
+                std::cerr << "Error mismatched tuple braces (loc 3)\n";
                 return output;
             }
             operatorstack.resize(operatorstack.size()-1);
@@ -5307,7 +5307,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                 ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "[") {
                     if (operatorstack.empty()) {
-                        std::cout << "Error mismatched brackets (loc 1)\n";
+                        std::cerr << "Error mismatched brackets (loc 1)\n";
                         return output;
                     }
                     output.insert(output.begin(),ostok);
@@ -5316,13 +5316,13 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Error mismatched brackets (loc 2)\n";
+                        std::cerr << "Error mismatched brackets (loc 2)\n";
                         return output;
                     }
                 }
             }
             if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "[") {
-                std::cout << "Error mismatched tuple brackets (loc 3)\n";
+                std::cerr << "Error mismatched tuple brackets (loc 3)\n";
                 return output;
             }
             operatorstack.resize(operatorstack.size()-1);
@@ -5394,7 +5394,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                 ostok = operatorstack[operatorstack.size()-1];
                 while (ostok != "(") {
                     if (operatorstack.empty()) {
-                        std::cout << "Error mismatched parentheses (loc 1)\n";
+                        std::cerr << "Error mismatched parentheses (loc 1)\n";
                         return output;
                     }
                     output.insert(output.begin(),ostok);
@@ -5403,7 +5403,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                         ostok = operatorstack[operatorstack.size()-1];
                     else
                     {
-                        std::cout << "Error mismatched parentheses (loc 2)\n";
+                        std::cerr << "Error mismatched parentheses (loc 2)\n";
                         // for (auto o : output)
                             // std::cout << o << ", ";
                         // std::cout << "\n";
@@ -5412,7 +5412,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                 }
             }
             if (operatorstack.empty() || operatorstack[operatorstack.size()-1] != "(") {
-                std::cout << "Error mismatched parentheses (loc 3)\n";
+                std::cerr << "Error mismatched parentheses (loc 3)\n";
                 // for (auto t : operatorstack) {
                     // std::cout << t << ", ";
                 // }
@@ -5483,7 +5483,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
     while (operatorstack.size()> 0) {
         std::string ostok = operatorstack[operatorstack.size()-1];
         if (ostok == "(" || ostok == "{" || ostok == "<<" || ostok == "[") {
-            std::cout << "Error mismatched parentheses, curley braces, brackets, or tuple brackets: " << ostok << ", (loc 4)\n";
+            std::cerr << "Error mismatched parentheses, curley braces, brackets, or tuple brackets: " << ostok << ", (loc 4)\n";
 
             // for (auto t : operatorstack) {
                 // std::cout << t << ", ";
