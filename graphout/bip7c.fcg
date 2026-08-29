@@ -1,0 +1,449 @@
+/* #name=Graph1
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a6 
+a1a6 
+a2a6 
+a3a6 
+a4a6 
+a5a6 
+END
+
+/* #name=Graph2
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a6 
+a2a6 
+a3a6 
+a4a6 
+END
+
+/* #name=Graph4
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 
+a1a5 
+a2a6 
+a3a6 
+a4a6 
+a5a6 
+END
+
+/* #name=Graph5
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 
+a2a6 
+a3a6 
+a4a6 
+END
+
+/* #name=Graph7
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 a1a6 
+a2a6 
+a3a6 
+a4a6 
+END
+
+/* #name=Graph9
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 
+a2a5 
+a3a6 
+a4a6 
+END
+
+/* #name=Graph11
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 a1a6 
+a2a5 
+a3a6 
+a4a6 
+END
+
+/* #name=Graph13
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a6 
+a4a6 
+END
+
+/* #name=Graph15
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a5 
+a4a6 
+END
+
+/* #name=Graph17
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+a4a6 
+END
+
+/* #name=Graph19
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a5 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+a4a5 a4a6 
+END
+
+/* #name=Graph21
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a5 a1a6 
+a2a6 
+a3a6 
+END
+
+/* #name=Graph24
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a5 
+a2a5 
+a3a6 
+a5a6 
+END
+
+/* #name=Graph26
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a5 a1a6 
+a2a5 
+a3a6 
+END
+
+/* #name=Graph30
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a6 
+END
+
+/* #name=Graph36
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a5 
+END
+
+/* #name=Graph40
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph47
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 
+a1a5 a1a6 
+a2a6 
+a3a6 
+END
+
+/* #name=Graph51
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a5 a1a6 
+a2a6 
+a3a6 
+END
+
+/* #name=Graph69
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a6 
+END
+
+/* #name=Graph81
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a5 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph87
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 
+a1a4 
+a2a5 a2a6 
+a3a5 a3a6 
+a4a6 
+END
+
+/* #name=Graph93
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a4 a1a6 
+a2a5 a2a6 
+a3a5 
+END
+
+/* #name=Graph96
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a6 
+a1a4 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph107
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 
+a1a4 
+a2a5 
+a3a6 
+a4a6 
+a5a6 
+END
+
+/* #name=Graph110
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 
+a1a4 a1a6 
+a2a5 a2a6 
+a3a6 
+END
+
+/* #name=Graph117
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a6 
+a2a5 a2a6 
+a3a6 
+END
+
+/* #name=Graph131
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 
+a1a4 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph142
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph154
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a6 
+a3a6 
+END
+
+/* #name=Graph163
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a5 
+a3a6 
+END
+
+/* #name=Graph167
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a5 a2a6 
+a3a6 
+END
+
+/* #name=Graph176
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a5 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph190
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a4 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph198
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a4 a2a5 a2a6 
+a3a6 
+END
+
+/* #name=Graph206
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a4 a2a5 a2a6 
+a3a5 a3a6 
+END
+
+/* #name=Graph212
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a4 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a4 a2a5 a2a6 
+a3a4 a3a5 a3a6 
+END
+
+/* #name=Graph216
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a3 a0a6 
+a1a4 a1a6 
+a2a5 a2a6 
+END
+
+/* #name=Graph225
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a3 a0a5 
+a1a4 a1a6 
+a2a5 a2a6 
+END
+
+/* #name=Graph234
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a3 a0a5 a0a6 
+a1a4 a1a6 
+a2a5 a2a6 
+END
+
+/* #name=Graph294
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a3 a0a6 
+a1a4 a1a5 a1a6 
+a2a4 a2a5 a2a6 
+END
+
+/* #name=Graph372
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a3 a0a5 a0a6 
+a1a4 a1a5 a1a6 
+a2a4 a2a5 a2a6 
+END
+
+/* #name=Graph437
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a3 a0a4 a0a6 
+a1a4 a1a5 a1a6 
+a2a5 a2a6 
+END
+
+/* #name=Graph593
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 a5 a6 END
+a0a3 a0a4 a0a6 
+a1a3 a1a5 a1a6 
+a2a4 a2a5 a2a6 
+END

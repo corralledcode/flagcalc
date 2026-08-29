@@ -1804,7 +1804,7 @@ public:
     setitr* makesubset( const int maxint, bool* elts ) {
         // auto out = new setitrint( maxint, elts);
         auto itrint = new setitrint( maxint, elts);
-        auto out = new setitrsubset( superset->getitrpos(), itrint );
+        auto out = new setitrsubset( superset->getitrpos(true), itrint );
         return out;
     }
     int lookupidx( const int idxin )  override {
@@ -1863,7 +1863,7 @@ public:
     setitr* superset;
     setitr* makesubset( const int maxint, bool* elts ) {
         auto itrint = new setitrint( maxint, elts );
-        auto out = new setitrsubset( superset->getitrpos(false), itrint );
+        auto out = new setitrsubset( superset->getitrpos(true), itrint );
         return out;
     }
     int getmaxint() override {
@@ -2051,13 +2051,12 @@ public:
 };
 
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
-/*
     if (setitrint* cast = dynamic_cast<setitrint*>(superset))
         return new fastmakesubset( cast );
-    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
-        return new fastmake2dsubset( cast2d );
-    if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
-        return new fastmakesssubset( castss ); */
+    // if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
+        // return new fastmake2dsubset( cast2d );
+    // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
+        // return new fastmakesssubset( castss );
     return new slowmakesubset( superset );
 }
 

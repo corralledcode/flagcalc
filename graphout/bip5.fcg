@@ -1,0 +1,107 @@
+/* #name=Graph1
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+END
+
+/* #name=Graph2
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a4 
+END
+
+/* #name=Graph3
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a4 
+a1a4 
+END
+
+/* #name=Graph4
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a4 
+a1a4 
+a2a4 
+END
+
+/* #name=Graph5
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a4 
+a1a4 
+a2a4 
+a3a4 
+END
+
+/* #name=Graph6
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a3 
+a1a4 
+END
+
+/* #name=Graph7
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a3 
+a1a4 
+a2a4 
+END
+
+/* #name=Graph9
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a3 a0a4 
+a1a4 
+END
+
+/* #name=Graph11
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a3 a0a4 
+a1a4 
+a2a4 
+END
+
+/* #name=Graph14
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a3 a0a4 
+a1a3 a1a4 
+END
+
+/* #name=Graph16
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a3 a0a4 
+a1a3 a1a4 
+a2a4 
+END
+
+/* #name=Graph18
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a3 a0a4 
+a1a3 a1a4 
+a2a3 a2a4 
+END
+
+/* #name=Graph21
+ * #sn=1
+ */
+a0 a1 a2 a3 a4 END
+a0a2 a0a4 
+a1a3 a1a4 
+END

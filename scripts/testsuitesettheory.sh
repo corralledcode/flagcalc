@@ -336,7 +336,7 @@ $PTH/flagcalc -r 8 14 1000 -a s="FORALL (v IN V, FORALL (c IN Cyclesvs(v), mod(s
 
 # Diestel 2.1.1 (Konig 1931)
 
-$PTH/flagcalc -r 8 14 200 -a s="EXISTS (p IN Setpartition(V), st(p) == 2, bipc(p[0],p[1]))" s2="MAX (es IN Ps(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))), st(es)) == MIN (vs IN Ps(V), FORALL (e IN E, vs CAP e != Nulls), st(vs))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 8 14 200 -a s="EXISTS (p IN Setnpartitions(V,2), bipc(p[0],p[1]))" s2="MAX (es IN Ps(E), FORALL (e1 IN es, FORALL (e2 IN es, NOT eadjc(e1,e2))), st(es)) == MIN (vs IN Ps(V), FORALL (e IN E, vs CAP e != Nulls), st(vs))" all -v i=minimal3.cfg
 
 # Diestel 2.1.2 (Hall 1935)
 
@@ -498,3 +498,34 @@ $PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(5,1)" a2="edgecm" all -v i=mini
 $PTH/flagcalc -r 10 p=0.75 100000 -a s1="NOT Knc(6,1)" a2="edgecm" all -v i=minimal3.cfg
 
 # 4:08 on 24 core Shimada peak after memory improvements 2/7/2026
+# 4:15 8/29/2026
+
+# Diestel 2.1.2 (Hall 1935)
+
+$PTH/flagcalc -d graphout/bip5.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/bip6.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/bip7.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/bip8.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+# $PTH/flagcalc -d graphout/bip9.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/bip5c.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/bip6c.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/bip7c.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+$PTH/flagcalc -d graphout/bip8c.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+# $PTH/flagcalc -d graphout/bip9c.fcg -a s="FORALL (p IN Setnpartitions(V,2), bipc(p[0],p[1]), EXISTS (es IN Ps(E), FORALL (e1 IN es, e2 IN es, NOT eadjc(e1,e2)) AND FORALL (a IN p[0], EXISTS (e IN es, a ELT e))) IFF FORALL (S IN Ps(p[0]), Nt(S) >= st(S)))" all -v i=minimal3.cfg
+
+# Diestel 2.1.3 (Hall 1935)
+$PTH/flagcalc -d graphout/bip5.fcg -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1, n > 0, regularofdegree(n) IMPLIES kfactor(1))" all -v i=minimal3.cfg allsets
+$PTH/flagcalc -d graphout/bip6.fcg -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1, n > 0, regularofdegree(n) IMPLIES kfactor(1))" all -v i=minimal3.cfg allsets
+$PTH/flagcalc -d graphout/bip7.fcg -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1, n > 0, regularofdegree(n) IMPLIES kfactor(1))" all -v i=minimal3.cfg allsets
+# $PTH/flagcalc -d graphout/bip8.fcg -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1, n > 0, regularofdegree(n) IMPLIES kfactor(1))" all -v i=minimal3.cfg allsets
+# $PTH/flagcalc -d graphout/bip9.fcg -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1, n > 0, regularofdegree(n) IMPLIES kfactor(1))" all -v i=minimal3.cfg allsets
+$PTH/flagcalc -r 8 p=0.5 100 -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1, n > 0, regularofdegree(n) IMPLIES kfactor(1))" all -v i=minimal3.cfg allsets
+
+# Diestel 2.1.5 (Petersen 1891)
+$PTH/flagcalc -d graph5.fcg -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1, n > 1 AND n % 2 == 0, regularofdegree(n) IMPLIES kfactor(2))" all -v i=minimal3.cfg allsets
+
+# Diestel 2.2.1 (Tutte 1947)
+$PTH/flagcalc -d graph5.fcg -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" all -v i=minimal3.cfg allsets
+$PTH/flagcalc -d graph6.fcg -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s=kfactor(1) -v i=minimal3.cfg allsets
+$PTH/flagcalc -r 8 p=0.5 100 -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s=kfactor(1) -v i=minimal3.cfg allsets
+# $PTH/flagcalc -r 9 p=0.5 100 -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s=kfactor(1) -v i=minimal3.cfg allsets

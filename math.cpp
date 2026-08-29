@@ -2090,7 +2090,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 return res;
             } else {
                 res.v.bv = false;
-                std::cout << "Non-matching types in use of ELT, " << itm.t << ", " << set.t << "\n";
+                std::cerr << "Non-matching types in use of ELT, " << itm.t << ", " << set.t << "\n";
                 exit(1);
                 return res;
             }
@@ -2118,13 +2118,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     delete abstracttupleops;
                     break;}
             default:
-                    std::cout << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
+                    std::cerr << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
                         exit(1);
                     res.seti = nullptr;
                     break;
                 }
             else {
-                std::cout << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
+                std::cerr << "Non-matching types in call to CUP, CAP, CUPD, CROSS, SETMINUS, or SETXOR\n";
                 exit(1);
                 res.seti = nullptr;
             }

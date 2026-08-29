@@ -109,13 +109,13 @@ END
 
 mtbool iscut( mtset F )
 
-EXISTS (P IN Setpartition(V), st(P) == 2, F == SETD (u IN P[0], v IN P[1], ac(u,v), {u,v}))
+EXISTS (P IN Setnpartitions(V), F == SETD (u IN P[0], v IN P[1], ac(u,v), {u,v}))
 
 END
 
 mtset cutspace
 
-edgesetspan( SETD (P IN Setpartition(V), st(P) == 2, SETD ((u IN P[0], v IN P[1], ac(u,v), {u,v}))))
+edgesetspan( SETD (P IN Setnpartitions(V,2),SETD ((u IN P[0], v IN P[1], ac(u,v), {u,v}))))
 
 END
 

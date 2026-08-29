@@ -2355,7 +2355,7 @@ public:
                 }
         if (!eltsleft || !eltsright)
         {
-            std::cout << "Unknown class type passed to bipc, expecting setitrint or setitrsubset\n";
+            std::cerr << "Unknown class type passed to bipc, expecting setitrint or setitrsubset\n";
             return false;
         }
                 /*
