@@ -52,7 +52,6 @@ $PTH/flagcalc -d f="abc d e f" -a isp=graphlinearalgebra.dat s="FORALL (F IN Ps(
 $PTH/flagcalc -d graph5.fcg -a isp=graphlinearalgebra.dat s="cyclomaticnumber == edgecm - dimm + st(Connc)" z="edgecm - dimm + st(Connc)" -v i=minimal3.cfg allsets set
 
 # Diestel Prop 1.9.1
-
 $PTH/flagcalc -d graph4.fcg -a isp=graphlinearalgebra.dat s="NAMING (cs AS cyclespace, FORALL (D IN Ps(E), FORALL (v IN V, COUNT (d IN D, v ELT d) % 2 == 0) IFF D ELT cs))" -v i=minimal3.cfg allsets set
 $PTH/flagcalc -d graph5.fcg -a isp=graphlinearalgebra.dat s1="edgecm < 8" s2="NAMING (cs AS cyclespace, FORALL (D IN Ps(E), FORALL (v IN V, COUNT (d IN D, v ELT d) % 2 == 0) IFF D ELT cs))" -v i=minimal3.cfg allsets set
 $PTH/flagcalc -d graph6.fcg -a isp=graphlinearalgebra.dat s1="edgecm < 9" s2="NAMING (cs AS cyclespace, FORALL (D IN Ps(E), FORALL (v IN V, COUNT (d IN D, v ELT d) % 2 == 0) IFF D ELT cs))" -v i=minimal3.cfg allsets set
@@ -78,4 +77,12 @@ $PTH/flagcalc -d graph5.fcg -a isp=graphlinearalgebra.dat s1="edgecm < 8" s2="NA
 $PTH/flagcalc -d graph5.fcg -a isp=graphlinearalgebra.dat s1="edgecm < 8" s2="NAMING (cuts AS cutspace, NAMING (cycles AS cyclespace, edgesubspaceortho(cuts) == cycles))" -v i=minimal3.cfg allsets set
 
 $PTH/flagcalc -d graph5.fcg -a ipy=pymeas isp=graphlinearalgebra.dat s1="edgecm < 8" s2="conn1c" s3="NAMING (T AS pyfindspanningtree(Nulls), NAMING (chords AS E SETMINUS T, edgesetspan(SETD (c IN chords, fundamentalcycle(T,c))) == cyclespace))" -v i=minimal3.cfg allsets set
-$PTH/flagcalc -d graph6.fcg -a ipy=pymeas isp=graphlinearalgebra.dat s1="edgecm < 8" s2="conn1c" s3="NAMING (T AS pyfindspanningtree(Nulls), NAMING (chords AS E SETMINUS T, edgesetspan(SETD (c IN chords, fundamentalcycle(T,c))) == cyclespace))" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -d graph5.fcg -a ipy=pymeas isp=graphlinearalgebra.dat s1="edgecm < 8" s2="conn1c" s3="NAMING (T AS pyfindspanningtree(Nulls), edgesetspan(SETD (e IN T, fundamentalcut(T,e))) == cutspace)" -v i=minimal3.cfg allsets set
+
+# Verify chordal graphs
+$PTH/flagcalc -d chordal4.fcg -a s="FORALL (c IN Cycless, st(c) > 3, COUNT (v1 IN c, v2 IN c, v1 < v2, ac(v1,v2)) > st(c))" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -d chordal5.fcg -a s="FORALL (c IN Cycless, st(c) > 3, COUNT (v1 IN c, v2 IN c, v1 < v2, ac(v1,v2)) > st(c))" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -d chordal6.fcg -a s="FORALL (c IN Cycless, st(c) > 3, COUNT (v1 IN c, v2 IN c, v1 < v2, ac(v1,v2)) > st(c))" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -d chordal7.fcg -a s="FORALL (c IN Cycless, st(c) > 3, COUNT (v1 IN c, v2 IN c, v1 < v2, ac(v1,v2)) > st(c))" -v i=minimal3.cfg allsets set
+$PTH/flagcalc -d chordal8.fcg -a s="FORALL (c IN Cycless, st(c) > 3, COUNT (v1 IN c, v2 IN c, v1 < v2, ac(v1,v2)) > st(c))" -v i=minimal3.cfg allsets set
+

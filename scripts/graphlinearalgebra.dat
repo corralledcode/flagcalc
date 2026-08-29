@@ -115,19 +115,13 @@ END
 
 mtset cutspace
 
-edgesetspan( SETD (F IN Ps(E), iscut(F), F ) )
+edgesetspan( SETD (P IN Setpartition(V), st(P) == 2, SETD ((u IN P[0], v IN P[1], ac(u,v), {u,v}))))
 
 END
 
 mtset atomiccuts
 
 SETD (v IN V, SETD (e IN E, v ELT e, e) )
-
-END
-
-mtbool fundamentalcheck( mtset spanningtree, mtset chord )
-
-st(Pathsusingesets(chord[0],chord[1],spanningtree)) == 1
 
 END
 
@@ -139,11 +133,11 @@ ANY (P IN Pathsusingesets(chord[0],chord[1],spanningtree), TRUE, convertvcycleto
 
 END
 
-mtset fundamentalcut( mtset spanningtree, mtset chord )
+mtset fundamentalcut( mtset spanningtree, mtset edge )
 
-NAMING (cut AS spanningtree SETMINUS {chord},
-NAMING (left AS SETD (v IN V, connvusingedgesc(chord[0],v,cut), v),
-NAMING (right AS V SETMINUS left,
+NAMING (cut AS spanningtree SETMINUS {edge},
+NAMING (left AS SETD (v IN V, connvusingedgesc(edge[0],v,cut), v),
+NAMING (right AS SETD (v IN V, connvusingedgesc(edge[1],v,cut), v),
 SETD (l IN left, r IN right, ac(l,r), {l,r}))))
 
 END
