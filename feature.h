@@ -2624,6 +2624,7 @@ public:
         auto (hastopologicalminorc) = critfactory<hastopologicalminorcrit>;
         auto (hastopologicalminorc4) = critfactory<hastopologicalminor4crit>;
         auto (hasminorc) = critfactory<hasminorcrit>;
+        auto (connvusingedgesc) = critfactory<connvusingedgescrit>;
 
         crsfactory.push_back(c1);
         crsfactory.push_back(cr1);
@@ -2651,6 +2652,7 @@ public:
         crsfactory.push_back(toBoolc);
         crsfactory.push_back(embedsinducedc);
         crsfactory.push_back(connvusingsetc);
+        crsfactory.push_back(connvusingedgesc);
         crsfactory.push_back(embedsc);
         crsfactory.push_back(hastopologicalminorc);
         crsfactory.push_back(hastopologicalminorc4);
@@ -2770,6 +2772,7 @@ public:
         auto (TtoS) = setfactory<TupletoSet>;
         auto (Paths) = setfactory<Pathsset>;
         auto (Pathsusingvsets) = setfactory<Pathsusingvsetset>;
+        auto (Pathsusingesets) = setfactory<Pathsusingesetset>;
         auto (Cyclesvs) = setfactory<Cyclesvset>;
         auto (Setpartitions) = setfactory<Setpartition>;
         auto (nEs) = setfactory<nEset>;
@@ -2823,6 +2826,7 @@ public:
         stsfactory.push_back(e2eadjs);
         stsfactory.push_back(Epathss);
         stsfactory.push_back(Pathsusingvsets);
+        stsfactory.push_back(Pathsusingesets);
         stsfactory.push_back(Mapss);
         stsfactory.push_back(Gpathss);
 #ifdef FLAGCALC_CUDA
@@ -2849,6 +2853,8 @@ public:
 #endif
         auto (Pathp) = tuplefactory<Pathtuple>;
         auto (Reversep) = tuplefactory<Reversetuple>;
+        auto (Tallyp) = tuplefactory<Tallytuple>;
+        auto (Flattenp) = tuplefactory<Flattentuple>;
 
         ossfactory.push_back(Chip);
         ossfactory.push_back(Chigreedyp);
@@ -2863,6 +2869,8 @@ public:
 #endif
         ossfactory.push_back(Pathp);
         ossfactory.push_back(Reversep);
+        ossfactory.push_back(Tallyp);
+        ossfactory.push_back(Flattenp);
 
         for (int n = 0; n < ossfactory.size(); ++n) {
             oss.push_back((*ossfactory[n])(&rec));

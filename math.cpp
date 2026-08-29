@@ -1113,7 +1113,7 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                         for (j = context.size()-2; j >= 0 && !found; j--)
                             found = context[j].first == fc->v.vs.name;
                         if (!found) {
-                            std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
+                            std::cerr << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables)\n";
                             fc->v.vs.l = 0;
                             exit(-1);
                         }
@@ -1122,7 +1122,7 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
                     }
                 else
                 {
-                    std::cout << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables (2))\n";
+                    std::cerr << "Unknown variable name " << fc->v.vs.name << " (preprocessbindvariables (2))\n";
                     exit(-1);
                 }
             }
@@ -5565,7 +5565,7 @@ inline formulaclass* parseformulainternal(
             {
                 argcnt = stoi(q[++pos]);
                 if (argcnt != 2)
-                    std::cout << "Wrong number (" << argcnt << ") of arguments to a 'NAMING'\n";
+                    std::cerr << "Wrong number (" << argcnt << ") of arguments to a 'NAMING'\n";
             }
             int pos2 = pos+1;
             int namingcount = 0;
@@ -5813,7 +5813,7 @@ inline formulaclass* parseformulainternal(
                         fv.lit.ps.push_back(subps);
                         return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                     } else {
-                        std::cout << "Literal " << litnames[fv.lit.l] << " expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
+                        std::cerr << "Literal " << litnames[fv.lit.l] << " expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
                         return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                     }
                 }
@@ -5833,7 +5833,7 @@ inline formulaclass* parseformulainternal(
                         {
                             fv.subgraph = true;
                         } else {
-                            std::cout << "Literal \"" << litnames[fv.lit.l] << "\" expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
+                            std::cerr << "Literal \"" << litnames[fv.lit.l] << "\" expects " << litnumps[fv.lit.l] << " parameters, not " << argcnt << "parameters.\n";
                             return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                         }
                     };
@@ -5848,7 +5848,7 @@ inline formulaclass* parseformulainternal(
                     return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
                 } else
                 {
-                    std::cout << "Error: parameterized literal \"" << litnames[fv.lit.l] << "\" has no parameters\n";
+                    std::cerr << "Error: parameterized literal \"" << litnames[fv.lit.l] << "\" has no parameters\n";
                     return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
 
                 }

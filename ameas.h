@@ -1533,7 +1533,7 @@ inline py::object callpythonmethod( neighborstype* ns, const params& ps, const p
         result = m.attr(methodname.c_str())(**kwargs);
     } catch (const py::error_already_set& e) {
         // Handle exceptions
-        std::cout << "Error in Python trying to run with GIL\n";
+        std::cerr << "Error in Python trying to run with GIL\n";
     }
     // GIL is released when 'acquire' goes out of scope
     return result;
@@ -1565,11 +1565,14 @@ inline valms pyrestovalms(py::handle a) {
     } else if (types == "list" || types == "ndarray") {
         v.t = mttuple;
         v.seti = pyarraytosetitr(a.cast<py::list>());
+    } else if (types == "set") {
+        v.t = mtset;
+        v.seti = pyarraytosetitr(a.cast<py::list>());
     } else if (types == "bool_" || types == "bool") {
         v.t = mtbool;
         v.v.bv = a.cast<bool>();
     } else {
-        std::cout << "Unknown type returned in set from Python method call: type \"" << types << "\"\n";
+        std::cerr << "Unknown type returned in set from Python method call: type \"" << types << "\"\n";
         v.t = mtbool;
         v.v.bv = 0;
     }
@@ -3157,7 +3160,96 @@ public:
 
 };
 
+class Tallytuple : public set
+{
+    public:
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        auto p = ps[0].seti->getitrpos(false);
+        auto s = ps[1].v.iv;
+        if (s < 0)
+        {
+            while  (!p->ended())
+            {
+                auto next = p->getnext().v.iv;
+                s = next > s ? next : s;
+            }
+        }
+        if (s < 0)
+        {
+            std::cerr << "Tallyp called with negative size\n";
+            s = 0;
+        }
+        std::vector<valms> totality;
+        totality.resize(s);
+        for (auto i = 0; i < s; ++i)
+        {
+            totality[i].t = mtdiscrete;
+            totality[i].v.iv = 0;
+        }
+        p->reset();
+        while (!p->ended())
+        {
+            auto next = p->getnext().v.iv;
+            totality[next].v.iv++;
+        }
+        delete p;
+        auto out = new setitrset(totality);
+        return out;
+    }
+    Tallytuple( mrecords* recin ) : set(recin,"Tallyp", "counts index's number of occurrences in the input setd or tuple")
+    {
+        valms v;
+        v.t = mttuple;
+        nps.push_back(std::pair{"tuple",v});
+        valms v2;
+        v2.t = mtdiscrete;
+        nps.push_back(std::pair{"size",v2});
+        bindnamedparams();
+    }
+};
 
+class Flattentuple : public set
+{
+public:
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        auto p = ps[0].seti->getitrpos(false);
+        auto copies = ps[1].v.bv;
+        std::vector<valms> totality {};
+        int i = 0;
+        while (!p->ended())
+        {
+            auto next = p->getnext().v.iv;
+            if (next > 0)
+            {
+                valms v;
+                v.t = mtdiscrete;
+                v.v.iv = i;
+                totality.push_back(v);
+                for (int n = 1; n < next && copies; ++n)
+                {
+                    totality.push_back(v);
+                }
+            }
+            ++i;
+        }
+
+        delete p;
+        auto out = new setitrset(totality);
+        return out;
+    }
+    Flattentuple( mrecords* recin ) : set(recin,"Flattenp", "fills pos n with copies of the nth non-zero value in the input tuple")
+    {
+        valms v;
+        v.t = mttuple;
+        nps.push_back(std::pair{"tuple",v});
+        valms v2;
+        v2.t = mtbool;
+        nps.push_back(std::pair{"copies?",v2});
+        bindnamedparams();
+    }
+};
 
 class Vset : public set
 {
@@ -4102,7 +4194,7 @@ public:
     {
         auto dim = ps[0].v.iv;
         auto g = new graphtype(dim);
-        memset(g->adjacencymatrix,false,dim*dim);
+        memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
         auto out = new neighbors(g);
         return out;
     }
@@ -4131,7 +4223,7 @@ public:
             dim = 3;
         }
         auto g = new graphtype(dim);
-        memset(g->adjacencymatrix,false,dim*dim);
+        memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
         for (int i = 0; i+1 < dim; ++i)
         {
             g->adjacencymatrix[i*dim + i + 1] = true;
@@ -4174,7 +4266,7 @@ public:
             dim += psize;
         }
         auto g = new graphtype(dim);
-        memset(g->adjacencymatrix,false,dim*dim);
+        memset(g->adjacencymatrix,false,dim*dim*sizeof(bool));
         for (int i = 0; i < vv.size(); ++i)
             for (int j = i+1; j < vv.size(); ++j)
                 for (auto v1 : vv[i])
@@ -4386,6 +4478,46 @@ public:
         nps.push_back(std::pair{"v2",v});
         v.t = mtset;
         nps.push_back(std::pair{"vs",v});
+        bindnamedparams();
+    }
+};
+
+class Pathsusingesetset : public set
+{
+public:
+
+    setitr* takemeas(neighborstype* ns, const params& ps) override
+    {
+        itrpos* esitr = ps[2].seti->getitrpos(false);
+        std::vector<std::pair<vertextype,vertextype>> es {};
+        while (!esitr->ended())
+        {
+            itrpos* eitr = esitr->getnext().seti->getitrpos(false);
+            es.push_back({eitr->getnext().v.iv,eitr->getnext().v.iv});
+            delete eitr;
+        }
+        auto subns = new neighborstype(findedgesgivenedgeset(ns->g,es));
+
+        delete esitr;
+        auto res = new setitrpaths(subns->g,subns,ps[0].v.iv,ps[1].v.iv);
+        return res;
+    }
+
+
+    setitr* takemeas(const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+
+    Pathsusingesetset( mrecords* recin ) : set(recin,"Pathsusingesets", "Paths between two vertices using only edges in set")
+    {
+        valms v {};
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        v.t = mtset;
+        nps.push_back(std::pair{"es",v});
         bindnamedparams();
     }
 };

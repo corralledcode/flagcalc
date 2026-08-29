@@ -3112,6 +3112,44 @@ public:
     }
 };
 
+class connvusingedgescrit : public crit
+{
+public:
+    bool takemeas( neighborstype* ns, const params& ps) override
+    {
+        itrpos* esitr = ps[2].seti->getitrpos(false);
+        std::vector<std::pair<vertextype,vertextype>> es {};
+        while (!esitr->ended())
+        {
+            itrpos* eitr = esitr->getnext().seti->getitrpos(false);
+            es.push_back({eitr->getnext().v.iv,eitr->getnext().v.iv});
+            delete eitr;
+        }
+        auto subns = new neighborstype(findedgesgivenedgeset(ns->g,es));
+
+        delete esitr;
+
+        auto res = pathsbetweenmin( subns->g, subns, ps[0].v.iv, ps[1].v.iv, 1);
+        delete subns;
+        return res;
+    }
+    bool takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+    connvusingedgescrit( mrecords* recin ) : crit( recin, "connvusingedgesc", "exists at least one path from a to b entirely contained in set of edges")
+    {
+        valms v;
+        v.t = mtdiscrete;
+        nps.push_back(std::pair{"v1",v});
+        nps.push_back(std::pair{"v2",v});
+        v.t = mtset;
+        nps.push_back(std::pair{"edges",v});
+        bindnamedparams();
+    }
+};
+
 
 
 class connvscrit : public crit

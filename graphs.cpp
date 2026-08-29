@@ -4339,6 +4339,18 @@ graphtype* findedgesgivenvertexset( graphtype* g, std::vector<vertextype> vs)
     return subg;
 }
 
+graphtype* findedgesgivenedgeset( graphtype* g, std::vector<std::pair<vertextype,vertextype>> es)
+{
+    auto subg = new graphtype(g->dim);
+    memset(subg->adjacencymatrix,false,subg->dim*subg->dim*sizeof(bool));
+    for (int i = 0; i < es.size(); i++ )
+    {
+        subg->adjacencymatrix[es[i].first*subg->dim+es[i].second] = true;
+        subg->adjacencymatrix[es[i].second*subg->dim+es[i].first] = true;
+    }
+    return subg;
+}
+
 
 int pathsbetweencount( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2) {
     if (v1 == v2)

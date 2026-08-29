@@ -270,6 +270,8 @@ void cyclesvset( graphtype* g, neighborstype* ns, vertextype v, std::vector<std:
 
 graphtype* findedgesgivenvertexset( graphtype* g, std::vector<vertextype> vs);
 
+graphtype* findedgesgivenedgeset( graphtype* g, std::vector<std::pair<vertextype,vertextype>> es);
+
 int pathsbetweenmin( graphtype* g, neighborstype* ns, vertextype v1, vertextype v2, int min);
 
 int connectedsubsetcount(graphtype *g, neighborstype *ns, bool* vertices, const int breaksize);

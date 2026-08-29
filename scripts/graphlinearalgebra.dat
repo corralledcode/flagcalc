@@ -1,0 +1,161 @@
+
+/* Some foray into the elegant "linear algebra" section of Diestel p 22ff */
+
+mtdiscrete edgeproduct( mtset F, mtset Fprime )
+
+COUNT (e IN E, (e ELT F) AND (e ELT Fprime)) % 2
+
+END
+
+mtset edgespace
+
+Ps(E)
+
+END
+
+mtset vertexspace
+
+Ps(E)
+
+END
+
+mtset edgesubspaceortho( mtset Fcurly )
+
+SETD (D IN edgespace, FORALL (F IN Fcurly, edgeproduct(F,D) == 0), D)
+
+END
+
+mtdiscrete edgeaddition( mtset E1, mtset E2 )
+
+SETD (e IN E, (e ELT E1) XOR (e ELT E2), e)
+
+END
+
+mtset edgeadditionmulti( mtset Es )
+
+SETD (e IN E, COUNT (f IN Es, e ELT f) % 2 == 1, e)
+
+END
+
+mtset edgesetspan( mtset Bcurly )
+
+SETD (Es IN Ps(Bcurly), edgeadditionmulti( Es ) )
+
+END
+
+mtbool edgesetinspan( mtset edgeset, mtset edgesetofsets )
+
+EXISTS (S IN Ps(edgesetofsets), FORALL (e IN E, e ELT edgeset IFF COUNT (es IN S, e ELT es) % 2 == 1))
+
+END
+
+mtset edgesetspan2( mtset Bcurly )
+
+SETD (es IN Ps(E), edgesetinspan(es, Bcurly), es)
+
+END
+
+// Fcurly is a subset of the space Ecurly which is the powerset of E
+
+mtdiscrete dimedgesubspace( mtset Fcurly )
+
+MIN (n IN st(Fcurly)+1, EXISTS (B IN Sizedsubset(Fcurly,n), FORALL (f IN Fcurly, edgesetinspan(f,B))) OR st(Fcurly) == 0, n)
+
+END
+
+mtdiscrete dimedgesubspace2( mtset Fcurly )
+
+MIN (n IN st(Fcurly)+1, EXISTS (B IN Sizedsubset(Fcurly,n), Fcurly <= edgesetspan(B)) OR st(Fcurly) == 0, n)
+
+END
+
+mtdiscrete dimedgesubspace3( mtset Fcurly )
+
+MIN (B IN Ps(Fcurly), FORALL (f IN Fcurly, edgesetinspan(f,B)), st(B))
+
+END
+
+
+mtdiscrete dimedgesubspace4( mtset Fcurly )
+
+MIN (B IN Ps(Fcurly), NAMING (span AS edgesetspan(B), Fcurly <= span), st(B))
+
+END
+
+
+mtset vertexstandardbasis
+
+SETD (v IN V, {v})
+
+END
+
+mtset edgestandardbasis
+
+SETD (e IN E, {e})
+
+END
+
+mtset cyclespace
+
+edgesetspan( SETD (C IN Cycless, s AS st(C), s > 1, SETD (i IN s, {C[i],C[(i+1) % s]})) )
+
+END
+
+mtdiscrete cyclomaticnumber
+
+dimedgesubspace( SETD (C IN Cycless, s AS st(C), s > 1, SETD (i IN s, {C[i],C[(i+1) % s]})) )
+
+END
+
+mtbool iscut( mtset F )
+
+EXISTS (P IN Setpartition(V), st(P) == 2, F == SETD (u IN P[0], v IN P[1], ac(u,v), {u,v}))
+
+END
+
+mtset cutspace
+
+edgesetspan( SETD (F IN Ps(E), iscut(F), F ) )
+
+END
+
+mtset atomiccuts
+
+SETD (v IN V, SETD (e IN E, v ELT e, e) )
+
+END
+
+mtbool fundamentalcheck( mtset spanningtree, mtset chord )
+
+st(Pathsusingesets(chord[0],chord[1],spanningtree)) == 1
+
+END
+
+mtset fundamentalcycle( mtset spanningtree, mtset chord )
+
+ANY (P IN Pathsusingesets(chord[0],chord[1],spanningtree), TRUE, convertvcycletoecycle(P))
+
+// convertvcycletoecycle((Pathsusingesets(chord[0],chord[1],spanningtree))[0])
+
+END
+
+mtset fundamentalcut( mtset spanningtree, mtset chord )
+
+NAMING (cut AS spanningtree SETMINUS {chord},
+NAMING (left AS SETD (v IN V, connvusingedgesc(chord[0],v,cut), v),
+NAMING (right AS V SETMINUS left,
+SETD (l IN left, r IN right, ac(l,r), {l,r}))))
+
+END
+
+mtset convertvpathtoepath( mtset P )
+
+SETD (i IN st(P)-1, {P[i],P[i+1]})
+
+END
+
+mtset convertvcycletoecycle( mtset P )
+
+SETD (i IN st(P), {P[i],P[(i+1)%st(P)]})
+
+END

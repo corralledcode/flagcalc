@@ -148,7 +148,7 @@ def pyfindspanningtree( adjmatrix, dim, Es ):
                     mergecomponents(components,i,j)
                     if i > j:
                         i -= 1
-                    newEs.append(e)
+                    newEs.append(set(e))
                     Es.remove(e)
                     changed = True
                     break
@@ -159,7 +159,7 @@ def pyfindspanningtree( adjmatrix, dim, Es ):
                     mergecomponents(components,i,j)
                     if i > j:
                         i -= 1
-                    newEs.append(e)
+                    newEs.append(set(e))
                     Es.remove(e)
                     changed = True
                     break
@@ -180,7 +180,7 @@ def pyfindspanningtree( adjmatrix, dim, Es ):
             for v in range(dim):
                 if adjmatrix[v][c[i]] and v not in c:
                     j = lookupvertex(components, v)
-                    newEs.append([c[i], v])
+                    newEs.append(set([c[i], v]))
                     mergecomponents(components,0,j)
                     changed = True
                     break
