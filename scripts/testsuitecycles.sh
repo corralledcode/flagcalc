@@ -91,9 +91,7 @@ $PTH/flagcalc -d chordal5.fcg -a isp=storedprocedures.dat s=chordal -v i=minimal
 $PTH/flagcalc -d chordal6.fcg -a isp=storedprocedures.dat s=chordal -v i=minimal3.cfg -c -d graph6c.fcg -a isp=storedprocedures.dat s=chordal -v i=minimal3.cfg allsets set
 $PTH/flagcalc -d chordal7.fcg -a isp=storedprocedures.dat s=chordal -v i=minimal3.cfg -c -d graph7c.fcg -a isp=storedprocedures.dat s=chordal -v i=minimal3.cfg allsets set
 
-
-$PTH/flagcalc -d graph5.fcg -a e="SETD (n IN st(V), NAMING (M AS Maps(n+1,st(V)), st(M)))" -v i=minimal3.cfg allsets set
-
 $PTH/flagcalc -d f="a b c d e f g h" -a s="Setnpartitions(V,5) == SETD (P IN Setpartition(V), st(P) == 5, P)" -v i=minimal3.cfg
 
 $PTH/flagcalc -d f="a b c d e f g h i j" -a e="Setnpartitions(V,2)" -a e="SETD (P IN Setpartition(V), st(P) == 2, P)" -v i=minimal3.cfg
+

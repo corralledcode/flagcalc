@@ -2193,6 +2193,7 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
         if (samedims)
             return new setitrfastplural2dops( casts2d );
     }*/
+    /*
     all = true;
     i = 0;
     std::vector<setitrint*> casts {};
@@ -2222,7 +2223,7 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
             sameparent = sameparent && (castsss[i]->superset->parent == castsss[i+1]->superset->parent);
         if (sameparent && castsss.size() > 0)
             return new setitrfastpluralssops( castsss, castsss[0]->superset->parent );
-    }
+    }*/
     return new setitrslowpluralops( sets );
 }
 inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {

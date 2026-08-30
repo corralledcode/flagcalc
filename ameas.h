@@ -2051,9 +2051,9 @@ public:
 };
 
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
-    if (setitrint* cast = dynamic_cast<setitrint*>(superset))
-        return new fastmakesubset( cast );
-    // if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
+    // if (setitrint* cast = dynamic_cast<setitrint*>(superset))
+        // return new fastmakesubset( cast );
+     // if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
         // return new fastmake2dsubset( cast2d );
     // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
         // return new fastmakesssubset( castss );

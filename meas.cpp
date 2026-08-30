@@ -2947,8 +2947,9 @@ public:
 };
 
 class Separatescrit : public crit
-// Diestel p. --
+// Diestel p. 11
 // FORALL (v1 IN A, FORALL (v2 IN B, FORALL (p IN Pathss(v1,v2), p CAP X != Nulls)))
+// in the text, X is allowed a mix of edges and vertices
 {
 public:
     bool takemeas( neighborstype* ns, const params& ps) override
