@@ -63,7 +63,7 @@ $PTH/flagcalc -d f="ac ad ae af ag ah bc bd be bf bh cg de df dg ef eg eh fg fh 
 
 # the below NOT elegant, rather just a sampling of useful queries, not adjusted for run time
 
-$PTH/flagcalc -r 7 p=0.5 40 -a s="FORALL (H IN Ps(V), FORALL (F IN Ps(Edgess(H)), embedsgenerousc(Complementg(SubgraphonVEg(H,F)),Complementg(SubgraphonUg(H)))))" all -v i=minimal3.cfg
+$PTH/flagcalc -r 6 p=0.5 400 -a s="FORALL (H IN Ps(V), FORALL (F IN Ps(Edgess(H)), embedsgenerousc(Complementg(SubgraphonVEg(H,F)),Complementg(SubgraphonUg(H)))))" all -v i=minimal3.cfg
 # $PTH/flagcalc -r 7 p=0.5 40 -a s="FORALL (H IN Ps(V), FORALL (F IN Ps(Edgess(H)), embedsgenerousc(SubgraphonUg(H),SubgraphonVEg(H,F))))" all -v i=minimal3.cfg
 # $PTH/flagcalc -r 7 p=0.5 40 -a s="FORALL (H IN Ps(V), FORALL (F IN Ps(Edgess(H)), embedsgenerousc(SubgraphonVEg(H,F))))" all -v i=minimal3.cfg
 $PTH/flagcalc -r 7 p=0.5 40 -a s="embedsgenerousc(SubgraphonUg({0,1,2}))" all -v i=minimal3.cfg
@@ -77,4 +77,5 @@ $PTH/flagcalc -d f="abcdefghi" -a s="embedsgenerousc(\"abc=def\")" all -v set al
 # longint is 64 bits on linux; above 12 vertices cannot compute the powerset of selfpaired as it requires 66 bits
 $PTH/flagcalc -r 10 p=0.5 40 -a isp="storedprocedures.dat" s="FORALL (S IN Ps(selfpaired(V)), S <= E) IFF Knc(dimm,1)" all -v i=minimal3.cfg
 
-$PTH/flagcalc -d out8.dat -r 8 p=0.5 1500000 -r 8 p=0.8 200000  -a s=conn1c all -f passed -g o=out8b.dat passed sorted overwrite -v fp Fp fpnone rt crit min nofpseq
+$PTH/flagcalc -r 8 p=0.5 15000 -r 8 p=0.8 2000  -a s=conn1c all -f passed -g o=out8b.dat passed sorted overwrite -v fp Fp fpnone rt crit min nofpseq
+$PTH/flagcalc -d graphout/out8.dat -r 8 p=0.5 15000 -r 8 p=0.8 2000  -a s=conn1c all -f passed -g o=out8b.dat passed sorted overwrite -v fp Fp fpnone rt crit min nofpseq

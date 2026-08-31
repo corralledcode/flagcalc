@@ -1136,7 +1136,10 @@ public:
         computed = true;
         reset();
     }
-    setitrint2dsymmetric(int dim1in) : setitrint2d(dim1in,dim1in) {}
+    setitrint2dsymmetric(int dim1in) : setitrint2d(dim1in,dim1in)
+    {
+
+    }
     setitrint2dsymmetric(int dim1in, bool* eltsin) : setitrint2d(dim1in,dim1in,new bool[dim1in*dim1in])
     {
         memcpy(this->itrint->elts,eltsin,dim1*dim1*sizeof(bool));
@@ -1402,7 +1405,7 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
             maxintout = maxintA;
             break;
         default:
-            std::cout << "Cannot call fastsetops with non-set operator\n";
+            std::cerr << "Cannot call fastsetops with non-set operator\n";
     }
     auto out = new setitrint( maxintout );
     switch (fo) {
@@ -1420,13 +1423,13 @@ inline setitrint* fastsetops( setitrint* setA, setitrint* setB, const formulaope
             fastsetxor( maxintA, maxintB, maxintout, setA->elts, setB->elts, out->elts );
             break;
         default:
-            std::cout << "Cannot call fastsetops with non-set operator\n";
+            std::cerr << "Cannot call fastsetops with non-set operator\n";
     }
     out->computed = false;
     out->reset();
     return out;
 }
-/* for now the set-valued set operations are the same for tuples as for set */
+/* the tuple union is an appending */
 template<typename T>
 inline void fasttupleunion( const int lengthA, const int lengthB, const int length, T* eltsA, T* eltsB, T* out) {
     memcpy(out, eltsA, lengthA * sizeof(T));
@@ -1441,6 +1444,7 @@ inline void fasttuplesetminus( const int lengthA, const int lengthB, int& length
             deprecated[i] = deprecated[i] || (eltsA[i] == eltsB[j]);
         }
     int pos = 0;
+    length = 0;
     for (int i = 0; i < lengthA; ++i)
         if (!deprecated[i]) {
            out[pos++] = eltsA[i];
@@ -1459,6 +1463,7 @@ inline void fasttupleintersection( const int lengthA, const int lengthB, int& le
             deprecated[i] = deprecated[i] && (eltsA[i] != eltsB[j]);
         }
     int pos = 0;
+    length = 0;
     for (int i = 0; i < lengthA; ++i)
         if (!deprecated[i]) {
            out[pos++] = eltsA[i];
@@ -1570,13 +1575,13 @@ inline setitrtuple<T>* fasttupleops( setitrtuple<T>* tupleA, setitrtuple<T>* tup
             length = lengthA + lengthB;
             break;
         case formulaoperator::fosetminus:
-            length = lengthA;
+            length = lengthA; // actually, as of now it is computed in fasttuplesetminus
             break;
         case formulaoperator::fointersection:
-            length = lengthA < lengthB ? lengthA : lengthB;
+            length = lengthA < lengthB ? lengthA : lengthB; // actually, as of now it is computed in fasttupleintersection
             break;
         default:
-            std::cout << "Cannot call fasttupleops with non-tuple operator\n";
+            std::cerr << "Cannot call fasttupleops with non-tuple operator\n";
     }
     auto out = new setitrtuple<T>(length);
     switch (fo) {
@@ -1611,7 +1616,7 @@ public:
     setitrint* cast;
     virtual bool iselt( valms v )
     {
-        return v.t == mtdiscrete && cast->elts[v.v.iv];
+        return v.t == mtdiscrete && cast->maxint >= v.v.iv && cast->elts[v.v.iv];
     }
     setitrfastop( setitrint* castin, setitr* supersetin ) : cast(castin), superset(supersetin) {};
     setitrfastop( setitrint* castin ) : cast(castin), superset(nullptr) {};
@@ -1659,7 +1664,7 @@ public:
     std::vector<setitrint*> casts;
     // setitr* superset;
 
-    setitr* setops( const formulaoperator fo )  override {
+    setitrint* setops( const formulaoperator fo )  override {
         LONGINT maxint;
         switch (fo) {
         case formulaoperator::foqdupeunion:
@@ -1711,7 +1716,7 @@ public:
         if (casts.size() < 1) {
             // std::cout << "Less than one set passed to plural ops\n";
         }
-        setitr* res;
+        setitrint* res;
         // res = new setitrsubset(superset->getitrpos(true),out);
         res = out;
         out->reset();
@@ -1778,11 +1783,11 @@ public:
     }
     bool boolsetops( const formulaoperator fo ) override {
         if (casts.size() < 2) {
-            std::cout << "Less than two sets passed to plural bool ops\n";
+            std::cerr << "Less than two sets passed to plural bool ops\n";
             return false;
         }
         if (fo != formulaoperator::fomeet && fo != formulaoperator::fodisjoint) {
-            std::cout << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (ii)\n";
+            std::cerr << "No support for plural set bool ops other than for 'meet' and 'disjoint'; try pairwise (ii)\n";
             return false;
         }
         if (fo == formulaoperator::fomeet)
@@ -1794,6 +1799,93 @@ public:
     // setitrfastpluralops( std::vector<setitrint*> castsin, LONGINT maxintin ) : casts{castsin}, superset{nullptr}, maxint{maxintin} {}
     setitrfastpluralops( std::vector<setitrint*> castsin ) : casts{castsin} {}
 };
+
+template<typename T>
+class setitrtuplefastpluralops : public setitrabstractops {
+public:
+    std::vector<setitrtuple<T>*> casts;
+    // setitr* superset;
+
+    setitrtuple<T>* setops( const formulaoperator fo )  override {
+        LONGINT length;
+        switch (fo) {
+        case formulaoperator::foqdupeunion:
+        case formulaoperator::foqunion: {
+            length = 0;
+            for (auto c : casts)
+                length += c->length;
+            break; }
+        case formulaoperator::foqintersection: {
+            if (casts.size() > 0)
+                length = casts[0]->length;
+            else
+                length = 0;
+            break; }
+        default: std::cerr << "No support for fast plural tuple ops other than union and intersection\n";
+            length = 0;
+            exit(1);
+        }
+        auto out = new setitrtuple<T>( length );
+        switch (fo) {
+        case formulaoperator::foqdupeunion:
+        case formulaoperator::foqunion: {
+            memset(out->elts,false,sizeof(T)*length);
+            int pos = 0;
+            for (auto j = 0; j < casts.size(); ++j)
+                for (auto i = 0; i < casts[j]->length; ++i)
+                    out->elts[pos++] = casts[j]->elts[i];
+            break;
+        }
+        case formulaoperator::foqintersection: {
+            // memset(out->elts,true,sizeof(bool)*(maxint + 1));
+            std::cerr << "No support for BIGCAP of tuples. Try using TupletoSet. Proceeding with zero tuple.\n";
+            memset(out->elts,0,sizeof(T)*length);
+            break;
+        }
+
+        }
+        if (casts.size() < 1) {
+            // std::cout << "Less than one set passed to plural ops\n";
+        }
+        setitrtuple<T>* res;
+        // res = new setitrsubset(superset->getitrpos(true),out);
+        res = out;
+        out->reset();
+        out->compute();
+        return res;
+    }
+
+    int setopunioncount( const int cutoff, const formulaoperator fo ) override {
+        int length = 0;
+        for (auto c : casts)
+            length += c->length;
+        return length;
+    }
+    int setopintersectioncount( const int cutoff, const formulaoperator fo ) override {
+        if (casts.size() > 0)
+            return casts[0]->length;
+        return 0;
+    }
+
+    bool boolsetops( const formulaoperator fo ) override {
+        if (casts.size() < 2) {
+            std::cerr << "Less than two sets passed to tuple plural bool ops\n";
+            return false;
+        }
+        if (fo != formulaoperator::fomeet && fo != formulaoperator::fodisjoint) {
+            std::cerr << "No support for plural tuple bool ops other than for 'meet' and 'disjoint'; try pairwise (ii)\n";
+            return false;
+        }
+        if (fo == formulaoperator::fomeet)
+            return setopintersectioncount( 1, formulaoperator::fointersection ) > 0 ? true : false;
+        else
+            return setopintersectioncount(1, formulaoperator::fointersection ) < 1 ? true : false;
+    }
+    // setitrfastpluralops( std::vector<setitrint*> castsin, setitr* supersetin ) : casts{castsin}, superset{supersetin} {}
+    // setitrfastpluralops( std::vector<setitrint*> castsin, LONGINT maxintin ) : casts{castsin}, superset{nullptr}, maxint{maxintin} {}
+    setitrtuplefastpluralops( std::vector<setitrtuple<T>*> castsin ) : casts{castsin} {}
+};
+
 class setitrfastpluralssops : public setitrabstractops {
 public:
     std::vector<setitrsubset*> castsss;
@@ -1838,11 +1930,12 @@ public:
     }
     setitrfastssops( setitrsubset* castAssin, setitrsubset* castBssin ) : castAss{castAssin}, castBss{castBssin} {}
 };
-/*
+
 class setitrfastplural2dops : public setitrabstractops {
 public:
     std::vector<setitrint2d*> casts2d;
     setitrfastpluralops* fastpluralops {};
+    int dim1 = 0, dim2 = 0;
 
     bool boolsetops( const formulaoperator fo )  override {
         return fastpluralops->boolsetops( fo );
@@ -1852,19 +1945,28 @@ public:
         return fastpluralops->setopintersectioncount( min, fo );
     }
     setitr* setops( const formulaoperator fo ) override {
-        return fastpluralops->setops( fo );
+        auto res = fastpluralops->setops( fo );
+        auto out = new setitrint2dsymmetric(dim1,res);
+        return out;
     }
 
     setitrfastplural2dops( std::vector<setitrint2d*>& casts2d ) : casts2d{casts2d} {
         std::vector<setitrint*> casts {};
         for (auto s : casts2d)
             casts.push_back(s->itrint);
+        if (casts2d.size() > 0)
+        {
+            dim1 = casts2d[0]->dim1;
+            dim2 = casts2d[0]->dim2;
+        }
         fastpluralops = new setitrfastpluralops(casts);
     }
     ~setitrfastplural2dops() {
         delete fastpluralops;
     }
 };
+
+
 class setitrfast2dops : public setitrabstractops {
 public:
     setitrint2d* castA2d;
@@ -1882,7 +1984,7 @@ public:
         return fastboolsetops( castA2d->itrint, castB2d->itrint, fo );
     }
     setitrfast2dops( setitrint2d* castA2din, setitrint2d* castB2din ) : castA2d{castA2din}, castB2d{castB2din} {}
-};*/
+};
 class setitrslowop : public setitrabstractops
 {
 public:
@@ -1973,9 +2075,7 @@ public:
     setitr* setops( const formulaoperator fo ) override {
 
         setitr* res = nullptr;
-        if (sets.empty())
-            res = new setitrint(-1);
-        else
+        if (!sets.empty())
             res = sets.back();
         switch (fo) {
             case formulaoperator::foqunion:
@@ -1991,7 +2091,7 @@ public:
                     res = new setitrintersection( res, sets[i] );
                 break;
             default:
-                std::cout << "setpluralops (slow) called with unsupported operator\n";
+                std::cerr << "setitrslowpluralops (slow) called with unsupported operator\n";
                 exit(1);
                 break;
         }
@@ -2059,6 +2159,78 @@ public:
     }
     setitrslowpluralops( std::vector<setitr*> setsin ) : sets{setsin} {}
 };
+class setitrtupleslowpluralops : public setitrabstractops {
+public:
+    std::vector<setitr*> tuples;
+    setitr* setops( const formulaoperator fo ) override {
+
+        setitr* res;
+        if (tuples.empty())
+            res = new setitrmodeone();
+        else
+            res = tuples.back();
+        switch (fo) {
+            case formulaoperator::foqunion:
+            case formulaoperator::foqdupeunion:
+                {
+                    int i = tuples.size() - 1;
+                    if (i > 0)
+                    {
+                        i--;
+                        while (i >= 0)
+                        {
+                            auto setB = tuples[i--];
+                            res = new setitrtupleappend(res, setB);
+                        }
+                    }
+                    return res;
+                    break;
+                }
+            case formulaoperator::foqintersection:
+                {
+                    std::cerr << "No support for plural tuple intersection (BIGCAP)\n";
+                    return res;
+                    break;
+                }
+            default:
+                std::cerr << "setpluralops (slow) called with unsupported operator\n";
+                exit(1);
+                break;
+        }
+        return res;
+    }
+
+    int setopunioncount( const int cutoff, const formulaoperator fo ) override {
+        int length = 0;
+        for (auto c : tuples)
+            length += c->getsize();
+        return length;
+    }
+    int setopintersectioncount( const int cutoff, const formulaoperator fo ) override {
+        if (tuples.size() > 0)
+            return tuples[0]->getsize();
+        return 0;
+    }
+
+    bool boolsetops( const formulaoperator fo ) override {
+        if (tuples.size() < 2) {
+            std::cerr << "Less than two sets passed to tuple plural bool ops\n";
+            return false;
+        }
+        if (fo != formulaoperator::fomeet && fo != formulaoperator::fodisjoint) {
+            std::cerr << "No support for plural tuple bool ops other than for 'meet' and 'disjoint'; try pairwise (ii)\n";
+            return false;
+        }
+        if (fo == formulaoperator::fomeet)
+            return setopintersectioncount( 1, formulaoperator::fointersection ) > 0 ? true : false;
+        else
+            return setopintersectioncount(1, formulaoperator::fointersection ) < 1 ? true : false;
+    }
+
+
+    setitrtupleslowpluralops( std::vector<setitr*> tuplesin ) : tuples{tuplesin} {}
+};
+
 template<typename T>
 class setitrtuplefastops : public setitrabstractops {
 public:
@@ -2150,10 +2322,10 @@ public:
 };
 
 inline setitrabstractops* getsetitrop( setitr* set ) {
-/*    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(set))
-        return new setitrfast2dsymmetricop( cast2d );
-    if (setitrint* cast = dynamic_cast<setitrint*>(set))
-        return new setitrfastop( cast ); */
+    if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(set))
+         return new setitrfast2dsymmetricop( cast2d );
+     if (setitrint* cast = dynamic_cast<setitrint*>(set))
+         return new setitrfastop( cast );
     // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(set))
         // return new setitrfastssop( castss );
     return new setitrslowop( set );
@@ -2161,13 +2333,13 @@ inline setitrabstractops* getsetitrop( setitr* set ) {
 
 inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
 
-    /*if (setitrint2dsymmetric* castA2d = dynamic_cast<setitrint2dsymmetric*>(setA))
+    if (setitrint2dsymmetric* castA2d = dynamic_cast<setitrint2dsymmetric*>(setA))
         if (setitrint2dsymmetric* castB2d = dynamic_cast<setitrint2dsymmetric*>(setB))
             if (castA2d->dim1 == castB2d->dim1 && castA2d->dim2 == castB2d->dim2)
-                return new setitrfast2dops( castA2d, castB2d );*/
-     /* if (setitrint* castA = dynamic_cast<setitrint*>(setA))
+                return new setitrfast2dops( castA2d, castB2d );
+     if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
-            return new setitrfastops( castA, castB ); */
+            return new setitrfastops( castA, castB );
     /* if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
         if (setitrsubset* castBss = dynamic_cast<setitrsubset*>(setB))
             if (castAss->superset->parent == castBss->superset->parent)
@@ -2177,7 +2349,8 @@ inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
 inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
     bool all = true;
     int i = 0;
-    /*
+    bool aretheytuples = false;
+
     std::vector<setitrint2d*> casts2d {};
     while (all && i < sets.size()) {
         if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(sets[i]))
@@ -2186,14 +2359,14 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
             all = false;
         ++i;
     }
-    if (all) {
+    if (all && sets.size() > 0) {
         bool samedims = true;
         for (int i = 0; i+1 < casts2d.size() && samedims; ++i)
             samedims = samedims && casts2d[i]->dim1 == casts2d[i+1]->dim1 && casts2d[i]->dim2 == casts2d[i+1]->dim2;
         if (samedims)
             return new setitrfastplural2dops( casts2d );
-    }*/
-/*
+    }
+
     all = true;
     i = 0;
     std::vector<setitrint*> casts {};
@@ -2205,9 +2378,23 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
             all = false;
         ++i;
     }
-    if (all)
-        return new setitrfastpluralops( casts );*/
-    /*
+    if (all && sets.size() > 0)
+        return new setitrfastpluralops( casts );
+    all = true;
+    i = 0;
+    std::vector<setitrtuple<int>*> casttuples {};
+    while (all && i < sets.size()) {
+        if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(sets[i]))
+        {
+            casttuples.push_back(cast);
+        } else
+            all = false;
+        ++i;
+    }
+    if (all && sets.size() > 0)
+        return new setitrtuplefastpluralops<int>( casttuples );
+
+/*
     all = true;
     i = 0;
     std::vector<setitrsubset*> castsss {};
@@ -2227,9 +2414,49 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
     }*/
     return new setitrslowpluralops( sets );
 }
+
+inline setitrabstractops* getsetitrtuplepluralops( std::vector<setitr*> sets ) {
+    bool all = true;
+    int i = 0;
+
+    std::vector<setitrtuple<int>*> casttuples {};
+    while (all && i < sets.size()) {
+        if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(sets[i]))
+        {
+            casttuples.push_back(cast);
+        } else
+            all = false;
+        ++i;
+    }
+    if (all && sets.size() > 0)
+        return new setitrtuplefastpluralops<int>( casttuples );
+
+/*
+    all = true;
+    i = 0;
+    std::vector<setitrsubset*> castsss {};
+    while (all && i < sets.size()) {
+        if (setitrsubset* castss = dynamic_cast<setitrsubset*>(sets[i]))
+            castsss.push_back(castss);
+        else
+            all = false;
+        ++i;
+    }
+    if (all) {
+        bool sameparent = true;
+        for (int i = 0; i+1 < castsss.size() && sameparent; ++i)
+            sameparent = sameparent && (castsss[i]->superset->parent == castsss[i+1]->superset->parent);
+        if (sameparent && castsss.size() > 0)
+            return new setitrfastpluralssops( castsss, castsss[0]->superset->parent );
+    }*/
+
+    return new setitrtupleslowpluralops( sets );
+}
+
+
 inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
 
-/*    if (setitrtuple<int>* castA = dynamic_cast<setitrtuple<int>*>(setA))
+    if (setitrtuple<int>* castA = dynamic_cast<setitrtuple<int>*>(setA))
         if (setitrtuple<int>* castB = dynamic_cast<setitrtuple<int>*>(setB))
             return new setitrtuplefastops<int>( castA, castB );
     if (setitrtuple<bool>* castA = dynamic_cast<setitrtuple<bool>*>(setA))
@@ -2238,14 +2465,14 @@ inline setitrabstractops* gettupleops( setitr* setA, setitr* setB ) {
     if (setitrtuple<double>* castA = dynamic_cast<setitrtuple<double>*>(setA))
         if (setitrtuple<double>* castB = dynamic_cast<setitrtuple<double>*>(setB))
             return new setitrtuplefastops<double>( castA, castB );
-*/
-    /* if (setitrint* castA = dynamic_cast<setitrint*>(setA))
+/*
+    if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
-            return new setitrtuplefastops( castA, castB );
+            return new setitrtuplefastops<int>( castA, castB );
     if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
         if (setitrsubset* castBss = dynamic_cast<setitrsubset*>(setB))
             if (castAss->superset->parent == castBss->superset->parent)
-                return new setitrtuplefastssops( castAss, castBss ); */
+                return new setitrtuplefastssops( castAss, castBss );*/
     return new setitrtupleslowops( setA, setB );
 }
 

@@ -2679,8 +2679,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 case formulaoperator::foqdupeunion:
                     {
                         res.t = mtset;
-                        res.seti = nullptr;
                         std::vector<setitr*> composite {};
+                        bool first = true;
                         while (!qm.ended())
                         {
                             valms c = evalinternal(*qm.criterion, context);
@@ -2689,14 +2689,25 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 valms tempv;
                                 valms outv;
                                 tempv = evalinternal(*fc.fcright, context);
+                                if (first)
+                                {
+                                    if (tempv.t == mttuple)
+                                        res.t = mttuple;
+                                    first = false;
+                                }
                                 mtconverttoset(tempv,outv.seti);
+                                outv.t = res.t;
                                 claimset(outv);
                                 composite.push_back(outv.seti);
                             }
                             qm.multipleadvance();
                         }
-                        auto abstractpluralsetops = getsetitrpluralops(composite);
-                        res.seti = abstractpluralsetops->setops(fc.fo);
+                        setitrabstractops* abstractpluralops;
+                        if (res.t == mtset)
+                            abstractpluralops = getsetitrpluralops(composite);
+                        else
+                            abstractpluralops = getsetitrtuplepluralops(composite);
+                        res.seti = abstractpluralops->setops(fc.fo);
                         if (!res.seti)
                             res.seti = new setitrint(-1);
                         // tocleanup.push_back(res.seti);
@@ -2704,13 +2715,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     }
                 case formulaoperator::foqmedian:
                     {
-                        std::cout << "No support yet for MEDIAN\n";
+                        std::cerr << "No support yet for MEDIAN\n";
                         exit(1);
                         break;
                     }
                 case formulaoperator::foqmode:
                     {
-                        std::cout << "No support yet for MODE\n";
+                        std::cerr << "No support yet for MODE\n";
                         exit(1);
                         break;
                     }
@@ -3020,22 +3031,34 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     case formulaoperator::foqintersection:
                     case formulaoperator::foqdupeunion:
                     {
+
+
                         res.t = mtset;
-                        res.seti = nullptr;
                         std::vector<setitr*> composite {};
+                        bool first = true;
                         while (!qm.ended())
                         {
                             valms tempv;
                             valms outv;
                             tempv = evalinternal(*fc.fcright, context);
+                            if (first)
+                            {
+                                if (tempv.t == mttuple)
+                                    res.t = mttuple;
+                                first = false;
+                            }
                             mtconverttoset(tempv,outv.seti);
+                            outv.t = res.t;
                             claimset(outv);
                             composite.push_back(outv.seti);
                             qm.multipleadvance();
                         }
-                        auto abstractpluralsetops = getsetitrpluralops(composite);
-                        res.seti = abstractpluralsetops->setops(fc.fo);
-
+                        setitrabstractops* abstractpluralops;
+                        if (res.t == mtset)
+                            abstractpluralops = getsetitrpluralops(composite);
+                        else
+                            abstractpluralops = getsetitrtuplepluralops(composite);
+                        res.seti = abstractpluralops->setops(fc.fo);
                         if (!res.seti)
                             res.seti = new setitrint(-1);
                         // tocleanup.push_back(res.seti);
@@ -3426,6 +3449,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 case formulaoperator::foqintersection:
                 case formulaoperator::foqdupeunion:
                     {
+
                         res.t = mtset;
                         res.seti = nullptr;
                         std::vector<setitr*> composite {};

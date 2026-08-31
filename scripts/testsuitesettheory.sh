@@ -526,6 +526,9 @@ $PTH/flagcalc -d graph5.fcg -a isp=storedprocedures.dat s="FORALL (n IN dimm - 1
 
 # Diestel 2.2.1 (Tutte 1947)
 $PTH/flagcalc -d graph5.fcg -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" all -v i=minimal3.cfg allsets
-$PTH/flagcalc -d graph6.fcg -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s=kfactor(1) -v i=minimal3.cfg allsets
-$PTH/flagcalc -r 8 p=0.5 100 -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s=kfactor(1) -v i=minimal3.cfg allsets
+$PTH/flagcalc -d graph6.fcg -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s="kfactor(1)" -v i=minimal3.cfg allsets
+$PTH/flagcalc -r 8 p=0.5 100 -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s="kfactor(1)" -v i=minimal3.cfg allsets
 # $PTH/flagcalc -r 9 p=0.5 100 -a isp=storedprocedures.dat s="kfactor(1) IFF FORALL (S IN Ps(V), numberofoddcomponents( V SETMINUS S ) <= st(S))" s=kfactor(1) -v i=minimal3.cfg allsets
+
+# 3:46 after fastsetops upgrade (cmp 4:15 prior, and that prior time excluding the last several theorems)
+# 3:20

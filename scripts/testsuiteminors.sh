@@ -203,3 +203,5 @@ $PTH/flagcalc -r 10 17 100 -a s1="NOT hasminorc(\"abcde\")" s2="st(E) <= 3*dimm 
 # -r 10 p=0.5 50000 -a s="FORALL (u IN Ps(V), st(u) > 0, EXISTS (v IN V, v ELT u))" all -v i=minimal3.cfg
 # -r 10 p=0.5 1 -a s="EXISTS (so IN Ps(V), EXISTS (p IN Setpartition(so), st(p) >= 5))" -v i=minimal3.cfg
 # -r 10 p=0.5 100 -a s="EXISTS (so IN Ps(V), EXISTS (p IN Setpartition(so), st(p) >= 5, FORALL (s IN p, FORALL (t IN p, s != t, EXISTS (u IN s, EXISTS (v IN t, ac(u,v)))))))" all -v i=minimal3.cfg
+
+# 2:00 on 8/31/2026

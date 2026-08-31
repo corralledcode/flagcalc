@@ -135,6 +135,7 @@ $PTH/flagcalc -r 8 10 5 -a s="FORALL (s IN Ps(V), FORALL (t IN Ps(V), (s CUP t) 
 
 # runtime 19 seconds on 5/12/2025 on an i9
 
+# runtime 16 seconds on 8/31/2026
 
 
 

@@ -39,7 +39,7 @@ $PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), nwisec(p,\"DISJOINT\",2,1) A
 $PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), nwisec(p,\"DISJOINT\",2,1) AND st(BIGCUPD (x IN p, x)) == dimm AND FORALL (x IN p, x != Nulls), p) == Setpartition(V)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 3 2 100 -a s="Ps(Ps(V)) >= Setpartition(V)" all -v i=minimal3.cfg
 $PTH/flagcalc -r 3 2 100 -a s="SET (p IN Ps(Ps(V)), p) >= Setpartition(V)" all -v i=minimal3.cfg
-$PTH/flagcalc -d f="abcd" -a e="SET (ps IN Ps(Pathss(0,1)), nwisec(ps,\"DISJOINT\",2,3), ps)" all -v set allsets i=minimal3.cfg
+$PTH/flagcalc -d f="abcd" -a e="SET (ps IN Ps(Pathss(0,1)), nwisec(SETD (p IN ps, TupletoSet(p)), \"DISJOINT\",2,3), ps)" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abc" -a e="BIGCUP (v IN V, SET (p IN Cyclesvs(v), p))" all -v set allsets i=minimal3.cfg
 $PTH/flagcalc -d f="abcd" -a e="SET (p IN Pathss(0,1), p <= <<0,2,1,3,4,5>>, p)" all -v set allsets i=minimal3.cfg
 

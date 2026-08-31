@@ -95,3 +95,4 @@ $PTH/flagcalc -d f="a b c d e f g h" -a s="Setnpartitions(V,5) == SETD (P IN Set
 
 $PTH/flagcalc -d f="a b c d e f g h i j" -a e="Setnpartitions(V,2)" -a e="SETD (P IN Setpartition(V), st(P) == 2, P)" -v i=minimal3.cfg
 
+# 1:17 8/31/2026

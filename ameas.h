@@ -1802,9 +1802,9 @@ class fastmakesubset : public abstractmakesubset {
 public:
     setitrint* superset;
     setitr* makesubset( const int maxint, bool* elts ) {
-        // auto out = new setitrint( maxint, elts);
-        auto itrint = new setitrint( maxint, elts);
-        auto out = new setitrsubset( superset->getitrpos(true), itrint );
+        auto out = new setitrint( maxint, elts);
+        // auto itrint = new setitrint( maxint, elts);
+        // auto out = new setitrsubset( superset->getitrpos(true), itrint );
         return out;
     }
     int lookupidx( const int idxin )  override {
@@ -1822,8 +1822,11 @@ class fastmake2dsubset : public abstractmakesubset {
 public:
     setitrint2d* superset;
     setitr* makesubset( const int maxint, bool* elts ) {
-        auto itrint = new setitrint( maxint, elts);
-        auto out = new setitrint2dsymmetric( superset->dim1, itrint );
+        // auto itrint = new setitrint( maxint, elts);
+        // auto out = new setitrint2dsymmetric( superset->dim1, itrint );
+
+        auto out = new setitrint2dsymmetric( superset->dim1, elts );
+
         return out;
     }
     int lookupidx( const int idxin )  override {
@@ -2051,23 +2054,22 @@ public:
 };
 
 inline abstractmakesubset* getsubsetmaker( setitr* superset ) {
-    // if (setitrint* cast = dynamic_cast<setitrint*>(superset))
-        // return new fastmakesubset( cast );
-     // if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
-        // return new fastmake2dsubset( cast2d );
+    if (setitrint* cast = dynamic_cast<setitrint*>(superset))
+        return new fastmakesubset( cast );
+     if (setitrint2dsymmetric* cast2d = dynamic_cast<setitrint2dsymmetric*>(superset))
+        return new fastmake2dsubset( cast2d );
     // if (setitrsubset* castss = dynamic_cast<setitrsubset*>(superset))
         // return new fastmakesssubset( castss );
     return new slowmakesubset( superset );
 }
 
 inline abstractmakesubsegment* getsubsegmentmaker( setitr* superset ) {
-    /*
     if (setitrtuple<int>* cast = dynamic_cast<setitrtuple<int>*>(superset))
         return new fastmakesubsegment<int>( cast );
     if (setitrtuple<bool>* cast = dynamic_cast<setitrtuple<bool>*>(superset))
         return new fastmakesubsegment<bool>( cast );
     if (setitrtuple<double>* cast = dynamic_cast<setitrtuple<double>*>(superset))
-        return new fastmakesubsegment<double>( cast );*/
+        return new fastmakesubsegment<double>( cast );
     return new slowmakesubsegment( superset );
 }
 
@@ -3010,6 +3012,8 @@ public:
                     // maxint = maxint < v[v.size()-1].v.iv ? v[v.size()-1].v.iv : maxint;
             }
             delete itr;
+            if (v.size() == 0)
+                return new setitrmodeone();
             std::vector<std::vector<int>> ps;
             if (v.size() == 0)
                 ps.clear();
@@ -3046,7 +3050,7 @@ public:
             res->generative = true;
             return res;
         }
-        std::cout << "Error in Permset::takemeas\n";
+        std::cerr << "Error in Permset::takemeas\n";
         exit(1);
         return nullptr;;
     }
@@ -3663,7 +3667,7 @@ public:
         while (!itr->ended()) {
             auto t = itr->getnext().t;
             if (t != mtset && t != mttuple) {
-                std::cout << "nwisec requires set or tuple type set elements; expect segfault\n";
+                std::cerr << "nwisec requires set or tuple type set elements; expect segfault\n";
                 exit(1);
             }
         }
@@ -4510,24 +4514,36 @@ class TupletoSet : public set
             int maxelt = -1;
             for (int i = 0; i < s->length; ++i)
                 maxelt = maxelt < s->elts[i] ? s->elts[i] : maxelt;
-            if (maxelt >= 0) {
-                bool* elts = new bool[maxelt+1];
-                memset(elts,false,(maxelt+1)*sizeof(bool));
-                for (auto i = 0; i < s->length; ++i)
-                    elts[s->elts[i]] = true;
-                res = new setitrint(maxelt,elts);
-            } else {
-                std::cout << "Expected maxelt not found in setitrtuple class item\n";
-                res = new setitrmodeone(s->totality);
-            }
+
+            bool* elts = new bool[maxelt+1];
+            memset(elts,false,(maxelt+1)*sizeof(bool));
+            for (auto i = 0; i < s->length; ++i)
+                elts[s->elts[i]] = true;
+            res = new setitrint(maxelt,elts);
+
             return res;
         } else // ... add support for boolean and continuous tuples
-        {
-            if (ps[0].t == mtset || ps[0].t == mttuple)
-                return ps[0].seti;
-            std::cout << "Error in TupletoSet::takemeas: dynamic cast error, wrong type passed\n";
-            exit(1);
-        }
+            if (setitrtuple<double>* s = dynamic_cast<setitrtuple<double>*>(ps[0].seti))
+            {
+                setitr* res;
+                if (!s->computed)
+                    s->compute();
+                std::vector<valms> totality {};
+                auto r = s->getitrpos(false);
+                while (!r->ended())
+                {
+                    totality.push_back(r->getnext());
+                }
+                res = new setitrmodeone(totality);
+                delete r;
+                return res;
+            }
+
+        if (ps[0].t == mtset || ps[0].t == mttuple)
+            return ps[0].seti;
+        std::cerr << "Error in TupletoSet::takemeas: dynamic cast error, wrong type passed\n";
+        exit(1);
+
     }
 
     TupletoSet( mrecords* recin ) : set(recin, "TupletoSet", "Converts a tuple to a set")

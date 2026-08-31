@@ -50,3 +50,4 @@ $PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="planarity.da
 
 $PTH/flagcalc -d testplanarshort.dat -d testplanarsmall.dat -a isp="planarity.dat" s="apexgraph" all -v crit allcrit i=minimal3.cfg
 
+# 0:33 seconds 8/31/2026
