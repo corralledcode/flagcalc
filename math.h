@@ -2165,13 +2165,13 @@ inline setitrabstractops* getsetitrops( setitr* setA, setitr* setB ) {
         if (setitrint2dsymmetric* castB2d = dynamic_cast<setitrint2dsymmetric*>(setB))
             if (castA2d->dim1 == castB2d->dim1 && castA2d->dim2 == castB2d->dim2)
                 return new setitrfast2dops( castA2d, castB2d );*/
-    if (setitrint* castA = dynamic_cast<setitrint*>(setA))
+     /* if (setitrint* castA = dynamic_cast<setitrint*>(setA))
         if (setitrint* castB = dynamic_cast<setitrint*>(setB))
-            return new setitrfastops( castA, castB );
-    if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
+            return new setitrfastops( castA, castB ); */
+    /* if (setitrsubset* castAss = dynamic_cast<setitrsubset*>(setA))
         if (setitrsubset* castBss = dynamic_cast<setitrsubset*>(setB))
             if (castAss->superset->parent == castBss->superset->parent)
-                return new setitrfastssops( castAss, castBss );
+                return new setitrfastssops( castAss, castBss ); */
     return new setitrslowops( setA, setB );
 }
 inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
@@ -2193,7 +2193,7 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
         if (samedims)
             return new setitrfastplural2dops( casts2d );
     }*/
-    /*
+/*
     all = true;
     i = 0;
     std::vector<setitrint*> casts {};
@@ -2206,7 +2206,8 @@ inline setitrabstractops* getsetitrpluralops( std::vector<setitr*> sets ) {
         ++i;
     }
     if (all)
-        return new setitrfastpluralops( casts );
+        return new setitrfastpluralops( casts );*/
+    /*
     all = true;
     i = 0;
     std::vector<setitrsubset*> castsss {};
