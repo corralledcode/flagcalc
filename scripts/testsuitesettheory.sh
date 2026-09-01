@@ -532,3 +532,5 @@ $PTH/flagcalc -r 8 p=0.5 100 -a isp=storedprocedures.dat s="kfactor(1) IFF FORAL
 
 # 3:46 after fastsetops upgrade (cmp 4:15 prior, and that prior time excluding the last several theorems)
 # 3:20
+
+# 3:14 after setitrpluralunion and analogous

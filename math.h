@@ -614,6 +614,46 @@ class setitrunion : public setitrmodeone
 
 };
 
+class setitrpluralunion : public setitrmodeone
+{
+    std::vector<setitr*> sets;
+public:
+    void compute() override
+    {
+        std::vector<valms> temp {};
+        for (auto s : sets)
+        {
+            auto itr = s->getitrpos(false);
+            while (!itr->ended())
+            {
+                bool found = false;
+                valms v = itr->getnext();
+                for (int i = 0; !found && i < temp.size(); i++)
+                    found = mtareequalgenerous(temp[i], v);
+                if (!found) {
+                    // claimset(v);
+                    temp.push_back(v);
+                }
+            }
+            delete itr;
+        }
+        totality.resize(temp.size());
+        for (int i = 0; i < temp.size(); i++)
+            totality[i] = temp[i];
+        computed = true;
+        reset();
+    }
+
+    setitrpluralunion(std::vector<setitr*> setsin) : sets{setsin}
+    {
+        reset();
+        compute();
+    };
+
+};
+
+
+
 class setitrdupeunion : public setitrmodeone
 {
     public:
@@ -647,6 +687,38 @@ class setitrdupeunion : public setitrmodeone
     }
 
     setitrdupeunion(setitr* a, setitr* b) : setA{a}, setB{b}
+    {
+        reset();
+        compute();
+    };
+
+};
+
+class setitrpluraldupeunion : public setitrmodeone
+{
+    std::vector<setitr*> sets;
+public:
+    void compute() override
+    {
+        std::vector<valms> temp {};
+        for (auto s : sets)
+        {
+            auto itr = s->getitrpos(false);
+            while (!itr->ended())
+            {
+                valms v = itr->getnext();
+                temp.push_back(v);
+            }
+            delete itr;
+        }
+        totality.resize(temp.size());
+        for (int i = 0; i < temp.size(); i++)
+            totality[i] = temp[i];
+        computed = true;
+        reset();
+    }
+
+    setitrpluraldupeunion(std::vector<setitr*> setsin) : sets{setsin}
     {
         reset();
         compute();
@@ -723,6 +795,54 @@ public:
     };
 
 };
+
+class setitrpluralintersection : public setitrmodeone
+{
+public:
+    std::vector<setitr*> sets {};
+    void compute() override
+    {
+        totality.clear();
+        std::vector<valms> temp {};
+        if (sets.size() == 0)
+            return;
+        auto itr = sets[0]->getitrpos(false);
+        while (!itr->ended())
+            temp.push_back(itr->getnext());
+        delete itr;
+        std::vector<valms> temp2 = temp;
+        for (int i = 1; i < sets.size(); i++)
+        {
+            temp2.clear();
+            auto itr2 = sets[i]->getitrpos(false);
+            while (!itr2->ended())
+            {
+                bool found = false;
+                valms v = itr2->getnext();
+                for (int i = 0; !found && i < temp.size(); i++)
+                    found = found || mtareequalgenerous(temp[i], v);
+                if (found)
+                    temp2.push_back(v);
+            }
+            delete itr2;
+            temp = temp2;
+        }
+        totality.resize(temp2.size());
+        for (int i = 0; i < temp2.size(); i++)
+            totality[i] = temp2[i];
+        computed = true;
+        reset();
+    }
+
+    setitrpluralintersection(std::vector<setitr*> setsin) : sets{setsin}
+    {
+        reset();
+        compute();
+    };
+
+};
+
+
 
 class setitrsetminus : public setitrmodeone
 {
@@ -2079,17 +2199,17 @@ public:
             res = sets.back();
         switch (fo) {
             case formulaoperator::foqunion:
-                for (int i = sets.size() - 2; i >= 0; --i)
-                    res = new setitrunion( res, sets[i] );
+                res = new setitrpluralunion( sets );
                 break;
             case formulaoperator::foqdupeunion:
-                for (int i = sets.size() - 2; i >= 0; --i)
-                    res = new setitrdupeunion( res, sets[i] );
+                res = new setitrpluraldupeunion( sets );
                 break;
             case formulaoperator::foqintersection:
-                for (int i = sets.size() - 2; i >= 0; --i)
-                    res = new setitrintersection( res, sets[i] );
-                break;
+                    // for (int i = sets.size() - 2; i >= 0; --i)
+                        // res = new setitrintersection( res, sets[i] );
+                    res = new setitrpluralintersection( sets );
+                    break;
+
             default:
                 std::cerr << "setitrslowpluralops (slow) called with unsupported operator\n";
                 exit(1);
@@ -3485,9 +3605,35 @@ inline bool mtareequalgenerous( const valms& v, const valms& w ) { // initially 
 
     switch (v.t) {
     case mtbool:
+        {
+            switch (w.t)
+            {
+                case mtbool: return v.v.bv == w.v.bv;
+                case mtdiscrete: return v.v.bv && w.v.iv != 0;
+                case mtcontinuous: return v.v.bv && w.v.dv != 0.0;
+            }
+            return false;
+        }
     case mtdiscrete:
+        {
+            switch (w.t)
+            {
+                case mtbool: return w.v.bv && v.v.iv != 0;
+                case mtdiscrete: return v.v.iv == w.v.iv;
+                case mtcontinuous: return (double)v.v.iv == w.v.dv;
+            }
+            return false;
+        }
     case mtcontinuous:
-        return v == w;
+        {
+            switch (w.t)
+            {
+                case mtbool: return w.v.bv && v.v.dv != 0.0;
+                case mtdiscrete: return (double)v.v.iv == w.v.dv;
+                case mtcontinuous: return v.v.dv == w.v.dv;
+            }
+            return false;
+        }
     case mtset: {
             setitr* temp;
             mtconverttoset(w,temp);
@@ -3505,13 +3651,15 @@ inline bool mtareequalgenerous( const valms& v, const valms& w ) { // initially 
     case mtstring:
         if (w.t == mtstring)
             return *v.v.rv == *w.v.rv;
-        break;
+        return false;
     case mtgraph:
         if (w.t == mtgraph)
             return graphsequal( v.v.nsv->g, w.v.nsv->g );
-        break;
+        return false;
     }
-    std::cout << "Unsupported type " << v.t << " and " << w.t << " in mtareequalgenerous\n";
+    // for now, in view of need to compare non-equal types beyond those cast above, don't return this error msg
+    // (that is, need to check two disparate sets, like V and E, for shared elements)
+    std::cerr << "Unsupported type " << v.t << " and " << w.t << " in mtareequalgenerous\n";
     return false;
 }
 
