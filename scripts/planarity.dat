@@ -3,7 +3,7 @@ mtbool vsetembedsK33subdivision( mtset vs )
 EXISTS (v IN Sizedsubset(vs,6), EXISTS (vleft IN Sizedsubset(v,3), NAMING (vright AS (v SETMINUS vleft),
 NAMING (Vminusv AS vs SETMINUS v,
 NAMING (paths AS TUPLE (v1 IN vleft, v2 IN vright, TUPLE (p IN Pathsusingvsets(v1,v2, Vminusv), Subp(p,1,st(p)-1))),
-EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), TupletoSet((paths[i])[ch[i]])), "DISJOINT", 2, 1)))))))
+EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), TupletoSet(paths[i][ch[i]])), "DISJOINT", 2, 1)))))))
 
 END
 
@@ -12,7 +12,7 @@ mtbool vsetembedsK5subdivision( mtset vs )
 
 EXISTS (v IN Sizedsubset(vs,5),
 NAMING (Vminusv AS vs SETMINUS v, NAMING (paths AS TUPLE (v1 IN v, v2 IN v, v1 < v2, TUPLE (p IN Pathsusingvsets(v1,v2, Vminusv), Subp(p,1,st(p)-1))),
-EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), TupletoSet((paths[i])[ch[i]])), "DISJOINT", 2, 1)))))
+EXISTS (ch IN Choices(paths), nwisec( SETD (i IN NN(st(ch)), TupletoSet(paths[i][ch[i]])), "DISJOINT", 2, 1)))))
 
 END
 

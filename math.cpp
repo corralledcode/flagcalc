@@ -177,7 +177,8 @@ inline std::vector<std::string> parsecomponents( std::string str) {
                         components.push_back(partial);
                         partial = "";
                     }
-                    if (components[components.size()-1] == "(")
+                    if (components[components.size()-1] == "(" || components[components.size()-1] == ","
+                        || components[components.size()-1] == "{" || components[components.size()-1] == "[")
                         partial = "-";
                     else
                         components.push_back("-");
@@ -1289,7 +1290,7 @@ public:
             if (fc.fcright->boundvariables[j]->superset) {
                 valms v = emf->evalinternal(*fc.fcright->boundvariables[j]->superset, context);
                 if (v.t == mtdiscrete || v.t == mtcontinuous)
-                {
+                { // treat an integer n as NN(n) (i.e. as the set of all natural numbers strictly less than n, including zero)
                     if (v.t == mtcontinuous)
                         v.v.iv = (int)v.v.dv;
                     if (v.v.iv >= 0)
@@ -5389,11 +5390,12 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     }
 
             }
+            /* Commenting this out fixes inability to double-dereference tuples without using parentheses
             if (n < components.size())
             {
                 if (components[n] == "[") {
                     // operatorstack.push_back(tok);
-                    operatorstack.push_back(SHUNTINGYARDDEREFKEY);
+                    // operatorstack.push_back(SHUNTINGYARDDEREFKEY);
                     argcount.push_back(0);
                     if (!werevalues.empty())
                         werevalues[werevalues.size() - 1] = true;
@@ -5402,7 +5404,7 @@ inline std::vector<std::string> Shuntingyardalg( const std::vector<std::string>&
                     // ++n;
                     continue;
                 }
-            }
+            }*/
 
 
             continue;
@@ -5666,7 +5668,7 @@ inline formulaclass* parseformulainternal(
             {
                 argcnt = stoi(q[++pos]);
                 if (argcnt < 2)
-                    std::cout << "Wrong number (" << argcnt << ") of arguments to a quantifier or relational quantifier " << tok << "\n";
+                    std::cerr << "Wrong number (" << argcnt << ") of arguments to a quantifier or relational quantifier " << tok << "\n";
             }
 
 

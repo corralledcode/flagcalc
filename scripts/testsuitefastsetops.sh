@@ -37,3 +37,4 @@ $PTH/flagcalc -d f="a" -a e="BIGCUP (S IN Ps({1.5,2.5,3.5,4.6,5.9,6.0,7.45,8.01,
 # no bug here, however major speed-up from 4 seconds to 2.5 seconds; and of course replacing each powerset with P(V) gives 0.4 seconds, super fast (that is, it doesn't id literal constants as a set of integers yet
 $PTH/flagcalc -d f="a" -a e="BIGCUP (S IN Ps({1,2,3,4,5,6,7,8,9,10}), T IN Ps({11,12,13,14,5,6,17,18,19,20}), S CUP T)" -v i=minimal3.cfg allsets
 $PTH/flagcalc -d f="a" -a e="BIGCAP (S IN Ps({1,2,3,4,5,6,7,8,9,10}), T IN Ps({11,12,13,14,5,6,17,18,19,20}), 5 ELT S AND 5 ELT T, S CAP T)" -v i=minimal3.cfg allsets
+$PTH/flagcalc -d f="a" -a e="BIGCUP (S IN Ps({1,2,3, (-4),5, (-6),7, (-8),9, -10}), T IN Ps({11,12,13,14,5,6,17,18,19,20}), S CUP T)" -v i=minimal3.cfg allsets
