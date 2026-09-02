@@ -276,6 +276,13 @@ public:
     setitr() {}
 
     virtual ~setitr();
+
+    virtual std::unique_ptr<setitr> clone()
+    {   // may want to add getitrpos here and make sure totality is computed
+        auto res = std::make_unique<setitr>();
+        res->totality = totality;
+        return res;
+    }
 };
 
 
@@ -481,6 +488,7 @@ class setitrmodeone : public setitr
     public:
 
     bool computed = false;
+    std::vector<std::unique_ptr<setitr>> duplicatedSmartPtr {};
     virtual void compute() {computed = true;}
     LONGINT getsize() override
     {
@@ -525,6 +533,24 @@ class setitrmodeone : public setitr
         // t = mtset;
         pos = -1;
         computed = true;
+    }
+
+    std::unique_ptr<setitr> clone() override {
+        compute();
+        std::vector<valms> tot {};
+        for (auto s : totality)
+        {
+            valms v {s};
+            if (s.t == mtset || s.t == mttuple)
+            {
+                duplicatedSmartPtr.push_back(s.seti->clone());
+                v.seti = duplicatedSmartPtr.back().get();
+            }
+            tot.push_back(v);
+        }
+
+        auto res = std::make_unique<setitrmodeone>(tot);
+        return res;
     }
 
 };
@@ -697,6 +723,7 @@ class setitrdupeunion : public setitrmodeone
 
 class setitrpluraldupeunion : public setitrmodeone
 {
+protected:
     std::vector<setitr*> sets;
 public:
     void compute() override
@@ -721,9 +748,21 @@ public:
 
     setitrpluraldupeunion(std::vector<setitr*> setsin) : sets{setsin}
     {
-        reset();
+        // reset();
         compute();
     };
+    std::unique_ptr<setitr> clone() override {
+        std::vector<setitr*> newsets {};
+        for (auto s : sets)
+        {
+            duplicatedSmartPtr.push_back(s->clone());
+            auto t = duplicatedSmartPtr.back().get();
+            newsets.push_back(t);
+        }
+        auto res = std::make_unique<setitrpluraldupeunion>(newsets);
+        return res;
+    }
+
 
 };
 
@@ -1033,6 +1072,13 @@ class setitrint : public setitrmodeone
          delete elts;
     }
 
+    std::unique_ptr<setitr> clone() override {
+        bool* eltscopy = new bool[maxint+1];
+        for (int i = 0; i < maxint+1; ++i)
+            eltscopy[i] = elts[i];
+        return std::make_unique<setitrint>(maxint,eltscopy);
+    }
+
 };
 
 
@@ -1096,6 +1142,14 @@ public:
     ~setitrtuple() {
          delete elts;
     }
+    std::unique_ptr<setitr> clone() override {
+        compute();
+        T* newelts = new T[length];
+        for (int i = 0; i < length; ++i)
+            newelts[i] = elts[i];
+        return std::make_unique<setitrtuple<T>>(length,newelts);
+    }
+
 };
 
 template<>
@@ -1272,6 +1326,14 @@ public:
         // for (auto v : totality)
             // delete v.seti;
     }
+    std::unique_ptr<setitr> clone() override {
+        bool* newelts = new bool[dim1*dim2];
+        for (int i = 0; i < dim1; ++i)
+            for (int j = 0; j < dim2; ++j)
+                newelts[i*dim2 + j] = itrint->elts[i*dim2 + j];
+        return std::make_unique<setitrint2dsymmetric>(dim1,newelts);
+    }
+
 
 };
 
@@ -1365,6 +1427,10 @@ public:
         superset->parent->usecount--;
         delete itrint;
     }
+    std::unique_ptr<setitr> clone() override {
+        return std::make_unique<setitrsubset>(superset,itrint);
+    }
+
 };
 
 inline void fastsetunion( const int maxint1, const int maxint2, const int maxintout, bool* elts1, bool* elts2, bool* out) {
@@ -2910,14 +2976,15 @@ protected:
 
 public:
     unsigned thread_count = std::thread::hardware_concurrency();
+    int threadcountforeval = 1;
     graphtype* g {};
-    std::vector<valms> literals {};
+    std::vector<std::vector<valms>> literals {{}};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
 
     virtual valms evalpslit( const int idx, namedparams& context, neighborstype* subgraph, params& ps );
     virtual valms evalvariable( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
     virtual valms evalvariablederef( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
-    virtual valms eval( formulaclass& fc, namedparams& context );
+    virtual valms eval( formulaclass& fc, namedparams& context, const int threadnumber );
 
     evalformula();
     ~evalformula()

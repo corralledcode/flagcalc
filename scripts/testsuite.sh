@@ -137,5 +137,5 @@ $PTH/flagcalc -r 8 10 5 -a s="FORALL (s IN Ps(V), FORALL (t IN Ps(V), (s CUP t) 
 
 # runtime 16 seconds on 8/31/2026
 
-
+# 0:21 after relocating bipartitecrit.dat and bipartitecrit2.dat so the script can find them
 

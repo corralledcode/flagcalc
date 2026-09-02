@@ -1165,14 +1165,15 @@ void evalformula::preprocessbindvariablenames( formulaclass* fc, namedparams& co
 }
 
 
-int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v ) {
+int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v,
+    const int threadnumber) {
     int pivot = arr[start];
     int count = 0;
 
     for (int i = start+1;i <= end; i++) {
         context[context.size()-2].second = (*v)[arr[i]];
         context[context.size()-1].second = (*v)[pivot];
-        if (!evalinternal(*fc,context).v.bv)
+        if (!evalinternal(*fc,context,threadnumber).v.bv)
             count++;
     }
 
@@ -1184,7 +1185,7 @@ int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, f
     while (i < pivotIndex && j > pivotIndex) {
         context[context.size()-2].second = (*v)[arr[i]];
         context[context.size()-1].second = (*v)[pivot];
-        while (!evalinternal(*fc,context).v.bv)
+        while (!evalinternal(*fc,context,threadnumber).v.bv)
         {
             context[context.size()-2].second = (*v)[arr[i]];
             context[context.size()-1].second = (*v)[pivot];
@@ -1192,7 +1193,7 @@ int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, f
         }
         context[context.size()-2].second = (*v)[arr[j]];
         context[context.size()-1].second = (*v)[pivot];
-        while (evalinternal(*fc,context).v.bv)
+        while (evalinternal(*fc,context,threadnumber).v.bv)
         {
             context[context.size()-2].second = (*v)[arr[j]];
             context[context.size()-1].second = (*v)[pivot];
@@ -1205,31 +1206,31 @@ int evalmformula::partitionforsort( std::vector<int> &arr, int start, int end, f
     return pivotIndex;
 }
 
-void evalmformula::quickSort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v ) {
+void evalmformula::quickSort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v, const int threadnumber ) {
 
     if (start >= end)
         return;
 
-    int p = partitionforsort(arr,start,end,fc,context,v);
+    int p = partitionforsort(arr,start,end,fc,context,v,threadnumber);
 
-    quickSort(arr, start, p-1,fc,context,v);
-    quickSort(arr, p+1, end, fc,context,v);
+    quickSort(arr, start, p-1,fc,context,v,threadnumber);
+    quickSort(arr, p+1, end, fc,context,v,threadnumber);
 }
 
-void evalmformula::threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res)
+void evalmformula::threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res, const int threadnumber)
 {
-    *c = to_mtbool(evalinternal(*criterion, *context)).v.bv;
+    *c = to_mtbool(evalinternal(*criterion, *context,threadnumber)).v.bv;
     if (*c)
-        *res = this->evalinternal(*fc, *context);
+        *res = this->evalinternal(*fc, *context,threadnumber);
 }
 
-void evalmformula::threadeval(formulaclass* fc, namedparams* context, valms* res)
+void evalmformula::threadeval(formulaclass* fc, namedparams* context, valms* res, const int threadnumber)
 {
-    *res = this->evalinternal(*fc, *context);
+    *res = this->evalinternal(*fc, *context, threadnumber);
 }
 
 inline void evalmformula::partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int  contextidxB,
-    std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a )
+    std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a, const int threadnumber )
 {
     while (v2->size() > 0)
     {
@@ -1241,10 +1242,10 @@ inline void evalmformula::partitionmerge( formulaclass* fc, namedparams* context
         {
             (*context)[contextidxA].second = (*v1)[i][0];
             for (int l = 0; l < a->size(); ++l) {
-                valms v = evalinternal(*fc->boundvariables[(*a)[l].second]->alias, *context);
+                valms v = evalinternal(*fc->boundvariables[(*a)[l].second]->alias, *context,threadnumber);
                 (*context)[(*a)[l].first].second = v;
             }
-            found = evalinternal(*fc, *context).v.bv;
+            found = evalinternal(*fc, *context,threadnumber).v.bv;
         }
         if (found)
         {
@@ -1276,6 +1277,7 @@ public:
     std::vector<std::pair<int,int>> a;
     int contextidxA = -1;
     int contextidxB = -1;
+    int threadnumber = 0;
 
     void prepwork()
     {
@@ -1285,12 +1287,12 @@ public:
         cntforquota = fc.fcright->cntforquota;
         needtodeletevseti.resize(fc.fcright->boundvariables.size());
         if (cntforquota)
-            computedcntforquota = to_mtdiscrete(emf->evalinternal(*cntforquota,context)).v.iv;
+            computedcntforquota = to_mtdiscrete(emf->evalinternal(*cntforquota,context,threadnumber)).v.iv;
         else
             computedcntforquota = 1;
         for (int j = 0; j < fc.fcright->boundvariables.size(); ++j) {
             if (fc.fcright->boundvariables[j]->superset) {
-                valms v = emf->evalinternal(*fc.fcright->boundvariables[j]->superset, context);
+                valms v = emf->evalinternal(*fc.fcright->boundvariables[j]->superset, context,threadnumber);
                 if (v.t == mtdiscrete || v.t == mtcontinuous)
                 { // treat an integer n as NN(n) (i.e. as the set of all natural numbers strictly less than n, including zero)
                     if (v.t == mtcontinuous)
@@ -1335,7 +1337,7 @@ public:
         for (int j = 0; j < fc.fcright->boundvariables.size(); ++j)
         {
             if (fc.fcright->boundvariables[j]->alias) {
-                valms v = emf->evalinternal(*fc.fcright->boundvariables[j]->alias, context);
+                valms v = emf->evalinternal(*fc.fcright->boundvariables[j]->alias, context,threadnumber);
                 // if (v.t == mtset || v.t == mttuple)
                     // v.seti->usecount++;
                 context.push_back({fc.fcright->boundvariables[j]->name,v});
@@ -1374,7 +1376,7 @@ public:
     {
         for (int j = 0; j < a.size(); ++j)
         {
-            valms v = emf->evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context);
+            valms v = emf->evalinternal(*fc.fcright->boundvariables[a[j].second]->alias, context,threadnumber);
             context[a[j].first].second = v;
         }
     }
@@ -1456,39 +1458,52 @@ public:
         context.resize(originalcontextsize);
     }
 
-    void threadsafeadvance(int& pos, std::vector<valms>& ress)
+    void threadsafeadvance(int& pos, std::vector<valms>& ress, const int tc)
     {
         pos = 0;
         std::vector<namedparams> contexts {};
-        contexts.resize(emf->thread_count);
-        while (pos < emf->thread_count && k < supersetpos.size())
+        contexts.resize(tc);
+        while (pos < tc && k < supersetpos.size())
         {
             contexts[pos] = context;
+            // contexts[pos].resize(context.size());
+            if (false) // pos > 0)
+                for (int j = 0; j < context.size(); ++j)
+                {
+                    auto c = context[j];
+                    if (c.second.t == mtset || c.second.t == mttuple)
+                    {
+                        emf->rec->duplicatedSmartPtr.push_back(c.second.seti->clone());
+                        c.second.seti = emf->rec->duplicatedSmartPtr.back().get();
+                    }
+                    contexts[pos][j] = c;
+                }
+
             multipleadvance();
             pos++;
         }
+
 
         std::vector<std::future<void>> t;
         t.resize(pos);
         ress.resize(pos);
         for (int m = 0; m < pos; ++m)
-            t[m] = std::async(&evalmformula::threadeval,emf,fc.fcright,&contexts[m],&ress[m]);
+            t[m] = std::async(&evalmformula::threadeval,emf,fc.fcright,&contexts[m],&ress[m],m);
         for (int m = 0; m < pos ; ++m)
             t[m].get();
     }
 
-    void threadsafeadvancewithcriterion(int& pos, std::vector<bool>& c, std::vector<valms>& ress)
+    void threadsafeadvancewithcriterion(int& pos, std::vector<bool>& c, std::vector<valms>& ress, const int tc)
     {
         pos = 0;
         std::vector<namedparams> contexts {};
-        contexts.resize(global_thread_count);
-        while (pos < global_thread_count && k < supersetpos.size())
+        contexts.resize(tc);
+        while (pos < tc && k < supersetpos.size())
         {
             contexts[pos] = context;
             multipleadvance();
             pos++;
         }
-
         std::vector<std::future<void>> t;
         t.resize(pos);
         ress.resize(pos);
@@ -1496,13 +1511,13 @@ public:
         std::vector<valms> cress;
         cress.resize(pos);
         for (int m = 0; m < pos; ++m)
-            t[m] = std::async(&evalmformula::threadeval,emf,criterion,&contexts[m],&cress[m]);
+            t[m] = std::async(&evalmformula::threadeval,emf,criterion,&contexts[m],&cress[m],m);
         for (int m = 0; m < pos; ++m)
             t[m].get();
         for (int m = 0; m < pos; ++m)
             if (cress[m].v.bv)
             {
-                t[m] = std::async(&evalmformula::threadeval,emf,fc.fcright,&contexts[m],&ress[m]);
+                t[m] = std::async(&evalmformula::threadeval,emf,fc.fcright,&contexts[m],&ress[m],m);
                 c[m] = true;
             } else
                 c[m] = false;
@@ -1511,7 +1526,8 @@ public:
                 t[m].get();
     }
 
-    quantifiermanager( evalmformula* emfin, formulaclass& fcin, namedparams& contextin ) : emf{emfin}, fc{fcin}, context{contextin} {}
+    quantifiermanager( evalmformula* emfin, formulaclass& fcin, namedparams& contextin, const int threadnumberin ) : emf{emfin}, fc{fcin}, context{contextin},
+        threadnumber{threadnumberin} {}
 
     ~quantifiermanager()
     {
@@ -1531,7 +1547,7 @@ public:
             if (fc.fcright->boundvariables[fc.fcright->boundvariables.size()-l-1]->superset)
             {
                 valms v = emf->evalinternal(*fc.fcright->boundvariables[fc.fcright->boundvariables.size()-l-1]->superset,
-                    context);
+                    context,threadnumber);
                 c[num++] = {fc.fcright->boundvariables[fc.fcright->boundvariables.size()-l-1]->name, v};
             }
             l++;
@@ -1569,7 +1585,7 @@ public:
 };
 
 #ifdef FLAGCALC_CUDA
-void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, unsigned int& sz)
+void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, unsigned int& sz,const int threadnumber)
 {
 
 #ifdef CUDADEBUG2
@@ -1583,7 +1599,7 @@ void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& co
     Cdss.ns = this->ns;
 
     CUDAextendedcontext modelCec {};
-    quantifiermanager qm(this,fc,context);
+    quantifiermanager qm(this,fc,context,threadnumber);
 
     if (qm.checkGPUquantforfast(fc, modelCec.numfastn, sz))
     {
@@ -1661,11 +1677,13 @@ void evalmformula::childCUDAspawnwithcriterion(formulaclass& fc, namedparams& co
 
 void evalmformula::threadrelationalcomputevectorportion(formulaclass* fc, namedparams* context, namedparams* vector,
     bool* boolvector, bool* computedvector, const int sz, const int idx, const int startidx, const int stopidx,
-    quantifiermanager* qm)
+    quantifiermanager* qm, const int threadnumber )
 {
     (*context)[qm->contextidxA].second = (*vector)[idx].second;
 
     // *changed = false;
+    // auto spawnrec = duperec(rec);
+    // auto spawn = new evalmformula(spawnrec,this->idx);
     for (int i = startidx; i < stopidx; i++)
     {
         if (!computedvector[i])
@@ -1673,20 +1691,22 @@ void evalmformula::threadrelationalcomputevectorportion(formulaclass* fc, namedp
             (*context)[qm->contextidxB].second = (*vector)[i].second;
             qm->computenamings(*context);
             // context->push_back((*vector)[i]);
-            boolvector[i] = to_mtbool(evalinternal(*fc,*context)).v.bv;
+            boolvector[i] = to_mtbool(evalinternal(*fc,*context,threadnumber)).v.bv;
             computedvector[i] = true;
             // *changed = true;
             // context->pop_back();
         }
     }
     // context->pop_back();
+    // delete spawn;
+    // delete spawnrec;
 
 }
 
 
 void evalmformula::threadrelationalcomputevector(formulaclass* fc, namedparams* context, namedparams* vector,
     bool* boolvector, bool* computedvector, const int sz, const int idx, bool* changed,
-    quantifiermanager* qm)
+    quantifiermanager* qm, const int threadnumber)
 {
     (*context)[qm->contextidxA].second = (*vector)[idx].second;
 
@@ -1697,7 +1717,7 @@ void evalmformula::threadrelationalcomputevector(formulaclass* fc, namedparams* 
             (*context)[qm->contextidxB].second = (*vector)[i].second;
             qm->computenamings(*context);
             // context->push_back((*vector)[i]);
-            boolvector[i] = to_mtbool(evalinternal(*fc,*context)).v.bv;
+            boolvector[i] = to_mtbool(evalinternal(*fc,*context,threadnumber)).v.bv;
             computedvector[i] = true;
             *changed = true;
             // context->pop_back();
@@ -1960,15 +1980,15 @@ void idealizetuple( std::vector<valms>& tot, valms& res)
 
 
 
-valms evalformula::eval( formulaclass& fc, namedparams& context) {return {};}
+valms evalformula::eval( formulaclass& fc, namedparams& context, const int threadnumber ) {return {};}
 
 
 
-valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
+valms evalmformula::evalinternal( formulaclass& fc, namedparams& context, const int threadnumber )
 {
     valms res;
     if (fc.fo == formulaoperator::foliteral) {
-        if (fc.v.lit.ps.empty() && !literals.empty())
+        if (fc.v.lit.ps.empty() && !literals[threadnumber].empty())
         {
             /*
             switch (literals[fc.v.lit.l].t)
@@ -1990,14 +2010,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                     break;
                 }
             default:*/
-            res = literals[fc.v.lit.l];
+            res = literals[threadnumber][fc.v.lit.l];
             // }
 
         } else {
             std::vector<valms> ps {};
             int i = 0;
             for (auto f : fc.v.lit.ps) {
-                ps.push_back(evalinternal(*f, context));
+                ps.push_back(evalinternal(*f, context, threadnumber));
             }
             neighborstype* subgraph {};
             if (fc.v.subgraph)
@@ -2027,7 +2047,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 return res;
             case mtset:
             case mttuple:
-                res.seti = new setitrformulae(rec, idx, fc.v.ss.elts, context ); // doesn't compute in time, that is, misses variables in a quantifier
+                res.seti = new setitrformulae(rec, idx, fc.v.ss.elts, context,threadcountforeval,threadnumber ); // doesn't compute in time, that is, misses variables in a quantifier
                 // tocleanup.push_back(res.seti);
                     // res.seti->usecount++;
                 return res;
@@ -2048,7 +2068,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             std::vector<double> ps;
             ps.clear();
             for (auto f : fc.v.fns.ps) {
-                auto a = evalinternal(*f,context);
+                auto a = evalinternal(*f,context,threadnumber);
                 valms r;
                 mtconverttocontinuous(a,r.v.dv);
                 ps.push_back(r.v.dv);
@@ -2060,7 +2080,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
     case formulaoperator::foderef:
         {
-            auto v = evalinternal(*fc.fcright,context);
+            auto v = evalinternal(*fc.fcright,context,threadnumber);
             if (v.t != measuretype::mtset && v.t != measuretype::mttuple) {
                 std::cerr << "Non-set or tuple variable being dereferenced\n";
                 return v; // to prevent segfaulting
@@ -2068,7 +2088,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
             auto pos = v.seti->getitrpos(false);
             int i = 0;
             valms res;
-            auto idx = evalinternal(*fc.fcleft,context);
+            auto idx = evalinternal(*fc.fcleft,context,threadnumber);
             switch (idx.t) {
             case mtbool: idx.v.iv = idx.v.bv ? 1 : 0;
                 break;
@@ -2109,7 +2129,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         {
             std::vector<int> ps {};
             for (auto f : fc.v.vs.ps) {
-                ps.push_back(evalinternal(*f, context).v.iv);
+                ps.push_back(evalinternal(*f, context,threadnumber).v.iv);
                 // std::cout << "ps type " << f->v.v.t << " type " << ps.back().t << "seti type " << ps.back().seti->t << "\n";
             }
             res = evalvariable(fc.v.vs, context,ps);
@@ -2121,8 +2141,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     case (formulaoperator::foelt):
         {
             res.t = measuretype::mtbool;
-            valms set = evalinternal(*fc.fcright,context );
-            valms itm = evalinternal( *fc.fcleft,context );
+            valms set = evalinternal(*fc.fcright,context, threadnumber );
+            valms itm = evalinternal( *fc.fcleft,context, threadnumber);
 
             if (set.t == mtset || set.t == mttuple)
             {
@@ -2170,8 +2190,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     case formulaoperator::fosetminus:
     case formulaoperator::fosetxor:
         {
-            valms set1 = evalinternal(*fc.fcleft, context );
-            valms set2 = evalinternal( *fc.fcright, context );
+            valms set1 = evalinternal(*fc.fcleft, context, threadnumber );
+            valms set2 = evalinternal( *fc.fcright, context, threadnumber );
             if (set2.t == mtset || set2.t == mttuple)
                 switch (set1.t) {
             case mtset: {
@@ -2245,11 +2265,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     {
         for (int i = 0; i < fc.fcright->boundvariables.size(); ++i) {
             // int oldcontextsize = context.size();
-            valms v = evalinternal(*fc.fcright->boundvariables[i]->alias, context);
+            valms v = evalinternal(*fc.fcright->boundvariables[i]->alias, context, threadnumber);
             //context.resize(oldcontextsize);
             context.push_back({fc.fcright->boundvariables[i]->name,v});
         }
-        res = evalinternal(*fc.fcright, context);
+        res = evalinternal(*fc.fcright, context, threadnumber);
         context.resize(context.size()-fc.fcright->boundvariables.size());
         return res;
     }
@@ -2263,7 +2283,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         CUDAvalms* out;
         unsigned int sz;
         bool* crit;
-        childCUDAspawnwithcriterion(fc,context, crit,out,sz);
+        childCUDAspawnwithcriterion(fc,context, crit,out,sz,threadnumber);
         switch (fc.fo)
         {
         case formulaoperator::foqexists:
@@ -2486,7 +2506,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 #endif
     if (quantifierops(fc.fo) && !fc.gpu)
     {
-        quantifiermanager qm(this,fc,context);
+        quantifiermanager qm(this,fc,context,threadnumber);
 
         qm.prepwork();
         if (!fc.threaded)
@@ -2500,9 +2520,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         res.v.bv = true;
                         while (!qm.ended() && res.v.bv) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv)
-                                res.v.bv = res.v.bv && !to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
+                                res.v.bv = res.v.bv && !to_mtbool(evalinternal(*fc.fcright, context, threadnumber)).v.bv;
                             qm.multipleadvance();
                         }
                         res.v.bv = !res.v.bv;
@@ -2514,9 +2534,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.bv = true;
                         res.t = mtbool;
                         while (!qm.ended() && res.v.bv) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv)
-                                res.v.bv = res.v.bv && to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
+                                res.v.bv = res.v.bv && to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv;
                             qm.multipleadvance();
                         }
                         break;
@@ -2527,10 +2547,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 0;
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context,threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 double out;
                                 mtconverttocontinuous(v,out);
                                 res.v.dv += out;
@@ -2545,10 +2565,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 1;;
                         while (!qm.ended() && !(res.v.dv == 0))
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context,threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 double out;
                                 mtconverttocontinuous(v,out);
                                 res.v.dv *= out;
@@ -2564,10 +2584,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context, threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context, threadnumber);
                                 double out;
                                 mtconverttocontinuous(v,res.v.dv);
                                 if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
@@ -2586,10 +2606,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context, threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context, threadnumber);
                                 mtconverttocontinuous(v,res.v.dv);
                                 if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
                                     max = res.v.dv;
@@ -2608,10 +2628,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context, threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 mtconverttocontinuous(v,res.v.dv);
                                 if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                     min = res.v.dv;
@@ -2634,11 +2654,11 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         int count = 0; // this is not foqcount but rather to be used to find average
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context,threadnumber);
                             if (c.v.bv)
                             {
                                 count++;  // this is not foqcount but rather to be used to find average
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 double out;
                                 mtconverttocontinuous(v,out);
                                 res.v.dv += out;
@@ -2653,10 +2673,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtdiscrete;
                         res.v.iv = 0;
                         while (!qm.ended()) {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context,threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 valms tmp;
                                 mtconverttodiscrete(v, tmp.v.iv);
                                 res.v.iv += tmp.v.iv;
@@ -2670,10 +2690,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtdiscrete;
                         res.v.iv = 0;
                         while (!qm.ended()) {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context, threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context, threadnumber);
                                 valms tmp;
                                 mtconverttobool(v,tmp.v.bv);
                                 if (tmp.v.bv)
@@ -2689,10 +2709,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context,threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 claimset(v);
                                 tot.push_back(v);
                             }
@@ -2707,10 +2727,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context,threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 claimset(v);
                                 tot.push_back(v);
                             }
@@ -2725,10 +2745,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context,threadnumber);
                             if (c.v.bv)
                             {
-                                auto v = evalinternal(*fc.fcright, context);
+                                auto v = evalinternal(*fc.fcright, context,threadnumber);
                                 bool match = false;
                                 for (int i = 0; !match && i < tot.size(); i++)
                                     match = match || mtareequal(tot[i], v);
@@ -2752,12 +2772,12 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         bool first = true;
                         while (!qm.ended())
                         {
-                            valms c = evalinternal(*qm.criterion, context);
+                            valms c = evalinternal(*qm.criterion, context, threadnumber);
                             if (c.v.bv)
                             {
                                 valms tempv;
                                 valms outv;
-                                tempv = evalinternal(*fc.fcright, context);
+                                tempv = evalinternal(*fc.fcright, context, threadnumber);
                                 if (first)
                                 {
                                     if (tempv.t == mttuple)
@@ -2800,9 +2820,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         unsigned found = 0;
                         std::vector<valms> tot {};
                         while (!qm.ended() && found < qm.computedcntforquota) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv) {
-                                tot.push_back(evalinternal(*fc.fcright, context));
+                                tot.push_back(evalinternal(*fc.fcright, context,threadnumber));
                                 claimset(tot.back());
                                 found++;
                             }
@@ -2817,9 +2837,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtuncast;
                         bool found = false;
                         while (!qm.ended() && !found) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv) {
-                                res = evalinternal(*fc.fcright, context);
+                                res = evalinternal(*fc.fcright, context,threadnumber);
                                 claimset(res);
                                 found = true;
                             }
@@ -2839,9 +2859,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         unsigned found = 0;
                         while (!qm.ended() && found < qm.computedcntforquota) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv) {
-                                if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv) {
+                                if (to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv) {
                                     found++;
                                 };
                             }
@@ -2849,9 +2869,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         }
                         res.v.bv = found == qm.computedcntforquota;
                         while (!qm.ended() && res.v.bv) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv) {
-                                if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv) {
+                                if (to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv) {
                                     res.v.bv = false;
                                     break;
                                 };
@@ -2865,9 +2885,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         int found = 0;
                         while (!qm.ended() && found < qm.computedcntforquota) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv) {
-                                found += to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 1 : 0;
+                                found += to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv ? 1 : 0;
                             }
                             qm.multipleadvance();
                         }
@@ -2879,9 +2899,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         int found = qm.computedcntforquota;
                         while (!qm.ended() && found >= 0) {
-                            valms c = to_mtbool(evalinternal(*qm.criterion, context));
+                            valms c = to_mtbool(evalinternal(*qm.criterion, context,threadnumber));
                             if (c.v.bv) {
-                                found -= to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 0 : 1;
+                                found -= to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv ? 0 : 1;
                             }
                             qm.multipleadvance();
                         }
@@ -2899,7 +2919,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         res.v.bv = true;
                         while (!qm.ended() && res.v.bv) {
-                            res.v.bv = res.v.bv && !to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
+                            res.v.bv = res.v.bv && !to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv;
                             qm.multipleadvance();
                         }
                         res.v.bv = !res.v.bv;
@@ -2911,7 +2931,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.bv = true;
                         res.t = mtbool;
                         while (!qm.ended() && res.v.bv) {
-                            res.v.bv = res.v.bv && to_mtbool(evalinternal(*fc.fcright, context)).v.bv;
+                            res.v.bv = res.v.bv && to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv;
                             qm.multipleadvance();
                         }
                         break;
@@ -2922,7 +2942,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 0;
                         while (!qm.ended())
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             double out;
                             mtconverttocontinuous(v,out);
                             res.v.dv += out;
@@ -2936,7 +2956,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.v.dv = 1;;
                         while (!qm.ended() && !(res.v.dv == 0))
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             double out;
                             mtconverttocontinuous(v,out);
                             res.v.dv *= out;
@@ -2951,7 +2971,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
                         while (!qm.ended())
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             double out;
                             mtconverttocontinuous(v,res.v.dv);
                             if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
@@ -2969,7 +2989,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         while (!qm.ended())
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             mtconverttocontinuous(v,res.v.dv);
                             if (max == -std::numeric_limits<double>::infinity() || max == std::numeric_limits<double>::infinity())
                                 max = res.v.dv;
@@ -2987,7 +3007,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         double max = -std::numeric_limits<double>::infinity();
                         while (!qm.ended())
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             mtconverttocontinuous(v,res.v.dv);
                             if (min == std::numeric_limits<double>::infinity() || min == -std::numeric_limits<double>::infinity())
                                 min = res.v.dv;
@@ -3010,7 +3030,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (!qm.ended())
                         {
                             count++;  // this is not foqcount but rather to be used to find average
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             double out;
                             mtconverttocontinuous(v,out);
                             res.v.dv += out;
@@ -3024,7 +3044,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtdiscrete;
                         res.v.iv = 0;
                         while (!qm.ended()) {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             valms tmp;
                             mtconverttodiscrete(v, tmp.v.iv);
                             res.v.iv += tmp.v.iv;
@@ -3037,7 +3057,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtdiscrete;
                         res.v.iv = 0;
                         while (!qm.ended()) {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             valms tmp;
                             mtconverttobool(v,tmp.v.bv);
                             if (tmp.v.bv)
@@ -3052,7 +3072,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         while (!qm.ended())
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             claimset(v);
                             tot.push_back(v);
                             qm.multipleadvance();
@@ -3067,7 +3087,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         while (!qm.ended())
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             claimset(v);
                             tot.push_back(v);
                             qm.multipleadvance();
@@ -3082,7 +3102,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         std::vector<valms> tot {};
                         while (!qm.ended())
                         {
-                            auto v = evalinternal(*fc.fcright, context);
+                            auto v = evalinternal(*fc.fcright, context,threadnumber);
                             bool match = false;
                             for (int i = 0; !match && i < tot.size(); i++)
                                 match = match || mtareequal(tot[i], v);
@@ -3109,7 +3129,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             valms tempv;
                             valms outv;
-                            tempv = evalinternal(*fc.fcright, context);
+                            tempv = evalinternal(*fc.fcright, context,threadnumber);
                             if (first)
                             {
                                 if (tempv.t == mttuple)
@@ -3150,7 +3170,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         unsigned found = 0;
                         std::vector<valms> tot {};
                         while (!qm.ended() && found < qm.computedcntforquota) {
-                            tot.push_back(evalinternal(*fc.fcright, context));
+                            tot.push_back(evalinternal(*fc.fcright, context,threadnumber));
                             claimset(tot.back());
                             found++;
                             qm.multipleadvance();
@@ -3164,7 +3184,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             res.t = mtuncast;
                             bool found = false;
                             while (!qm.ended() && !found) {
-                                res = evalinternal(*fc.fcright, context);
+                                res = evalinternal(*fc.fcright, context,threadnumber);
                                 claimset(res);
                                 found = true;
                                 qm.multipleadvance();
@@ -3183,13 +3203,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         unsigned int found = 0;
                         while (!qm.ended() && found < qm.computedcntforquota) {
-                            if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv)
+                            if (to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv)
                                 found++;
                             qm.multipleadvance();
                         }
                         res.v.bv = found >= qm.computedcntforquota;
                         while (!qm.ended() && res.v.bv) {
-                            if (to_mtbool(evalinternal(*fc.fcright, context)).v.bv) {
+                            if (to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv) {
                                 res.v.bv = false;
                                 break;
                             };
@@ -3203,7 +3223,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         int found = 0;
                         while (!qm.ended() && found < qm.computedcntforquota) {
-                            found += to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 1 : 0;
+                            found += to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv ? 1 : 0;
                             qm.multipleadvance();
                         }
                         res.v.bv = found >= qm.computedcntforquota;
@@ -3215,7 +3235,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         res.t = mtbool;
                         int found = qm.computedcntforquota;
                         while (!qm.ended() && found >= 0) {
-                            found -= to_mtbool(evalinternal(*fc.fcright, context)).v.bv ? 0 : 1;
+                            found -= to_mtbool(evalinternal(*fc.fcright, context,threadnumber)).v.bv ? 0 : 1;
                             qm.multipleadvance();
                         }
                         res.v.bv = found >= 0;
@@ -3227,6 +3247,8 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
         } else // case of threaded quantifier
         {
+            auto tc = setthreadcountforeval(thread_count);
+
             if (qm.criterion) // QUANTIFIER: case of threaded and with criterion
             {
                 switch (fc.fo)
@@ -3240,7 +3262,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                     res.v.bv = !to_mtbool(ress[m]).v.bv && res.v.bv;
@@ -3258,7 +3280,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                     res.v.bv = to_mtbool(ress[m]).v.bv && res.v.bv;
@@ -3274,7 +3296,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3294,7 +3316,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3315,7 +3337,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3339,7 +3361,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3364,7 +3386,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3392,7 +3414,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3414,7 +3436,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3434,7 +3456,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3455,7 +3477,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m]) {
                                     claimset(ress[m]);
@@ -3477,7 +3499,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m]) {
                                     claimset(ress[m]);
@@ -3498,7 +3520,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m]) {
                                     bool match = false;
@@ -3527,7 +3549,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             int pos = 0;
                             std::vector<valms> ress;
                             std::vector<bool> c;
-                            qm.threadsafeadvancewithcriterion(pos,c,ress);
+                            qm.threadsafeadvancewithcriterion(pos,c,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 if (c[m])
                                 {
@@ -3561,7 +3583,9 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 }
 
             } else { // QUANTIFIER: case of threaded and no criterion
-                
+
+
+
                 switch (fc.fo) {
                     case formulaoperator::foqexists:
                     {
@@ -3571,7 +3595,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 res.v.bv = (!ress[m].v.bv) && to_mtbool(res).v.bv;
                         }
@@ -3587,7 +3611,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                                 res.v.bv = ress[m].v.bv && to_mtbool(res).v.bv;
                         }
@@ -3601,7 +3625,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 double out;
@@ -3619,7 +3643,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 double out;
@@ -3638,7 +3662,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 mtconverttocontinuous(ress[m],res.v.dv);
@@ -3660,7 +3684,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 mtconverttocontinuous(ress[m],res.v.dv);
@@ -3683,7 +3707,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 mtconverttocontinuous(ress[m],res.v.dv);
@@ -3709,7 +3733,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 ++count;
@@ -3729,7 +3753,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 LONGINT tmp;
@@ -3747,7 +3771,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 bool tmp;
@@ -3766,7 +3790,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m) {
                                 claimset(ress[m]);
                                 tot.push_back(ress[m]);
@@ -3786,7 +3810,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m) {
                                 claimset(ress[m]);
                                 tot.push_back(ress[m]);
@@ -3804,7 +3828,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 bool match = false;
@@ -3831,7 +3855,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             int pos = 0;
                             std::vector<valms> ress;
-                            qm.threadsafeadvance(pos,ress);
+                            qm.threadsafeadvance(pos,ress,tc);
                             for (int m = 0; m < pos ; ++m)
                             {
                                 setitr* out;
@@ -3890,7 +3914,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     {
 
 
-        quantifiermanager qm(this,fc,context);
+        quantifiermanager qm(this,fc,context,threadnumber);
 
         qm.prepwork();
 
@@ -3919,7 +3943,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 {
                                     context[qm.contextidxA].second = tot[i][0];
                                     qm.computenamings(context);
-                                    found = evalinternal(*fc.fcright, context).v.bv;
+                                    found = evalinternal(*fc.fcright, context, threadnumber).v.bv;
                                 }
                                 if (found) {
                                     tot[i-1].push_back(context[qm.contextidxB].second);
@@ -3971,7 +3995,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     break;
                                 context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
                                 for (int j = 0; j < qm.a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context, threadnumber);
                                     context[qm.a[j].first].second = v;
                                 }
                             }
@@ -3980,7 +4004,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             arr[i] = i;
                         }
-                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v,threadnumber);
 
                         std::vector<valms> tot;
                         tot.resize(arr.size());
@@ -4015,14 +4039,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             {
                                 bool found = false;
                                 int i;
-                                auto c = evalinternal(*qm.criterion, context);
+                                auto c = evalinternal(*qm.criterion, context, threadnumber);
                                 if (c.v.bv)
                                 {
                                     for (i = 0; i < tot.size() && !found; i++)
                                     {
                                         context[qm.contextidxA].second = tot[i][0];
                                         qm.computenamings(context);
-                                        found = evalinternal(*fc.fcright, context).v.bv;
+                                        found = evalinternal(*fc.fcright, context, threadnumber).v.bv;
                                     }
                                     if (found) {
                                         tot[i-1].push_back(context[qm.contextidxB].second);
@@ -4073,7 +4097,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         if (!qm.vacuouslytrue)
                             while (true)
                             {
-                                auto c = evalinternal(*qm.criterion, context);
+                                auto c = evalinternal(*qm.criterion, context, threadnumber);
                                 if (c.v.bv)
                                 {
                                     v.push_back(context[qm.contextidxA].second);
@@ -4083,7 +4107,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     break;
                                 context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
                                 for (int j = 0; j < qm.a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context, threadnumber);
                                     // claimset(v); // ?
                                     context[qm.a[j].first].second = v;
                                 }
@@ -4094,7 +4118,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             arr[i] = i;
                         }
-                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v,threadnumber);
 
                         std::vector<valms> tot;
                         tot.resize(arr.size());
@@ -4127,10 +4151,23 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             qm.singleadvance();
                         }
 
+                        thread_count = setthreadcountforeval(thread_count);
                         std::vector<namedparams> contexts;
                         contexts.resize(thread_count);
                         for (int i = 0; i < thread_count; i++)
+                        {
                             contexts[i] = context;
+                            for (int j = 0; j < context.size(); ++j)
+                            {
+                                auto c = context[j];
+                                if (c.second.t == mtset || c.second.t == mttuple)
+                                {
+                                    rec->duplicatedSmartPtr.push_back(c.second.seti->clone());
+                                    c.second.seti = rec->duplicatedSmartPtr.back().get();
+                                }
+                                contexts[i][j] = c;
+                            }
+                        }
 
                         const int sz = vector.size();
                         auto outmatrix = (bool*)malloc(sz*sz*sizeof(bool));
@@ -4168,34 +4205,36 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 // std::cout << "sz == " << sz << ", offset == "<<offset<<", startidx == " << startidx << ", stopidx == " << stopidx << std::endl;
                                 t[j] = std::async(&evalmformula::threadrelationalcomputevectorportion,this,fc.fcright,&contexts[j],
                                     &vector,outmatrix + offset*sz,computedmatrix + offset*sz,sz,offset,startidx,stopidx,
-                                    &qm);
+                                    &qm, j);
                                 // threadrelationalcomputevectorportion(fc.fcright,&contexts[j],
                                     // &vector,&outmatrix[offset*sz],&computedmatrix[offset*sz],sz,offset,startidx,stopidx,
-                                    // &qm);
+                                    // &qm,j);
                             }
                             for (int j = 0; j < tc; j++)
                                 t[j].get();
+
                             computedrows[offset] = true;
                             offset = pointer + 1;
 
 
 
-                            const double section2 = double(sz - offset) / double(tc);
-                            t.resize(tc);
-                            for (int j = 0; j < tc; ++j)
-                            {
-                                const int startidx = offset + int(j*section2);
-                                const int stopidx = offset +  int((j+1.0)*section2);
+                            // const double section2 = double(sz - offset) / double(tc);
+                            // t.resize(tc);
+                            // for (int j = 0; j < tc; ++j)
+                            // {
+                                // const int startidx = offset + int(j*section2);
+                                // const int stopidx = offset +  int((j+1.0)*section2);
                                 // std::cout << "(trans) sz == " << sz << ", offset == "<<offset<<", startidx == " << startidx << ", stopidx == " << stopidx << std::endl;
                                 // t[j] = std::async(&evalmformula::threadrelationaltransitiveclosure,this,
                                     // outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
-                                threadrelationaltransitiveclosure(outmatrix,computedrows,computedmatrix,startidx,stopidx,pointer,offset,sz);
-                            }
-                            for (int j = 0; j < tc; j++)
-                            {
+                                // threadrelationaltransitiveclosure(outmatrix,computedrows,computedmatrix,startidx,stopidx,pointer,offset,sz);
+                            // }
+
+                            threadrelationaltransitiveclosure(outmatrix,computedrows,computedmatrix,0,sz,pointer,offset,sz);
+                            // for (int j = 0; j < tc; j++)
+                            // {
                                 // t[j].get();
-                                // changed = changed || changeda[j];
-                            }
+                            // }
 
                             pointer = offset;
                             while (offset < sz && computedrows[offset])
@@ -4350,7 +4389,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     break;
                                 context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
                                 for (int j = 0; j < qm.a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context, threadnumber);
                                     context[qm.a[j].first].second = v;
                                 }
                             }
@@ -4359,7 +4398,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             arr[i] = i;
                         }
-                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v,threadnumber);
 
                         std::vector<valms> tot;
                         tot.resize(arr.size());
@@ -4383,7 +4422,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         namedparams vector {};
                         while (!qm.ended())
                         {
-                            if (to_mtbool(evalinternal(*qm.criterion,context)).v.bv)
+                            if (to_mtbool(evalinternal(*qm.criterion,context,threadnumber)).v.bv)
                             {
                                 vector.push_back(qm.context[qm.contextidxB]);
                                 claimset(vector.back().second);
@@ -4393,10 +4432,23 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             qm.singleadvance();
                         }
 
+                        thread_count = setthreadcountforeval(thread_count);
                         std::vector<namedparams> contexts;
                         contexts.resize(thread_count);
                         for (int i = 0; i < thread_count; i++)
+                        {
                             contexts[i] = context;
+                            for (int j = 0; j < context.size(); ++j)
+                            {
+                                auto c = context[j];
+                                if (c.second.t == mtset || c.second.t == mttuple)
+                                {
+                                    rec->duplicatedSmartPtr.push_back(c.second.seti->clone());
+                                    c.second.seti = rec->duplicatedSmartPtr.back().get();
+                                }
+                                contexts[i][j] = c;
+                            }
+                        }
 
                         const int sz = vector.size();
                         auto outmatrix = (bool*)malloc(sz*sz*sizeof(bool));
@@ -4435,28 +4487,30 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                 const int stopidx = offset + int((j+1)*section);
                                 t[j] = std::async(&evalmformula::threadrelationalcomputevectorportion,this,fc.fcright,&contexts[j],
                                     &vector,&outmatrix[offset*sz],&computedmatrix[offset*sz],sz,offset,startidx,stopidx,
-                                    &qm);
+                                    &qm, j);
                             }
                             for (int j = 0; j < tc; j++)
                                 t[j].get();
                             computedrows[offset] = true;
                             offset = pointer + 1;
 
-                            const double section2 = double(sz - offset) / double(tc);
-                            t.resize(tc);
-                            for (int j = 0; j < tc; ++j)
-                            {
-                                const int startidx = offset + int(j*section2);
-                                const int stopidx = offset +  int((j+1.0)*section2);
+                            // const double section2 = double(sz - offset) / double(tc);
+                            // t.resize(tc);
+                            // for (int j = 0; j < tc; ++j)
+                            // {
+                                // const int startidx = offset + int(j*section2);
+                                // const int stopidx = offset +  int((j+1.0)*section2);
                                 // t[j] = std::async(&evalmformula::threadrelationaltransitiveclosure,this,
                                     // outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
-                                threadrelationaltransitiveclosure(outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
-                            }
-                            for (int j = 0; j < tc; j++)
-                            {
+                                // threadrelationaltransitiveclosure(outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
+                            // }
+                            // for (int j = 0; j < tc; j++)
+                            // {
                                 // t[j].get();
                                 // changed = changed || changeda[j];
-                            }
+                            // }
+
+                            threadrelationaltransitiveclosure(outmatrix,computedrows, computedmatrix,0,sz, pointer, offset, sz);
 
                             pointer = offset;
                             while (offset < sz && computedrows[offset])
@@ -4544,7 +4598,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         if (!qm.vacuouslytrue)
                             while (true)
                             {
-                                auto c = evalinternal(*qm.criterion, context);
+                                auto c = evalinternal(*qm.criterion, context, threadnumber);
                                 if (c.v.bv)
                                 {
                                     v.push_back(context[qm.contextidxA].second);
@@ -4554,7 +4608,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                                     break;
                                 context[qm.contextidxA].second = qm.supersetpos[qm.supersetpos.size()-1]->getnext();
                                 for (int j = 0; j < qm.a.size(); ++j) {
-                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context);
+                                    valms v = evalinternal(*fc.fcright->boundvariables[qm.a[j].second]->alias, context, threadnumber);
                                     context[qm.a[j].first].second = v;
                                 }
 
@@ -4564,7 +4618,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         {
                             arr[i] = i;
                         }
-                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v);
+                        quickSort(arr,0,arr.size()-1,fc.fcright,context,&v,threadnumber);
 
                         std::vector<valms> tot;
                         tot.resize(arr.size());
@@ -4595,7 +4649,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 
     if (fc.fo == formulaoperator::foswitch)
     {
-        valms resleft = evalinternal(*fc.fcleft, context);
+        valms resleft = evalinternal(*fc.fcleft, context, threadnumber);
         bool b = false;
         switch (resleft.t)
         {
@@ -4613,7 +4667,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         if (b)
         {
             if (fc.fcright->fo  == formulaoperator::focases)
-                res = evalinternal(*fc.fcright->fcleft, context);
+                res = evalinternal(*fc.fcright->fcleft, context, threadnumber);
             else
             {
                 std::cout << "Expecting ':' after '?'\n";
@@ -4625,7 +4679,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         } else
         {
             if (fc.fcright->fo  == formulaoperator::focases)
-                res = evalinternal(*fc.fcright->fcright, context);
+                res = evalinternal(*fc.fcright->fcright, context, threadnumber);
             else
             {
                 std::cout << "Expecting ':' after '?'\n";
@@ -4639,7 +4693,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
     }
 
 
-    valms resright = evalinternal(*fc.fcright, context);
+    valms resright = evalinternal(*fc.fcright, context, threadnumber);
 
     while (resright.t == mtuncast)
         resright = *resright.uv;
@@ -4677,7 +4731,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 || (fc.fo == formulaoperator::foxor)
                 || (fc.fo == formulaoperator::foiff))
             {
-                valms resleft = evalinternal(*fc.fcleft, context);
+                valms resleft = evalinternal(*fc.fcleft, context, threadnumber);
                 while (resleft.t == mtuncast)
                     resleft = *resleft.uv;
                 switch (resleft.t)
@@ -4708,7 +4762,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 || (fc.fo == formulaoperator::foxor)
                 || (fc.fo == formulaoperator::foiff))
             {
-                valms resleft = evalinternal(*fc.fcleft, context);
+                valms resleft = evalinternal(*fc.fcleft, context, threadnumber);
                 while (resleft.t == mtuncast)
                     resleft = *resleft.uv;
                 switch (resleft.t)
@@ -4740,7 +4794,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 || (fc.fo == formulaoperator::foxor)
                 || (fc.fo == formulaoperator::foiff))
             {
-                valms resleft = evalinternal(*fc.fcleft, context);
+                valms resleft = evalinternal(*fc.fcleft, context, threadnumber);
                 while (resleft.t == mtuncast)
                     resleft = *resleft.uv;
                 switch (resleft.t)
@@ -4771,7 +4825,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         return res;
     }
 
-    valms resleft = evalinternal(*fc.fcleft, context);
+    valms resleft = evalinternal(*fc.fcleft, context, threadnumber);
 
     res.t = fc.v.v.t;
     if (equalityops(fc.fo))
@@ -4918,16 +4972,16 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
 }
 
 
-inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
+inline valms evalmformula::eval( formulaclass& fc, namedparams& context, const int threadnumber )
 {
     if (idx >= 0)
     {
-        literals.resize(rec->literals.size());
+        literals[threadnumber].resize(rec->literals.size());
         for (int i = 0; i < rec->literals.size(); ++i)
-            literals[i] = rec->literals[i][idx];
+            literals[threadnumber][i] = rec->literals[i][idx];
     } else
     {
-        literals.clear();
+        literals[0].clear();
     }
 
     // namedparams contextlocal {};
@@ -4940,7 +4994,7 @@ inline valms evalmformula::eval( formulaclass& fc, namedparams& context )
     // auto contextlocal = context;
     preprocessbindvariablenames(&fc,context);
 
-    auto res = evalinternal( fc, context );
+    auto res = evalinternal( fc, context, threadnumber );
     return res;
 }
 

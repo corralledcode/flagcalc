@@ -585,8 +585,8 @@ public:
 class evalmformula : public evalformula
 {
     void quantifiermultipleadvance( formulaclass &fc, std::vector<itrpos*> &supersetpos, int &k, std::vector<std::pair<std::string,valms>> &context, std::vector<int> &i, std::vector<std::pair<int,int>> &a );
-    int partitionforsort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v );
-    void quickSort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v );
+    int partitionforsort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v, const int threadnumber );
+    void quickSort( std::vector<int> &arr, int start, int end, formulaclass* fc, namedparams& context, std::vector<valms>* v, const int threadnumber );
 
 public:
 
@@ -594,24 +594,26 @@ public:
     neighborstype* ns {};
     mrecords* rec;
 
+
     valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& ps ) override;
-    valms eval( formulaclass& fc, namedparams& context ) override;
-    valms evalinternal( formulaclass& fc, namedparams& context );
-    void threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res);
-    void threadeval(formulaclass* fc, namedparams* context, valms* res);
+    valms eval( formulaclass& fc, namedparams& context, const int threadnumber = 0) override;
+    valms evalinternal( formulaclass& fc, namedparams& context, const int threadnumber );
+    void threadevalcriterion(formulaclass* fc, formulaclass* criterion, namedparams* context, bool* c, valms* res, const int threadnumber);
+    void threadeval(formulaclass* fc, namedparams* context, valms* res, const int threadnumber);
     void partitionmerge( formulaclass* fc, namedparams* context, int contextidxA, int contextidxB,
-        std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a );
+        std::vector<std::vector<valms>>* v1, std::vector<std::vector<valms>>* v2, std::vector<std::pair<int,int>>* a, const int threadnumber );
 #ifdef FLAGCALC_CUDA
-    void childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, unsigned int& sz);
+    void childCUDAspawnwithcriterion(formulaclass& fc, namedparams& context, bool* &crit, CUDAvalms* &out, unsigned int& sz, const int threadnumber );
 #endif
     void threadrelationalcomputevectorportion(formulaclass* fc, namedparams* context, namedparams* vector,
     bool* boolvector, bool* computedvector, const int sz, const int idx, const int startidx, const int stopidx,
-    quantifiermanager* qm);
+    quantifiermanager* qm, const int threadnumber );
     void threadrelationalcomputevector(formulaclass* fc, namedparams* context, namedparams* vector, bool* boolvector,
-        bool* computedvector, const int sz, const int idx, bool* changed, quantifiermanager* qm);
+        bool* computedvector, const int sz, const int idx, bool* changed, quantifiermanager* qm, const int threadnumber );
     // void threadrelationalsymmetryclosure(bool* outmatrix, bool* computedmatrix, bool* changed, const int offset, const int start, const int sz  );
     void threadrelationaltransitiveclosure(bool* outmatrix, bool* computedrows, bool* computedmatrix,
         const int startidx, const int stopidx, const int pointer, int offset, const int sz  );
+    int setthreadcountforeval( const int in );
 
 
     evalmformula( mrecords* recin, const int idxin );
@@ -638,6 +640,8 @@ public:
     std::map<int,std::pair<measuretype,int>> m;
     std::vector<evalmformula*> efv {};
     std::vector<valms*> literals {};
+    std::vector<std::unique_ptr<setitr>> duplicatedSmartPtr {};
+
     // std::vector<evalmformula*> npsefv {};
 
     // void addef( evalmformula* efin )
@@ -673,6 +677,16 @@ public:
         literals[iidx][idx].t = mtset;
         literals[iidx][idx].seti = v;
         v->usecount++;
+
+        /* convoluted hasty fix for THREADED PARTITION, now superseded
+        auto i = v->getitrpos(false);
+        while (!i->ended())
+            i->getnext();
+        std::vector<valms> tot {};
+        auto w = new setitrmodeone(v->totality);
+        literals[iidx][idx].seti = w;
+        // delete i;
+        w->usecount++;*/
     }
     void addliteralvaluet( const int iidx, const int idx, setitr* v )
     {
@@ -781,7 +795,12 @@ public:
         {
             literals.resize(mszin);
             for (int i = oldsz; i < mszin; ++i )
+            {
                 literals[i] = (valms*)malloc(sz * sizeof(valms));
+                for (int j = 0; j < sz; ++j)
+                    literals[i][j].t = mtbool; // a workaround to deciphering why there are gaps in iidx (search "resi->iidx =" for the source)
+                                                // that is, to alleviate concerns about cloning nested setitrs accidentally by random t=mtset etc
+            }
         }
         msz = mszin;
     }
@@ -811,6 +830,41 @@ public:
     }
 };
 
+/*
+inline mrecords* duperec( const mrecords* recin )
+{
+    auto res = new mrecords();
+    res->sz = recin->sz;
+    res->msz = recin->msz;
+    res->thread_count = recin->thread_count;
+    res->gptrs = recin->gptrs;
+    res->nsptrs = recin->nsptrs;
+    res->boolrecs = recin->boolrecs;
+    res->intrecs = recin->intrecs;
+    res->doublerecs = recin->doublerecs;
+    res->setrecs.res = {};
+    for (auto s : recin->setrecs.res)
+    {
+        auto news = new setitr();
+        news->totality = (*s)->totality;
+        res->setrecs.res.push_back(&news);
+    }
+    res->tuplerecs.res = {};
+    for (auto p : recin->tuplerecs.res)
+    {
+        auto newp = new setitr();
+        newp->totality = (*p)->totality;
+        res->tuplerecs.res.push_back(&newp);
+    }
+    res->stringrecs = recin->stringrecs;
+    res->graphrecs = recin->graphrecs;
+    res->uncastrecs = recin->uncastrecs;
+    res->m = recin->m;
+    res->efv = recin->efv;
+    res->literals = recin->literals;
+
+} */
+
 inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalformula(), rec{recin}, idx{idxin}
 {
     ns = (*recin->nsptrs)[idx];
@@ -819,6 +873,37 @@ inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalform
 inline evalmformula::evalmformula( mrecords* recin, neighborstype* nsin ) : evalformula(), rec{recin}, ns{nsin}
 {
     thread_count = rec->thread_count;
+}
+
+inline int evalmformula::setthreadcountforeval( const int in )
+{
+    if (threadcountforeval != 1)
+    {
+        // std::cout << "THREADED is used more than once; only one will pertain\n";
+        return 1;
+        // exit(1);
+    }
+    threadcountforeval = in;
+    auto literalszero = literals[0];
+    literals.resize( in );
+    literals[0] = literalszero;
+    for (int i = 1; i < in; i++)
+    {
+        literals[i] = literalszero;
+        for (int j = 0; j < literalszero.size(); ++j)
+        {
+            if (literalszero[j].t == mtset || literalszero[j].t == mttuple)
+            {
+                // keep the smart pointer from going out of scope too soon
+                // auto sp = literalszero[j].seti->clone();
+                rec->duplicatedSmartPtr.push_back(literalszero[j].seti->clone());
+
+                // get the raw pointer safely if a function requires it
+                literals[i][j].seti = rec->duplicatedSmartPtr.back().get();
+            }
+        }
+    }
+    return in;
 }
 
 
@@ -988,6 +1073,8 @@ public:
     mrecords* rec;
     std::vector<formulaclass*> formulae;
     namedparams nps;
+    int threadnumber;
+    int threadcount;
 
     virtual LONGINT getsize() {return formulae.size();}
 
@@ -1005,16 +1092,18 @@ public:
         if (pos >= totality.size())
         {
             totality.resize(pos+1);
-            totality[pos] = ef->eval(*formulae[pos],nps);
+            totality[pos] = ef->eval(*formulae[pos],nps,threadnumber);
         }
         return totality[pos];
     }
 
-    setitrformulae( mrecords* recin, const int idxin, const std::vector<formulaclass*>& fcin, namedparams& npsin )
-        : formulae{fcin}, rec{recin}, nps{npsin}
+    setitrformulae( mrecords* recin, const int idxin, const std::vector<formulaclass*>& fcin, namedparams& npsin,
+        const int threadcountin, const int threadnumberin )
+        : formulae{fcin}, rec{recin}, nps{npsin}, threadcount{threadcountin}, threadnumber{threadnumberin}
     {
 
         ef = new evalmformula(rec,idxin);
+        ef->setthreadcountforeval(threadcount);
 
         totality.clear();
         reset();
@@ -1032,6 +1121,10 @@ public:
     {
         delete ef;
     }
+    std::unique_ptr<setitr> clone() override {
+        return std::make_unique<setitrformulae>(rec,ef->idx,formulae,nps,threadcount,threadnumber);
+    }
+
 };
 
 
@@ -1965,6 +2058,10 @@ public:
         superset->parent->usecount--;
         delete superset;
     }
+    std::unique_ptr<setitr> clone() override {
+        return std::make_unique<setitrsubsegment>(superset,start,stop);
+    }
+
 };
 class setitrreverse : public setitr
 {

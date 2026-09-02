@@ -57,3 +57,4 @@ $PTH/flagcalc -d massivegraph.dat -a z="SUM (d IN V, d > 1, phi(d))" all -a isp=
 $PTH/flagcalc -d massivegraph.dat -a isp="storedprocedures.dat" s="FORALL (d IN V, d > 1, phi(d) == ntphi(d))" all -v i=minimal3.cfg
 
 # 0:22 on 9/1/2026
+# 00:49 on 9/2/2026; 0:26 same day
