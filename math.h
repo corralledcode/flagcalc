@@ -371,7 +371,7 @@ inline setitr::~setitr() {
     todelete.clear();
 }
 
-inline void claimset( valms& v ) {
+inline void claimset( const valms& v ) {
     if (v.t == mtset || v.t == mttuple) {
         v.seti->usecount++;
         for (auto t : v.seti->totality)
@@ -523,6 +523,7 @@ class setitrmodeone : public setitr
     {
         totality = totalityin;
         // t = mtset;
+        pos = -1;
         computed = true;
     }
 
@@ -3609,7 +3610,7 @@ inline bool mtareequalgenerous( const valms& v, const valms& w ) { // initially 
             switch (w.t)
             {
                 case mtbool: return v.v.bv == w.v.bv;
-                case mtdiscrete: return (v.v.bv && w.v.iv != 0) || (!v.v.bv && w.v.iv == 0); break;
+                case mtdiscrete: return (v.v.bv && w.v.iv != 0) || (!v.v.bv && w.v.iv == 0);
                 case mtcontinuous: return v.v.bv && w.v.dv != 0.0;
             }
             return false;
@@ -3618,7 +3619,7 @@ inline bool mtareequalgenerous( const valms& v, const valms& w ) { // initially 
         {
             switch (w.t)
             {
-                case mtbool: return (w.v.bv && v.v.iv != 0) || (!w.v.bv && v.v.iv == 0); break;
+                case mtbool: return (w.v.bv && v.v.iv != 0) || (!w.v.bv && v.v.iv == 0);
                 case mtdiscrete: return v.v.iv == w.v.iv;
                 case mtcontinuous: return (double)v.v.iv == w.v.dv;
             }
@@ -3628,7 +3629,7 @@ inline bool mtareequalgenerous( const valms& v, const valms& w ) { // initially 
         {
             switch (w.t)
             {
-                case mtbool: return (w.v.bv && v.v.dv != 0.0) || (!w.v.bv && v.v.dv == 0.0); break;
+                case mtbool: return (w.v.bv && v.v.dv != 0.0) || (!w.v.bv && v.v.dv == 0.0);
                 case mtdiscrete: return (double)v.v.iv == w.v.dv;
                 case mtcontinuous: return v.v.dv == w.v.dv;
             }

@@ -178,7 +178,9 @@ inline std::vector<std::string> parsecomponents( std::string str) {
                         partial = "";
                     }
                     if (components[components.size()-1] == "(" || components[components.size()-1] == ","
-                        || components[components.size()-1] == "{" || components[components.size()-1] == "[")
+                        || components[components.size()-1] == "{" || components[components.size()-1] == "["
+                        || components[components.size()-1] == "?" || components[components.size()-1] == ":"
+                        || components[components.size()-1] == "<<")
                         partial = "-";
                     else
                         components.push_back("-");
@@ -1301,11 +1303,11 @@ public:
                     needtodeletevseti[j] = true;
                 } else {
                     if (v.t == mtbool)
-                        std::cout << "Cannot use mtbool for quantifier superset\n";
+                        std::cerr << "Cannot use mtbool for quantifier superset\n";
                     needtodeletevseti[j] = false;
                 }
-                v.seti->usecount++;
                 supersetpos.push_back(v.seti->getitrpos(false));
+                v.seti->usecount++;
                 ss.push_back(nullptr);
                 context.push_back({fc.fcright->boundvariables[j]->name,fc.fcright->boundvariables[j]->qs});
                 // std::cout << "inc'ed " << v.seti->usecount << " for " << context.back().first << " (" << j << ")" << std::endl;
@@ -1327,7 +1329,8 @@ public:
                         // c.seti->usecount++;
                 }
                 vv.push_back(v);
-            }
+            } else
+                needtodeletevseti[j] = false;
         }
         for (int j = 0; j < fc.fcright->boundvariables.size(); ++j)
         {
@@ -1457,8 +1460,8 @@ public:
     {
         pos = 0;
         std::vector<namedparams> contexts {};
-        contexts.resize(global_thread_count);
-        while (pos < global_thread_count && k < supersetpos.size())
+        contexts.resize(emf->thread_count);
+        while (pos < emf->thread_count && k < supersetpos.size())
         {
             contexts[pos] = context;
             multipleadvance();
@@ -1664,6 +1667,7 @@ void evalmformula::threadrelationalcomputevectorportion(formulaclass* fc, namedp
 
     // *changed = false;
     for (int i = startidx; i < stopidx; i++)
+    {
         if (!computedvector[i])
         {
             (*context)[qm->contextidxB].second = (*vector)[i].second;
@@ -1674,6 +1678,7 @@ void evalmformula::threadrelationalcomputevectorportion(formulaclass* fc, namedp
             // *changed = true;
             // context->pop_back();
         }
+    }
     // context->pop_back();
 
 }
@@ -1712,56 +1717,119 @@ void evalmformula::threadrelationaltransitiveclosure(bool* outmatrix, bool* comp
         if (!computedrows[col])
             for (int row = pointer; row < offset; ++row)
             {
-                if (outmatrix[row*sz + col])
-                {
-                    int k;
-                    for (k = offset; k < col; ++k)
+                if (computedmatrix[row*sz + col])
+                    if (outmatrix[row*sz + col])
                     {
-                        int p = k*sz + col;
-                        // if (!computedmatrix[p])
-                        // {
-                            outmatrix[p] = outmatrix[row*sz + k];
-                            computedmatrix[p] = true;
-                            // *changed = true;
-                        // }
-                    }
-                    // memcpy(&outmatrix[col*sz + k + 1],outmatrix[row*sz+k+1],sz-k - 1);
-                    for ( ++k; k < sz; ++k)
-                    {
-                        int p = col*sz + k;
-                        // if (!computedmatrix[p])
-                        // {
-                            outmatrix[p] = outmatrix[row*sz + k];
-                            // *changed = true;
-                            // computedmatrix[p] = true;
-                        // }
-                    }
-                    computedrows[col] = true;
-                    // *changed = true;
-                    break;
-                } else
-                {
-                    int k;
-                    for (k = offset; k < col; ++k)
-                    {
-                        if (outmatrix[row*sz + k])
+                        int k;
+                        for (k = offset; k < col; ++k)
+                        { // if row~col then for all k, row~k iff col~k
+                            if (computedmatrix[row*sz + k])
+                            {
+                                int p = k*sz + col;
+                                int q = col*sz + k;
+                                // if (!computedmatrix[p])
+                                // {
+                                outmatrix[p] = outmatrix[row*sz + k];
+                                outmatrix[q] = outmatrix[p];
+                                computedmatrix[p] = true;
+                                computedmatrix[q] = true;
+                                // *changed = true;
+                                // }
+                            }
+                            if (computedmatrix[k*sz + row])
+                            {
+                                int p = k*sz + col;
+                                int q = col*sz + k;
+                                // if (!computedmatrix[p])
+                                // {
+                                outmatrix[p] = outmatrix[k*sz + row];
+                                outmatrix[q] = outmatrix[p];
+                                computedmatrix[p] = true;
+                                computedmatrix[q] = true;
+                                // *changed = true;
+                                // }
+                            }
+
+                        }
+                        // memcpy(&outmatrix[col*sz + k + 1],outmatrix[row*sz+k+1],sz-k - 1);
+                        for ( ++k; k < sz; ++k)
                         {
-                            int p = k*sz + col;
-                            outmatrix[p] = false;
-                            computedmatrix[p] = true;
+                            // if (!computedmatrix[p])
+                            // {
+                            if (computedmatrix[row*sz + k])
+                            {
+                                int p = col*sz + k;
+                                int q = k*sz + col;
+                                outmatrix[p] = outmatrix[row*sz + k];
+                                outmatrix[q] = outmatrix[p];
+                                // *changed = true;
+                                computedmatrix[p] = true;
+                                computedmatrix[q] = true;
+                            }
+                            if (computedmatrix[k*sz + row])
+                            {
+                                int p = k*sz + col;
+                                int q = col*sz + k;
+                                // if (!computedmatrix[p])
+                                // {
+                                outmatrix[p] = outmatrix[k*sz + row];
+                                outmatrix[q] = outmatrix[p];
+                                computedmatrix[p] = true;
+                                computedmatrix[q] = true;
+                                // *changed = true;
+                                // }
+                            }
+                            // }
+                        }
+                        computedrows[col] = true;
+                        // *changed = true;
+                        break;
+                    } else
+                    {
+                        int k;
+                        for (k = offset; k < col; ++k)
+                        { // if row !~ col then row ~ k implies k !~ col
+                            if (computedmatrix[row*sz + k])
+                                if (outmatrix[row*sz + k])
+                                {
+                                    int p = k*sz + col;
+                                    int q = col*sz + k;
+                                    outmatrix[p] = false;
+                                    outmatrix[q] = false;
+                                    computedmatrix[p] = true;
+                                    computedmatrix[q] = true;
+                                }
+
+                            if (computedmatrix[col*sz + k])
+                                if (outmatrix[col*sz + k])
+                                {
+                                    int p = k*sz + row;
+                                    int q = row*sz + k;
+                                    outmatrix[p] = false;
+                                    outmatrix[q] = false;
+                                    computedmatrix[p] = true;
+                                    computedmatrix[q] = true;
+                                }
+
+
+                        }
+                        for (++k; k < sz; ++k)
+                        {
+                            if (computedmatrix[row*sz + k])
+                                if (outmatrix[row*sz + k])
+                                {
+                                    int p = col*sz + k;
+                                    int q = k*sz + col;
+                                    outmatrix[p] = false;
+                                    outmatrix[q] = false;
+                                    computedmatrix[p] = true;
+                                    computedmatrix[q] = true;
+                                }
                         }
                     }
-                    for (++k; k < sz; ++k)
-                    {
-                        if (outmatrix[row*sz + k])
-                        {
-                            int p = col*sz + k;
-                            outmatrix[p] = false;
-                            computedmatrix[p] = true;
-                        }
-                    }
-                }
             }
+        // }
+
     }
 }
 
@@ -1994,7 +2062,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
         {
             auto v = evalinternal(*fc.fcright,context);
             if (v.t != measuretype::mtset && v.t != measuretype::mttuple) {
-                std::cout << "Non-set or tuple variable being dereferenced\n";
+                std::cerr << "Non-set or tuple variable being dereferenced\n";
                 return v; // to prevent segfaulting
             }
             auto pos = v.seti->getitrpos(false);
@@ -2012,13 +2080,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                 while (i++ <= idx.v.iv && !pos->ended())
                     res = pos->getnext();
             else {
-                std::cout << "Dereferencing beyond end of set, index == " << i << "\n";
+                std::cerr << "Dereferencing beyond end of set, index == " << i << "\n";
                 res.t = measuretype::mtdiscrete;
                 res.v.iv = 0;
             }
             if (i <= idx.v.iv)
             {
-                std::cout << "Dereferencing beyond end of set, index == " << i << "\n";
+                std::cerr << "Dereferencing beyond end of set, index == " << i << "\n";
                 res.t = measuretype::mtdiscrete;
                 res.v.iv = 0;
             }
@@ -4053,6 +4121,7 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (!qm.ended())
                         {
                             vector.push_back(qm.context[qm.contextidxB]);
+                            claimset(vector.back().second);
                             if (qm.supersetpos[0]->ended())
                                 break;
                             qm.singleadvance();
@@ -4087,8 +4156,6 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             // t.resize(threads);
                             const int tc = thread_count;
                             t.resize(tc);
-                            int j = 0;
-                            int k = 0;
                             int offset = pointer;
                             // while (j < threads && offset < sz)
                             // {
@@ -4098,14 +4165,20 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             {
                                 const int startidx = offset + int(j*section);
                                 const int stopidx = offset + int((j+1)*section);
+                                // std::cout << "sz == " << sz << ", offset == "<<offset<<", startidx == " << startidx << ", stopidx == " << stopidx << std::endl;
                                 t[j] = std::async(&evalmformula::threadrelationalcomputevectorportion,this,fc.fcright,&contexts[j],
-                                    &vector,&outmatrix[offset*sz],&computedmatrix[offset*sz],sz,offset,startidx,stopidx,
+                                    &vector,outmatrix + offset*sz,computedmatrix + offset*sz,sz,offset,startidx,stopidx,
                                     &qm);
+                                // threadrelationalcomputevectorportion(fc.fcright,&contexts[j],
+                                    // &vector,&outmatrix[offset*sz],&computedmatrix[offset*sz],sz,offset,startidx,stopidx,
+                                    // &qm);
                             }
                             for (int j = 0; j < tc; j++)
                                 t[j].get();
                             computedrows[offset] = true;
                             offset = pointer + 1;
+
+
 
                             const double section2 = double(sz - offset) / double(tc);
                             t.resize(tc);
@@ -4113,12 +4186,14 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             {
                                 const int startidx = offset + int(j*section2);
                                 const int stopidx = offset +  int((j+1.0)*section2);
-                                t[j] = std::async(&evalmformula::threadrelationaltransitiveclosure,this,
-                                    outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
+                                // std::cout << "(trans) sz == " << sz << ", offset == "<<offset<<", startidx == " << startidx << ", stopidx == " << stopidx << std::endl;
+                                // t[j] = std::async(&evalmformula::threadrelationaltransitiveclosure,this,
+                                    // outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
+                                threadrelationaltransitiveclosure(outmatrix,computedrows,computedmatrix,startidx,stopidx,pointer,offset,sz);
                             }
                             for (int j = 0; j < tc; j++)
                             {
-                                t[j].get();
+                                // t[j].get();
                                 // changed = changed || changeda[j];
                             }
 
@@ -4309,7 +4384,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                         while (!qm.ended())
                         {
                             if (to_mtbool(evalinternal(*qm.criterion,context)).v.bv)
+                            {
                                 vector.push_back(qm.context[qm.contextidxB]);
+                                claimset(vector.back().second);
+                            }
                             if (qm.supersetpos[0]->ended())
                                 break;
                             qm.singleadvance();
@@ -4370,12 +4448,13 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context )
                             {
                                 const int startidx = offset + int(j*section2);
                                 const int stopidx = offset +  int((j+1.0)*section2);
-                                t[j] = std::async(&evalmformula::threadrelationaltransitiveclosure,this,
-                                    outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
+                                // t[j] = std::async(&evalmformula::threadrelationaltransitiveclosure,this,
+                                    // outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
+                                threadrelationaltransitiveclosure(outmatrix,computedrows, computedmatrix,startidx,stopidx, pointer, offset, sz);
                             }
                             for (int j = 0; j < tc; j++)
                             {
-                                t[j].get();
+                                // t[j].get();
                                 // changed = changed || changeda[j];
                             }
 
@@ -5663,7 +5742,7 @@ inline formulaclass* parseformulainternal(
         if (is_quantifier(tok) || is_relational(tok)) {
 
             std::vector<qclass*> qcs {};
-            int argcnt;
+            int argcnt = 0;
             if (pos+1 < q.size() && q[++pos] == SHUNTINGYARDVARIABLEARGUMENTKEY)
             {
                 argcnt = stoi(q[++pos]);

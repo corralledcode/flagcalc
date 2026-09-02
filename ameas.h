@@ -1201,6 +1201,7 @@ public:
         delete ef;
         setitr* out;
         mtconverttoset(r,out);
+        claimset(r);
         return out;
     }
 
@@ -1215,6 +1216,7 @@ public:
         delete ef;
         setitr* out;
         mtconverttoset(r,out);
+        claimset(r);
         return out;
     }
 
@@ -3007,7 +3009,7 @@ public:
             while (!itr->ended())
             {
                 v.push_back(itr->getnext());
-                // allint = allint && v[v.size()-1].t == mtdiscrete && v[v.size()-1].v.iv >= 0;
+                allint = allint && v[v.size()-1].t == mtdiscrete; // && v[v.size()-1].v.iv >= 0;
                 // if (allint)
                     // maxint = maxint < v[v.size()-1].v.iv ? v[v.size()-1].v.iv : maxint;
             }
@@ -3021,7 +3023,7 @@ public:
                 ps = getpermutations(v.size());
 
             std::vector<valms> totalitylocal {};
-            if (true) // (!allint)
+            if (!allint)
                 for (auto p : ps)
                 {
                     std::vector<valms> tot {};
@@ -3239,28 +3241,27 @@ public:
 
 class Automset : public set
 {
-    setitrmodeone* res {};
 public:
 
     setitr* takemeas(neighborstype* ns, const params& ps ) override
     {
+        setitrmodeone* res {};
         auto morphisms = enumisomorphisms(ns,ns);
         std::vector<valms> totalitylocal {};
         for (auto p : *morphisms) {
-            std::vector<valms> tot {};
+            std::vector<int> tot {};
             tot.resize(p.size());
             for (auto i : p)
-            {
-                tot[i.first].v.iv = i.second;
-                tot[i.first].t = mtdiscrete;
-            }
+                tot[i.first] = i.second;
             valms v;
             v.t = mttuple;
-            v.seti = new setitrmodeone(tot);
+            v.seti = new setitrtuple<int>(tot);
+            v.seti->usecount++;
             totalitylocal.push_back(v);
         }
         res = new setitrmodeone(totalitylocal);
         res->generative = true;
+        res->usecount++;
         return res;
     }
 
