@@ -1624,7 +1624,8 @@ inline void fasttupleunion( const int lengthA, const int lengthB, const int leng
 }
 template<typename T>
 inline void fasttuplesetminus( const int lengthA, const int lengthB, int& length, T* eltsA, T* eltsB, T* out) {
-    bool deprecated[lengthA];
+    // bool deprecated[lengthA]; won't compile on MSVC
+    bool* deprecated = (bool*)malloc(lengthA*sizeof(bool));
     memset(deprecated, false, lengthA * sizeof(T));
     for (int i = 0; i < lengthA; ++i)
         for (int j = 0; !deprecated[i] && j < lengthB; ++j) {
@@ -1637,11 +1638,13 @@ inline void fasttuplesetminus( const int lengthA, const int lengthB, int& length
            out[pos++] = eltsA[i];
            length = pos;
         }
+    delete deprecated;
 }
 template<typename T>
 inline void fasttupleintersection( const int lengthA, const int lengthB, int& length, T* eltsA, T* eltsB, T* out) {
 // the convention here is that the "tuple" on the right be treated as a set, so this is like subtracting its complement
-    bool deprecated[lengthA];
+    // bool deprecated[lengthA]; won't compile in MSV
+    bool* deprecated = (bool*)malloc(lengthA*sizeof(bool));
     // memset(deprecated, true, lengthA * sizeof(bool));
     for (int i = 0; i < lengthA; ++i)
         deprecated[i] = true;
@@ -1656,6 +1659,7 @@ inline void fasttupleintersection( const int lengthA, const int lengthB, int& le
            out[pos++] = eltsA[i];
            length = pos;
         }
+    delete deprecated;
 }
 template<typename T>
 inline bool fasttuplemeet( const int lengthA, const int lengthB, const int n, T* eltsA, T* eltsB) {

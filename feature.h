@@ -334,7 +334,7 @@ public:
         #define CONFIG_EXECUTABLENAME "EXECUTABLENAME"
         #define CONFIG_HEADERFILE "HEADERFILE"
         #define CONFIG_INVOKE "INVOKE"
-        #define CONFIG_PATHTOGRAPHS"PATHTOGRAPHS"
+        #define CONFIG_PATHTOGRAPHS "PATHTOGRAPHS"
         #define CONFIG_PATHTOSTOREDPROCEDURES "PATHTOSTOREDPROCEDURES"
         #define CONFIG_PATHTOPYTHONADDONS "PATHTOPYTHONADDONS"
         #define CONFIG_PATHTOGRAPHOUT "PATHTOGRAPHOUT"
@@ -929,13 +929,13 @@ public:
         for (int n = 0; n < cmdlineoptions.size(); ++n) {
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
-                ofname = ensure_path(ofname,globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES]);
+                ofname = ensure_path(ofname,globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES]).string();
                 continue;
             }
             if (cmdlineoptions[n].first == "i") {
                 ifname = cmdlineoptions[n].second;
                 auto path = globalcfg->config[CONFIG_PATHTOSTOREDPROCEDURES];
-                ifname = ensure_path(ifname,path);
+                ifname = ensure_path(ifname,path).string();
                 std::ifstream infile(ifname);
                 if (infile.good()) {
                     std::ifstream ifs;
@@ -1077,7 +1077,7 @@ public:
             }
             if (cmdlineoptions[n].first == "o") {
                 ofname = cmdlineoptions[n].second;
-                ofname = ensure_path(ofname, globalcfg->config[CONFIG_PATHTOGRAPHOUT]);
+                ofname = ensure_path(ofname, globalcfg->config[CONFIG_PATHTOGRAPHOUT]).string();
                 continue;
             }
             if (cmdlineoptions[n].first == "default" && cmdlineoptions[n].second == CMDLINE_ENUMISOSSORTED) {
@@ -1451,7 +1451,7 @@ public:
             std::ostream* os = _os;
             if ((args.size() > filenameidx) && (args[filenameidx] != "std::cin")) {
                 auto path = globalcfg->config[CONFIG_PATHTOGRAPHS];
-                std::string filename = ensure_path(args[filenameidx],path);
+                std::string filename = ensure_path(args[filenameidx],path).string();
                 *_os << "Opening file " << filename << "\n";
                 ifs.open(filename);
                 if (!ifs) {
@@ -1659,7 +1659,7 @@ public:
             if (cmdlineoptions[n].first == "i")
             {
                 std::string fn = cmdlineoptions[n].second;
-                fn = ensure_path(fn,path);
+                fn = ensure_path(fn,path).string();
 
                 inputfilenames.push_back(fn);
                 continue;
@@ -3027,7 +3027,7 @@ inline std::vector<std::string> splitIntoLines(const std::string& str) {
 inline void readfromfile( std::string ifpath, std::string ifname, std::vector<std::string>& out, std::vector<std::string>& pyinclude )
 {
     out.clear();
-    ifname = ensure_path(ifname,ifpath);
+    ifname = ensure_path(ifname,ifpath).string();
     // std::cout << "Opening file " << ifname << "\n";
     // auto lines = splitIntoLines(removeComments(ifname));
     auto line = removeComments(ifname);
