@@ -9,6 +9,9 @@
 #include <random>
 #include <iostream>
 #include <string>
+#include <cstring>
+#include <set>
+#include <setjmp.h>
 
 #include "asymp.h"
 #include "graphs.h"
@@ -33,7 +36,7 @@ public:
     unsigned thread_count = std::thread::hardware_concurrency();
 
     std::vector<std::string> ps;
-    virtual void setparams( std::vector<std::string> psin ) {
+    virtual void setparams( std::vector<std::string>& psin ) {
         ps = psin;
     }
     abstractparameterizedrandomgraph(const std::string namein) : abstractrandomgraph(namein) {}
@@ -46,7 +49,7 @@ public:
         res.resize(cnt);
         for (int i = 0; i < cnt; ++i) {
             graphtype* rg = new graphtype(dim);
-            randomgraph(rg,edgecnt);;
+            randomgraph(rg,edgecnt);
             res[i] = rg;
         }
         return res;
@@ -495,9 +498,9 @@ public:
 
 };
 
-int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int outof );
+int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, std::vector<std::string> rgparams, int outof );
 
-std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int cnt );
+std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, std::vector<std::string> rgparams, int dim );
 /*
 
 void randomgraph( graphtype*  gptr, const double edgecnt ); // legacy replaced as above by class
@@ -520,10 +523,10 @@ public:
     std::vector<graphtype*> randomgraphs(const int cnt) override {
         int dim;
         double edgecnt;
-        if (ps.size()>0)
-            dim = stoi(ps[0]);
         if (ps.size()>1)
-            edgecnt = stof(ps[1]);
+            dim = stoi(ps[1]);
+        if (ps.size()>2)
+            edgecnt = stof(ps[2]);
         return legacyrandomgraphptr->randomgraphs(dim,edgecnt,cnt,thread_count);
     }
 
@@ -533,6 +536,89 @@ public:
     ~legacyrandomgraph() {
         delete legacyrandomgraphptr;
     }
+};
+
+class randomregulargraph : public legacyabstractrandomgraph
+{
+public:
+
+    virtual std::string shortname() {return "rreg";};
+
+    struct Edge {
+        int u, v;
+        // Operator to keep edges ordered uniformly (smaller vertex first)
+        bool operator<(const Edge& other) const {
+            if (u != other.u) return u < other.u;
+            return v < other.v;
+        }
+    };
+
+    void randomgraph(graphtype *gptr, double deg) override
+    {
+        auto n = gptr->dim;
+        auto d = (int)deg;
+        if (d*n % 2 == 1 || d >= n)
+        {
+            std::cerr << "ERROR requesting random regular graph with dim*degree not an even number, or degree too large\n";
+            exit(1);
+        }
+        std::random_device rd;
+        std::mt19937 g(rd());
+
+        while (true) // internet sourced code
+        {
+            // Step 1: Create a pool of stubs (n vertices, each repeated d times)
+            std::vector<int> stubs;
+            stubs.reserve(n * d);
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < d; ++j) {
+                    stubs.push_back(i);
+                }
+            }
+
+            // Step 2: Randomly shuffle the stubs to form random pairings
+            std::shuffle(stubs.begin(), stubs.end(), g);
+
+            std::set<Edge> unique_edges;
+            bool is_simple = true;
+
+            // Step 3: Pair consecutive elements and check for validity
+            for (size_t i = 0; i < stubs.size(); i += 2) {
+                int u = stubs[i];
+                int v = stubs[i + 1];
+
+                // Condition 1: No self-loops
+                if (u == v) {
+                    is_simple = false;
+                    break;
+                }
+
+                // Standardize edge representation (u < v)
+                Edge edge = {std::min(u, v), std::max(u, v)};
+
+                // Condition 2: No multi-edges
+                if (unique_edges.count(edge)) {
+                    is_simple = false;
+                    break;
+                }
+
+                unique_edges.insert(edge);
+            }
+            // If the generated graph is simple, convert it to an adjacency list and return
+            if (is_simple) {
+                memset(gptr->adjacencymatrix,0,sizeof(bool)*n*n);
+                for (const auto& edge : unique_edges) {
+                    gptr->adjacencymatrix[edge.u*n + edge.v] = true;
+                    gptr->adjacencymatrix[edge.v*n + edge.u] = true;
+                }
+                return;
+            }
+            // Otherwise, the loop continues and restarts the matching process
+        }
+    }
+
+    randomregulargraph() : legacyabstractrandomgraph("Random regular graph" )
+    {}
 };
 
 

@@ -1,0 +1,7 @@
+EXISTS ([pst](s) == ([dimm]-1)
+    AND FORALL
+        (EXISTS (v == [pfirstt](e) OR v == [psecondt](e),
+            e INP s),
+        v IN V),
+s SUBSETEQP E)
+END

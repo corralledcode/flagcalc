@@ -488,11 +488,14 @@ public:
         auto rg3 = new legacyrandomgraph<legacyrandomconnectedgraph>();
         auto rg4 = new legacyrandomgraph<legacyrandomconnectedgraphfixededgecnt>();
         auto rg5 = new legacyrandomgraph<legacyweightedrandomconnectedgraph>();
+        auto rreg = new legacyrandomgraph<randomregulargraph>();
+
         rgs.push_back(rg1);
         rgs.push_back(rg2);
         rgs.push_back(rg3);
         rgs.push_back(rg4);
         rgs.push_back(rg5);
+        rgs.push_back(rreg);
     }
 
     ~abstractrandomgraphsfeature() {
@@ -591,7 +594,7 @@ public:
         for (int m = 0; m < thread_count; ++m) {
             const int startidx = int(m*section);
             const int stopidx = int((m+1.0)*section);
-            t[m] = std::async(&samplematchingrandomgraphs,rgs[rgsidx],dim,edgecnt,stopidx-startidx);
+            t[m] = std::async(&samplematchingrandomgraphs,rgs[rgsidx],rgparams,stopidx-startidx);
         }
         for (int m = 0; m < thread_count; ++m)
         {
@@ -654,49 +657,51 @@ public:
         //std::vector<abstractparameterizedrandomgraph> rs {};
         int rgsidx = 0;
         std::vector<std::string> rgparams {};
-
-        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
-        if (parsedargs.size() >= 1 && parsedargs[0].first == "default" && is_number(parsedargs[0].second)) {
-            dim = std::stoi(parsedargs[0].second);
-        }
-        double edgecnt = dim*(dim-1)/4.0;
-        if (parsedargs.size() >= 2 && parsedargs[1].first == "default" && is_real(parsedargs[1].second)) {
-            edgecnt = std::stof(parsedargs[1].second);
-        }
         long int cnt = 100; // the default count when count is omitted
-        if (parsedargs.size() >= 3 && parsedargs[2].first == "default" && is_number(parsedargs[2].second)) {
-            cnt = std::stoi(parsedargs[2].second);
-        }
+        double edgecnt = dim*(dim-1)/4.0;
+        std::vector<std::pair<std::string,std::string>> parsedargs = cmdlineparseiterationtwo(args);
 
+        // find which randomizer is chosen
+        bool found = false;
         for (int i = 0; i < parsedargs.size(); ++i) {
-            if (parsedargs[i].first == "default" || parsedargs[i].first == "r") {
-                std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2 = cmdlineparseiterationthree(parsedargs[i].second);
-                for (int k = 0; k < parsedargs2.size(); ++k) {
-                    for (int l = 0; l < rgs.size(); ++l) {
-                        if (parsedargs2[k].first == rgs[l]->shortname()) {
-                            rgsidx = l;
-                            rgparams = parsedargs2[k].second;
-                            //for (int k = 0; k < rgparams.size(); ++k)
-                            //    std::cout << "rgparam " << rgparams[k] << ", ";
-                            //std::cout << "\n";
+            if (i == 0) // require randomizer name to appear first
+            {
+                if (parsedargs[i].first == "default" || parsedargs[i].first == "r") {
+                    std::vector<std::pair<std::string,std::vector<std::string>>> parsedargs2 = cmdlineparseiterationthree(parsedargs[i].second);
+                    for (int k = 0; k < parsedargs2.size(); ++k) {
+                        for (int l = 0; l < rgs.size(); ++l) {
+                            if (parsedargs2[k].first == rgs[l]->shortname()) {
+                                rgsidx = l;
+                                found = true;
+                                // rgparams = parsedargs2[k].second;
+                                //for (int k = 0; k < rgparams.size(); ++k)
+                                //    std::cout << "rgparam " << rgparams[k] << ", ";
+                                //std::cout << "\n";
 
+                            }
                         }
                     }
                 }
             }
+            rgparams.push_back(parsedargs[i].second);
         }
-
-        if (rgparams.size() > 0 && is_number(rgparams[0]))
-            dim = stoi(rgparams[0]);
-        if (rgparams.size() > 1) // what is function to check if double
-            edgecnt = std::stof(rgparams[1]);
-        if (rgparams.size() > 2 && is_number(rgparams[2]))
-            cnt = stoi(rgparams[2]);
-        for (auto p : parsedargs) {
+        if (!found)
+            rgparams.insert(rgparams.begin(),rgs[0]->shortname());
+        if (rgparams.size() > 1 && is_number(rgparams[1]))
+            dim = stoi(rgparams[1]);
+        if (rgparams.size() > 2) // what is function to check if double
+            edgecnt = std::stof(rgparams[2]);
+        if (rgparams.size() > 3 && is_number(rgparams[rgparams.size()-1]))
+            cnt = stoi(rgparams[rgparams.size()-1]);
+        for (int i = 0; i < parsedargs.size(); ++i) {
+            auto p = parsedargs[i];
             if (p.first == "p") {
                 double f = std::stof(p.second);
                 if (f >= 0 && f <= 1)
+                {
                     edgecnt = std::stof(p.second) * nchoosek(dim,2);
+                    rgparams[i] = std::to_string(edgecnt);
+                }
             }
         }
 
@@ -704,18 +709,30 @@ public:
         //    std::cout << "LEGACY ARG\n";
         if (rgparams.empty()) {
             rgparams.clear();
-            rgparams.resize(3);
-            rgparams[0] = std::to_string(dim);
-            rgparams[1] = std::to_string(edgecnt);
-            rgparams[2] = std::to_string(cnt);
+            rgparams.resize(4);
+            rgparams.push_back(rgs[0]->shortname());
+            rgparams[1] = std::to_string(dim);
+            rgparams[2] = std::to_string(edgecnt);
+            rgparams[3] = std::to_string(cnt);
+        }
+        if (rgparams.size()<4)
+        {
+            rgparams.push_back(std::to_string(cnt));
+            if (rgparams.size()<3)
+            {
+                rgparams.push_back(std::to_string(edgecnt));
+                if (rgparams.size()<2)
+                {
+                    rgparams.push_back(std::to_string(dim));
+                    if (rgparams.size()<1)
+                        rgparams.push_back(rgs[0]->shortname());
+                }
+            }
         }
         rgs[rgsidx]->setparams(rgparams);
 
-
-
-
         std::vector<graphtype*> gv {};
-        gv.resize(cnt);
+        // gv.resize(cnt);
 #ifdef THREADED7
         unsigned const thread_count = std::thread::hardware_concurrency();
         //unsigned const thread_count = 1;
@@ -769,7 +786,7 @@ public:
 */
 
         rgs[rgsidx]->thread_count = thread_count;
-        gv = randomgraphs(rgs[rgsidx],dim,edgecnt,cnt);
+        gv = randomgraphs(rgs[rgsidx],rgparams,cnt);
         auto wi = new randomgraphsitem(rgs[rgsidx]);
         for (auto p : rgparams) {
             wi->ps.push_back(p);
@@ -2679,6 +2696,7 @@ public:
         auto (diamm) = measfactory<diametermeas>;
         auto (gm) = measfactory<girthmeas>;
         auto (toRealm) = measfactory<toRealmeas>;
+        auto (Lovaszthetam) = measfactory<Lovaszthetameas>;
 
         mssfactory.push_back(ms4);
         mssfactory.push_back(ms7);
@@ -2690,6 +2708,7 @@ public:
         mssfactory.push_back(diamm);
         mssfactory.push_back(gm);
         mssfactory.push_back(toRealm);
+        mssfactory.push_back(Lovaszthetam);
 
         // ,,,
 
@@ -2727,6 +2746,7 @@ public:
         auto (embedsinducedt) = tallyfactory<embedsinducedtally>;
         auto (embedst) = tallyfactory<embedstally>;
         auto (randomt) = tallyfactory<randomtally>;
+        auto (roundt) = tallyfactory<roundtally>;
 
         tysfactory.push_back(ms2);
         tysfactory.push_back(ms3);
@@ -2754,6 +2774,7 @@ public:
         tysfactory.push_back(connt);
         tysfactory.push_back(embedsinducedt);
         tysfactory.push_back(embedst);
+        tysfactory.push_back(randomt);
         tysfactory.push_back(randomt);
 
         // ...

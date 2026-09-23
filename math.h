@@ -18,7 +18,7 @@
 // #include "config.h"
 // #include "graphs.h" already included by graphio.h
 
-#define ABSCUTOFF 0.000001
+#define ABSCUTOFF 0.00001
 
 class qclass;
 class evalformula;
@@ -3411,6 +3411,21 @@ inline void mtconverttocontinuous( const valms& vin, double& vout )
     case mtuncast: mtconverttocontinuous(*vin.uv,vout); break;
     }
 }
+inline void mtroundtodiscrete( const valms& vin, LONGINT& vout )
+{
+    switch (vin.t)
+    {
+    case mtbool: vout = (int)vin.v.bv; break;
+    case mtdiscrete: vout = vin.v.iv; break;
+    case mtcontinuous: vout = std::round(vin.v.dv); break;
+    case mtset:
+    case mttuple: vout = vin.seti->getsize(); break;
+    case mtstring: vout = stoi(*vin.v.rv); break;
+    case mtgraph: vout = vin.v.nsv->g->dim; break;
+    case mtuncast: mtconverttodiscrete(*vin.uv,vout); break;
+    }
+}
+
 inline void mtconverttoset( const valms& vin, setitr*& vout )
 {
     switch (vin.t) {

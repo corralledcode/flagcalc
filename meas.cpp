@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <random>
 
+#include "sdp.h"
+
 // #include "cudagraph.cuh"
 // #include "cudaengine.cuh"
 
@@ -2718,6 +2720,23 @@ inline std::vector<std::vector<int>> convertadjacencymatrix( neighborstype* ns )
     return out;
 }
 
+inline std::vector<std::pair<int,int>> convertadjacencymatrixtoedgepairs( neighborstype* ns )
+{
+    std::vector<std::pair<int,int>> out {};
+    for (int n = 0; n < ns->dim; ++n)
+    {
+        for (int m = n+1; m < ns->dim; ++m)
+        {
+            if (ns->g->adjacencymatrix[n*ns->dim + m])
+                out.push_back(std::make_pair(n,m));
+        }
+    }
+    return out;
+}
+
+
+
+
 class Chitally : public tally
 {
 public:
@@ -3510,3 +3529,26 @@ public:
         return itr;
     }
 };
+
+class Lovaszthetameas : public meas
+{
+public:
+    Lovaszthetameas( mrecords* recin ) : meas( recin, "Lovaszthetam", "Lovasz theta number via SDP") {}
+    double takemeas( neighborstype* ns, const params& ps) override
+    {
+        //        if (ps.size() != 0)
+        //        {
+        //            std::cout << "Wrong number of parameters to Chit\n";
+        //        }
+        graphtype* g = ns->g;
+        std::vector<std::pair<int,int>> graph = convertadjacencymatrixtoedgepairs(ns);
+        auto out = compute_lovasz_theta(g->dim, graph);
+        return out;
+    }
+    double takemeas( const int idx, const params& ps) override
+    {
+        neighborstype* ns = (*rec->nsptrs)[idx];
+        return takemeas(ns,ps);
+    }
+};
+

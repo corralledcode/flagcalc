@@ -4671,6 +4671,12 @@ class toBoolcrit : public crit
     toBoolcrit( mrecords* recin ) : crit(recin, "toBool", "Converts a value to a boolean value")
     {valms v {}; v.t = mtdiscrete; nps.push_back(std::pair{"input",v}); bindnamedparams();}};
 
+class roundtally : public tally
+{public: int takemeas(const int idx, const params& ps) override
+{LONGINT out; mtroundtodiscrete(ps[0],out); return out;}
+    roundtally( mrecords* recin ) : tally(recin, "round", "Rounds a value to nearest int")
+{valms v {}; v.t = mtcontinuous; nps.push_back(std::pair{"input",v}); bindnamedparams();}};
+
 
 class Pathsset : public set
 {

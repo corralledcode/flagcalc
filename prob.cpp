@@ -17,12 +17,15 @@
 //#define THREADPOOL6
 
 
-int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int outof ) { // returns the count of how many pairs share a fingerprint
+int samplematchingrandomgraphs( abstractparameterizedrandomgraph* rg, std::vector<std::string> rgparams, int outof ) { // returns the count of how many pairs share a fingerprint
     int cnt = 0;
+    int dim = 1;
+    if (rgparams.size() > 0)
+        dim = stoi(rgparams[0]);
     auto g5 = new graphtype(dim);
     auto g6 = new graphtype(dim);
 
-    rg->setparams({std::to_string(dim),std::to_string(edgecnt),std::to_string(outof)});
+    rg->setparams(rgparams);
 
     for (int i = 0; i < outof; ++i) {
         rg->randomgraph(g5);
@@ -142,7 +145,7 @@ std::vector<graph> randomgraphs( abstractrandomgraph* rg, const int dim, const d
 
 
 
-std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, const int dim, const double edgecnt, const int cnt ) {
+std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, std::vector<std::string> rgparams, const int cnt) {
 /*    std::vector<graph> gv {};
     gv.resize(cnt);
 
@@ -158,7 +161,7 @@ std::vector<graphtype*> randomgraphs( abstractparameterizedrandomgraph* rg, cons
     }
 
     return gv;*/
-    rg->setparams({std::to_string(dim),std::to_string(edgecnt),std::to_string(cnt)});
+    rg->setparams(rgparams);
 
     return rg->randomgraphs(cnt);  //<-- an attempt to use the multithreaded, but it is no faster than the above
 }

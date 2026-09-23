@@ -10,7 +10,7 @@
 #include <vector>
 #include <cmath>
 #include "mathfn.h"
-#include "math.h";
+#include "math.h"
 
 #include <complex>
 #include <cstring>
@@ -840,14 +840,20 @@ bool eval2aryeq( const T1 in1, const T2 in2, const formulaoperator fo)
         res = abs(in1 - in2) < ABSCUTOFF;
         break;
     case(formulaoperator::folte):
-        res = in1 <= in2;
-        break;
+        {
+            auto diff = in2-in1;
+            res = diff + ABSCUTOFF >= 0;
+            break;
+        }
     case(formulaoperator::folt):
         res = in1 < in2;
         break;
     case(formulaoperator::fogte):
-        res = in1 >= in2;
-        break;
+        {
+            auto diff = in1-in2;
+            res = diff + ABSCUTOFF >= 0;
+            break;
+        }
     case (formulaoperator::fogt):
         res = in1 > in2;
         break;

@@ -72,7 +72,11 @@ public:
 #ifndef THREADED3
         while (sampled < outof) {
             while (max < n && sampled < outof) {
-                rg->setparams({std::to_string(dim),std::to_string(n),std::to_string(outof)});
+                std::vector<std::string> rgparams {};
+                rgparams.push_back(std::to_string(dim));
+                rgparams.push_back(std::to_string(n));
+                rgparams.push_back(std::to_string(outof));
+                rg->setparams(rgparams);
                 rg->randomgraph(g);
                 //auto ns = new neighbors(g);
                 //ns = computeneighborslist(g); ns isn't used by criterion...
