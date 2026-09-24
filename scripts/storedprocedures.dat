@@ -305,6 +305,12 @@ FORALL (c IN Cycless, st(c) > 3, COUNT (v1 IN c, v2 IN c, v1 < v2, ac(v1,v2)) > 
 
 END
 
+mtbool vertextransitive
+
+NAMING (A AS Automs, FORALL (u IN V, v IN V, u < v, EXISTS (a IN A, a[u] == v)))
+
+END
+
 // #pyinclude "pymeas" // can do, but reverts to one thread due to Python GIL; only invoke if using Python add-ons
 
 #include "recursion.dat"
