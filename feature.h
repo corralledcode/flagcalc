@@ -700,7 +700,9 @@ public:
                 if (f >= 0 && f <= 1)
                 {
                     edgecnt = std::stof(p.second) * nchoosek(dim,2);
-                    rgparams[i] = std::to_string(edgecnt);
+                    if (rgparams.size()<3)
+                        rgparams.resize(3);
+                    rgparams[2] = std::to_string(edgecnt);
                 }
             }
         }

@@ -35,3 +35,4 @@ $PTH/flagcalc -d ./testgraph/hypercube/hypercube1.fcg -d ./testgraph/hypercube/h
 $PTH/flagcalc -d testplanar.dat -a isp=storedprocedures.dat s="vertextransitive" s2="Lovaszthetam*Lovaszthetam(Complementg) == dimm" -v allmeas crit alltally rt
 $PTH/flagcalc -r 6 p=0.5 100 -a isp=storedprocedures.dat s="vertextransitive" s2="Lovaszthetam*Lovaszthetam(Complementg) == dimm" -v i=minimal3.cfg
 
+$PTH/flagcalc -r 10 p=0.25 1000 -a z="st(Componentss)" s="SUM (C IN Componentss, Lovaszthetam(SubgraphonUg(C))) == Lovaszthetam" -v i=minimal3.cfg
