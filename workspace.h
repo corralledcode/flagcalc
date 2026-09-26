@@ -60,6 +60,7 @@
 #define VERBOSE_LISTGRAPHSANY "any"
 
 #define CMDLINE_ALL "all"
+#define CMDLINE_ONCE "once"
 #define CMDLINE_PASSED "passed"
 #define CMDLINE_FAILED "failed"
 #define CMDLINE_ENUMISOSSORTED "sorted"
@@ -67,7 +68,7 @@
 #define CMDLINE_SUBOBJECTS "sub"
 
 
-
+class abstractgraphitem;
 
 inline bool verbositycmdlineincludes( const std::string str, const std::string s2 ) {
     std::string tmp2 = " " + s2 + " ";
@@ -200,6 +201,7 @@ public:
         } while (!unique);
         return tmpname;*/
     }
+    std::vector<neighbors*> findbin( std::string& nm );
     workspace() {
     }
     void copygraphs(workspace* ws)
@@ -220,8 +222,12 @@ public:
     }
 };
 
+
+
+
 class abstractgraphitem : public workitems {
 public:
+    binclass bin;
     graphtype* g;
     neighbors* ns;
     abstractgraphitem() : workitems() {
@@ -319,6 +325,45 @@ public:
     }
 
 };
+
+inline valms evalmformula::evalbin(params& ps)
+{
+    std::vector<valms> t {};
+    std::string nm = *ps[0].v.rv;
+    auto bingraphs = rec->_ws->findbin(nm);
+    for (auto b : bingraphs)
+    {
+        valms v;
+        v.t = mtgraph;
+        v.v.nsv = b;
+        t.push_back(v);
+    }
+    auto s = new setitrmodeone(t);
+    valms res;
+    res.t = mtset;
+    res.seti = s;
+    return res;
+}
+
+
+inline std::vector<neighbors*> workspace::findbin( std::string& nm )
+{
+    std::vector<neighbors*> result {};
+    for (auto wi : items)
+    {
+        if (wi->classname == "GRAPH")
+        {
+            if (abstractgraphitem* cast = dynamic_cast<abstractgraphitem*>(wi))
+            {
+                if (cast->bin.name == nm)
+                    result.push_back(cast->ns);
+            }
+
+        }
+    }
+    return result;
+}
+
 
 class randomgraphsitem : public workitems {
 public:

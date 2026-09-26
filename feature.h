@@ -78,7 +78,10 @@ protected:
     std::istream* _is;
     std::ostream* _os;
     workspace* _ws;
+
+    void openfcgfileandobtaingraphs(std::ifstream& ifs, std::vector<int>* totake, workspace* newws, bool takeall);
 public:
+    binclass lastbin;
     unsigned thread_count = std::thread::hardware_concurrency();
     virtual void setthread_count (const unsigned thread_countin) {
         thread_count = thread_countin;
@@ -96,6 +99,99 @@ public:
     }
     virtual ~feature() {}
 };
+
+inline void feature::openfcgfileandobtaingraphs(std::ifstream& ifs, std::vector<int>* totake, workspace* newws, bool takeall)
+{
+    std::istream* is = &ifs;
+    std::ostream* os = _os;
+
+    // unsigned const thread_count = std::thread::hardware_concurrency();
+    std::vector<std::future<bool>> t;
+    t.resize(thread_count);
+
+    std::vector<std::vector<std::string>> items {};
+    items.resize(thread_count);
+
+    std::string item {};
+    int delimetercount = 0;
+
+    std::vector<bool> res {};
+    res.resize(thread_count);
+
+    std::vector<graphitem*> giv {};
+    giv.resize(thread_count);
+
+    std::vector<bool> foundname {};
+    foundname.resize(thread_count);
+
+    std::vector<std::string> name {};
+    name.resize(thread_count);
+
+    int threadidx = 0;
+    int n = 0;
+    int m = 0;
+    bool done = false;
+    while (!done && (takeall || m < totake->size())) {
+        delimetercount = 0;
+
+        threadidx = 0;
+        while ((threadidx < thread_count) && !done && (takeall || m < (*totake).size())) {
+            foundname[threadidx] = false;
+            done = !(*is >> item);
+
+            while (!done) {
+                if (item == "END" || item == "###") {
+                    if( ++delimetercount >= 2 ) {
+                        delimetercount = 0;
+                        done = done || (is == &std::cin);
+                        ++n;
+                        break;
+                    }
+                } else
+                    if (takeall || (*totake)[m] == n)
+                        items[threadidx].push_back(item);
+                if (takeall || (*totake)[m] == n)
+                    if (!foundname[threadidx])
+                        if (int pos = item.find("#name=") != std::string::npos) {
+                            foundname[threadidx] = true;
+                            std::string initial = item.substr(pos+5,item.size()-pos-5);
+                            if (int pos2 = initial.find(" ") != std::string::npos) {
+                                name[threadidx] =  item.substr(pos+5,pos2);
+                            } else
+                                name[threadidx] = item.substr(pos+5,item.size()-pos-5);
+                        }
+
+                done = !(*is >> item);
+            }
+            if (takeall || (*totake)[m] == n-1)
+            {
+                giv[threadidx] = new graphitem();
+                if (foundname[threadidx])
+                    giv[threadidx]->name = name[threadidx];
+                t[threadidx] = std::async(&graphitem::isitemstr,giv[threadidx],items[threadidx]);
+                ++threadidx;
+                ++m;
+            }
+        }
+        for (int m = 0; m < threadidx; ++m) {
+            res[m] = t[m].get();
+            items[m].clear();
+            items[m].resize(0);
+        }
+
+        for (int m = 0; m < threadidx; ++m) {
+            if (res[m]) {
+                if (giv[m]->name == "") {
+                    giv[m]->name = newws->getuniquename(giv[m]->classname);
+                }
+                giv[m]->bin = lastbin;
+                newws->items.push_back(giv[m]);
+            } else
+                delete giv[m];
+        }
+    }
+}
+
 
 class _sandboxfeature : public feature { // to be used to code hack jobs for testing purposes
 public:
@@ -425,7 +521,6 @@ public:
             delete _ws->items[n];
         }
         _ws->items.clear();
-
     };
     clearworkspacefeature( std::istream* is, std::ostream* os, workspace* ws ) : feature(is,os,ws) {}
 
@@ -630,10 +725,10 @@ public:
 
 class randomgraphsfeature : public abstractrandomgraphsfeature {
 public:
-    std::string cmdlineoption() {
+    std::string cmdlineoption() override {
         return "r";
     }
-    std::string cmdlineoptionlong() {
+    std::string cmdlineoptionlong() override {
         return "outputrandomgraphs";
     }
 
@@ -834,11 +929,14 @@ public:
         }
 
 #else
+        lastbin.prefix = this->cmdlineoption(); // tedious unable to do this in constructor of binclass
+        lastbin.inc();
         for (int i = 0; i < cnt; ++i) {
             auto wi = new graphitem;
             wi->ns = new neighbors(gv[i]);
             wi->g = gv[i];
             wi->name = _ws->getuniquename(wi->classname);
+            wi->bin = lastbin;
             gv[i]->vertexlabels = vertexlabels;
             _ws->items.push_back( wi );
         }
@@ -1313,105 +1411,22 @@ inline int openfcgfileandgetcount(std::ostream* _os, std::string filename)
 }
 
 
-inline void openfcgfileandobtaingraphs(std::ostream* _os, std::ifstream& ifs, std::vector<int>* totake, bool takeall, workspace* _ws, int thread_count)
-{
-    std::istream* is = &ifs;
-    std::ostream* os = _os;
 
-    // unsigned const thread_count = std::thread::hardware_concurrency();
-    std::vector<std::future<bool>> t;
-    t.resize(thread_count);
-
-    std::vector<std::vector<std::string>> items {};
-    items.resize(thread_count);
-
-    std::string item {};
-    int delimetercount = 0;
-
-    std::vector<bool> res {};
-    res.resize(thread_count);
-
-    std::vector<graphitem*> giv {};
-    giv.resize(thread_count);
-
-    std::vector<bool> foundname {};
-    foundname.resize(thread_count);
-
-    std::vector<std::string> name {};
-    name.resize(thread_count);
-
-    int threadidx = 0;
-    int n = 0;
-    int m = 0;
-    bool done = false;
-    while (!done && (takeall || m < totake->size())) {
-        delimetercount = 0;
-
-        threadidx = 0;
-        while ((threadidx < thread_count) && !done && (takeall || m < (*totake).size())) {
-            foundname[threadidx] = false;
-            done = !(*is >> item);
-
-            while (!done) {
-                if (item == "END" || item == "###") {
-                    if( ++delimetercount >= 2 ) {
-                        delimetercount = 0;
-                        done = done || (is == &std::cin);
-                        ++n;
-                        break;
-                    }
-                } else
-                    if (takeall || (*totake)[m] == n)
-                        items[threadidx].push_back(item);
-                if (takeall || (*totake)[m] == n)
-                    if (!foundname[threadidx])
-                        if (int pos = item.find("#name=") != std::string::npos) {
-                            foundname[threadidx] = true;
-                            std::string initial = item.substr(pos+5,item.size()-pos-5);
-                            if (int pos2 = initial.find(" ") != std::string::npos) {
-                                name[threadidx] =  item.substr(pos+5,pos2);
-                            } else
-                                name[threadidx] = item.substr(pos+5,item.size()-pos-5);
-                        }
-
-                done = !(*is >> item);
-            }
-            if (takeall || (*totake)[m] == n-1)
-            {
-                giv[threadidx] = new graphitem();
-                if (foundname[threadidx])
-                    giv[threadidx]->name = name[threadidx];
-                t[threadidx] = std::async(&graphitem::isitemstr,giv[threadidx],items[threadidx]);
-                ++threadidx;
-                ++m;
-            }
-        }
-        for (int m = 0; m < threadidx; ++m) {
-            res[m] = t[m].get();
-            items[m].clear();
-            items[m].resize(0);
-        }
-
-        for (int m = 0; m < threadidx; ++m) {
-            if (res[m]) {
-                if (giv[m]->name == "") {
-                    giv[m]->name = _ws->getuniquename(giv[m]->classname);
-                }
-                _ws->items.push_back(giv[m]);
-            } else
-                delete giv[m];
-        }
-    }
-}
 
 
 class readgraphsfeature : public feature {
+protected:
+    binclass lastbin;
+
+
 public:
     std::string cmdlineoption() { return "d"; }
     std::string cmdlineoptionlong() { return "readgraphs"; }
     readgraphsfeature( std::istream* is, std::ostream* os, workspace* ws ) : feature( is, os, ws) {
         //cmdlineoption = "d";
         //cmdlineoptionlong = "readgraphs";
+        lastbin.number = -1;
+        lastbin.name = "";
     }
 
     void listoptions() override {
@@ -1423,7 +1438,8 @@ public:
 
 
     void execute(std::vector<std::string> args) override {
-
+        lastbin.prefix = this->cmdlineoption();
+        lastbin.inc();
         auto parsedargs = cmdlineparseiterationtwo(args);
         for (int i = 0; i < parsedargs.size(); ++i)
         {
@@ -1433,6 +1449,7 @@ public:
                 gi->g = igraphstyle({parsedargs[i].second});
                 gi->ns = new neighbors(gi->g);
                 gi->name = _ws->getuniquename(gi->classname);
+                gi->bin = lastbin;
                 _ws->items.push_back(gi);
 
                 /*
@@ -1485,7 +1502,7 @@ public:
             // unsigned const thread_count = std::thread::hardware_concurrency();
 
 
-            openfcgfileandobtaingraphs(_os, ifs, nullptr, true, _ws, thread_count);
+            openfcgfileandobtaingraphs(ifs, nullptr, _ws, true);
 
             /* THE BELOW CUT-AND-PASTED into openfcgfileandobtaingraphs
             std::vector<std::future<bool>> t;
@@ -1928,7 +1945,7 @@ public:
             if (!ifs) {
                 std::cout << "Couldn't open file for reading \n";
             } else
-                openfcgfileandobtaingraphs(_os, ifs, &totakefrominputfiles[k], false, &newws, thread_count);
+                openfcgfileandobtaingraphs(ifs, &totakefrominputfiles[k], &newws, false);
         }
 
         _ws->purgegraphs();
@@ -3976,6 +3993,7 @@ public:
     std::string cmdlineoption() override { return "a"; }
     std::string cmdlineoptionlong() { return "checkcriteria"; }
     checkcriterionfeature( std::istream* is, std::ostream* os, workspace* ws ) : abstractcheckcriterionfeature( is, os, ws) {
+        rec._ws = ws;
     }
 
     ~checkcriterionfeature() {
@@ -4197,6 +4215,11 @@ public:
             if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ALL) {
                 // please note a change in formalism, no longer requiring "all" but removing eval only one graph functionality
                 takeallgraphitems = true;
+                sortedbool = false;
+                continue;
+            }
+            if (parsedargs[i].first == "default" && parsedargs[i].second  == CMDLINE_ONCE) {
+                takeallgraphitems = false;
                 sortedbool = false;
                 continue;
             }
@@ -5206,6 +5229,43 @@ public:
                         }
                     }
                 }
+
+                // SPECIAL TREATMENT FOR TYPE "e" MTSET:
+
+                if (!takeallgraphitems)
+                {
+                    auto itr = threadset[0]->getitrpos(false);
+                    bool all = true;
+                    while (!itr->ended() && all)
+                        all = all && itr->getnext().t == mtgraph;
+                    lastbin.prefix = cmdlineoption();
+                    lastbin.inc();
+                    if (all)
+                    {
+                        itr->reset();
+                        int n = 0;
+                        while (!itr->ended())
+                        {
+                            auto ns = itr->getnext().v.nsv;
+                            auto wig = new graphitem;
+                            wig->g = new graphtype(ns->g->dim);
+                            copygraph(ns->g,wig->g);
+                            wig->ns = new neighborstype(wig->g);
+                            // wig->g = ns->g;
+                            // wig->ns = ns;
+                            wig->name = lastbin.name + "." + std::to_string(n);
+                            wig->bin = lastbin;
+                            // gv[i]->vertexlabels = vertexlabels;
+                            // vertexlabels: can copy code ll 907ff from feature.h here, but will slow down quite a bit
+                            _ws->items.push_back( wig );
+                            n++;
+                        }
+                    }
+                    delete itr;
+                }
+
+
+                // ... END SPECIAL TREATMENT
                 break;
             }
             case mttuple:

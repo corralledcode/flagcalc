@@ -34,6 +34,9 @@
 #define SHUNTINGYARDDEREFKEY "_DEREF7903822160"
 #define SHUNTINGYARDVARIABLEARGUMENTENDKEY "_VARIABLEARGUMENTENDKEY7903822160"
 
+#define LITERAL_BIN "BIN"
+#define LITERAL_BIN_L -2
+
 inline bool is_number(const std::string& s)
 {
     if (!s.empty() && s[0] == '-')
@@ -2031,8 +2034,10 @@ valms evalmformula::evalinternal( formulaclass& fc, namedparams& context, const 
                 subgraph = ps[0].v.nsv;
                 ps.erase(ps.begin());
             }
-            res = evalpslit(fc.v.lit.l,context,subgraph,ps);
-
+            if (fc.v.lit.l == LITERAL_BIN_L)
+                res = evalbin(ps);
+            else
+               res = evalpslit(fc.v.lit.l,context,subgraph,ps);
         }
         // if (res.t == mtset || res.t == mttuple)
             // res.seti->usecount++;  // handles by "claimset" elsewhere
@@ -5008,7 +5013,6 @@ inline valms evalmformula::eval( formulaclass& fc, namedparams& context, const i
 
 
 
-evalformula::evalformula() {}
 
 inline formulaclass* fccombine( const formulavalue& item, formulaclass* fc1, formulaclass* fc2, formulaoperator fo ) {
     auto res = new formulaclass(item,fc1,fc2,fo);
@@ -5946,17 +5950,53 @@ inline formulaclass* parseformulainternal(
             return fccombine(fv,nullptr,nullptr,t);
         }
         bool literal = false;
+        bool binliteral = false;
         int i;
         std::string potentialliteral {};
         if (is_literal(tok) || is_function(tok))
         {
             potentialliteral = get_literal(tok);
-            for (i = 0; i < litnames.size() && !literal; ++i )
-                 literal = literal || litnames[i] == potentialliteral;
-            --i;
+            binliteral = potentialliteral == LITERAL_BIN;
+            if (!binliteral) {
+                for (i = 0; i < litnames.size() && !literal; ++i )
+                    literal = literal || litnames[i] == potentialliteral;
+                --i;
+            }
         }
 
-        if (literal)
+        if (binliteral)
+        {
+            formulavalue fv {};
+            fv.lit.lname = potentialliteral;
+            fv.lit.l = LITERAL_BIN_L;
+            fv.lit.ps.clear();
+            if (pos+1 < q.size() && q[pos+1] == SHUNTINGYARDVARIABLEARGUMENTKEY)
+            {
+                int argcnt = stoi(q[pos+2]);
+                pos += 2;
+
+                if (argcnt != 1)
+                {
+                    std::cerr << "Literal \"" << LITERAL_BIN << "\" expects " << 1 << " parameter, not " << argcnt << "parameters.\n";
+                    return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+                }
+
+                std::vector<formulaclass*> psrev {};
+                for (int i = 0; i < argcnt; ++i) {
+                    psrev.push_back(parseformulainternal(q,pos,litnumps,littypes,litnames, ps, fnptrs));
+                }
+                for (int i = psrev.size()-1; i >= 0; --i)
+                    fv.lit.ps.push_back(psrev[i]); // could add here support for named parameters
+
+                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+            } else
+            {
+                std::cerr << "Error: parameterized literal \"" << litnames[fv.lit.l] << "\" has no parameters\n";
+                return fccombine(fv,nullptr,nullptr,formulaoperator::foliteral);
+            }
+        }
+
+        if (literal) // hence in particular not binliteral
         {
             formulavalue fv {};
             fv.lit.lname = potentialliteral;

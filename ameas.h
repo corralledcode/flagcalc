@@ -13,6 +13,9 @@
 #include <functional>
 #include <stdexcept>
 
+// #include "workspace.h"
+// #include "workspace.h"
+
 // #include "ameas.h"
 
 #ifdef FLAGCALCWITHPYTHON
@@ -20,6 +23,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
+class workspace;
 namespace py = pybind11;
 #endif
 #ifdef FLAGCALC_CUDA
@@ -28,6 +32,19 @@ namespace py = pybind11;
 #include "graphio.h"
 #include "math.h"
 #include "graphs.h"
+
+class binclass {
+public:
+    std::string prefix = "";
+    int number = -1;
+    std::string name;
+    void inc()
+    {
+        number++;
+        name = prefix + std::to_string(number);
+    }
+};
+
 
 template<typename T>
 class records;
@@ -594,7 +611,7 @@ public:
     neighborstype* ns {};
     mrecords* rec;
 
-
+    valms evalbin( params& ps ) override;
     valms evalpslit( const int l, namedparams& nps, neighborstype* subgraph, params& ps ) override;
     valms eval( formulaclass& fc, namedparams& context, const int threadnumber = 0) override;
     valms evalinternal( formulaclass& fc, namedparams& context, const int threadnumber );
@@ -627,6 +644,7 @@ public:
     int sz = 0;
     int msz = 0;
     unsigned thread_count = std::thread::hardware_concurrency();
+    workspace* _ws;
     std::vector<graphtype*>* gptrs;
     std::vector<neighborstype*>* nsptrs;
     thrrecords<bool> boolrecs;
@@ -864,6 +882,9 @@ inline mrecords* duperec( const mrecords* recin )
     res->literals = recin->literals;
 
 } */
+
+
+
 
 inline evalmformula::evalmformula( mrecords* recin, const int idxin ) : evalformula(), rec{recin}, idx{idxin}
 {

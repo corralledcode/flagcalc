@@ -2985,13 +2985,14 @@ public:
     std::vector<std::vector<valms>> literals {{}};
     std::map<std::string,std::pair<double (*)(std::vector<double>&),int>>*fnptrs = &global_fnptrs;
 
+    virtual valms evalbin( params& ps ) {}
     virtual valms evalpslit( const int idx, namedparams& context, neighborstype* subgraph, params& ps );
     virtual valms evalvariable( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
     virtual valms evalvariablederef( variablestruct& v, const namedparams& context, const std::vector<int>& vidxin );
     virtual valms eval( formulaclass& fc, namedparams& context, const int threadnumber );
 
-    evalformula();
-    ~evalformula()
+    evalformula() {}
+    virtual ~evalformula()
     {
         // cleanup(out.t == mtset || out.t == mttuple ? out.seti : nullptr);
     }
@@ -3502,8 +3503,56 @@ inline void mtconverttostring( const valms& vin, std::string*& vout )
         case mtbool: *vout = vin.v.bv ? "true" : "false" ; break;
         case mtdiscrete: *vout = std::to_string(vin.v.iv); break;
         case mtcontinuous: *vout = std::to_string(vin.v.dv); break;
-        case mtset: *vout = "{ SET of size " + std::to_string(vin.seti->getsize()) + "}"; break;
-        case mttuple: *vout = "< TUPLE of size " + std::to_string(vin.seti->getsize()) + ">"; break;
+        case mtset:
+            {
+                vout->clear();
+                vout = new std::string;
+                *vout = "{";
+                auto itr = vin.seti->getitrpos(false);
+                std::string* s = new std::string;
+                auto first = true;
+                while (!itr->ended())
+                {
+                    if (!first)
+                    {
+                        *vout = *vout + ",";
+                    } else
+                        first = false;
+                    const valms v = itr->getnext();
+                    mtconverttostring(v,s);
+                    *vout = *vout + *s;
+                }
+                *vout = *vout + "}";
+                delete s;
+                delete itr;
+                break;
+            }
+        //*vout = "{ SET of size " + std::to_string(vin.seti->getsize()) + "}"; break;
+        case mttuple:
+            {
+                vout->clear();
+                vout = new std::string;
+                *vout = "<";
+                auto itr = vin.seti->getitrpos(false);
+                std::string* s = new std::string;
+                auto first = true;
+                while (!itr->ended())
+                {
+                    if (!first)
+                    {
+                        *vout = *vout + ",";
+                    } else
+                        first = false;
+                    const valms v = itr->getnext();
+                    mtconverttostring(v,s);
+                    *vout = *vout + *s;
+                }
+                *vout = *vout + ">";
+                delete s;
+                delete itr;
+                break;
+            }
+            // *vout = "< TUPLE of size " + std::to_string(vin.seti->getsize()) + ">"; break;
         case mtstring: *vout = *vin.v.rv; break;
         case mtgraph: {
             std::stringstream ss {};

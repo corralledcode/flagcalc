@@ -311,6 +311,15 @@ NAMING (A AS Automs, FORALL (u IN V, v IN V, u < v, EXISTS (a IN A, a[u] == v)))
 
 END
 
+mtgraph strongproduct( mtgraph g1, mtgraph g2 )
+
+GraphonVEg( crossproduct(V(g1),V(g2)), SETD (u1 IN V(g1), u2 IN V(g1), v1 IN V(g2), v2 IN V(g2),
+(ac(g1,u1,u2) OR u1 == u2)
+AND (ac(g2,v1,v2) OR v1 == v2)
+AND (NOT (u1 == u2 AND v1 == v2)), {<<u1,v1>>,<<u2,v2>>} ))
+
+END
+
 // #pyinclude "pymeas" // can do, but reverts to one thread due to Python GIL; only invoke if using Python add-ons
 
 #include "recursion.dat"
